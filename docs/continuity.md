@@ -16,8 +16,12 @@ The current addition in draft PR #591 is interactive proof authoring. `spec proo
 reads Lean's actual goals at a draft cursor, including available assumptions and the original
 claim. It cannot issue a proof receipt; `closed-at-position` can describe only one solved branch.
 The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edit/check loop.
-Qualify its real branch transitions, complete-check requirement and examples on GitHub, then
-refresh affected evidence before treating the PR as CI-ready. No new agent outcomes are claimed.
+[Real Lean branch tests](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004157),
+[deadline controls and packaged skill examples](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004148) pass.
+[Full proof preparation](https://github.com/e6qu/fun-refactor/actions/runs/41348391677) and
+[the next diagnostic’s controls](https://github.com/e6qu/fun-refactor/actions/runs/41353218026) also pass,
+using the same checked executable. No new agent attempts have started.
+Keep full PR CI and current-report checks mandatory. These checks establish tool behavior; they add no agent successes.
 
 **The full comparison remains paused. Three small diagnostics are closed; the next is being qualified.**
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).

@@ -37,8 +37,11 @@ All have `acceptance: "not-checked"`. Insufficient response space fails explicit
 tokens; choose it and the shared dependency/editor deadline explicitly.
 
 Edit one step, inspect, and adjust to the actual goal. For comparisons or division,
-read [Arithmetic](lean-arithmetic.md). For a missing fact, use `lean --print-prefix` and its type's folder under `src/lean/Init/Data`.
-Use that folder as `<LEAN_LIBRARY_DIR>` and a literal name fragment as `<LIBRARY_QUERY>`:
+read [Arithmetic](lean-arithmetic.md). For a missing library fact, run `lean --print-prefix`
+with its working directory
+set to the theorem's Lake package (`specs/` here), so its `lean-toolchain` selects Lean.
+Use the project root again for proof commands. Under the printed prefix, choose the type's
+folder in `src/lean/Init/Data` as `<LEAN_LIBRARY_DIR>` and a name fragment as `<LIBRARY_QUERY>`:
 
 ```sh
 fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --limit 4
