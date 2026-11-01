@@ -110,12 +110,12 @@
       "sha256": "2d0ec1fa8941962ab3a70e2d30934d93793adf39c695ed10420df4e520c6e8d3"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-31-lean-column-fix-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-01-nested-assumptions-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-31-lean-column-fix-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-nested-assumptions-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "ca72a38972475933b9311b15fb93295bb86cac2929b09a63ed1842695c2eb1b2"
+      "sha256": "c0fbe5c832a2fb8f132bf216a3a1d50e5306a1a72c73befaf6cc0feb84fa63b5"
     },
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-30-m3-claim-parts-final-index-resolution/result.json",

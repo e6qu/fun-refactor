@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-31-lean-column-fix-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-01-nested-assumptions-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):
