@@ -12,7 +12,7 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-**The full comparison remains paused. Both small diagnostics are closed and independently checked.**
+**The full comparison remains paused. All three small diagnostics are closed and independently checked.**
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
 Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
 Keep the diagnostic's original source, checker and input identities. Do not rerun its closed slots.
@@ -39,9 +39,25 @@ Independent grading accepted three patches; Kimi timed out once without a patch.
 Both Kimi attempts hit a reader defect: Lean accepts inline calculation steps that measured fr rejects before Lean runs.
 All 29 hosted preparation checks passed in run 41214408630. The exact rebuilt-command replay also passed without model calls.
 It accepts the earlier valid calculation and lets Lean reject the timed-out draft's unknown names.
-That replay exposed a second defect: tagged unknown-name errors lose their structured draft locations.
-The next repair keeps the code, message and submitted line and column. Validate the CLI and strict Python reader before more calls.
+That replay exposed a second defect: tagged unknown-name errors lost their structured draft locations.
+Its repair passed all 29 hosted preparation checks and Python-record checks.
+An [exact replay](../tests/agent-eval/proof-construction/diagnostic-control-summary.json) now keeps the error code, message and submitted line and column.
 Keep all four original outcomes unchanged.
+
+The [four page-count attempts](../tests/agent-eval/proof-page-count/README.md) all timed out without patches; independent grading confirms all four failures.
+They exposed another reader defect in nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
+The repair passed all 29 hosted preparation checks.
+The [rebuilt-reader replay](../tests/agent-eval/proof-page-count/reader-control-summary.json) reaches Lean and still rejects the original draft.
+The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates redundant introductions, wrong assumption grouping and missing division facts.
+Its final manual control proves the unchanged claim. It is neither an agent success nor a timing comparison.
+Before another paid diagnostic, freeze a prediction about finding and using those facts; keep the completed proof out of the agent inputs.
+
+The requested [team workflow](team-solve.md) uses fresh local Luna, GLM and Kimi sessions with explicit file handoffs.
+The [Python pilot](../tests/agent-eval/team-solve/README.md) passed eight cases in 249.9 seconds across five CLI sessions.
+It has no solo baseline, and no role invoked fr. The actual number of provider requests is unknown.
+The runner now supports a single session, an all-Luna team and the mixed team with explicit complete-run budgets.
+Nineteen focused controls pass locally; the latest code still needs its complete hosted CI check.
+No paid comparison of those conditions has run. Team results cannot close the M3 solo requirements.
 
 Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
 Hosted M3 checks passed; a clean proof remains checkable while another theorem is unfinished.
@@ -51,7 +67,7 @@ Focused checks now accept the clean reference and reject the changed dependency.
 The known-file fr lookup also passes locally by indexing exactly one file; its CI deadline remains three minutes.
 
 All 335 M3 outcomes remain in the [complete and interrupted archives](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
-The eight repair attempts and four construction attempts are separate; they cannot replace a full-study failure.
+The eight repair, four construction and four page-count attempts are separate; they cannot replace a full-study failure.
 Retain original input identities, failures, sleep limitations and record hashes.
 Only submitted patches and summaries may leave the workstation.
 Keep logs, drafts, source archives, session exports and account data local.

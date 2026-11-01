@@ -14,7 +14,7 @@ The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
 | A valid inline calculation was rejected before Lean ran | All 29 hosted preparation checks pass. A replay with the rebuilt executable accepts the earlier valid draft and keeps the invalid draft rejected by Lean |
 | Tagged Lean errors lost the draft line and column | All 29 hosted preparation checks pass. An exact replay now reports both unknown names at their submitted lines and columns. Lean counts columns from zero; fr converts them to columns starting at one and preserves first-column errors |
 | The page-count evaluator crashed on a known-correct patch | It now reads settings from the selected study directly. Its regression reproduces the old crash. All seven hosted patch controls and four scripted client exchanges passed before agent attempts |
-| Nested assumption patterns were rejected before Lean ran | A minimal control confirms that Lean accepts `⟨⟨a, b⟩, c⟩` while the measured fr rejects it. The recursive grammar repair and native proof regressions await hosted validation |
+| Nested assumption patterns were rejected before Lean ran | All 29 hosted preparation checks pass. The rebuilt reader accepts nested patterns such as `⟨⟨a, b⟩, c⟩`; replaying the original draft now reaches Lean and exposes its remaining proof errors |
 | Lean propositions were grouped incorrectly | Reads `p ∧ q ∧ r` as `p ∧ (q ∧ r)` and gives disjunction its proper precedence |
 | Library lookup lost a declaration's type | Keeps declared types for equation-style definitions and proofs; returns bounded headers without proof bodies |
 | A draft error pointed only to generated code | Reports the draft line and source excerpt; retains the actual goal and counts omitted context |
@@ -58,6 +58,12 @@ The [later construction check](tests/agent-eval/proof-construction/README.md#wha
 Three patches passed independent grading; one Kimi attempt timed out without a patch.
 Its repeated inline-calculation rejections led to a reader defect reproduced without model calls.
 Full comparisons stay paused while the [improvement method](docs/agent-improvement.md) guides this repair and the next question.
+The [page-count error review](tests/agent-eval/proof-page-count/draft-error-review.json) separates syntax, assumption grouping and missing division facts.
+Its final manual control proves the unchanged claim. GLM and Kimi still lack complete accepted page-count attempts within 150 seconds.
+
+The current CI repair also separates the slow formal-kernel tests from the other native tests.
+Eight workers retain every test exactly once and keep the existing 15-minute deadline.
+The complete CI run must confirm that this resolves the overloaded job.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
