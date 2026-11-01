@@ -18,6 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 pub const LEAN_TOOLCHAIN: &str = "leanprover/lean4:v4.28.0";
 
@@ -4063,7 +4064,8 @@ fn verify_with_warnings(
                         check.arg("-DwarningAsError=true");
                     }
                     check.arg(&spec).current_dir(&package);
-                    let result = crate::checks::bounded_process(check, 120, 4096, true)?;
+                    let deadline = Instant::now() + Duration::from_secs(120);
+                    let result = crate::checks::bounded_process(check, deadline, 4096, true)?;
                     passed &= result["passed"] == true;
                     if result["passed"] != true {
                         text.push_str(&format!("\nModule {}: {}\n", spec.display(), result));

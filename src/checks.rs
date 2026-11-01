@@ -245,7 +245,8 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
     let cwd = confined(root, &check.cwd, true)?;
     let mut command = Command::new(&check.argv[0]);
     command.args(&check.argv[1..]).current_dir(cwd);
-    let mut result = bounded_process(command, check.timeout_seconds, limit, quiet_success)?;
+    let deadline = Instant::now() + Duration::from_secs(check.timeout_seconds);
+    let mut result = bounded_process(command, deadline, limit, quiet_success)?;
     result["name"] = json!(check.name);
     result["argv"] = json!(check.argv);
     result["cwd"] = json!(check.cwd);
@@ -255,7 +256,7 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
 
 pub(crate) fn bounded_process(
     mut command: Command,
-    timeout_seconds: u64,
+    deadline: Instant,
     limit: usize,
     quiet_success: bool,
 ) -> Result<Value> {
@@ -268,14 +269,22 @@ pub(crate) fn bounded_process(
         .stderr(Stdio::from(stderr.try_clone()?));
     #[cfg(unix)]
     command.process_group(0);
-    let child = command.spawn();
-    let mut timed_out = false;
+    let mut timed_out = Instant::now() >= deadline;
+    let child = if timed_out {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            "process deadline expired before startup",
+        ))
+    } else {
+        command.spawn()
+    };
     let mut output_limit = false;
     let mut termination_attempted = false;
     let mut termination_error = None;
     let (status, error) = match child {
         Ok(mut child) => {
             let status = loop {
+                timed_out = Instant::now() >= deadline;
                 match child.try_wait() {
                     Ok(Some(status)) => {
                         #[cfg(unix)]
@@ -293,7 +302,6 @@ pub(crate) fn bounded_process(
                         break Err(error);
                     }
                 }
-                timed_out = started.elapsed() >= Duration::from_secs(timeout_seconds);
                 output_limit = stdout.metadata()?.len() > MAX_CAPTURE
                     || stderr.metadata()?.len() > MAX_CAPTURE;
                 if timed_out || output_limit {
@@ -333,6 +341,54 @@ pub(crate) fn bounded_process(
         result["termination_error"] = json!(termination_error);
     }
     Ok(result)
+}
+
+#[cfg(all(test, unix))]
+mod deadline_tests {
+    use super::*;
+
+    #[test]
+    fn fractional_deadlines_allow_work_and_stop_slow_process_groups() {
+        let mut quick = Command::new("sh");
+        quick.args(["-c", "exit 0"]);
+        let result = bounded_process(
+            quick,
+            Instant::now() + Duration::from_millis(900),
+            1024,
+            false,
+        )
+        .unwrap();
+        assert_eq!(result["passed"], true, "{result}");
+
+        let mut slow = Command::new("sh");
+        slow.args(["-c", "sleep 20"]);
+        let started = Instant::now();
+        let result =
+            bounded_process(slow, started + Duration::from_millis(120), 1024, false).unwrap();
+        assert_eq!(result["passed"], false, "{result}");
+        assert_eq!(result["timed_out"], true, "{result}");
+        assert_eq!(result["termination_scope"], "process-group");
+        assert!(started.elapsed() < Duration::from_secs(3));
+    }
+
+    #[test]
+    fn expired_deadline_never_starts_even_a_successful_command() {
+        let temporary = tempfile::tempdir().unwrap();
+        let sentinel = temporary.path().join("should-not-exist");
+        let mut command = Command::new("touch");
+        command.arg(&sentinel);
+        let result = bounded_process(
+            command,
+            Instant::now() - Duration::from_millis(1),
+            1024,
+            false,
+        )
+        .unwrap();
+        assert_eq!(result["passed"], false, "{result}");
+        assert_eq!(result["timed_out"], true, "{result}");
+        assert!(result["exit_code"].is_null());
+        assert!(!sentinel.exists());
+    }
 }
 
 pub fn check_evidence_acceptable(

@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 const SCHEMA: &str = "fr-proof-evidence-1";
 
@@ -100,7 +101,12 @@ fn command(program: &Path, cwd: &Path) -> Command {
 fn toolchain(package: &Path) -> Result<Value> {
     let mut resolve = command(Path::new("lean"), package);
     resolve.arg("--print-prefix");
-    let resolved = crate::checks::bounded_process(resolve, 30, 4096, false)?;
+    let resolved = crate::checks::bounded_process(
+        resolve,
+        Instant::now() + Duration::from_secs(30),
+        4096,
+        false,
+    )?;
     ensure!(
         resolved["passed"] == true && resolved["stdout"]["omitted_bytes"] == 0,
         "cannot resolve the pinned Lean installation."
@@ -119,7 +125,12 @@ fn toolchain(package: &Path) -> Result<Value> {
     }
     let mut version = command(&prefix.join("bin/lean"), package);
     version.arg("--version");
-    let version = crate::checks::bounded_process(version, 30, 4096, false)?;
+    let version = crate::checks::bounded_process(
+        version,
+        Instant::now() + Duration::from_secs(30),
+        4096,
+        false,
+    )?;
     let expected = super::LEAN_TOOLCHAIN.rsplit(":v").next().unwrap();
     ensure!(
         version["passed"] == true
@@ -308,7 +319,12 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         for module in &before.modules {
             build.arg(format!("./{}", module.display()));
         }
-        let build = crate::checks::bounded_process(build, 120, 2048, true)?;
+        let build = crate::checks::bounded_process(
+            build,
+            Instant::now() + Duration::from_secs(120),
+            2048,
+            true,
+        )?;
         let built = build["passed"] == true;
         results.push(json!({"module":null,"command":"lake build --wfail (all selected modules)","result":build}));
         if built {
@@ -318,7 +334,12 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
                     .arg("-DwarningAsError=true")
                     .arg(module)
                     .env("LEAN_PATH", scratch.path().join(".lake/build/lib/lean"));
-                let checked = crate::checks::bounded_process(check, 30, 2048, true)?;
+                let checked = crate::checks::bounded_process(
+                    check,
+                    Instant::now() + Duration::from_secs(30),
+                    2048,
+                    true,
+                )?;
                 results.push(json!({"module":module,"command":"lean -DwarningAsError=true","result":checked}));
             }
         }

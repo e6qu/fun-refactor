@@ -64,15 +64,14 @@ pub fn proof_state(
     let package_inputs =
         super::proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?;
     let dependency_target = format!("{}:deps", prepared.spec.strip_prefix(&package)?.display());
-    let seconds = deadline.saturating_duration_since(Instant::now()).as_secs();
-    if seconds == 0 {
+    if Instant::now() >= deadline {
         bail!("proof state deadline exhausted before dependency preparation.");
     }
     let mut build = Command::new("lake");
     build
         .args(["build", &dependency_target])
         .current_dir(&package);
-    let dependencies = crate::checks::bounded_process(build, seconds, 4096, false)?;
+    let dependencies = crate::checks::bounded_process(build, deadline, 4096, false)?;
     if dependencies["passed"] != true {
         bail!("proof state dependency preparation failed: {dependencies}");
     }
@@ -519,6 +518,9 @@ fn query(
         response(&mut output, &mut input, &captured, 2)
     })();
     session.finish()?;
+    if Instant::now() >= deadline && reason.load(Ordering::SeqCst) == 0 {
+        reason.store(1, Ordering::SeqCst);
+    }
     match reason.load(Ordering::SeqCst) {
         1 => bail!(
             "Lean editor exceeded the selected shared checking deadline; its processes were stopped."
