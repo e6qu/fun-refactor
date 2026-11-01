@@ -119,6 +119,11 @@ The [installation guide](docs/agent-skill.md#install-the-handoff) gives commands
 Keep [`SKILL.md`](skills/fr/SKILL.md) and its adjacent `references` directory together.
 The skill routes a task to a small relevant guide rather than loading the whole manual.
 
+To let the selected agents work on one change together, see the
+[Luna, GLM and Kimi team workflow](docs/team-solve.md). It passes short files
+between fresh local CLI sessions and checks the resulting patch. Its larger team
+budget is separate from the timed solo comparisons.
+
 Start with the live support summary and a structured goal:
 
 `audit` needs no input file. The second command needs a task description saved as `goal.json`;
