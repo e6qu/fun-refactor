@@ -67,6 +67,9 @@ The complete CI run must confirm that this resolves the overloaded job.
 One SDK runner also exhausted disk while installing test tools, before tests started.
 Native setup now removes the image's unused Android and .NET SDKs and logs free space before and after.
 The replacement CI run must confirm enough space for the unchanged checks.
+The study checkout also omitted a newly linked result manifest.
+It now selects evidence paths from the guides alongside the audit catalogs.
+A small checkout control restores the linked manifest while leaving its source archive out.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
