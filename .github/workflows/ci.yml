@@ -588,10 +588,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout-cone-mode: false
+          persist-credentials: false
           sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            .github/actions/grading-registry
+            tools
+            tests/agent-eval/opencode
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
