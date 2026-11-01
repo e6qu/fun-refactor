@@ -730,14 +730,15 @@ named generated region and participate in source history, undo, redo and patch e
 authors the property and tactics; `fr` validates and renders them without inventing either.
 
 `proof-state` asks the pinned Lean editor for goals at a position in a tactics draft, without
-saving the proof. All four settings are explicit: `--from` selects the draft; `--at` uses
-one-based Unicode character coordinates, including the end of a line; `--token-limit` selects
-1024–16384 UTF-8 response bytes; `--timeout-seconds` selects 1–60 shared seconds for dependencies
-and the editor query. Start a draft with `skip` and use `--at 1:5` to inspect after that step.
+saving the proof. All four settings are explicit. `--from` selects the draft.
+`--at` uses one-based Unicode character coordinates, including the end of a line.
+`--token-limit` selects 1024–16384 UTF-8 response bytes.
+`--timeout-seconds` selects 1–60 shared seconds for dependencies and the editor query.
+Start a draft with `skip` and use `--at 1:5` to inspect after that step.
 The response keeps the theorem, goal and draft identities, location, goals and available assumptions.
 It refuses an undersized response rather than removing goals or hypotheses.
-`goals` means there is work at that cursor; `closed-at-position` means the selected branch has
-no goals there; `no-tactic-at-position` means no tactic state was found. Every response says
+`goals` means there is work at that cursor. `closed-at-position` means the selected branch has
+no goals there. `no-tactic-at-position` means Lean found no tactic state. Every response says
 `acceptance: "not-checked"`. Even an empty goal list requires a complete `proof-check` with
 `passed: true` before saving. Querying a closed first branch can leave a second branch unfinished.
 Task and attempt reports include an `actions.inspect` command with explicit cursor/deadline slots.

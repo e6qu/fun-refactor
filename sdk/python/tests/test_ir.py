@@ -75,7 +75,7 @@ class TestIr:
             assert ProofState.from_data(closed).to_data() == closed
         for mutation in (
             {"acceptance": "accepted"}, {"status": "closed-at-position"},
-            {"goals": [""]}, {"status": "accepted"},
+            {"goals": [""]}, {"status": "accepted"}, {"status": []},
             {"check": ["spec", "prove", target]}, {"receipt": "c" * 64},
             {"draft_location": {**state["draft_location"], "line": 0}},
         ):

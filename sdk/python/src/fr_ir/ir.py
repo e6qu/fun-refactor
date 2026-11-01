@@ -1919,7 +1919,8 @@ class ProofState:
         goals = _string_vector(value["goals"], "proof state goals")
         if any(not goal for goal in goals):
             raise IrError("proof state goals cannot contain empty entries")
-        if value["status"] not in {"goals", "closed-at-position", "no-tactic-at-position"}:
+        if (not isinstance(value["status"], str)
+                or value["status"] not in {"goals", "closed-at-position", "no-tactic-at-position"}):
             raise IrError("unknown proof state status")
         if bool(goals) != (value["status"] == "goals"):
             raise IrError("proof state status contradicts its goals")

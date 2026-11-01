@@ -271,6 +271,10 @@ fr --json spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --wr
 fr --json spec verify specs
 ```
 
+Use the returned theorem target. For the first inspection, put `skip` in `proof.lean`;
+`--at 1:5` selects the position just after it. The [complete lesson](docs/first-lean-proof.md)
+shows how to turn that open goal into a checked proof.
+
 ## Scope and guarantees
 
 `fr` can read 19 source formats.

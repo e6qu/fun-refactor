@@ -1,4 +1,3 @@
-//! Read actual editor goals from the pinned Lean server, without saving a proof.
 use super::{FormalGoalBudget, ProofDiagnosticLocation};
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
@@ -39,7 +38,6 @@ pub struct ProofState {
     pub token_budget: FormalGoalBudget,
 }
 
-/// Coordinates are one-based Unicode scalar positions in the original tactics file.
 pub fn proof_state(
     root: &Path,
     target: &str,
