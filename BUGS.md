@@ -13,6 +13,7 @@ The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
 | Valid Lean proof forms were rejected before checking | Accepts discarded assumptions such as `rintro ⟨h, -, -⟩`, simplifier phase markers, Unicode lambda arrows, branching bindings and dated attributes; checks later declarations too |
 | A valid inline calculation was rejected before Lean ran | All 29 hosted preparation checks pass. A replay with the rebuilt executable accepts the earlier valid draft and keeps the invalid draft rejected by Lean |
 | Tagged Lean errors lost the draft line and column | The repair recognizes codes such as `lean.unknownIdentifier`. CI also exposed a column-counting error: Lean starts at zero, while fr reports columns starting at one. The conversion now preserves first-column errors; hosted validation continues |
+| The page-count evaluator crashed on a known-correct patch | It now reads settings from the selected study directly. A regression checks the actual evaluator route and exact patch undo and redo. Hosted controls must pass before new agent attempts |
 | Lean propositions were grouped incorrectly | Reads `p ∧ q ∧ r` as `p ∧ (q ∧ r)` and gives disjunction its proper precedence |
 | Library lookup lost a declaration's type | Keeps declared types for equation-style definitions and proofs; returns bounded headers without proof bodies |
 | A draft error pointed only to generated code | Reports the draft line and source excerpt; retains the actual goal and counts omitted context |

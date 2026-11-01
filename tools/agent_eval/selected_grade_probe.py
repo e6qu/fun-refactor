@@ -10,7 +10,7 @@ import subprocess
 import time
 
 from . import selected_tasks as tasks
-from .selected_plan import encoded, require
+from .selected_plan import CASE_DIRECTORIES, ROOT, encoded, require
 
 
 def restore_dependency_cache(source, destination):
@@ -55,7 +55,7 @@ def run(task, milestone):
         from . import proof_writing_tasks as cases
         require(task in cases.CASES and prepared['property'] == cases.property_for(task,
                 {'object_digest': prepared['property']['task_digest']}), 'private M3 fixed property differs')
-    elif milestone in {'M3-feedback', 'M3-construction', 'M3-page-count'}:
+    elif milestone in {'M3-feedback', 'M3-construction'}:
         from . import proof_feedback as cases
         require(task == cases.case_details(milestone)['task'] and prepared['property'] == cases.property_for(
                 {'object_digest': prepared['property']['task_digest']}, milestone), 'private diagnostic property differs')
@@ -128,8 +128,7 @@ def run(task, milestone):
                 'private compiler versions differ from their explicit pins')
         verdict = cases.check(task, changed, prepared, checkers, root / 'changed-checks')
     elif milestone in {'M3', 'M3-feedback', 'M3-construction', 'M3-page-count'}:
-        directory = cases.DIRECTORY if milestone == 'M3' else cases.case_details(milestone)['directory']
-        settings = json.loads((cases.ROOT / directory / 'checkers.json').read_text())
+        settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         result['checker_versions'] = {name: subprocess.check_output([name, '--version'], text=True, timeout=10).strip()
                                       for name in ('lean', 'lake', 'rustc', 'python3')}
         require(result['checker_versions']['lean'].startswith('Lean (version ' + settings['lean'] + ',') and

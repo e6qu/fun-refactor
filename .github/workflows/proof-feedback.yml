@@ -98,6 +98,8 @@ jobs:
             ${{ runner.temp }}/feedback-controls/controls.json
             ${{ runner.temp }}/feedback-controls/initial-check.json
             ${{ runner.temp }}/feedback-controls/grade-*/result.json
+            ${{ runner.temp }}/feedback-controls/grade-*/grader.stdout
+            ${{ runner.temp }}/feedback-controls/grade-*/grader.stderr
           if-no-files-found: warn
           retention-days: 30
       - uses: actions/upload-artifact@v7

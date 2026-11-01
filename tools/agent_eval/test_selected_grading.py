@@ -1,5 +1,6 @@
 """Check source isolation before any generated code can execute."""
 from pathlib import Path
+import json
 import sys
 import tempfile
 import unittest
@@ -7,10 +8,62 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import selected_grading as grading
+from agent_eval import selected_grade_probe as probe, proof_writing_tasks as proof
 from agent_eval.selected_grade_probe import restore_dependency_cache
 
 
 class SelectedGradingTests(unittest.TestCase):
+    def test_page_count_grader_uses_its_settings_and_checks_exact_patch_delivery(self):
+        inputs = self.root / 'inputs'
+        original = inputs / 'original'
+        original.mkdir(parents=True)
+        spec = 'specs/Fixed.lean'
+        (original / 'specs').mkdir()
+        (original / spec).write_text('old\n')
+        prepared = {'task': 'page-count', 'spec': spec, 'original': grading.tasks.sources(original),
+                    'property': proof.property_for('page-count', {'object_digest': 'fixed'})}
+        (inputs / 'project.json').write_text(json.dumps(prepared))
+        (inputs / 'delivery.json').write_text(json.dumps({'provided': True}))
+        (inputs / 'change.patch').write_text(
+            'diff --git a/specs/Fixed.lean b/specs/Fixed.lean\n'
+            '--- a/specs/Fixed.lean\n+++ b/specs/Fixed.lean\n@@ -1 +1 @@\n-old\n+new\n')
+        workspace = self.root / 'workspace'
+        workspace.mkdir()
+        container = self.root / '.dockerenv'
+        container.touch()
+
+        def path(value):
+            return {'/.dockerenv': container, '/inputs/original': original,
+                    '/inputs/project.json': inputs / 'project.json',
+                    '/inputs/delivery.json': inputs / 'delivery.json',
+                    '/inputs/change.patch': inputs / 'change.patch',
+                    '/workspace': workspace}.get(value, Path(value))
+
+        versions = {'lean': 'Lean (version 4.28.0, test)', 'lake': 'Lake version test',
+                    'rustc': 'rustc 1.99.1 test', 'python3': 'Python 3.12.3'}
+        settings = self.root / 'settings' / probe.CASE_DIRECTORIES['M3-page-count']
+        settings.mkdir(parents=True)
+        (settings / 'checkers.json').write_bytes(
+            (probe.ROOT / probe.CASE_DIRECTORIES['M3-page-count'] / 'checkers.json').read_bytes())
+        actual_check_output = probe.subprocess.check_output
+
+        def version_or_git(argv, **kwargs):
+            if len(argv) == 2 and argv[1] == '--version' and argv[0] in versions:
+                return versions[argv[0]]
+            return actual_check_output(argv, **kwargs)
+
+        with mock.patch.object(probe, 'Path', side_effect=path), \
+                mock.patch.object(probe, 'ROOT', self.root / 'settings'), \
+                mock.patch.dict(probe.os.environ, {}, clear=True), \
+                mock.patch.object(probe.subprocess, 'check_output', side_effect=version_or_git), \
+                mock.patch.object(proof, 'check', return_value={'passed': True}) as checking:
+            result = probe.run('page-count', 'M3-page-count')
+        self.assertTrue(result['passed'])
+        self.assertTrue(result['undo_exact'])
+        self.assertTrue(result['redo_exact'])
+        self.assertEqual(checking.call_count, 2)
+        self.assertEqual((workspace / 'receiver' / spec).read_text(), 'new\n')
+
     def test_image_timeout_retains_the_build_log_without_extending_the_deadline(self):
         output = self.root / 'image'
 
