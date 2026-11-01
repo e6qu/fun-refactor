@@ -68,6 +68,9 @@ One SDK runner also exhausted disk while installing test tools, before tests sta
 Native setup declares a 16 GiB reserve and removes unused Android and .NET SDKs only when it needs space.
 It logs free space before and after, then stops if the reserve remains unmet.
 These native and SDK checks passed after the disk repair; the remaining independent CI checks continue.
+The next diagnostic also exposed a build-verification defect after a partial workflow rerun.
+GitHub's default job listing omitted the earlier successful builder.
+The verifier now requests every job page and still requires one unambiguous successful builder with matching source inputs.
 The study checkout also omitted a newly linked result manifest.
 It now selects evidence paths from the guides alongside the audit catalogs.
 A small checkout control restores the linked manifest while leaving its source archive out.
