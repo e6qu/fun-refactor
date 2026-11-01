@@ -100,12 +100,15 @@ The next tasks stay inside this milestone PR:
    Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
    Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.
 6. Add the requested [Luna, GLM and Kimi team workflow](docs/team-solve.md) in this same PR.
-   Use native local CLIs: Luna plans and implements, GLM and Kimi propose independently,
-   Kimi reviews actual check results, and Luna repairs once only if initial checks fail.
-   Complete scripted controls for fresh contexts, protected source and claims, failed checks,
-   skipped repair after success, and retained resource failures before a small live pilot.
-   Retain the pilot's patch and reviewed summary; keep handoffs and transcripts local.
-   Report every role's time and usage under a separate explicit team budget.
+   Use native local CLIs. Luna plans and implements; GLM and Kimi propose independently.
+   Kimi reviews actual check results. Luna repairs once only if initial checks fail.
+   The scripted controls cover fresh contexts, protected source and claims, failed checks,
+   skipped repair after success, and retained resource failures.
+   The [first live pilot](tests/agent-eval/team-solve/README.md) passed all eight Python cases
+   in 249.9 seconds across five calls, with repair skipped. Retain its patch and reviewed
+   summary; handoffs and transcripts stay local. No role invoked fr on that tiny task.
+   Hosted CI remains required. Any quality comparison must use frozen tasks, checks,
+   explicit solo and team budgets, every failure and complete role time and reported usage.
    Do not use a team success to close the unchanged 150-second M3 solo requirements.
 
 Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.

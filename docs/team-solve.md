@@ -196,6 +196,12 @@ python3 /Users/zardoz/.codex/tools/fr-local-guard.py \
 The [hosted controls](../.github/workflows/team-solve.yml) run the same checks;
 the main PR checks include them too. Scripted success does not establish live model quality.
 
+The [first live pilot](../tests/agent-eval/team-solve/README.md) repaired the small
+Python example in 249.9 seconds across five calls. Both check phases passed;
+repair was skipped. It used no actual fr command and had no timed solo baseline.
+The reviewed record establishes working file handoffs and checked delivery,
+without a measured fr benefit or evidence that the team improves on one agent.
+
 Treat a team attempt as a separate experiment from the existing 150-second solo
 comparison. Record all role time, failed calls, checker time and reported usage;
 actual account charges remain unknown unless independently observed. A team may

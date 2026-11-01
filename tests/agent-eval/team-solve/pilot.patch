@@ -1,0 +1,10 @@
+diff --git a/counter.py b/counter.py
+index f37d31b..9399328 100644
+--- a/counter.py
++++ b/counter.py
+@@ -2,4 +2,4 @@ def pages(items, size):
+     """Return -1 for invalid inputs, otherwise the number of pages needed."""
+     if items < 0 or size <= 0:
+         return -1
+-    return items // size
++    return (items + size - 1) // size

@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -55,6 +56,8 @@ class TeamSolveTests(unittest.TestCase):
 
     def agent(self, plan, project, record, role, prompt, seconds):
         self.calls.append((role, project))
+        self.assertIn('Source and test paths in the task are relative to this root.', prompt)
+        self.assertIn('not copies of source or test files', prompt)
         inbox = project / team.DATA / 'in'
         if role in {'ideate-a', 'ideate-b'}:
             self.assertEqual({p.name for p in inbox.iterdir()}, {'task.md', 'plan.md'})
@@ -245,6 +248,25 @@ class TeamSolveTests(unittest.TestCase):
                     result = native.agent(plan, project, record, role, 'Do the scripted task.', 30)
                 self.assertEqual(result['status'], 'completed')
                 self.assertIsNone(result['usage']['actual_cost'])
+
+    def test_retained_live_patch_passes_the_unchanged_eight_case_checker(self):
+        retained = ROOT / 'tests/agent-eval/team-solve'
+        summary = team.load(retained / 'pilot-summary.json')
+        patch_bytes = (retained / 'pilot.patch').read_bytes()
+        self.assertEqual(hashlib.sha256(patch_bytes).hexdigest(), summary['patch_sha256'])
+        self.assertEqual(team.sources(self.run / 'seed'), summary['pilot']['source'])
+        candidate = self.run / 'candidate'
+        original = subprocess.run([sys.executable, '-B', 'check.py'], cwd=candidate, capture_output=True)
+        self.assertNotEqual(original.returncode, 0, 'the unchanged fixture must catch the original mistake')
+        git = team.common.comparison_grade.BASE.git
+        git(candidate, 'apply', '--check', '-', data=patch_bytes)
+        git(candidate, 'apply', '-', data=patch_bytes)
+        result = subprocess.run([sys.executable, '-B', 'check.py'], cwd=candidate, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        team.boundary(self.plan, candidate)
+        self.assertTrue(summary['passed'])
+        self.assertEqual(summary['roles']['repair']['status'], 'skipped')
+        self.assertEqual(summary['pilot']['actual_fr_invocations'], 0)
 
 
 if __name__ == '__main__':

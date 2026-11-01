@@ -269,6 +269,8 @@ def stage(plan, run, role, seconds, agent):
                      'checks': local.hash_file(project / '.fr/checks.json'),
                      'head': common.comparison_grade.BASE.git(project, 'rev-parse', 'HEAD').stdout}
         prompt = (BRIEF[role] + '\nRead .fr/team-solve/in/task.md and the supplied files in that input folder. '
+                  'Your working directory is the copied project root. Source and test paths in the task are relative to this root. '
+                  'The .fr/team-solve/in folder contains handoff notes and check logs, not copies of source or test files. '
                   'This is a fresh context: use files, not prior conversation. Read .agents/skills/fr/SKILL.md and use fr where it helps. '
                   'Write your concise handoff to .fr/team-solve/out/' + OUTPUTS[role] + '. '
                   'Only the solver and repair worker may edit the declared source paths or marked regions. '
@@ -278,7 +280,7 @@ def stage(plan, run, role, seconds, agent):
                   'Run tools serially. Do not build fr or run repository-wide gates. The outer resource guard is already active; do not start another. '
                   'Read complete bounded JSON or select decoded fields; do not cut JSON with head or tail. '
                   'The coordinator runs the declared checks and captures the final patch. A successful fr process can still report passed=false. '
-                  'An accepted Lean model proof leaves the source/model connection unproved. Finish your handoff within this role deadline.')
+                  'Finish your handoff within this role deadline.')
         remaining = seconds - (elapsed_time() - started)
         require(remaining > local.CLIENT_FINISH_SECONDS, 'role preparation consumed its deadline')
         result['native'] = agent(plan, project, record, role, prompt, remaining)
