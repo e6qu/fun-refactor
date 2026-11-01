@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def check(binary, diagnostics, integer_library):
     diagnostics.mkdir(parents=True, exist_ok=False)
     failures = []
-    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean']:
+    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean', 'lean-nested-assumptions.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
@@ -25,6 +25,18 @@ def check(binary, diagnostics, integer_library):
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
+        if fixture == 'lean-nested-assumptions.lean':
+            def tuple_depth(node):
+                return (node.tag == 'rcases_tuple_pattern') + max(map(tuple_depth, node), default=0)
+            expected = {'nestedObtain': 3, 'nestedRCases': 3, 'nestedRIntro': 3,
+                        'nestedAlternative': 1, 'afterNested': 0}
+            found = {}
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is not None:
+                    found[''.join(''.join(name.itertext()).split())] = tuple_depth(definition)
+            if found != expected:
+                failures.append(fixture + ': nested patterns or the following declaration changed: ' + str(found))
         if fixture == 'lean-proof-locations.lean' and len(list(tree.iter('for_in'))) != 2:
             failures.append(fixture + ': expected two nested for loops')
         if fixture == 'lean-proof-locations.lean':

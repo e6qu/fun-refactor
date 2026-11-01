@@ -648,6 +648,44 @@ fn typed_proofs_keep_their_annotations_and_case_labels() {
 }
 
 #[test]
+fn nested_assumption_patterns_preserve_grouping_and_the_next_declaration() {
+    fn tuple_depth(node: tree_sitter::Node<'_>) -> usize {
+        let mut cursor = node.walk();
+        usize::from(node.kind() == "rcases_tuple_pattern")
+            + node
+                .named_children(&mut cursor)
+                .map(tuple_depth)
+                .max()
+                .unwrap_or(0)
+    }
+
+    let source = include_str!("fixtures/lean-nested-assumptions.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let actual: Vec<_> = tree
+        .root()
+        .named_children(&mut cursor)
+        .filter(|node| node.kind() == "definition")
+        .map(|node| {
+            let name = node.child_by_field_name("name").unwrap();
+            (&source[name.byte_range()], tuple_depth(node))
+        })
+        .collect();
+    assert_eq!(
+        actual,
+        [
+            ("nestedObtain", 3),
+            ("nestedRCases", 3),
+            ("nestedRIntro", 3),
+            ("nestedAlternative", 1),
+            ("afterNested", 0),
+        ]
+    );
+    assert!(tree.root().to_sexp().contains("rcases_alternative_pattern"));
+}
+
+#[test]
 fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
     for source in [
         "def bad : Nat := Nat.succ if true then 1 else 0",
@@ -661,6 +699,9 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "theorem bad : True := by exact (by trivial : )",
         "def bad : Nat → Nat := fun n ↦",
         "theorem bad (h : True) : True := by obtain hp | := h",
+        "theorem bad (h : True) : True := by obtain ⟨⟨a, b⟩ c⟩ := h",
+        "theorem bad (h : True) : True := by rcases h with ⟨⟨a, b⟩, c",
+        "theorem bad (h : True) : True := by rcases h with ⟨a |, b⟩",
         "@[deprecated replacement (since := )] def bad : Nat := 0",
         "theorem bad (h : True) : True := by have hp | hq := h",
         "theorem bad (h : True) : True := by suffices hp | hq := h",

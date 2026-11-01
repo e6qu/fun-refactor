@@ -889,7 +889,7 @@ module.exports = grammar({
     _rcases_atom: $ => choice($.identifier, $.hole, '-', 'rfl'),
 
     rcases_tuple_pattern: $ => seq(
-      '⟨', commaSep1($._rcases_atom), '⟩',
+      '⟨', commaSep1($._rcases_pattern), '⟩',
     ),
 
     rcases_alternative_pattern: $ => prec.right(1, choice(

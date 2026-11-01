@@ -17,6 +17,7 @@ jobs:
             grammars/lean
             tests/fixtures/lean-proof-locations.lean
             tests/fixtures/lean-source-declarations.lean
+            tests/fixtures/lean-nested-assumptions.lean
             tools/check-lean-reader.py
       - uses: actions/setup-node@v6
         with:
