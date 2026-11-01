@@ -15,6 +15,10 @@ from .bounded_host import elapsed_time, run as bounded_run
 from .selected_plan import ROOT, encoded, require
 
 ROLES = ('plan', 'ideate-a', 'ideate-b', 'solve', 'review', 'repair')
+WORKFLOWS = {
+    'team': ('plan', 'ideate-a', 'ideate-b', 'solve', 'initial-check', 'review', 'repair', 'final-check'),
+    'single': ('solve', 'final-check'),
+}
 OUTPUTS = {'plan': 'plan.md', 'ideate-a': 'proposal-a.md', 'ideate-b': 'proposal-b.md',
            'solve': 'decision.md', 'review': 'review.md', 'repair': 'repair.md'}
 INPUTS = {'plan': (), 'ideate-a': ('plan.md',), 'ideate-b': ('plan.md',),
@@ -33,7 +37,7 @@ DATA = Path('.fr/team-solve')
 GUARD = Path('/Users/zardoz/.codex/tools/fr-local-guard.py')
 SETTINGS_KEYS = {'project', 'task', 'output', 'profiles', 'binaries', 'fr_build', 'roles',
                  'editable_files', 'editable_regions', 'checks', 'reference_directories',
-                 'require_change', 'limits', 'protected_files', 'check_environment'}
+                 'require_change', 'limits', 'protected_files', 'check_environment', 'workflow'}
 
 
 def load(path):
@@ -67,19 +71,21 @@ def sources(project):
 
 def settings(path):
     value = load(path)
-    require(set(value) == SETTINGS_KEYS, 'supply every explicit team setting; unknown settings are refused')
+    require(set(value) == SETTINGS_KEYS, 'supply every explicit workflow setting; unknown settings are refused')
     for key in ('project', 'task', 'output', 'profiles', 'fr_build'):
         require(isinstance(value[key], str) and Path(value[key]).is_absolute(), key + ' needs an absolute path')
-    require(set(value['roles']) == set(ROLES), 'assign all six roles explicitly')
+    require(value['workflow'] in WORKFLOWS, 'choose team or single explicitly')
+    required_roles = set(WORKFLOWS[value['workflow']]) & set(ROLES)
+    require(set(value['roles']) == required_roles, 'assign exactly the roles in the selected workflow')
     profiles = load(Path(value['profiles']))
     expected = load(ROOT / 'tests/agent-eval/proof-writing/profiles.json')
-    require(profiles == expected and set(value['roles'].values()) == set(profiles), 'use all three pinned profiles without model substitution')
+    require(profiles == expected and set(value['roles'].values()) <= set(profiles), 'assign only the pinned profiles without model substitution')
     require(set(value['binaries']) == {'fr', 'codex', 'opencode2'} and
             all(isinstance(p, str) and Path(p).is_absolute() for p in value['binaries'].values()), 'supply exactly the three absolute executable paths')
     require(type(value['require_change']) is bool, 'declare whether delivery requires a source change')
-    require(set(value['limits']) == {'prepare_seconds', 'role_seconds', 'check_seconds', 'team_seconds', 'parallel_roles'},
+    require(set(value['limits']) == {'prepare_seconds', 'role_seconds', 'check_seconds', 'run_seconds', 'parallel_roles'},
             'declare preparation, role, check and total budgets and serial scheduling')
-    caps = {'prepare_seconds': 60, 'role_seconds': 150, 'check_seconds': 120, 'team_seconds': 1200, 'parallel_roles': 1}
+    caps = {'prepare_seconds': 60, 'role_seconds': 150, 'check_seconds': 120, 'run_seconds': 1200, 'parallel_roles': 1}
     require(all(type(value['limits'][k]) is int and 0 < value['limits'][k] <= cap for k, cap in caps.items()),
             'team limits exceed the declared caps; existing solo deadlines are unchanged')
     require(value['limits']['role_seconds'] > local.CLIENT_FINISH_SECONDS, 'reserve client finishing time within the role deadline')
@@ -259,7 +265,8 @@ def stage(plan, run, role, seconds, agent):
         root = project / DATA;inbox = root / 'in';outbox = root / 'out'
         inbox.mkdir(parents=True);outbox.mkdir()
         shutil.copyfile(run / 'task.md', inbox / 'task.md')
-        for name in INPUTS[role]:
+        inputs = INPUTS[role] if plan['settings']['workflow'] == 'team' else ()
+        for name in inputs:
             shutil.copyfile(run / 'artifacts' / name, inbox / name)
         if role in {'review', 'repair'}:
             shutil.copytree(run / 'records' / 'initial-check' / 'logs', inbox / 'check-logs')
@@ -268,7 +275,10 @@ def stage(plan, run, role, seconds, agent):
         immutable = {'inbox': tree_hashes(inbox), 'skill': tree_hashes(project / '.agents'),
                      'checks': local.hash_file(project / '.fr/checks.json'),
                      'head': common.comparison_grade.BASE.git(project, 'rev-parse', 'HEAD').stdout}
-        prompt = (BRIEF[role] + '\nRead .fr/team-solve/in/task.md and the supplied files in that input folder. '
+        brief = BRIEF[role] if plan['settings']['workflow'] == 'team' else (
+            'Implement the requested change using the task, copied project and declared checks. Explain the change. '
+            'This is one direct agent session; no plan, proposals, review or repair session is supplied.')
+        prompt = (brief + '\nRead .fr/team-solve/in/task.md and the supplied files in that input folder. '
                   'Your working directory is the copied project root. Source and test paths in the task are relative to this root. '
                   'The .fr/team-solve/in folder contains handoff notes and check logs, not copies of source or test files. '
                   'This is a fresh context: use files, not prior conversation. Read .agents/skills/fr/SKILL.md and use fr where it helps. '
@@ -384,12 +394,13 @@ def guarded_worker(run, operation, expected, name, seconds):
 
 def execute(run, plan, started, worker):
     result = {'status': 'started', 'passed': False, 'plan_sha256': plan['sha256'], 'roles': {},
-              'actual_cost': None, 'elapsed_seconds': None, 'solo_comparison': 'Separate team workflow; not a 150-second solo attempt.'}
+              'actual_cost': None, 'elapsed_seconds': None, 'workflow': plan['settings']['workflow'],
+              'comparison_scope': 'Separate workflow comparison; no earlier M3 attempt is reclassified.'}
     common.save(run / 'result.json', result)
     try:
-        for name in ('plan', 'ideate-a', 'ideate-b', 'solve', 'initial-check', 'review', 'repair', 'final-check'):
-            remaining = plan['settings']['limits']['team_seconds'] - (elapsed_time() - started)
-            require(remaining > 0, 'the complete team deadline expired')
+        for name in WORKFLOWS[plan['settings']['workflow']]:
+            remaining = plan['settings']['limits']['run_seconds'] - (elapsed_time() - started)
+            require(remaining > 0, 'the complete run deadline expired')
             if name == 'repair' and load(run / 'artifacts/initial-check.json')['passed']:
                 result['roles'][name] = {'status': 'skipped', 'reason': 'initial checks passed; preserve this candidate'}
                 common.save(run / 'result.json', result)
@@ -418,8 +429,8 @@ def execute(run, plan, started, worker):
             if path.is_file() and name not in result['roles']:
                 result['roles'][name] = load(path)
         result['elapsed_seconds'] = elapsed_time() - started
-        if result['elapsed_seconds'] > plan['settings']['limits']['team_seconds']:
-            result.update(status='failed', passed=False, error='complete team deadline missed')
+        if result['elapsed_seconds'] > plan['settings']['limits']['run_seconds']:
+            result.update(status='failed', passed=False, error='complete run deadline missed')
         common.save(run / 'result.json', result)
         common.save(run / 'summary.json', public_summary(result))
     return result
@@ -435,8 +446,8 @@ def public_summary(result):
         if 'native' in row:
             rows[role]['process'] = {k: row['native']['process'][k] for k in ('exit_code', 'stop_reason')}
             rows[role]['usage'] = row['native']['usage']
-    return {k: result[k] for k in ('status', 'passed', 'plan_sha256', 'actual_cost', 'elapsed_seconds', 'solo_comparison')} | {
-        'roles': rows, 'patch_sha256': result.get('patch_sha256')}
+    return {k: result[k] for k in ('status', 'passed', 'plan_sha256', 'actual_cost', 'elapsed_seconds', 'workflow', 'comparison_scope')} | {
+        'roles': rows, 'patch_sha256': result.get('patch_sha256'), 'provider_request_count': None}
 
 
 def main():
@@ -468,11 +479,11 @@ def main():
     plan = verified_plan(args.run, args.expected)
     require(args.seconds > 0, 'workload deadline must be positive')
     if args.operation == '_stage':
-        require(args.name in ROLES, 'select a declared role')
+        require(args.name in plan['settings']['roles'], 'select a role declared in this workflow')
         from .team_solve_native import agent
         stage(plan, args.run, args.name, args.seconds, agent)
     else:
-        require(args.name in {'initial-check', 'final-check'}, 'select a declared check phase')
+        require(args.name in set(WORKFLOWS[plan['settings']['workflow']]) & {'initial-check', 'final-check'}, 'select a declared check phase')
         check(plan, args.run, args.name, args.seconds)
     return 0
 

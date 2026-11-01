@@ -105,10 +105,13 @@ The next tasks stay inside this milestone PR:
    The scripted controls cover fresh contexts, protected source and claims, failed checks,
    skipped repair after success, and retained resource failures.
    The [first live pilot](tests/agent-eval/team-solve/README.md) passed all eight Python cases
-   in 249.9 seconds across five calls, with repair skipped. Retain its patch and reviewed
+   in 249.9 seconds across five agent sessions, with repair skipped. Retain its patch and reviewed
    summary; handoffs and transcripts stay local. No role invoked fr on that tiny task.
    Hosted CI remains required. Any quality comparison must use frozen tasks, checks,
    explicit solo and team budgets, every failure and complete role time and reported usage.
+   The runner now supports one agent session and a team of Luna sessions as explicit comparison conditions.
+   Checks cover the exact session sequence and reject passing patches that miss the complete deadline.
+   All team stages share that deadline. No paid comparison of the new conditions has run.
    Do not use a team success to close the unchanged 150-second M3 solo requirements.
 
 Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.

@@ -35,8 +35,9 @@ automatic retry or second repair round.
 
 Codex is pinned to 0.164.0 with `gpt-6-luna`, high reasoning and Fast service.
 OpenCode2 is pinned to 2.0.32 with `zai-coding-plan/glm-5.3-flash#low`
-and `kimi-code-plan-global/k3#low`. Settings must assign all six roles explicitly
-using all three profiles. Each call uses the existing native-client checks;
+and `kimi-code-plan-global/k3#low`. Assign every role explicitly using these
+pinned profiles. A profile names a model and its CLI settings. The example uses
+all three; a comparison can assign Luna to every role. Each call uses the existing native-client checks;
 OpenCode2's exported session must confirm its actual model selection and outcome.
 Codex's usage report does not independently confirm which model served a response.
 
@@ -78,6 +79,7 @@ import sys
 
 repo = Path.cwd().resolve()
 settings = {
+    "workflow": "team",
     "project": "/private/tmp/fr-team-example/project",
     "task": str(repo / "tests/agent-eval/team-solve/task.md"),
     "output": "/private/tmp/fr-team-example/run-1",
@@ -114,7 +116,7 @@ settings = {
         "prepare_seconds": 60,
         "role_seconds": 150,
         "check_seconds": 120,
-        "team_seconds": 1200,
+        "run_seconds": 1200,
         "parallel_roles": 1
     }
 }
@@ -134,8 +136,11 @@ cat /private/tmp/fr-team-example/run-1/change.patch
 The declared budgets are ceilings, not extra time added after a timeout.
 Preparation has 60 seconds; each native role has at most 150 seconds including
 setup and accounting; each check phase has 120 seconds across its commands.
-The whole team has at most 1,200 seconds including preparation and handoffs.
-There are five calls when initial checks pass, six when repair runs.
+`limits.run_seconds` bounds the complete run, including preparation and handoffs.
+This example gives the team at most 1,200 seconds.
+There are five agent sessions when initial checks pass, six when repair runs.
+Each session can make several provider requests as it uses tools. The runner
+retains reported usage and leaves the provider request count unknown.
 The existing guard separately enforces CPU, memory, free disk and per-workload time.
 The child runner caps sampled RSS at 768 MiB, workspace growth at 512 MiB,
 CPU at 75 seconds and combined command output at 1 MiB per workload.
@@ -197,7 +202,7 @@ The [hosted controls](../.github/workflows/team-solve.yml) run the same checks;
 the main PR checks include them too. Scripted success does not establish live model quality.
 
 The [first live pilot](../tests/agent-eval/team-solve/README.md) repaired the small
-Python example in 249.9 seconds across five calls. Both check phases passed;
+Python example in 249.9 seconds across five agent sessions. Both check phases passed;
 repair was skipped. It used no actual fr command and had no timed solo baseline.
 The reviewed record establishes working file handoffs and checked delivery,
 without a measured fr benefit or evidence that the team improves on one agent.
@@ -205,8 +210,71 @@ without a measured fr benefit or evidence that the team improves on one agent.
 Treat a team attempt as a separate experiment from the existing 150-second solo
 comparison. Record all role time, failed calls, checker time and reported usage;
 actual account charges remain unknown unless independently observed. A team may
-spend five or six calls and substantially more time than one solo attempt.
+start five or six agent sessions and take substantially more time than one solo attempt.
 To measure benefit, freeze the same task and checks, set explicit total budgets
 for both approaches, keep every failure, and compare final accepted patches.
 Do not count a team result as an M3 solo success. The GLM/Kimi page-count proof gap
 and paused full comparison remain open.
+
+## Compare one agent session, several Luna sessions and the mixed team
+
+A baseline is the method we compare another method with. We need two comparisons
+before claiming that the mixed team helps:
+
+| Comparison | Keep the same | What it tests |
+| --- | --- | --- |
+| One Luna session versus Luna in every team role | Project, task, allowed edits, checks, available tools and complete time ceiling | Whether the extra stages and sessions improve the delivered change |
+| Luna in every team role versus the mixed team | Those inputs, the same stages and the same time ceiling | Whether changing who proposes and reviews helps |
+
+The `single` workflow starts one solver session, then runs the same final checker.
+It supplies no plan or proposals and starts no review or repair session.
+The `team` workflow always follows the full sequence above. Assigning Luna to all
+roles still means five separate sessions, or six if repair runs. It is a separate
+condition from one Luna session.
+
+For example, append this to the settings-creation script above to create three
+explicit conditions for the same Python project. Creating these files makes no
+model requests. Each output directory must be new when its run starts.
+
+```python
+import copy
+
+mixed = copy.deepcopy(settings)
+mixed["limits"]["run_seconds"] = 150
+mixed["output"] = "/private/tmp/fr-team-example/mixed-1"
+
+luna_team = copy.deepcopy(mixed)
+luna_team["roles"] = {role: "codex-luna-fast" for role in mixed["roles"]}
+luna_team["output"] = "/private/tmp/fr-team-example/luna-team-1"
+
+single = copy.deepcopy(mixed)
+single["workflow"] = "single"
+single["roles"] = {"solve": "codex-luna-fast"}
+single["output"] = "/private/tmp/fr-team-example/single-1"
+
+for name, condition in [("mixed", mixed), ("luna-team", luna_team), ("single", single)]:
+    Path(f"/private/tmp/fr-team-example/{name}.json").write_text(
+        json.dumps(condition, indent=2) + "\n")
+```
+
+Use the same `run --settings` command with each file to make real model requests.
+The three conditions above each have 150 seconds for the complete run, including
+preparation, all sessions and final checking. Each role also keeps its 150-second
+ceiling. Extra roles share the remaining run time; they do not each get a fresh
+complete-run budget. A later stage can run out of time before starting its agent.
+Keep the same frozen CLI toolbox in all three conditions, including its version
+checks. Unused model profiles do not trigger model requests.
+
+The first pilot used a different, separately declared 1,200-second team ceiling.
+Its 249.9-second result would miss a 150-second complete-run deadline.
+About 197 seconds went to proposals and review; both declared checks together
+took about 0.04 seconds. These are elapsed stage times, including CLI activity
+and waiting. They do not measure provider computation time.
+
+This familiar Python case checks setup. Before claiming a useful improvement,
+freeze a different project change and its checks, vary condition order, and keep
+every failure. For example, rename an exported TypeScript function while preserving
+a caller's local import name, or remove a Rust argument without losing a call's
+side effects. The [improvement method](agent-improvement.md) explains how to state
+the prediction and decision before starting paid calls. No live comparison of
+these three conditions has run yet.

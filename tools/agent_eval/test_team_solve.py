@@ -27,6 +27,7 @@ class TeamSolveTests(unittest.TestCase):
         shutil.copytree(ROOT / 'skills/fr', self.run / 'skill')
         profiles = team.load(ROOT / 'tests/agent-eval/proof-writing/profiles.json')
         self.settings = {
+            'workflow': 'team',
             'project': str(self.root / 'original'), 'task': str(self.run / 'task.md'),
             'output': str(self.run), 'profiles': str(ROOT / 'tests/agent-eval/proof-writing/profiles.json'),
             'binaries': {name: sys.executable for name in ('fr', 'codex', 'opencode2')},
@@ -35,7 +36,7 @@ class TeamSolveTests(unittest.TestCase):
                                          'codex-luna-fast', 'opencode2-kimi-k3', 'codex-luna-fast'))),
             'editable_files': ['counter.py'], 'editable_regions': [], 'protected_files': ['check.py'],
             'reference_directories': [], 'require_change': True, 'check_environment': {'PYTHONDONTWRITEBYTECODE': '1'},
-            'limits': {'prepare_seconds': 60, 'role_seconds': 150, 'check_seconds': 120, 'team_seconds': 1200, 'parallel_roles': 1},
+            'limits': {'prepare_seconds': 60, 'role_seconds': 150, 'check_seconds': 120, 'run_seconds': 1200, 'parallel_roles': 1},
             'checks': [{'name': 'page examples', 'argv': [sys.executable, '-B', 'check.py'], 'cwd': '.',
                         'timeout_seconds': 20, 'covers': ['all eight supplied page counts'], 'verdict': 'exit-code'}],
         }
@@ -106,6 +107,79 @@ class TeamSolveTests(unittest.TestCase):
         result = self.drive(agent)
         self.assertTrue(result['passed'])
         self.assertEqual([r for r, p in self.calls], list(team.ROLES))
+
+    def test_all_luna_team_control_changes_only_the_explicit_assignments(self):
+        self.settings['roles'] = {role: 'codex-luna-fast' for role in team.ROLES}
+        path = self.root / 'settings.json';team.common.save(path, self.settings);team.settings(path)
+        self.freeze()
+        result = self.drive(self.agent)
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['workflow'], 'team')
+        self.assertEqual([r for r, p in self.calls], list(team.ROLES[:-1]))
+        for role, project in self.calls:
+            self.assertEqual(result['roles'][role]['profile'], 'codex-luna-fast')
+
+    def test_single_control_has_one_call_no_handoffs_and_the_same_final_checker(self):
+        self.settings.update(workflow='single', roles={'solve': 'codex-luna-fast'})
+        path = self.root / 'settings.json';team.common.save(path, self.settings);team.settings(path)
+        self.freeze()
+        def agent(*args):
+            inbox = args[1] / team.DATA / 'in'
+            self.assertEqual({p.name for p in inbox.iterdir()}, {'task.md'})
+            self.assertIn('one direct agent session', args[4])
+            self.assertNotIn('Read both proposals', args[4])
+            return self.agent(*args)
+        result = self.drive(agent)
+        self.assertTrue(result['passed'])
+        self.assertEqual([r for r, p in self.calls], ['solve'])
+        self.assertEqual(set(result['roles']), {'solve', 'final-check'})
+        self.assertEqual(result['workflow'], 'single')
+        self.assertIsNone(team.load(self.run / 'summary.json')['provider_request_count'])
+        self.assertEqual(result['roles']['final-check']['checks'][0]['name'], self.settings['checks'][0]['name'])
+
+    def test_failed_single_control_cannot_use_a_hidden_repair(self):
+        self.settings.update(workflow='single', roles={'solve': 'codex-luna-fast'})
+        self.freeze()
+        def agent(*args):
+            result = self.agent(*args)
+            shutil.copyfile(self.run / 'seed/counter.py', args[1] / 'counter.py')
+            return result
+        result = self.drive(agent)
+        self.assertFalse(result['passed'])
+        self.assertEqual([r for r, p in self.calls], ['solve'])
+        self.assertNotIn('repair', result['roles'])
+
+    def test_all_roles_share_the_one_declared_complete_budget(self):
+        self.settings['limits']['run_seconds'] = 1
+        self.freeze()
+        now = [100.0]
+        def worker(run, operation, expected, name, seconds):
+            self.assertEqual(name, 'plan')
+            self.assertLessEqual(seconds, 1)
+            team.stage(self.plan, run, name, 30, self.agent)
+            now[0] += 2
+        with patch.object(team, 'elapsed_time', side_effect=lambda: now[0]):
+            with self.assertRaisesRegex(ValueError, 'complete run deadline'):
+                team.execute(self.run, self.plan, 100.0, worker)
+        self.assertEqual([r for r, p in self.calls], ['plan'])
+        self.assertFalse(team.load(self.run / 'summary.json')['passed'])
+
+    def test_passing_patch_cannot_override_an_expired_complete_run_budget(self):
+        self.settings.update(workflow='single', roles={'solve': 'codex-luna-fast'})
+        self.settings['limits']['run_seconds'] = 1
+        self.freeze()
+        now = [100.0]
+        def worker(run, operation, expected, name, seconds):
+            if operation == '_stage':
+                team.stage(self.plan, run, name, 30, self.agent)
+            else:
+                team.check(self.plan, run, name, 30)
+                now[0] += 2
+        with patch.object(team, 'elapsed_time', side_effect=lambda: now[0]):
+            result = team.execute(self.run, self.plan, 100.0, worker)
+        self.assertTrue(result['roles']['final-check']['passed'])
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['status'], 'failed')
 
     def test_failed_final_check_cannot_be_overruled_by_handoff(self):
         def agent(*args):
@@ -187,7 +261,9 @@ class TeamSolveTests(unittest.TestCase):
         path = self.root / 'settings.json'
         team.common.save(path, self.settings)
         team.settings(path)
-        for mutate in (lambda v: v.pop('protected_files'), lambda v: v['limits'].update(role_seconds=151),
+        for mutate in (lambda v: v.pop('protected_files'), lambda v: v.pop('workflow'),
+                       lambda v: v.update(workflow='invented'),
+                       lambda v: v.update(workflow='single'), lambda v: v['limits'].update(role_seconds=151),
                        lambda v: v['limits'].update(parallel_roles=2), lambda v: v['roles'].update(solve='some-stronger-model'),
                        lambda v: v.update(protected_files=['counter.py'])):
             value = copy.deepcopy(self.settings);mutate(value);team.common.save(path, value)
@@ -267,6 +343,14 @@ class TeamSolveTests(unittest.TestCase):
         self.assertTrue(summary['passed'])
         self.assertEqual(summary['roles']['repair']['status'], 'skipped')
         self.assertEqual(summary['pilot']['actual_fr_invocations'], 0)
+        review = team.load(retained / 'pilot-time-review.json')
+        self.assertEqual(review['source_summary_sha256'], team.local.hash_file(retained / 'pilot-summary.json'))
+        measured = review['observed']
+        self.assertAlmostEqual(sum(measured[k] for k in ('planning_and_coding_seconds', 'proposals_and_review_seconds',
+            'declared_check_seconds', 'remaining_preparation_and_coordination_seconds')), summary['elapsed_seconds'])
+        self.assertFalse(measured['within_original_150_second_solo_limit'])
+        self.assertEqual(review['accounting_clarification']['native_cli_sessions'], sum('process' in row for row in summary['roles'].values()))
+        self.assertIsNone(review['accounting_clarification']['provider_request_count'])
 
 
 if __name__ == '__main__':
