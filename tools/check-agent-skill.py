@@ -136,11 +136,14 @@ def source_workflow(exercise, root):
     query_manifest.write_text(blocks(reference / "batch.md", "json")[0])
     exercise.values["<PROJECT_QUERIES>"] = str(query_manifest)
 
+    exercise.values["<KNOWN_FILE>"] = str(root / "app.py")
     for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
             if "spec" in command:
                 continue
             value = exercise.example(root, path, command)
+            if "<KNOWN_FILE>" in command:
+                assert value["coverage"]["indexed_files"] == 1
             if value.get("query") == "explore" and value.get("mode") == "names":
                 selected, = [row for row in value["rows"] if row["name"] == "greet"]
                 exercise.values["<HANDLE>"] = selected["handle"]

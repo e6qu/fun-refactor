@@ -2,11 +2,13 @@
 
 For report pages, use [Disclosure](disclosure.md).
 
-Find relevant helpers before reading whole files.
+For a one-file lookup, copy its path as `<KNOWN_FILE>` and pass it as `-C`.
+`--in` filters project results; it does not narrow the initial scan.
 
 A signature lists arguments. Copy each returned code handle unchanged.
 
 ```sh
+fr -C '<KNOWN_FILE>' project find greet --signature --limit 1
 fr project explore greet --in app.py
 fr project explore greet --mode behavior --target '<HANDLE>'
 fr project select greet render validate --signature --source --bytes 2048
@@ -42,28 +44,27 @@ Use `project find NAME` for known declarations and `project select SELECTOR...` 
 names or handles under one revision and budget. `--contains` is a literal-substring flag. Read every
 status before claiming absence. Handles may be `outside-scope`, `not-a-declaration` or omitted;
 stale handles refuse instead of becoming names.
-Use maps for hierarchy. Choose `<HANDLE>` from a declaration row; full handles include the revision.
+Choose `<HANDLE>` from a declaration row; full handles include the revision.
 Short IDs require the returned `--revision`. Targeted rows and `show` expose `location.name` and
 `location.definition`: exact source byte ranges and 1-based, half-open line/column ranges. Add `location`
-to broad map fields when needed. Syntax headers do not establish complete semantic contracts.
+to broad map fields when needed. A syntax header is not a semantic contract.
 
-Request `--source` only when needed. Offsets count bytes from the selected node's start. For another
-slice, pass `next_offset` with `--offset`; this preserves UTF-8 boundaries.
+Use `--source` when needed. Offsets count bytes from the node's start.
+Pass `next_offset` as `--offset` for another slice that preserves UTF-8 boundaries.
 For another result page, reuse the same query and fields with `--cursor` and the returned `page.next`.
-Source, manifest, scan or scope changes can invalidate handles and cursors. Repeat stale queries.
+Source or scope changes can invalidate handles and cursors; repeat stale queries.
 
-Call results preserve confidence and unresolved or dispatch-candidate rows; candidates do not establish runtime dispatch.
+Unresolved call targets and dispatch candidates do not establish runtime dispatch.
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages` and `dependencies` for Cargo, npm, Go module and Python project declarations.
 Use `project resolutions` for captured lock entries. Filter with `--manifest` or
 `--lockfile`; the result reports observed versions and integrity metadata without running a solver.
-Dependency rows match the nearest ancestor lock, retaining bounded candidates and package aliases.
+Dependencies use the nearest lock, with bounded candidates and package aliases.
 Use `project package-features --manifest Cargo.toml` for Cargo feature and dependency activation.
-The progressive project's `packages` branch addresses the default selection.
 Use `project verify-artifact` to compare local bytes with captured checksums. Go directories need `--go-prefix`.
 `links` and `workspaces` add Cargo/npm local relationships.
 Use `project routes`, `contracts` and `configuration` for supported declaration patterns.
-See [Surfaces](surfaces.md) for framework, style, diagram and cross-stack views and edits.
+[Surfaces](surfaces.md) covers frameworks and cross-stack edits.
 Lock evidence does not authenticate its repository or model framework behavior.
 
 [Plans](investigations.md).
