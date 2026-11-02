@@ -36,6 +36,7 @@
     "mixed": "Inconclusive with two repetitions. Report the actions and failures; do not rerun slots until success."
   },
   "decision_key": "accepted counts as second condition,first condition, separately for each profile and phase",
+  "invalid_execution": "The comparison cannot isolate guidance when service failures, collection failures or system sleep disrupt sessions. Retain every original outcome, diagnose the disruption and report the comparison as inconclusive; do not replace failed slots or claim that guidance caused the difference.",
   "transfer": "Keep accumulator-based list reversal outside development attempts. Fix transfer conditions and controls before any transfer call; do not tune on the transfer result.",
   "backtracking": "Only propose a separate controlled test if records show repeated failed paths or inability to return to an earlier valid draft. No state deduplication by printed goals.",
   "publication": "Submitted patches and reviewed summaries only; raw local CLI records stay private. Preserve all twenty slots, every timeout and all earlier evidence."

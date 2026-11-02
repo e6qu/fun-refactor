@@ -216,7 +216,7 @@ Then review the first unresolved proof or delivery step and the task requirement
 Do not assume that another wording change will make the complete page-count proof fit the existing limit.
 The four new records stay separate from the 335 M3 outcomes and twelve earlier diagnostic outcomes.
 
-### Next diagnostic: select current facts or apply supplied declarations
+### Earlier unrun plan: select current division facts
 
 The [eight-slot protocol](../tests/agent-eval/proof-division-facts/README.md) uses a smaller fixed division claim.
 Both conditions have the same task, fr, instructions, library and complete 150-second deadline.
@@ -226,8 +226,23 @@ It does not isolate every obstacle in the complete page-count proof.
 
 The runner checks the declarations against pinned Lean output and protects each condition's handout.
 Changed settings, late successes, missing checks and damaged handouts remain failures.
-No calls have started. Hosted checker qualification must pass before freezing all eight slots.
+The hosted tool qualification passed. No calls started and no execution plan was frozen.
 The protocol fixes separate per-agent decisions, including harm, mixed outcomes and invalid execution.
+
+### Next comparison: prove an executable algorithm
+
+The [algorithm study](../tests/agent-eval/proof-algorithms/README.md) now takes priority.
+Euclid's algorithm finds a greatest common divisor: `(48, 18)` becomes `(18, 12)`,
+then `(12, 6)`, then `(6, 0)`, and returns `6`.
+Agents must prove that this fixed executable Lean function stops and always returns the right answer.
+The termination lemma is supporting work; it cannot replace the correctness proof.
+
+First compare relevant-fact guidance in eight GLM/Kimi sessions.
+Then compare checklist and graph presentations in twelve Luna/GLM/Kimi sessions.
+Both presentations contain the same information. Keep the complete 150-second limit.
+Reserve accumulator-based list reversal for transfer after the development decisions are fixed.
+Keep reference answers outside agent projects and qualify the evaluator before calls.
+Service or collection failures cannot establish a benefit from guidance.
 
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.

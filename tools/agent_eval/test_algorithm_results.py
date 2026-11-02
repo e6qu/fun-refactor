@@ -11,7 +11,8 @@ class AlgorithmResultsChecks(unittest.TestCase):
         return {'algorithm_observations': {**{name: True for name in results.CHECKS},
                 **{name: None for name in results.TIMINGS}, 'execution_validity': 'valid'},
                 'native_status': 'completed', 'stop_reason': None, 'complete_attempt_deadline_missed': False,
-                'total_seconds': 140, 'checking_input_changes': [], 'collection_error_recorded': False}
+                'total_seconds': 140, 'checking_input_changes': [], 'collection_error_recorded': False,
+                'suspended_seconds': 0}
 
     def test_both_proofs_and_delivery_are_required(self):
         row = self.row()
@@ -50,6 +51,10 @@ class AlgorithmResultsChecks(unittest.TestCase):
             self.assertEqual(value['total_seconds_including_failures'], 560)
             self.assertTrue(value['transfer_candidate'])
             self.assertEqual(value['decision'], plan['requirements']['decisions']['2,0'])
+        rows[0]['algorithm_observations']['execution_validity'] = 'service-failed'
+        decisions = results.decisions(summary)
+        self.assertFalse(decisions[rows[0]['profile']]['transfer_candidate'])
+        self.assertEqual(decisions[rows[0]['profile']]['decision'], plan['requirements']['invalid_execution'])
         summary['attempts'] = rows[:-1]
         with self.assertRaises(ValueError):
             results.decisions(summary)

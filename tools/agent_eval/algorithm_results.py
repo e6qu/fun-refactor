@@ -55,10 +55,13 @@ def decisions(summary):
             if row['independent_outcome'] == 'passed':
                 require(complete(row, row['independent_check']['patch_accepted']), 'late or incomplete work cannot become success')
         key = f'{counts[second]},{counts[first]}'
-        result[profile] = {'accepted': counts, 'decision': plan['requirements']['decisions'].get(key,
-            plan['requirements']['decisions']['mixed']),
+        usable = all(row['algorithm_observations']['execution_validity'] == 'valid' and
+                     not row['collection_error_recorded'] and row['suspended_seconds'] < 1 for row in selected)
+        decision = (plan['requirements']['decisions'].get(key, plan['requirements']['decisions']['mixed'])
+                    if usable else plan['requirements']['invalid_execution'])
+        result[profile] = {'accepted': counts, 'decision': decision, 'execution_usable': usable,
             'total_seconds_including_failures': sum(row['total_seconds'] for row in selected),
-            'transfer_candidate': counts[second] == 2 and counts[first] == 0}
+            'transfer_candidate': usable and counts[second] == 2 and counts[first] == 0}
     return result
 
 
