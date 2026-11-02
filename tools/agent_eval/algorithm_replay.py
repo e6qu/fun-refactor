@@ -27,7 +27,7 @@ def audit(frozen, output):
     manifest = json.loads((DATA / 'frozen-study-source.json').read_text())
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=frozen, text=True).strip()
     require(commit == manifest['source_commit'], 'audit the original source, not current checking code')
-    github_run(manifest['qualification_run'], manifest['qualification_source_commit'],
+    github_run(manifest['qualification_run'], manifest['qualification_head_commit'],
                '.github/workflows/proof-algorithms.yml')
     # Import the original checker in a fresh process; never teach it to accept changed inputs.
     program = '''
@@ -68,6 +68,8 @@ print('Frozen source, controls, reports and all twenty outcomes: passed')
                 'preserve authenticated original check bytes and source')
         github_run(receipt['run'], receipt['source_commit'], receipt['workflow'])
         summary = json.loads((data / 'summary.json').read_text())
+        require(summary['controls']['source_commit'] == manifest['qualification_source_commit'],
+                'preserve the qualification checkout, separately from its PR head')
         for row in summary['attempts']:
             if row['patch_file'] is not None:
                 patch = data / row['patch_file']

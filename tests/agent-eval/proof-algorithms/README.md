@@ -87,7 +87,8 @@ These measurements cover the same native workflow, not fr overhead against ordin
 The [complete check](../../../tools/agent_eval/algorithm_admission.py) must inspect a
 goal, reject a looping draft, check and save both reference proofs, build the package,
 deliver a patch and finish native session accounting. It uses canned local replies,
-with no model calls. All three profiles passed before the twenty calls. The gate must leave 128 MiB for client
+with no model calls. The [reviewed complete-workflow receipts](local-results/complete-native-admission.json)
+record all three profiles passing before the twenty calls. The gate must leave 128 MiB for client
 state within the unchanged 768-MiB attempt ceiling. Freezing a study rejects missing,
 stale or incomplete receipts. An initial-goal spot check cannot satisfy this gate.
 Raw control records remain private. Only reviewed summaries may be published.
