@@ -4,10 +4,8 @@ Read the task's fixed implementation and named claims before editing. A terminat
 claim proves that recursive calls eventually stop. A correctness claim describes
 the returned answer for every admitted input. They are separate obligations.
 
-For example, Euclid's GCD function replaces `(48, 18)` with `(18, 12)` until the
-second input is zero. Its termination argument concerns the decreasing second
-input. Its correctness argument concerns the answer, including the zero case.
-Keep the implementation fixed while proving these claims.
+Euclid replaces `(48, 18)` with `(18, 12)` until the second input is zero.
+Prove that input decreases and that the answer stays the same, including the zero case.
 
 Read the target's parameters and actual goals through the [interactive loop](lean.md).
 For recursion, identify what becomes smaller and which inputs change at the next
@@ -18,24 +16,25 @@ choosing library facts. Read each fact's argument types rather than guessing the
 Here `b` can fall from 18 to 12. A proof that only knows case 17 may not help.
 Strong induction lets you reuse the proof for every smaller input.
 
-Simplification repeatedly rewrites expressions using known equalities. For a recursive
-function, the same pattern can reappear. If Lean reports a looping simplification after
-`simp [f]`, unfold one call instead and inspect the resulting cases. Do not increase
-the recursion limit to force that loop through.
+Simplification repeatedly rewrites using equalities. `simp [euclid]` can loop by
+unfolding more recursive calls. Use `rw [euclid]` to unfold one call and inspect
+the cases. Keep the recursion limit.
 
-When one claim uses another unfinished claim, Lean may check that draft while
-retaining an assumption elsewhere. A passing `proof-check` applies to its target.
-Finish every required region and require the complete package check to pass with
-warnings treated as errors. Preserve the supplied `.fr/checks.json`. Once it
-passes, deliver the requested patch and finish; repeating the same check consumes
-the remaining attempt time.
+Save one checked draft before changing another proof. Lean checks the whole file:
+an invalid neighboring proof can reject a valid draft. A null `draft_location`
+and a `checked_location` elsewhere mean inspect that source. Keep drafts separate;
+do not erase failed work. A target check can pass while another claim is unfinished.
+Finish both claims and the package check before delivering the patch.
+
+Tactics depend on the imports. With only the GCD library, `by_cases` may be
+unavailable. `cases b` separates zero from successor; unfolding an `if` and using
+`split` separates its branches. Read the actual goals. Do not change fixed imports.
 
 A checklist or graph can record unfinished work. Neither proves a tactic is valid.
 After a branch change, retain the complete draft, source and available assumptions.
 Identical displayed goals can have different hidden context; do not merge states
 or restore a draft based only on goal text. Require a fresh Lean check after edits.
 
-State precisely what was proved. A theorem about an executable Lean function
-applies to that function. A theorem about a Lean model of a Rust or Python program
-needs a separate source-to-model proof before it establishes the original program.
-Matching a few executions does not establish that connection.
+A proof about executable Lean applies to that function. A model of Rust or Python
+needs a separate proof connecting it to the source. Matching examples cannot
+establish that connection.

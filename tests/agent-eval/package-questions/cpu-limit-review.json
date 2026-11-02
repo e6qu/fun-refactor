@@ -4,7 +4,7 @@
   "source_commit": "5ec5bcf90c34c661bae749e22a444513cf71a7ef",
   "failure": "The package worker constructed a fresh environment and discarded the caller\u2019s worker setting. Runner-dependent parallel work exhausted the ten-second aggregate CPU budget in nine Boltons cases.",
   "repair": "Set RAYON_NUM_THREADS=1 in the explicit worker environment. Do not change CPU or wall limits.",
-  "status": "Await controlled replay before claiming the repair passes.",
+  "status": "All nine previously stopped cases pass with the same ten-second CPU and twenty-second wall budgets.",
   "observations": [
     {
       "case": "earlier-questions/boltons/cache-cold",
@@ -141,5 +141,84 @@
         "wall_seconds": 20
       }
     }
-  ]
+  ],
+  "controlled_replay": {
+    "run": "41414192369",
+    "source_commit": "c1e21f88ffc56eb76a8c775ab651037a67d0c5b2",
+    "all_nine_previous_cpu_stops_now_pass": true,
+    "observations": [
+      {
+        "case": "earlier-questions/boltons/cache-cold",
+        "record_sha256": "64c0a30b5578f64e48acdc4c61b45edd8f008c0b99d0d2391054efe8a0ce0bce",
+        "elapsed_seconds": 7.888133753000034,
+        "sampled_cpu_seconds": 7.46,
+        "sampled_aggregate_rss_bytes": 117112832,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/original-overwritten",
+        "record_sha256": "5cd619985497e9473231b130de96b93f82d0cc94d0dccbb9fe280ba6c7bfc2bf",
+        "elapsed_seconds": 7.45715463099998,
+        "sampled_cpu_seconds": 7.1899999999999995,
+        "sampled_aggregate_rss_bytes": 114814976,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/original-positive",
+        "record_sha256": "033b82cf0f881dfc140847491f9b659eb1dc7c8500b5c62b0ec944d2a7a55c33",
+        "elapsed_seconds": 7.5428153660000135,
+        "sampled_cpu_seconds": 7.28,
+        "sampled_aggregate_rss_bytes": 114438144,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/original-steps",
+        "record_sha256": "150b3b1464184ac66341be1f6f7eba9997a03ad2ec0f95ec4178e863e0342e93",
+        "elapsed_seconds": 7.4502202830000215,
+        "sampled_cpu_seconds": 7.26,
+        "sampled_aggregate_rss_bytes": 116297728,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/original-unknown",
+        "record_sha256": "9ac6f0ab1d83327af8a48fc1479f0b04dfb62c6dc11695506ad48194dd49906a",
+        "elapsed_seconds": 7.497317212999974,
+        "sampled_cpu_seconds": 7.25,
+        "sampled_aggregate_rss_bytes": 114401280,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/renamed-relocated-overwritten",
+        "record_sha256": "d69dcba12c64377013f37cee6e47e4f9e1807ca9693965a8999ab7a9f2b3fb5f",
+        "elapsed_seconds": 7.438192592999997,
+        "sampled_cpu_seconds": 7.18,
+        "sampled_aggregate_rss_bytes": 120602624,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/renamed-relocated-positive",
+        "record_sha256": "388e5d8aa1273cacc5ea82eb9e6f6577ca36d590ac9fd1e64ab4097208c40a61",
+        "elapsed_seconds": 7.549519994000036,
+        "sampled_cpu_seconds": 7.32,
+        "sampled_aggregate_rss_bytes": 115843072,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/renamed-relocated-steps",
+        "record_sha256": "32d51621a86ce66d9919239e906f2d729a2608baa95b46ec626f205bcacc3b40",
+        "elapsed_seconds": 7.433368930999961,
+        "sampled_cpu_seconds": 7.06,
+        "sampled_aggregate_rss_bytes": 118657024,
+        "stop_reason": null
+      },
+      {
+        "case": "earlier-questions/boltons/renamed-relocated-unknown",
+        "record_sha256": "d4a5cd77eda720065e08458f00727fc6b214b10c567ad2bb5f467d8488451f1b",
+        "elapsed_seconds": 7.5056489369999895,
+        "sampled_cpu_seconds": 7.140000000000001,
+        "sampled_aggregate_rss_bytes": 115802112,
+        "stop_reason": null
+      }
+    ]
+  }
 }

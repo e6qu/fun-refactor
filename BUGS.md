@@ -14,7 +14,7 @@ on `research/proof-guidance`. The interrupted algorithm batch exposed these defe
 | Killing the controller could lose buffered native feedback | Flush every received block. A regression checks that partial output is readable while the controller is still running |
 | Fr rejected induction over two inputs before Lean ran | The generated reader accepts both inputs and the named induction rule. Native qualification passes; both fixed-corpus audits preserve the reviewed facts |
 | CPU throttling could pause the inner sampler while a new worker ran | Observe the whole required guard and workload from outside the throttled tree. Keep all limits unchanged and preserve the original controller report |
-| Initial-goal admission missed later proof and package memory | Both GCD task files now disable the automatic library import. A complete scripted prototype fits the fixed budget. The freezer now requires full-workflow receipts with client-state headroom; hosted and all-client checks remain required |
+| Initial-goal admission missed later proof and package memory | Both GCD task files now disable the automatic library import. A complete scripted prototype fits the fixed budget. The freezer now requires full-workflow receipts with client-state headroom; hosted qualification and all three complete native-client checks passed before the twenty fresh sessions |
 | An interrupted result filled unknown system sleep with zero | The outer observer now compares both clocks, including when the controller is stopped. Keep the earlier result unchanged and label its missing sleep measurement unknown |
 | Recursive definitions and local helpers confused the reader | The hosted algorithm checks accept Euclid's termination hints and isolate local-helper renames. Preserve the exact benchmark-fact audits |
 
@@ -22,14 +22,20 @@ The [interrupted batch](tests/agent-eval/proof-algorithms/interrupted-results/RE
 remains inconclusive. The exact allocation behind its outer memory stop is unknown;
 the repair must not be described as a measured reduction in client memory.
 The [later Init session](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
-also remains a failed, incomplete comparison. No graph session has run.
+also remains a failed, incomplete comparison. The later twenty-session study is complete;
+see the [results review](tests/agent-eval/proof-algorithms/local-results/review-context.md).
+One GLM presentation attempt hit a multiline-lambda reader defect: Lean accepts
+a function argument continued on the next line while measured fr rejects it.
+The reader repair has a valid GCD reference control and checks following declarations.
+Keep the original failed agent draft separate; it also contained Lean errors.
 The project replay also hit its CPU ceiling after accounting improved.
 Its [single-worker replay](https://github.com/e6qu/fun-refactor/actions/runs/41401084179)
 passes with the original CPU and wall budgets. Both the collector and CI now select one worker explicitly.
 The [package replay](tests/agent-eval/package-questions/cpu-limit-review.json)
 exposed another boundary: its fresh worker environment discarded the caller's worker setting.
 Nine Boltons cases exhausted the unchanged CPU budget. The worker now selects one
-Rayon worker explicitly; the controlled replay still needs to pass.
+Rayon worker explicitly. All nine controlled replays pass below the same limits;
+the largest sampled CPU total is 7.46 seconds against the original ten-second budget.
 
 The earlier repairs below belong to merged M3 work, including PR #591.
 The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit

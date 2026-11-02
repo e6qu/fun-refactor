@@ -30,17 +30,30 @@ errors, audits the executable function and both proofs for assumed axioms, and
 compares twelve executions with independently calculated answers.
 The reference tactics live in `controls/`, outside the exported agent project.
 
-Thirteen patch controls include the reference and twelve rejection cases.
+Fourteen patch controls include two valid references and twelve rejection cases.
+The second reference uses a multiline lambda: a function whose argument continues
+on the next line. Lean accepts it, and fr must preserve its following tactic too.
 They must reject unfinished termination, unfinished correctness, wrong tactics,
 looping recursive simplification, a weaker claim, a changed implementation, replacing the function
 with library GCD, an extra axiom, changed package settings, and missing or invalid patches.
 A proof-check receipt for one region cannot establish that the whole algorithm is proved.
 
-**Current status:** no complete comparison has established a guidance advantage.
-The [checked build](https://github.com/e6qu/fun-refactor/actions/runs/41398715778)
-accepted both reference proofs and the original Kimi patch. Its twelve earlier patch-control tests passed.
-It also passed six scripted client exchanges and the Mac build.
-The current smaller-import task and complete-workflow admission need their own checks before fresh calls.
+**Current results:** [all twenty fresh sessions](local-results/review-context.md)
+ran once. Independent checks accepted the eight delivered patches; twelve attempts
+timed out. GLM completed neither fact condition. Kimi completed one supplied-fact
+session and neither fact-selection session. Luna completed all four presentation
+sessions; Kimi completed both graph sessions and one checklist session. GLM completed
+neither presentation. One GLM attempt hit a confirmed reader defect, so its comparison
+is uncertain. There is no established general graph advantage and no two-versus-zero
+transfer candidate. Reversal remains reserved. These timings have no ordinary-Lean
+baseline and do not measure fr overhead.
+
+[Original qualification](https://github.com/e6qu/fun-refactor/actions/runs/41414202930)
+and complete no-model local controls admitted all three clients before those calls.
+[Fact grades](https://github.com/e6qu/fun-refactor/actions/runs/41427685363) and
+[presentation grades](https://github.com/e6qu/fun-refactor/actions/runs/41427693183)
+retain all original outcomes. Later repairs must pass separate current checks;
+they cannot turn a failed model attempt into a success.
 
 | Retained batch | Sessions started | What happened |
 | --- | ---: | --- |
@@ -74,7 +87,7 @@ These measurements cover the same native workflow, not fr overhead against ordin
 The [complete check](../../../tools/agent_eval/algorithm_admission.py) must inspect a
 goal, reject a looping draft, check and save both reference proofs, build the package,
 deliver a patch and finish native session accounting. It uses canned local replies,
-with no model calls. All three profiles must pass. It must leave 128 MiB for client
+with no model calls. All three profiles passed before the twenty calls. The gate must leave 128 MiB for client
 state within the unchanged 768-MiB attempt ceiling. Freezing a study rejects missing,
 stale or incomplete receipts. An initial-goal spot check cannot satisfy this gate.
 Raw control records remain private. Only reviewed summaries may be published.

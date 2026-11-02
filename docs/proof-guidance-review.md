@@ -1,12 +1,16 @@
 # Can a graph help smaller agents finish proofs?
 
-Reviewed on 2026-11-02 after PR #591 merged. This is a review and experiment plan.
-The first five Euclid sessions retain three timeouts, one submitted proof and a memory stop.
-The [interrupted batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
-exposed reader and resource-monitor defects. It cannot establish a guidance advantage.
-The later Init-import attempt also stopped at its memory ceiling. Complete-workflow
-checks now precede fresh plans; an initial-goal check was insufficient.
-No graph session has run yet.
+Reviewed on 2026-11-02. The [Euclid study](../tests/agent-eval/proof-algorithms/README.md)
+finished all twenty sessions once. Eight delivered patches passed independent checks;
+twelve complete attempts timed out. These prove the fixed executable Lean algorithm,
+including termination and correctness, rather than only a supporting arithmetic lemma.
+
+The [review](../tests/agent-eval/proof-algorithms/local-results/review-context.md)
+records the exact counts. Luna completed both formats twice; Kimi completed graph
+twice and checklist once. GLM completed neither; a confirmed fr reader defect makes
+its presentation comparison uncertain. No agent met the two-versus-zero rule for
+transfer. These small results establish no general graph advantage. Reversal stays
+reserved. Earlier interrupted cohorts remain unchanged.
 
 ## What the evidence supports
 
@@ -39,7 +43,7 @@ Research gives useful mechanisms, with important limits:
   This is an implementation warning, not an explanation established for our failures.
 
 **Working inference:** relevant facts, small case guides and checked exploration have stronger support than a graph display alone.
-A graph remains a plausible way to keep track of unfinished work. Its benefit still needs a controlled test.
+A graph remains plausible, but the completed presentation comparison does not justify adopting it as an improvement.
 
 ## What a useful graph would mean
 
@@ -92,7 +96,7 @@ Require a passing complete check before that transition; a closed cursor branch 
 Test correct delivery, package failure, changed settings and late completion before trying another model session.
 Keep the same delivery guidance in both graph-presentation conditions.
 
-## Test one explanation at a time
+## The fixed experiment and what happens next
 
 1. **Facts and the current baseline.** Use the fixed executable Euclid GCD task in the
    [algorithm study](../tests/agent-eval/proof-algorithms/README.md).
@@ -112,7 +116,7 @@ Keep the same delivery guidance in both graph-presentation conditions.
    Include controller work, replay, checks and delivery in the cost. Prove checkpoint and dependency handling before live calls.
    Do not call any improvement from this change evidence for graph formatting.
 
-Before graph sessions, fix the tasks, controller code, exact source and tool versions, order, limits and per-agent decisions.
+The completed sessions froze tasks, source, tools, order, limits and decisions before calls. Preserve those identities.
 With two repetitions, graph 2/2 versus checklist 0/2 warrants a different, reserved example before adoption.
 The reverse result warrants inspecting harm. Other results remain inconclusive about a success advantage.
 Both 2/2 provides no observed success advantage; it does not establish that graphs never help.
@@ -124,5 +128,13 @@ No graph handout may contain the task's completed proof or change its claim, mod
 Qualify unfinished branches, bad tactics, changed assumptions, stale snapshots and correct delivery as separate controls.
 Raw local prompts, transcripts and handoffs stay private; publish only permitted patches and reviewed summaries.
 
-The original 335 M3 outcomes and sixteen diagnostic outcomes remain unchanged.
+The observed failures support smaller repairs first: reject guessed command flags,
+retain useful diagnostics, save each proof before changing another, and deliver the
+patch in the project root. The skills now teach those steps. A valid multiline-lambda
+control exposes the reader bug independently of the failed agent draft, which also
+had Lean errors. Check the reader fix separately. Neither these controls nor the
+revised instructions establish a measured gain in agent success. There is no observed
+state-loss failure that yet requires an automatic proof-backtracking controller.
+
+The original 335 M3 outcomes and sixteen earlier diagnostic outcomes remain unchanged.
 M3 stays open until its original requirements pass. A successful assisted example cannot replace the full page-count task.

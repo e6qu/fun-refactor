@@ -36,12 +36,11 @@ In each `goals` entry, `h : P` means a named proof of statement `P` is available
 All have `acceptance: "not-checked"`. Insufficient response space fails explicitly. `--token-limit` measures UTF-8 response bytes, not model
 tokens; choose it and the shared dependency/editor deadline explicitly.
 
-Edit one step and inspect the actual goal. For recursive code, read [Algorithms](lean-algorithms.md). For comparisons or division,
-read [Arithmetic](lean-arithmetic.md). For a missing library fact, run `lean --print-prefix`
-with its working directory
-set to the theorem's Lake package (`specs/` here), so its `lean-toolchain` selects Lean.
-Use the project root again for proof commands. Under the printed prefix, choose the type's
-folder in `src/lean/Init/Data` as `<LEAN_LIBRARY_DIR>` and a name fragment as `<LIBRARY_QUERY>`:
+Inspect each edited step. Read [Algorithms](lean-algorithms.md) for recursion or
+[Arithmetic](lean-arithmetic.md) for comparisons and division. For a missing fact,
+run `lean --print-prefix` from `specs/` to select its toolchain. Under that prefix,
+choose a folder in `src/lean/Init/Data` as `<LEAN_LIBRARY_DIR>` and a name fragment
+as `<LIBRARY_QUERY>`. Return to the project root for proof commands.
 
 ```sh
 fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --limit 4
@@ -55,6 +54,8 @@ Read argument types and order; an empty search with gaps cannot establish absenc
 fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
 ```
 
+`--timeout-seconds` belongs to `proof-state`, not `proof-check` or `prove`.
+`prove` has no `--token-limit`. Read the complete response; `tail` can hide errors.
 Inspect `passed`, not process exit. `draft_location` points into your tactics;
 `checked_location` can include generated lines. Diagnostic `context` retains `⊢`;
 `context_omitted_lines` counts omissions. Fix errors, warnings and all open goals.
@@ -64,8 +65,9 @@ Only `passed: true` supplies a checked receipt. Then save:
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-`applied: true` means written. Preserve proof markers and `.fr/checks.json`.
-Run the package check, review the diff, save the requested
-`git diff --binary HEAD` as `change.patch`, and finish. Retain failed diagnostics.
+`applied: true` means written. If `applied: false` has an empty diff and a receipt,
+the proof is already present; inspect before repeating. Preserve `.fr/checks.json`.
+Run the package check, review the diff, then from the project root write
+`git diff --binary HEAD > change.patch` and finish. Keep failed diagnostics.
 
 For a missing model or theorem, read [Create a claim](lean-claims.md).

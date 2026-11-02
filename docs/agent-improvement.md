@@ -237,12 +237,19 @@ then `(12, 6)`, then `(6, 0)`, and returns `6`.
 Agents must prove that this fixed executable Lean function stops and always returns the right answer.
 The termination lemma is supporting work; it cannot replace the correctness proof.
 
-First compare relevant-fact guidance in eight GLM/Kimi sessions.
-Then compare checklist and graph presentations in twelve Luna/GLM/Kimi sessions.
-Both presentations contain the same information. Keep the complete 150-second limit.
-Reserve accumulator-based list reversal for transfer after the development decisions are fixed.
-Keep reference answers outside agent projects and qualify the evaluator before calls.
-Service or collection failures cannot establish a benefit from guidance.
+All eight relevant-fact and twelve presentation sessions have now finished once.
+The [review](../tests/agent-eval/proof-algorithms/local-results/review-context.md)
+retains eight accepted delivered patches and twelve complete-attempt timeouts.
+Luna completed both layouts twice, Kimi checklist once and graph twice, and GLM
+neither. GLM's presentation comparison is uncertain because of a confirmed reader
+bug. No profile met the fixed two-versus-zero transfer rule. Keep reversal reserved;
+no automatic search controller is justified by these results yet.
+
+Fix the observed command, source-context and delivery mistakes, plus the reader's
+multiline-lambda rejection. A current-tool replay must stay separate from the
+original outcomes. These proposed repairs have no measured success gain yet.
+Keep the 150-second limit and qualify references and negative controls without
+models. Do not start another paid comparison to seek a better score.
 
 The [first algorithm batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
 stopped in slot five. Keep its three timeouts, one Kimi submission and all unstarted slots.
@@ -265,7 +272,7 @@ The smaller task turns off automatic imports in both files and imports the GCD l
 Its GCD function and theorem statements stay fixed. A complete scripted control now
 fits with substantial headroom. The gate must also reject a looping draft, save both
 proofs, build the package, capture the patch and complete native accounting.
-All three profiles must pass with 128 MiB left within the unchanged 768-MiB ceiling.
+All three profiles passed with 128 MiB left within the unchanged 768-MiB ceiling before the twenty calls.
 The freezer requires those receipts. It cannot accept another initial-goal spot check.
 Keep this interrupted batch separate; it cannot establish which guidance helped.
 

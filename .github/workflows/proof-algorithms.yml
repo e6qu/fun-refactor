@@ -132,3 +132,84 @@ jobs:
           path: target/debug/fr
           if-no-files-found: error
           retention-days: 30
+  frozen-audit:
+    name: Preserve the twenty original algorithm outcomes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: actions/checkout@v7
+        with:
+          ref: c1e21f88ffc56eb76a8c775ab651037a67d0c5b2
+          path: .frozen-algorithm-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Verify original inputs, controls, reports and authenticated verdicts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B -m agent_eval.algorithm_replay audit
+          --frozen-root .frozen-algorithm-source --output "$RUNNER_TEMP/algorithm-frozen-audit.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: algorithm-frozen-audit
+          path: ${{ runner.temp }}/algorithm-frozen-audit.json
+          if-no-files-found: error
+  current-replay:
+    name: Check retained algorithm patches with repaired fr
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-qualification
+          path: ${{ runner.temp }}/qualified
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-private-checker
+          path: ${{ runner.temp }}/private-checker
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-linux-tool
+          path: ${{ runner.temp }}/current-tool
+      - name: Replay eight delivered patches and one misplaced diagnostic
+        env:
+          RUSTUP_TOOLCHAIN: '1.99.1'
+        run: |
+          chmod +x "$RUNNER_TEMP/current-tool/fr"
+          docker load --input "$RUNNER_TEMP/private-checker/grader-image.tar.gz"
+          python3 -B -m agent_eval.algorithm_replay replay --fr "$RUNNER_TEMP/current-tool/fr" \
+            --qualification "$RUNNER_TEMP/qualified/algorithm-controls" --output "$RUNNER_TEMP/algorithm-current-replay"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: algorithm-current-replay
+          path: |
+            ${{ runner.temp }}/algorithm-current-replay/summary.json
+            ${{ runner.temp }}/algorithm-current-replay/*/result.json
+          if-no-files-found: error
