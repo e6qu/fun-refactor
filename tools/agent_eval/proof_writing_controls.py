@@ -66,7 +66,8 @@ def drift_checks(case, binary, original, prepared, tactics, output):
         model_path.write_text('import FrSpecs.M3Dependency\n' + model_text.replace(definition, wrapped, 1))
         dependency_tactics = output / 'dependency-tactics.lean'
         model_name = head.split('def ', 1)[1].split(' ', 1)[0]
-        dependency_tactics.write_text('simp only [' + model_name + ', M3Dependency.enabled]\n' + tactics.read_text())
+        dependency_tactics.write_text(tactics.read_text().replace(
+            '[' + model_name, '[' + model_name + ', M3Dependency.enabled'))
         before_dependency = common.fr(binary, project, ['spec', 'proof-task', target], output / 'dependency-task.json')
         dependency_proof = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(dependency_tactics)], output / 'dependency-accepted.json')
         require(dependency_proof['passed'] is True, 'reference must pass with its declared dependency')

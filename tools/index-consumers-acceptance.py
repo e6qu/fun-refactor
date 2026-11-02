@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-consumers/task.json"
 BINDINGS = ["tests/index_consumers.rs", "tests/reference_storage.rs",
             "tests/common/lean_reference_corrections.rs", "tools/lean_reference_corrections.py",
+            "tests/agent-eval/index-consumers/lean-reader-introductions.json",
             "tests/agent-eval/index-consumers/lean-reader-review.json",
             "tests/agent-eval/index-consumers/repository-queries.json",
             "tests/agent-eval/index-consumers/task.json", "tests/agent-eval/index-consumers/ignored-wildcards.lean", "tools/index-consumers-acceptance.py",

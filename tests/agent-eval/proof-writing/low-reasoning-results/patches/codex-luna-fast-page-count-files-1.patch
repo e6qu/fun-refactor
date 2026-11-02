@@ -1,0 +1,49 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..d28b168 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,42 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    rcases h with hi | hs
++    · simp [page_countModel, hi]
++    · simp [page_countModel, hs]
++  constructor
++  · intro h
++    rcases h with ⟨hi, hmax, hs, hsmax⟩
++    have hspos : 0 < size := by omega
++    have hguard : ((items < 0) || (size ≤ 0)) = false := by
++      simp [hi]
++      omega
++    have hqnon : 0 ≤ Int.tdiv items size := by
++      rw [Int.tdiv_eq_ediv_of_nonneg hi]
++      exact Int.ediv_nonneg hi (by omega)
++    have hqle : Int.tdiv items size ≤ items := by
++      rw [Int.tdiv_eq_ediv_of_nonneg hi]
++      exact Int.ediv_le_self size hi
++    by_cases hrem : Int.tmod items size = 0
++    · simp [page_countModel, hguard, hrem]
++      exact ⟨hqnon, hqle⟩
++    · have hrempos : 0 < Int.tmod items size := by
++        have hnon := Int.emod_nonneg items (Int.ne_of_gt hspos)
++        rw [← Int.tmod_eq_emod_of_nonneg hi] at hnon
++        omega
++      have hdecomp := Int.tmod_def items size
++      have hne : Int.tdiv items size ≠ items := by
++        intro heq
++        rw [heq] at hdecomp
++        have hmul := Int.mul_le_mul_of_nonneg_right (show 1 ≤ size by omega) hi
++        omega
++      have hstrict : Int.tdiv items size < items := by
++        omega
++      simp [page_countModel, hguard, hrem]
++      omega
++  · decide
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

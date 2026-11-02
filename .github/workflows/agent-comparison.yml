@@ -144,6 +144,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout: |
+            tools
+            skills/fr
+            tests/agent-eval/agent-first-use
+            tests/agent-eval/agent-comparison
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

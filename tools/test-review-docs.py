@@ -1,6 +1,7 @@
 """Exercise public-site links without fetching external resources or building WASM."""
 import importlib.util
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -64,6 +65,59 @@ class WebsiteLinks(unittest.TestCase):
         self.page('index.html', '<a href="another-build/">Missing</a>')
         with self.assertRaisesRegex(ValueError, 'missing another-build/'):
             review.check_website_links()
+
+    def test_sparse_checkout_selects_new_linked_evidence_before_it_exists(self):
+        page = review.ROOT / 'README.md'
+        page.write_text('[Fresh result](tests/agent-eval/results/new/manifest.json)\n'
+                        '[Same result](tests/agent-eval/results/new/manifest.json#part)\n'
+                        '[External](https://example.invalid/tests/agent-eval/results/other.json)\n'
+                        '``[Inline](tests/agent-eval/results/inline.json)``\n'
+                        '```sh\n[Example](tests/agent-eval/results/example.json)\n```\n')
+        self.assertEqual(review.evidence_links([page]),
+                         [Path('tests/agent-eval/results/new/manifest.json')])
+
+    def test_sparse_checkout_resolves_nested_encoded_links_and_directories(self):
+        page = self.docs / 'results.md'
+        page.write_text('[Report](../tests/agent-eval/results/a%20b/result.json)\n'
+                        '[Directory](../tests/agent-eval/results/another/)\n')
+        self.assertEqual(review.evidence_links([page]),
+                         [Path('tests/agent-eval/results/a b/result.json'),
+                          Path('tests/agent-eval/results/another')])
+
+    def test_sparse_checkout_refuses_escaping_or_multiline_paths(self):
+        page = self.docs / 'results.md'
+        for target in ['../../outside.json', '../tests/agent-eval/results/new%0Aother.json']:
+            page.write_text(f'[Invalid]({target})\n')
+            with self.subTest(target=target), self.assertRaises(ValueError):
+                review.evidence_links([page])
+
+    def test_linked_manifest_is_restored_without_its_source_archive(self):
+        root = review.ROOT
+        (root / 'README.md').write_text('[New](tests/agent-eval/results/new/manifest.json)\n')
+        record = root / 'tests/agent-eval/results/new'
+        record.mkdir(parents=True)
+        (record / 'manifest.json').write_text('{}\n')
+        (record / 'source.tar.gz').write_bytes(b'Unneeded archive control')
+        def git(directory, *arguments, input):
+            return subprocess.run(['git', '-C', str(directory), *arguments], input=input,
+                                  text=True, capture_output=True, check=True)
+        git(root, 'init', '-b', 'main', input=None)
+        git(root, 'add', '.', input=None)
+        git(root, '-c', 'user.name=Fr test', '-c', 'user.email=fr-test@example.invalid',
+            'commit', '-m', 'Prepare the sparse evidence checkout control', input=None)
+        checkout = root.parent / 'checkout'
+        subprocess.run(['git', 'clone', '--no-checkout', '--no-hardlinks', str(root), str(checkout)],
+                       capture_output=True, text=True, check=True)
+        git(checkout, 'sparse-checkout', 'set', '--no-cone', '--stdin',
+            input='/*\n!/tests/agent-eval/results/*\n')
+        git(checkout, 'checkout', 'main', input=None)
+        manifest = checkout / 'tests/agent-eval/results/new/manifest.json'
+        self.assertFalse(manifest.exists())
+        review.ROOT = checkout
+        patterns = ''.join('/' + p.as_posix() + '\n' for p in review.evidence_links([checkout / 'README.md']))
+        git(checkout, 'sparse-checkout', 'add', '--stdin', input=patterns)
+        self.assertTrue(manifest.is_file())
+        self.assertFalse(manifest.with_name('source.tar.gz').exists())
 
 
 if __name__ == '__main__':

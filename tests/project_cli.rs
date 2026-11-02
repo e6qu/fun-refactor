@@ -2545,6 +2545,44 @@ fn limits_projection_and_read_only_contract_hold() {
 }
 
 #[test]
+fn lean_library_signatures_keep_types_without_including_equation_proofs() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("Library.lean"),
+        include_str!("fixtures/lean-library-signatures.lean"),
+    )
+    .unwrap();
+    for (name, required) in [
+        ("choose", "Bool → Bool"),
+        ("nonnegative", "∀ {α : Int}, 0 ≤ α → 0 ≤ α"),
+        ("arrowProof", "{p q : Prop} : p ∧ q → p"),
+    ] {
+        let found = ok(
+            dir.path(),
+            &["project", "find", name, "--signature", "--limit", "1"],
+        );
+        let columns = found["columns"].as_array().unwrap();
+        let index = columns
+            .iter()
+            .position(|value| value == "signature")
+            .unwrap();
+        let rows = found["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 1, "{found}");
+        assert_eq!(rows[0][index]["basis"], "syntax-header");
+        let header = rows[0][index]["text"].as_str().unwrap();
+        assert!(header.contains(required), "{header}");
+        assert!(
+            !header.contains("=>")
+                && !header.contains(":=")
+                && !header.contains("hypothesis")
+                && !header.contains("intro h"),
+            "{header}"
+        );
+        assert!(!columns.iter().any(|column| column == "source"));
+    }
+}
+
+#[test]
 fn signature_headers_keep_multiline_types_and_do_not_include_one_line_bodies() {
     let dir = tempfile::tempdir().unwrap();
     let samples = [

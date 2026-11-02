@@ -1,0 +1,3 @@
+have h : ((keepModel x = x ∧ True) ∧ True) ∧ True := ⟨⟨⟨by rfl, True.intro⟩, True.intro⟩, True.intro⟩
+obtain ⟨⟨⟨hx, _⟩, _⟩, _⟩ := h
+exact hx

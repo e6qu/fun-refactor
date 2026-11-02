@@ -1,0 +1,25 @@
+{
+  "live_model_calls": 0,
+  "original_attempt": "opencode2-glm-flash-page-count-fr-2",
+  "draft_sha256": "7978bfd37dc37ce43b910b05b9ecf305655cdefe89a7cbb5d887d3e0a3785d0b",
+  "lean_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+  "lean_returncode": 1,
+  "original_seed_unchanged": true,
+  "original_agent_outcomes_changed": false,
+  "scope": "Direct pinned-Lean elaboration of the exact original draft; not a new agent attempt",
+  "observations": [
+    "The exact draft reaches Lean elaboration directly.",
+    "Lean rejects an extra introduction after the assumption is already in the context.",
+    "Lean reports an unknown tactic and an unfinished final example.",
+    "The accepted minimal nested-pattern control establishes a reader defect, not correctness of this complete draft."
+  ],
+  "lean_toolchain": "leanprover/lean4:v4.28.0",
+  "guard": {
+    "deadline_seconds": 180,
+    "rss_limit_bytes": 1073741824,
+    "minimum_free_disk_gib": 64,
+    "cpu_seconds": 0.4,
+    "elapsed_seconds": 1.56
+  },
+  "publication": "Reviewed summary only; the original draft and raw compiler output stay local"
+}

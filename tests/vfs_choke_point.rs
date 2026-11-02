@@ -15,7 +15,14 @@ fn without_test_modules(source: &str) -> String {
     let mut out = String::with_capacity(source.len());
     let mut lines = source.lines().peekable();
     while let Some(line) = lines.next() {
-        if line.trim_start().starts_with("#[cfg(test)]") {
+        let test_only = line.trim_start().starts_with("#[cfg") && {
+            let attribute = line
+                .chars()
+                .filter(|character| !character.is_whitespace())
+                .collect::<String>();
+            attribute.starts_with("#[cfg(test)]") || attribute.starts_with("#[cfg(all(test,")
+        };
+        if test_only {
             // Skip to the end of the module: the closing brace at the same indent.
             let indent = line.len() - line.trim_start().len();
             let closing = format!("{}}}", " ".repeat(indent));
@@ -30,6 +37,33 @@ fn without_test_modules(source: &str) -> String {
         out.push('\n');
     }
     out
+}
+
+#[test]
+fn test_only_platform_modules_are_excluded_but_runtime_alternatives_remain_checked() {
+    for attribute in [
+        "#[cfg(test)]",
+        "#[cfg(all(test, unix))]",
+        "#[cfg(all(test, not(feature = \"wasm\")))]",
+    ] {
+        let source = format!(
+            "fn before() {{}}\n{attribute}\nmod tests {{\n    fn fixture() {{ std::fs::read(\"fixture\"); }}\n}}\nfn after() {{}}\n"
+        );
+        let retained = without_test_modules(&source);
+        assert!(!retained.contains("std::fs::read"), "{attribute}");
+        assert!(retained.contains("fn before()") && retained.contains("fn after()"));
+    }
+    for attribute in [
+        "#[cfg(unix)]",
+        "#[cfg(any(test, unix))]",
+        "#[cfg(all(not(test), unix))]",
+        "#[cfg(all(test_mode, unix))]",
+    ] {
+        let source = format!(
+            "{attribute}\nmod runtime {{\n    fn access() {{ std::fs::read(\"source\"); }}\n}}\n"
+        );
+        assert_eq!(without_test_modules(&source), source, "{attribute}");
+    }
 }
 
 fn rust_sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {

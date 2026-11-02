@@ -14,6 +14,54 @@ from agent_eval import selected_plan
 
 
 class ProofOutcomeChecks(unittest.TestCase):
+    def test_checker_identity_ignores_reports_but_tracks_actual_checking_inputs(self):
+        public = results.public
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            task = root / public.CASE_DIRECTORIES['M3']
+            inputs = [root / name for name in public.CORE_FILES]
+            inputs += [root / 'sdk/python/src/fr_ir/checker.py',
+                       root / 'tests/agent-eval/selected-agents/Grader.Dockerfile',
+                       task / 'tasks.json', task / 'checkers.json', task / 'cases.json', task / 'profiles.json',
+                       task / 'fixtures/src/program.rs', task / 'controls/reference.lean']
+            modules = [root / 'tools/agent_eval' / path.name
+                       for path in (public.ROOT / 'tools/agent_eval').glob('*.py')]
+            for path in inputs + modules:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('original checking input\n')
+            with mock.patch.object(public, 'ROOT', root):
+                original = public.core_digest('M3')
+                for name in ('local-results/summary.json', 'low-reasoning-results/summary.json',
+                             'low-reasoning-results/patches/submission.patch', 'low-reasoning-results.sha256',
+                             'behavior-review.md'):
+                    path = task / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text('retained outcome\n')
+                self.assertEqual(public.core_digest('M3'), original)
+                for path in inputs:
+                    with self.subTest(input=str(path.relative_to(root))):
+                        path.write_text('changed checking input\n')
+                        self.assertNotEqual(public.core_digest('M3'), original)
+                        path.write_text('original checking input\n')
+
+    def test_report_keeps_failures_visible_after_a_contributing_proof_step_and_discloses_sleep(self):
+        supplied, _, rows = self.packet()
+        for row in rows:
+            row.update(independent_outcome='failed', total_seconds=150.0,
+                fr_use={'contributing_actions': []}, failure_summary=None, reported_usage_complete=False)
+        row = next(row for row in rows if row['setup'] == 'fr')
+        row['fr_use']['contributing_actions'] = ['Checked the proposed proof with fr']
+        row['failure_summary'] = 'Deleted the supplied check file during cleanup'
+        row['total_seconds'] = 142.9
+        supplied['collection_notes'] = {'system_sleep': [{'attempt': row['id'], 'suspended_seconds': 42.9,
+                                                        'included_in_total_seconds': True}]}
+        text = results.markdown(supplied)
+        line = next(line for line in text.splitlines() if line.startswith('| ' + row['id'] + ' |'))
+        self.assertIn('Checked the proposed proof', line)
+        self.assertIn('Deleted the supplied check file', line)
+        self.assertIn('| failed |', line)
+        self.assertIn('42.9 seconds of detected system sleep in its 142.9-second total', text)
+
     def test_image_setup_failure_still_records_zero_completed_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -36,7 +84,7 @@ class ProofOutcomeChecks(unittest.TestCase):
         schedule = selected_plan.prepare(selected_plan.ROOT, 'M3')
         rows = [{**row, 'native_status': 'failed' if index == 0 else 'completed', 'patch_sha256': 'd' * 64}
                 for index, row in enumerate(schedule['attempts'])]
-        supplied = {'attempts': rows, 'core_checker_sha256': 'b' * 64,
+        supplied = {'attempts': rows, 'core_checker_sha256': 'b' * 64, 'limits': {'wall_seconds': 150},
                     'controls': {'source_commit': 'a' * 40, 'run': '123', 'private': {'image': 'sha256:' + 'c' * 64}}}
         cells = []
         digest = hashlib.sha256(results.encoded_summary(supplied)).hexdigest()

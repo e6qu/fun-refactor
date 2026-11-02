@@ -23,15 +23,15 @@ def scripted_configuration(profile, endpoint):
     require(profile['client'] == 'opencode2', 'an OpenCode2 profile is required')
     selection = profile['model']
     require((selection['providerID'], selection['id']) in {
-        ('zai-coding-plan', 'glm-5.3-flash'), ('kimi-code-plan-global', 'k3')} and selection['variant'] == 'high',
+        ('zai-coding-plan', 'glm-5.3-flash'), ('kimi-code-plan-global', 'k3')} and selection['variant'] in {'low', 'high'},
         'scripted control must keep the selected model and reasoning variant')
     model = {'providerID': selection['providerID'], 'model': selection['id'], 'variant': selection['variant']}
     rules = [{'action': '*', 'resource': '*', 'effect': 'deny'}] + [
         {'action': action, 'resource': '*', 'effect': 'allow'} for action in ('read', 'glob', 'grep', 'edit', 'write', 'shell', 'skill')]
     descriptor = {'modelID': selection['id'], 'name': selection['id'],
         'capabilities': {'tools': True, 'input': ['text'], 'output': ['text'],
-                         'reasoning': {'supported': True, 'effort': ['high']}},
-        'variants': [{'id': 'high', 'body': {'reasoning_effort': 'high'}}],
+                         'reasoning': {'supported': True, 'effort': [selection['variant']]}},
+        'variants': [{'id': selection['variant'], 'body': {'reasoning_effort': selection['variant']}}],
         'limit': {'context': 32768, 'output': 1024}}
     provider = {'name': 'Local scripted control', 'env': [], 'package': '@ai-sdk/openai-compatible',
         'settings': {'baseURL': endpoint + '/v1', 'apiKey': 'scripted-control-no-live-credential',

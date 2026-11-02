@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "live_model_calls": 0,
+  "build": {
+    "source_commit": "e94dec928d0bc3885b6e1c4f42f6f1489eb19ae5",
+    "source_tree": "3de5cc3b7baea9cc6add1acc3cd784af01ac5b92",
+    "native_inputs": {
+      "src": "6ff2337a6644c5f3fb561547cc8715f498e5ea3f",
+      "grammars": "25fbabecb3ddee30ff42e0935875a6807256899a",
+      "crates": "6d9d25a18f856642ead5ab598f583288b2cf7a5e",
+      "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+      "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+      "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+      "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+      "Cargo.toml": "e71fcf4fa094507118640f3370cc58ba99e621bf",
+      "Cargo.lock": "2800d1ca4f6646df51efaf876bcc5ef9d98492d1",
+      "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+    },
+    "executable_sha256": "ae0a4c15f1daf78662ab9959d49e95ae60f142324e90c4e37f3c3fd58431ff32"
+  },
+  "exact_replays": [
+    {
+      "original_attempt": "opencode2-kimi-k3-scaled-total-fr-2",
+      "reader_reached_lean": true,
+      "proof_passed": true,
+      "model_calls": 0,
+      "write_applied": true,
+      "package_check_passed": true
+    },
+    {
+      "original_attempt": "opencode2-kimi-k3-scaled-total-fr-1",
+      "reader_reached_lean": true,
+      "proof_passed": false,
+      "model_calls": 0,
+      "diagnostics_preserved": true
+    }
+  ],
+  "syntax_forms": [
+    "inline",
+    "multiline",
+    "nested",
+    "exact",
+    "term"
+  ],
+  "original_agent_outcomes_changed": false,
+  "original_seed_unchanged": true,
+  "scope": "Recheck the inline reader repair with the exact earlier drafts; this is not a new agent attempt or an outcome reclassification",
+  "qualification_run": "https://github.com/e6qu/fun-refactor/actions/runs/41214408630",
+  "guard": {
+    "deadline_seconds": 180,
+    "rss_limit_bytes": 1073741824,
+    "minimum_free_disk_gib": 64,
+    "cpu_seconds": 1.11,
+    "elapsed_seconds": 3.99
+  },
+  "preliminary_setup_error": "The first replay lacked an initialized fixture repository and stopped before checking any draft; a separate corrected replay passed",
+  "remaining_issue": "Tagged Lean unknown-name errors reach the checker but still lose their structured draft locations in this executable",
+  "source_model_connection_proved": false,
+  "publication": "Reviewed summary only; no raw drafts, source snapshots, prompts or native records"
+}

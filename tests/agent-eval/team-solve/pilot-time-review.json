@@ -1,0 +1,37 @@
+{
+  "source_summary_sha256": "02aa996ff478f67bf1ccec6ee041964169d103b19f7b27e48dffb203cc20d693",
+  "new_agent_sessions": 0,
+  "new_provider_requests": 0,
+  "observed": {
+    "complete_seconds": 249.923452709103,
+    "planning_and_coding_seconds": 43.05752775003202,
+    "proposals_and_review_seconds": 196.90622479119338,
+    "declared_check_seconds": 0.04024949902668595,
+    "remaining_preparation_and_coordination_seconds": 9.919450668850914,
+    "proposals_and_review_fraction": 0.7878661352377413,
+    "within_original_150_second_solo_limit": false,
+    "actual_fr_invocations": 0
+  },
+  "conclusions": [
+    "The five-role workflow completed the repair, using its separately declared team budget",
+    "Proposals and review account for about 79 percent of recorded complete wall time on this tiny task",
+    "The two declared checks took about 0.04 seconds; checking was not the main elapsed-time cost in this pilot",
+    "The run would miss a 150-second whole-team deadline; do not count it as a solo M3 success",
+    "No solo run was measured; Luna implementation time alone cannot serve as a complete solo baseline",
+    "Role wall time includes CLI activity and waiting; it does not isolate provider inference time or charges"
+  ],
+  "comparison_controls": {
+    "single": "One pinned solver session, followed by the same final checker; no planning, proposals, review or repair sessions",
+    "luna_team": "The complete team workflow with Luna explicitly assigned to every role",
+    "mixed_team": "The complete team workflow with the original explicit Luna, GLM and Kimi assignments",
+    "budget": "Every condition declares one complete-run ceiling; all stages share the remaining time",
+    "status": "The comparisons have scripted controls; no live comparison has run"
+  },
+  "accounting_clarification": {
+    "original_field": "pilot.model_calls",
+    "original_value": 5,
+    "native_cli_sessions": 5,
+    "provider_request_count": null,
+    "meaning": "The original field counts native CLI sessions. Each session can issue several model requests; no provider request total was measured. The original source record and outcome remain unchanged."
+  }
+}

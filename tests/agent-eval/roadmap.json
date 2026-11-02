@@ -30,68 +30,68 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-28-distinct-answers-40743699596",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-01-distinct-answers-41345922576",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-28-distinct-answers-40743699596/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-distinct-answers-41345922576/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "0c936bab6baf0c45359e880af70812a36d7901e1992cd2fb1561904b36501e06"
+      "sha256": "c90d904d97147dde2e087dde674de69c724a22ace18dce4253a4ef07b228f3c3"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "1de10b5bc090f29d225fac6cee0cdbe2840aa58532d098f404c3359666751adc"
+      "sha256": "5845fb3346a60975b8d2610de3a4b714510f90a4ce309466814358a5abe7e18c"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-scalar-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "cc7ac45879fd60f726f652fdc3c65623436bcf8a5f09752ff039c296e234b1e1"
+      "sha256": "92f7723d71399c71b98afaf50f945f7c97e571e2e2c815325fa698ed0b5b5479"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "8e50214703bea085e945ccd729755a1df03000ef4e6460fbbaf35e5376bc817a"
+      "sha256": "ac1be30fd75e4956de7b3655f1ef6e6982e48d97171350baea212f03bce07d8f"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "c1cb69c376a8576b155a955d77bf4382da1551a30b09e7adf2b8546f9466550f"
+      "sha256": "4dc87b6eaced32d409248fbb35ec002c09568639a3fc837be99314031ca43385"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-ci-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-ci-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "40b9130469320a33aa53600b91519852c3cd6a36f6ec840985b5331546ccc5bb"
+      "sha256": "cf4914f2b9a849baee9a84fe0bf4b4a695ce0a89896ab767883bdf9ec3b6cad5"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-ci-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-ci-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "78f5a83cf8657bc5b7773c97434950c2b15ce0e25581255215f5943f1b4f3c24"
+      "sha256": "50a0ba31638dd390affc7e38d5348a423ccc7854cba8304d20549690345be83c"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-ci-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-ci-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "7ea8a83ca78848b5738998dab87334f481d9d43898dee564240020481dafaf39"
+      "sha256": "c7f536c2f54da6a9fbb0bd876faae8b1888cf9c0ba2e02fcbb5c345372bac053"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-28-m3-ci-scalar-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "09b5c40e16b7c998520cb3bdac47942d23c44fcf5fe165f2d130337b287a6b64"
+      "sha256": "415c8f15ff143c9a8a7d7b6211e963e77e5a1e47f5bd9adbb18b982220d91841"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "f36eb937153fc9bfd593d1e8ba122d24cf394cd4ab7b5ea0d1dd43d682046ffb"
+      "sha256": "08a90aed9753f4abaf201d7b114b46e7b9173a5d3a50b2bb7afc58c2feeba3b8"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-28-m3-ci-scalar-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-01-interactive-deadline-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-28-m3-ci-scalar-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "057f403724a5c7d3bf8eba399e572a3b2ad60c50a5fe3f3e80019ac2dd38fcb2"
+      "sha256": "0dec69413b7542e1da1019c470b16c0701634e57bcced9584f11df7d415c9b3c"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-28-m3-final-text-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-01-interactive-deadline-text-package-recheck",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-final-text-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.",
-      "sha256": "23d7087f219a58e07217664bfe0b84391f478d162cca3e639b2936c2479b4a52"
+      "sha256": "cc1fe1d932df7d5680c1adf9e0714a72879c6da7c3dbde6a7b30a8585ce4dda1"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -158,44 +158,44 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40745359401",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41354956366",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40745359401/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-41354956366/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "693b63c1a8aa332a3bc9ddc6cec5e83e09cffcbf11a53abaefb7cc02115443b2"
+      "sha256": "676000849f53c0453c1a6201a6a52dbc8f1b86ca1c578e7be29ecd7b3f9bdb04"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-28-m3-final-language-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-01-interactive-deadline-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-final-language-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "3af3b629c62b9b40013309e7d18ba309e3aa2d5452e0473eb8d6ace857fc2a3b"
+      "sha256": "36a3ff5af1c1751cf061a24615b7a8c04eee3a2e4df053deafff527de7e03b86"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-28-m3-final-language-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-01-interactive-deadline-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-final-language-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-python-effects/result.json",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "sha256": "0a0e1bbd9ac5a82929034412fdee4e762856dd305e79a32be30c33cbac5c31c9"
+      "sha256": "61c369a31e33cbd8847acb24b26ddd94b1d6032e2ad6e8cb3535d02e2a3f6725"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-28-m3-final-language-python-text-flow",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-01-interactive-deadline-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-final-language-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "41cdcb645e3ec5ab50fe8332701caddc4a08db99e6e97d443e4da382b2d5f214"
+      "sha256": "e63ba0a9796ea38b38a62c13f50cc02ea801f11a7f2cd23d3c4023da32908ea3"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-28-m3-final-projects-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-28-m3-final-projects-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "4d2ccf94fd560918982fbe3b2239008c4679ef3191c098618f598ca38a636d40"
+      "sha256": "95027496ffe2f5236a0eb101489d9a5d4c8adb5d0aada5103c9434b4405047c5"
     }
   ],
   "obligations": [

@@ -28,7 +28,37 @@ Its driver sampled 512 questions in the first copy and 511 in the second.
 These samples are separate from the unchanged 512 recorded consumer questions linked below.
 The original correction inventory and timing baselines remain unchanged.
 
-| Fixed source copy | Before this reader repair | After this reader repair |
+The repairs to reading division facts and building reports also preserve both fixed source copies.
+The [2026-10-29 review](reader-recheck-2026-10-29.json) retains the two successful checks and exact file hashes.
+All source bytes, code facts, syntax results and sampled questions remain identical before and after.
+The original correction inventory, recorded consumer questions and timing baselines stay unchanged.
+
+The [introduction-pattern review](lean-reader-introductions.json) records one further correction on both fixed copies.
+An assumption is a fact available inside a proof. In `rintro ⟨ha, -, -, -⟩`, Lean keeps the first fact as `ha` and discards the others.
+The earlier reader counted the word `rintro` as an ordinary identifier at two locations in `ProjectIdentity.lean`.
+The corrected reader recognizes the proof instruction and removes those two false references.
+All declarations, resolved-reference counts, source bytes, syntax diagnostics and sampled question selections stay unchanged.
+The current inventory retains every earlier correction and the first inventory's exact hash; the first inventory itself is unchanged.
+
+| Fixed source copy | References before this correction | References after this correction |
+| --- | ---: | ---: |
+| Consumer benchmark | 592,648 | 592,646 |
+| Indexing benchmark | 593,974 | 593,972 |
+
+The original timing baselines remain unchanged. Current timings must use newly collected results with the corrected reader.
+The driver still samples 512 questions in the consumer copy and 511 in the indexing copy.
+The separate saved set of 512 consumer questions also stays unchanged.
+
+The [2026-10-30 comparison](reader-recheck-2026-10-30.json) checks the claim view,
+library signatures and Lean expression grouping against both fixed source copies.
+Their declarations, references and resolved-reference counts match the current inventory.
+Source bytes, syntax error locations and sampled questions stay unchanged.
+Two files' recorded parser trees change only in how binary expressions are grouped:
+Lean reads `a ∧ b ∧ c` as `a ∧ (b ∧ c)`. The comparison checks that every other
+part of those trees stays the same. It retains the exact artifact hashes and leaves
+the original timing baselines unchanged.
+
+| Fixed source copy | Before the original reader repair | After the original reader repair |
 | --- | ---: | ---: |
 | Consumer benchmark declarations and parameters | 98,147 | 98,231 |
 | Consumer benchmark reference occurrences | 592,956 | 592,648 |

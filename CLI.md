@@ -707,6 +707,8 @@ fr spec scaffold --from PLAN [--package PATH] [--write]
 fr spec goals [PATH...] [--goal DIGEST] [--limit COUNT] [--token-limit BYTES]
 
 fr spec proof-task SPEC::OBLIGATION [--token-limit BYTES]
+fr spec proof-state SPEC::OBLIGATION --from PROOF --at LINE:COLUMN --token-limit BYTES --timeout-seconds SECONDS
+
 fr spec proof-check SPEC::OBLIGATION --from PROOF [--token-limit BYTES]
 fr spec prove SPEC::OBLIGATION --from PROOF [--write]
 
@@ -719,7 +721,7 @@ fr spec verify [PATH...]
 fr spec evidence [PATH...]
 ```
 
-`candidates`, `property-task`, `plan`, `goals`, `proof-task`, `proof-check` and `prove` form the agent workbench described in
+`candidates`, `property-task`, `plan`, `goals`, `proof-task`, `proof-state`, `proof-check` and `prove` form the agent workbench described in
 [docs/agent-formalization.md](docs/agent-formalization.md). Plans contain structured data without source text, identified by content fingerprints.
 A property task discloses the model signature and bounded proposition grammar;
 the agent authors a strict property IR and supplies it with `--property-from`. Formal scaffolding
@@ -727,6 +729,21 @@ refuses stale or modified plans and requires Lean to elaborate the exact generat
 catalogs and selected details fit their declared serialized-byte ceiling. Proof writes replace one
 named generated region and participate in source history, undo, redo and patch export. The agent
 authors the property and tactics; `fr` validates and renders them without inventing either.
+
+`proof-state` asks the pinned Lean editor for goals at a position in a tactics draft, without
+saving the proof. All four settings are explicit. `--from` selects the draft.
+`--at` uses one-based Unicode character coordinates, including the end of a line.
+`--token-limit` selects 1024–16384 UTF-8 response bytes.
+`--timeout-seconds` selects 1–60 shared seconds for dependencies and the editor query.
+Start a draft with `skip` and use `--at 1:5` to inspect after that step.
+The response keeps the theorem, goal and draft identities, location, goals and available assumptions.
+It refuses an undersized response rather than removing goals or hypotheses.
+`goals` means there is work at that cursor. `closed-at-position` means the selected branch has
+no goals there. `no-tactic-at-position` means Lean found no tactic state. Every response says
+`acceptance: "not-checked"`. Even an empty goal list requires a complete `proof-check` with
+`passed: true` before saving. Querying a closed first branch can leave a second branch unfinished.
+Task and attempt reports include an `actions.inspect` command with explicit cursor/deadline slots.
+See the [worked interactive proof](docs/first-lean-proof.md#inspect-your-progress-after-each-step).
 
 `kernel` evaluates `fr-pure-kernel-1` terms without reading project source or writing history.
 Its report states checked signed-64 arithmetic, partiality and indexed binding policies.

@@ -935,6 +935,19 @@ impl<'a> Project<'a> {
             if !span.contains(Span::from(current)) {
                 break;
             }
+            if symbol.language == crate::lang::Language::Lean && current.kind() == "definition" {
+                if let Some(ty) = current.child_by_field_name("type") {
+                    if ty.end_byte() >= symbol.name_span.end && ty.end_byte() <= span.end {
+                        let header = source
+                            .get(span.start..ty.end_byte())
+                            .context("Lean signature crosses a UTF-8 boundary")?
+                            .trim_end();
+                        return Ok(
+                            json!({"basis": "syntax-header", "text": bounded_text(header, 512)}),
+                        );
+                    }
+                }
+            }
             let body = current.child_by_field_name("body").or_else(|| {
                 ["value", "initializer"].iter().find_map(|field| {
                     current

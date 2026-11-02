@@ -1,0 +1,46 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..879bbcd 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -19,7 +19,40 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+   -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    rcases h with h | h
++    · simp [page_countModel, h]
++    · simp [page_countModel, h]
++  constructor
++  · intro h
++    rcases h with ⟨hi0, hiMax, hs1, hsMax⟩
++    have hpos : 0 < size := by omega
++    have hne : size ≠ 0 := by omega
++    have qeq : Int.tdiv items size = items / size := Int.tdiv_eq_ediv_of_nonneg (by omega)
++    have req : Int.tmod items size = items % size := Int.tmod_eq_emod_of_nonneg (a := items) (b := size) hi0
++    let q : Int := items / size
++    let r : Int := items % size
++    have hq0 : 0 ≤ q := Int.ediv_nonneg (by omega) (by omega)
++    have hr0 : 0 ≤ r := Int.emod_nonneg items hne
++    have hrlt : r < size := Int.emod_lt_of_pos items hpos
++    have hid : size * q + r = items := by
++      dsimp [q, r]
++      exact Int.mul_ediv_add_emod items size
++    have hprod : q ≤ size * q := by simpa using Int.mul_le_mul_of_nonneg_right hs1 hq0
++    have hqle : q ≤ items := by omega
++    have hguard : ((items < 0) || (size ≤ 0)) = false := by omega
++    have hremzero : (Int.tmod items size == 0) = (r == 0) := by
++      simpa [r] using congrArg (fun z : Int => z == 0) req
++    by_cases hz : items % size = 0
++    · simp [page_countModel, hguard, qeq, hremzero, hz, q]
++      omega
++    · have hrpos : 0 < r := by dsimp [r]; omega
++      have hqstrict : q < items := by omega
++      simp [page_countModel, hguard, qeq, hremzero, hz, q]
++      constructor <;> omega
++  · exact of_decide_eq_true rfl
++
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

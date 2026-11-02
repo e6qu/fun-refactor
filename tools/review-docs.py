@@ -67,6 +67,25 @@ def links(path):
         match[1] for match in re.finditer(r'^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?', text, re.M)]
 
 
+def evidence_links(pages):
+    records = ROOT / 'tests/agent-eval/results'
+    found = set()
+    for page in pages:
+        for target in links(page):
+            url = urlsplit(target)
+            if url.scheme or url.netloc:
+                continue
+            child = (page.parent / unquote(url.path)).resolve() if url.path else page
+            if not child.is_relative_to(ROOT):
+                raise ValueError(f'{page.relative_to(ROOT)}: link escapes the repository: {target}')
+            if child.is_relative_to(records) and child != records:
+                name = child.relative_to(ROOT)
+                if '\n' in str(name) or '\r' in str(name):
+                    raise ValueError('evidence paths must fit one checkout pattern line')
+                found.add(name)
+    return sorted(found)
+
+
 class WebsitePage(HTMLParser):
     def __init__(self, text):
         super().__init__(convert_charrefs=True)

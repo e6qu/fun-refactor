@@ -1,6 +1,7 @@
 """Explain the completed M1 comparison using only the approved public summary."""
 import argparse
 import json
+import math
 from pathlib import Path
 
 from .selected_plan import require
@@ -33,6 +34,15 @@ def comparisons(summary, tasks):
     require(all(row['native_status'] in {'completed', 'failed'} and
                 row['independent_outcome'] in {'passed', 'failed'} for row in rows),
             'finish and independently check every attempt before reporting completion')
+    require(all(type(row['total_seconds']) in {int, float} and
+                math.isfinite(row['total_seconds']) and row['total_seconds'] >= 0 for row in rows),
+            'attempt times must be finite nonnegative seconds')
+    limit = summary['limits']['wall_seconds']
+    require(type(limit) in {int, float} and math.isfinite(limit) and limit > 0,
+            'the recorded deadline must be finite positive seconds')
+    require(all(row['total_seconds'] <= limit and row['stop_reason'] is None
+                for row in rows if row['independent_outcome'] == 'passed'),
+            'a successful attempt must finish within its recorded limits')
     groups, matched = [], []
     for profile in AGENTS:
         for setup in ('files', 'fr'):

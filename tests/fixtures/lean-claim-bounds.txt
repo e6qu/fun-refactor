@@ -1,0 +1,4 @@
+theorem bounds (items size : Int) :
+  ((items < 0 ∨ size ≤ 0) → items = -1) ∧
+  ((0 ≤ items ∧ items ≤ 99 ∧ 1 ≤ size ∧ size ≤ 99) → (0 ≤ items ∧ items ≤ 99)) ∧
+  (11 = 11)

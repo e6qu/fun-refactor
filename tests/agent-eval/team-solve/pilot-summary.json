@@ -1,0 +1,406 @@
+{
+  "status": "completed",
+  "passed": true,
+  "plan_sha256": "9a9c0e9a7323f820337208af9b9bce7bbf85e0095420f8a1a1fa077eed421304",
+  "actual_cost": null,
+  "elapsed_seconds": 249.923452709103,
+  "solo_comparison": "Separate team workflow; not a 150-second solo attempt.",
+  "roles": {
+    "plan": {
+      "status": "completed",
+      "profile": "codex-luna-fast",
+      "elapsed_seconds": 19.80079612508416,
+      "process": {
+        "exit_code": 0,
+        "stop_reason": null
+      },
+      "usage": {
+        "reported": [
+          {
+            "input_tokens": 71117,
+            "cached_input_tokens": 57216,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 1270,
+            "reasoning_output_tokens": 423
+          }
+        ],
+        "complete_turns": 1,
+        "actual_cost": null,
+        "exported": null,
+        "model_observed": false,
+        "explanation": "The CLI turn totals do not report observed model identity or billed charges."
+      }
+    },
+    "ideate-a": {
+      "status": "completed",
+      "profile": "opencode2-glm-flash",
+      "elapsed_seconds": 71.59621620806865,
+      "process": {
+        "exit_code": 0,
+        "stop_reason": null
+      },
+      "usage": {
+        "reported": [
+          {
+            "tokens": {
+              "input": 5956,
+              "output": 31,
+              "reasoning": 0,
+              "cache": {
+                "read": 0,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 145,
+              "output": 47,
+              "reasoning": 0,
+              "cache": {
+                "read": 5952,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 359,
+              "output": 30,
+              "reasoning": 0,
+              "cache": {
+                "read": 6080,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 87,
+              "output": 24,
+              "reasoning": 0,
+              "cache": {
+                "read": 6400,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 247,
+              "output": 581,
+              "reasoning": 10,
+              "cache": {
+                "read": 6464,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          }
+        ],
+        "complete_steps": 5,
+        "actual_cost": null,
+        "exported": {
+          "model_observed": true,
+          "session_model": {
+            "id": "glm-5.3-flash",
+            "providerID": "zai-coding-plan",
+            "variant": "low"
+          },
+          "exported_assistant_responses": 6,
+          "stream_finished_responses": 5,
+          "unfinished_assistant_responses": 0,
+          "outcome": "succeeded"
+        },
+        "explanation": "A zero catalog cost is not an observed account charge."
+      }
+    },
+    "ideate-b": {
+      "status": "completed",
+      "profile": "opencode2-kimi-k3",
+      "elapsed_seconds": 41.24955275002867,
+      "process": {
+        "exit_code": 0,
+        "stop_reason": null
+      },
+      "usage": {
+        "reported": [
+          {
+            "tokens": {
+              "input": 5786,
+              "output": 94,
+              "reasoning": 4,
+              "cache": {
+                "read": 0,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 716,
+              "output": 63,
+              "reasoning": 0,
+              "cache": {
+                "read": 5632,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 304,
+              "output": 92,
+              "reasoning": 0,
+              "cache": {
+                "read": 6144,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 494,
+              "output": 62,
+              "reasoning": 0,
+              "cache": {
+                "read": 6400,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 520,
+              "output": 741,
+              "reasoning": 69,
+              "cache": {
+                "read": 6656,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          }
+        ],
+        "complete_steps": 5,
+        "actual_cost": null,
+        "exported": {
+          "model_observed": true,
+          "session_model": {
+            "id": "k3",
+            "providerID": "kimi-code-plan-global",
+            "variant": "low"
+          },
+          "exported_assistant_responses": 6,
+          "stream_finished_responses": 5,
+          "unfinished_assistant_responses": 0,
+          "outcome": "succeeded"
+        },
+        "explanation": "A zero catalog cost is not an observed account charge."
+      }
+    },
+    "solve": {
+      "status": "completed",
+      "profile": "codex-luna-fast",
+      "elapsed_seconds": 23.25673162494786,
+      "process": {
+        "exit_code": 0,
+        "stop_reason": null
+      },
+      "usage": {
+        "reported": [
+          {
+            "input_tokens": 95508,
+            "cached_input_tokens": 87296,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 1731,
+            "reasoning_output_tokens": 942
+          }
+        ],
+        "complete_turns": 1,
+        "actual_cost": null,
+        "exported": null,
+        "model_observed": false,
+        "explanation": "The CLI turn totals do not report observed model identity or billed charges."
+      }
+    },
+    "initial-check": {
+      "status": "completed",
+      "passed": true,
+      "elapsed_seconds": 0.01950620813295245,
+      "checks": [
+        {
+          "name": "page examples",
+          "passed": true
+        }
+      ]
+    },
+    "review": {
+      "status": "completed",
+      "profile": "opencode2-kimi-k3",
+      "elapsed_seconds": 84.06045583309606,
+      "process": {
+        "exit_code": 0,
+        "stop_reason": null
+      },
+      "usage": {
+        "reported": [
+          {
+            "tokens": {
+              "input": 679,
+              "output": 104,
+              "reasoning": 9,
+              "cache": {
+                "read": 5120,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 845,
+              "output": 74,
+              "reasoning": 3,
+              "cache": {
+                "read": 5632,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 603,
+              "output": 80,
+              "reasoning": 3,
+              "cache": {
+                "read": 6400,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 416,
+              "output": 54,
+              "reasoning": 18,
+              "cache": {
+                "read": 6912,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          },
+          {
+            "tokens": {
+              "input": 281,
+              "output": 369,
+              "reasoning": 4,
+              "cache": {
+                "read": 7168,
+                "write": 0
+              }
+            },
+            "catalog_cost": 0
+          }
+        ],
+        "complete_steps": 5,
+        "actual_cost": null,
+        "exported": {
+          "model_observed": true,
+          "session_model": {
+            "id": "k3",
+            "providerID": "kimi-code-plan-global",
+            "variant": "low"
+          },
+          "exported_assistant_responses": 6,
+          "stream_finished_responses": 5,
+          "unfinished_assistant_responses": 0,
+          "outcome": "succeeded"
+        },
+        "explanation": "A zero catalog cost is not an observed account charge."
+      }
+    },
+    "repair": {
+      "status": "skipped"
+    },
+    "final-check": {
+      "status": "completed",
+      "passed": true,
+      "elapsed_seconds": 0.0207432908937335,
+      "checks": [
+        {
+          "name": "page examples",
+          "passed": true
+        }
+      ]
+    }
+  },
+  "patch_sha256": "9c8acccfb36c97547b6d71fd5f08dd99908424a5fc28ea42a1bf4dd690a48877",
+  "pilot": {
+    "date": "2026-11-01",
+    "purpose": "One live operational pilot; no quality or solo M3 success claim",
+    "prediction": "All five required roles finish and deliver a patch passing all eight Python examples; repair runs once only if initial checks fail",
+    "comparison": "No timed solo baseline; overhead and quality benefit are unmeasured",
+    "pre_run_protocol_sha256": "69398e70e30db39f682ace087514d3c027d645d1227b74007cc0ca16008c93ac",
+    "implementation_commit": "7bc4b009d2fda88621236b54bdacbe909e915b6b",
+    "task_sha256": "cb9ed0cf1d19335b9b8d9f8fe14d43a76fde8e7c7b4293f222d00d7944e769b1",
+    "source": {
+      "check.py": {
+        "sha256": "3d8e25ad5d19cd345eff7cd916741b18d7b39962620d73b99eb86585e77f54ed",
+        "mode": 420
+      },
+      "counter.py": {
+        "sha256": "76921e86d7fb548db1b39fbe581cfd528d4dfe1d9ca560a23ddb37a7c6ba9abb",
+        "mode": 420
+      }
+    },
+    "limits": {
+      "prepare_seconds": 60,
+      "role_seconds": 150,
+      "check_seconds": 120,
+      "team_seconds": 1200,
+      "parallel_roles": 1
+    },
+    "clients": {
+      "codex": "codex-cli 0.164.0",
+      "opencode2": "opencode v2.0.32",
+      "fr": "fr 0.86.1"
+    },
+    "native_build": {
+      "source_commit": "7bd572324c239080152fd4588e5d31bc2f7471dc",
+      "source_tree": "0ab6e55606117d5334c49d6f7a594588f86c41f9",
+      "native_inputs": {
+        "src": "8dc8a8474fce1776c640fd60c200b7fcb7ede5ed",
+        "grammars": "bf1b596cd48ca134256826bdfa1845d03e8ead22",
+        "crates": "6d9d25a18f856642ead5ab598f583288b2cf7a5e",
+        "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+        "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+        "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+        "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+        "Cargo.toml": "e71fcf4fa094507118640f3370cc58ba99e621bf",
+        "Cargo.lock": "2800d1ca4f6646df51efaf876bcc5ef9d98492d1",
+        "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+      },
+      "executable_sha256": "41c97a43a824883c165c0343425cfd3da8d8fd9be39af757bf9ef47779be03e2"
+    },
+    "new_attempts": 1,
+    "model_calls": 5,
+    "actual_fr_invocations": 0,
+    "observed_issues": [
+      "Luna and GLM first looked for source files in the handoff folder, then recovered; later prompts clarify project-relative paths"
+    ],
+    "earlier_results_changed": false,
+    "publication": "Reviewed summary and patch only; raw records remain local"
+  }
+}

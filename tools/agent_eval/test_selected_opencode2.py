@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval.opencode2_client import OpenCode2ResponseError, OpenCode2Server, scripted_configuration
+from agent_eval.selected_provider import validate
 
 
 class OpenCode2Tests(unittest.TestCase):
@@ -27,6 +28,22 @@ class OpenCode2Tests(unittest.TestCase):
         profile['model']['id'] = 'k3.1-pro'
         with self.assertRaisesRegex(ValueError, 'selected model'):
             scripted_configuration(profile, 'http://127.0.0.1:9000')
+
+    def test_low_reasoning_is_sent_explicitly_and_high_substitution_is_rejected(self):
+        for provider, model in (('zai-coding-plan', 'glm-5.3-flash'), ('kimi-code-plan-global', 'k3')):
+            profile = {'client': 'opencode2', 'model': {'providerID': provider, 'id': model, 'variant': 'low'}}
+            config = scripted_configuration(profile, 'http://127.0.0.1:9000')
+            descriptor = config['providers'][provider]['models'][model]
+            self.assertEqual(descriptor['variants'], [{'id': 'low', 'body': {'reasoning_effort': 'low'}}])
+            request = {'model': model, 'stream': True, 'reasoning_effort': 'low',
+                       'tools': [{'type': 'function', 'function': {'name': 'shell'}}], 'messages': []}
+            validate(profile, '/v1/chat/completions', request, 0, [], request)
+            request['reasoning_effort'] = 'high'
+            with self.subTest(model=model), self.assertRaisesRegex(ValueError, 'reasoning'):
+                validate(profile, '/v1/chat/completions', request, 0, [], request)
+            profile['model']['variant'] = 'medium'
+            with self.assertRaisesRegex(ValueError, 'reasoning variant'):
+                scripted_configuration(profile, 'http://127.0.0.1:9000')
 
     @patch('agent_eval.opencode2_client.time.sleep')
     def test_agent_inventory_waits_within_its_existing_call_budget(self, sleep):

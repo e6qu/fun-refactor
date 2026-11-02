@@ -1,78 +1,71 @@
-# Write and check a Lean proof
+# Write a proof with feedback after each step
 
-A theorem states the claim. Tactics are the proof steps you write for Lean to check.
-Keep the supplied claim, model, assumptions and program unchanged.
-
-## When the theorem already exists
-
-A target names the file and theorem. Run `spec goals specs` and copy its `target`
-as `<LEAN_TARGET>`.
+Keep the theorem (claim), model, assumptions and program fixed. Tactics are proof
+steps. Copy `spec goals specs`’s Lean `target` as `<LEAN_TARGET>`:
 
 ```sh
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 
-Read the fixed claim, model and empty templates. Write a draft early, without a leading
-`by`, in the extensionless file `.fr/proof-tactics`. Check it and use the diagnostics to
-repair it. Keep relative indentation; fr adds two spaces to each line. You supply the proof steps.
-The `--token-limit` value bounds serialized UTF-8 response bytes.
+Read `claim.parameters` and `claim.parts`: assumptions and conclusions. Parameters may already be in scope: if the goal shows `x : Bool`,
+use `x`; do not `intro x` again. `intro` is for an implication or quantified input
+still to the right of `⊢`.
 
-`refine ?_` opens a temporary goal. Later tactics must solve it; an unfinished goal fails.
+## The interactive loop
 
-Check before searching the library; this leaves source unchanged:
+Write `skip` in `.fr/proof-tactics` without `by`. It leaves the goal open.
+Keep indentation for nested steps.
+
+```sh
+fr --json spec proof-state '<LEAN_TARGET>' --from .fr/proof-tactics --at 1:5 --token-limit 4096 --timeout-seconds 30
+```
+
+`--at` is a one-based line and character column in your draft. Column 5 is just
+after `skip`. Count Unicode characters, not bytes. Query the end of the step
+you just wrote; before it you may see the previous state. Each query reads the draft. `goal_id`, `proof_digest` and `draft_location` identify that snapshot.
+`theorem` retains the original objective.
+
+In each `goals` entry, `h : P` means a named proof of statement `P` is available;
+`⊢ Q` means you must prove `Q`. Read all entries after a split. For `P ∧ Q`,
+`constructor` creates two goals. A bullet `·` focuses a branch. Inspect the next branch after solving the first.
+
+- `goals`: Lean's goals and available assumptions at that cursor, without clipping.
+- `closed-at-position`: this branch has no goals there; another branch may be open.
+- `no-tactic-at-position`: move the cursor into a tactic or run a complete check.
+
+All have `acceptance: "not-checked"`. Insufficient response space fails explicitly. `--token-limit` measures UTF-8 response bytes, not model
+tokens; choose it and the shared dependency/editor deadline explicitly.
+
+Edit one step, inspect, and adjust to the actual goal. For comparisons or division,
+read [Arithmetic](lean-arithmetic.md). For a missing library fact, run `lean --print-prefix`
+with its working directory
+set to the theorem's Lake package (`specs/` here), so its `lean-toolchain` selects Lean.
+Use the project root again for proof commands. Under the printed prefix, choose the type's
+folder in `src/lean/Init/Data` as `<LEAN_LIBRARY_DIR>` and a name fragment as `<LIBRARY_QUERY>`:
+
+```sh
+fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --limit 4
+```
+
+Read argument types and order; an empty search with gaps cannot establish absence.
+
+## Check the complete draft before saving
 
 ```sh
 fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
 ```
 
-Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
-proof. Repair the tactics in that file. If diagnostics require a library definition,
-search its type's folder rather than indexing the whole installation.
-
-For library lookup, the pinned Lean binary's `--print-prefix` locates its installation.
-Under `src/lean/Init/Data`, choose the folder named by a type in your goal.
-A namespace groups definitions: `List.length` belongs to `List`. Search for `length`,
-the part after the dot.
-Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
-
-```sh
-fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --source --bytes 1536 --limit 12
-```
-
-`--contains` matches a literal name fragment. Read the returned headers for argument types
-and order. `--bytes` limits source text across the page; metadata adds output.
-Check coverage and remaining results; refine the fragment or follow the cursor.
-
-To check and write the tactics into the proof region:
+Inspect `passed`, not process exit. `draft_location` points into your tactics;
+`checked_location` can include generated lines. Diagnostic `context` retains `⊢`;
+`context_omitted_lines` counts omissions. Fix errors, warnings and all open goals.
+Only `passed: true` supplies a checked receipt. Then save:
 
 ```sh
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-This command checks the proof and records its source change. Review the diff and deliver
-the requested patch. If the request specifies `git diff --binary HEAD`, write that output
-to `change.patch`. The separate source-edit workflow needs a saved edit plan; use actual
-returned IDs when working with such a plan.
+`applied: true` means written. Preserve proof markers and `.fr/checks.json`.
+Run the supplied package check, review the diff, save the requested
+`git diff --binary HEAD` as `change.patch`, and finish. Retain failed diagnostics.
 
-These commands also work after a direct edit removed the unfinished-proof marker.
-Keep the named proof-region markers. Run supplied package checks once, retain failed-check
-diagnostics and deliver the requested patch.
-
-## When a model or claim still needs to be created
-
-Inspect `fr --json capabilities --lang lean`. A model describes selected source behavior
-in Lean; proving its theorem does not establish a general source-to-model connection.
-
-For typed pure source declarations, use `spec candidates src`, `spec property-task TARGET`,
-then `spec plan TARGET --property-from FILE` and `spec scaffold --from PLAN --write`.
-A property-task describes the model signature, allowed claim grammar and input digest.
-Write the requested claim using that grammar, review the generated model and theorem,
-then follow the proof steps above. Never substitute an easier claim.
-
-Generated `Int` and `Nat` models use Lean arithmetic. Review source widths, overflow and
-coercions before claiming correspondence. `spec verify specs` checks the owning package;
-Lean and Lake must be installed. Hash renewal alone repairs no model or proof.
-
-State the proved claim, domain, assumptions, axioms and trusted tools. A source hash
-identifies bytes; a signature map identifies declared types; runtime examples check their
-particular inputs. A checked model theorem leaves general implementation equivalence open.
+For a missing model or theorem, read [Create a claim](lean-claims.md).

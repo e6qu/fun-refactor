@@ -10,7 +10,9 @@ from .selected_plan import ROOT, require
 
 
 def command(argv):
-    return subprocess.run(argv, cwd=ROOT, check=True, capture_output=True, text=True, timeout=60).stdout.strip()
+    result = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True, timeout=60)
+    require(result.returncode == 0, 'hosted build identity command failed: ' + result.stderr[:2048])
+    return result.stdout.strip()
 
 
 def verify(run, binary):
@@ -19,7 +21,7 @@ def verify(run, binary):
     repository = os.environ['GITHUB_REPOSITORY']
     metadata = json.loads(command(['gh', 'api', f'repos/{repository}/actions/runs/{run}']))
     require(metadata['head_repository']['full_name'] == repository, 'reuse a build from this repository')
-    pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', f'repos/{repository}/actions/runs/{run}/jobs?per_page=100']))
+    pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', f'repos/{repository}/actions/runs/{run}/jobs?filter=all&per_page=100']))
     jobs = [job for page in pages for job in page['jobs']]
     builder = 'Check early returns and numeric proof models'
     builders = [row for row in jobs if row['name'] == builder or row['name'].endswith('/ ' + builder)]

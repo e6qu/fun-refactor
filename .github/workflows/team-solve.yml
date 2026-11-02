@@ -1,0 +1,42 @@
+name: Fresh Luna, GLM and Kimi team controls
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            tools
+            sdk/python/src
+            skills/fr
+            tests/agent-eval/selected-agents
+            tests/agent-eval/project-edits
+            tests/agent-eval/proof-writing
+            tests/agent-eval/proof-feedback
+            tests/agent-eval/proof-construction
+            tests/agent-eval/proof-page-count
+            tests/agent-eval/proof-division-facts
+            tests/agent-eval/team-solve
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Check handoffs, actual verdicts, protected claims and failed attempts
+        env:
+          PYTHONPATH: tools:sdk/python/src
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B tools/agent_eval/test_team_solve.py -v 2>&1 | tee "$RUNNER_TEMP/team-controls.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: team-scripted-controls
+          path: ${{ runner.temp }}/team-controls.log
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,4 @@
+have extract : ((keepModel x = x ∧ True) ∧ True) ∧ True → keepModel x = x := by
+  rintro ⟨⟨⟨hx, _⟩, _⟩, _⟩
+  exact hx
+exact extract ⟨⟨⟨by rfl, True.intro⟩, True.intro⟩, True.intro⟩

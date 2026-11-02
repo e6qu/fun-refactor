@@ -28,6 +28,9 @@ def review_path(task_path):
 def check_review(task_path, before, after):
     path = review_path(task_path)
     inventory = json.loads(path.read_text())
+    previous = inventory['previous_review']
+    assert previous['path'] == 'lean-reader-review.json'
+    assert hashlib.sha256((path.parent / previous['path']).read_bytes()).hexdigest() == previous['sha256']
     corpus = inventory['corpora'][json.loads(task_path.read_text())['baseline']]
     assert corpus['original_counts'] == {key: before[key] for key in ('symbols', 'references')}
     assert corpus['before']['symbols'] == before['symbols']

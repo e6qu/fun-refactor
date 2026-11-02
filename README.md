@@ -104,6 +104,9 @@ This checkout includes project skills for [Claude Code](.claude/skills/fr)
 and [Codex and OpenCode](.agents/skills/fr).
 Both entries point to the same maintained [fr skill](skills/fr/SKILL.md), including its references.
 Put `fr` on the agent's `PATH`, then load the skill and follow [your first checked change](skills/fr/references/first-change.md).
+For proofs, read the [interactive Lean skill](skills/fr/references/lean.md) and follow the
+[complete access-rule lesson](docs/first-lean-proof.md#inspect-your-progress-after-each-step).
+It shows the current goal and available facts after each tactic, then checks the whole proof.
 For a request described by a name, see [prepare a change from a name](skills/fr/references/guide.md).
 
 To use the skill in another project, copy the complete `skills/fr` directory from the source tree or release archive.
@@ -118,6 +121,11 @@ Choose your agent's user directory below:
 The [installation guide](docs/agent-skill.md#install-the-handoff) gives commands and explains how to check discovery.
 Keep [`SKILL.md`](skills/fr/SKILL.md) and its adjacent `references` directory together.
 The skill routes a task to a small relevant guide rather than loading the whole manual.
+
+To let the selected agents work on one change together, see the
+[Luna, GLM and Kimi team workflow](docs/team-solve.md). It passes short files
+between fresh local CLI sessions and checks the resulting patch. Its larger team
+budget is separate from the timed solo comparisons.
 
 Start with the live support summary and a structured goal:
 
@@ -257,10 +265,15 @@ fr --json spec plan src/lib.rs::allowed --property-from property.json
 fr --json spec scaffold --from formal-plan.json --write
 fr --json spec goals specs
 fr --json spec proof-task specs/FrSpecs/Model.lean::obligation
+fr --json spec proof-state specs/FrSpecs/Model.lean::obligation --from proof.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
 fr --json spec proof-check specs/FrSpecs/Model.lean::obligation --from proof.lean
 fr --json spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
 fr --json spec verify specs
 ```
+
+Use the returned theorem target. For the first inspection, put `skip` in `proof.lean`;
+`--at 1:5` selects the position just after it. The [complete lesson](docs/first-lean-proof.md)
+shows how to turn that open goal into a checked proof.
 
 ## Scope and guarantees
 

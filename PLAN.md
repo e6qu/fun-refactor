@@ -24,8 +24,8 @@ Reports must distinguish those claims.
 | Application | Exact model selection | Required setting |
 | --- | --- | --- |
 | Codex | `gpt-6-luna` | Fast mode; check and record the effective client service tier |
-| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | Explicit model and reasoning settings |
-| OpenCode2 | `kimi-code-plan-global/k3` | The configured non-Pro Kimi K3; explicit reasoning settings |
+| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2; low reasoning in M3 |
+| OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2 and low reasoning in M3 |
 
 The installed catalogs checked on 2026-10-25 contain these selections and also list Kimi K3.1 Pro.
 Catalog entries and configured credentials do not establish that a live attempt will be admitted.
@@ -46,21 +46,87 @@ all required live attempts, results and tracking updates belong together.
 Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
 Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
-The M3 implementation merged in PR #587 before its full CI gate finished.
-Finish the remaining checks, repairs and complete agent comparison together on `milestone/finish-agent-proofs`.
-The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
-The tool used for the latest comparison passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
-These check ten examples, Codex and OpenCode2 behavior, Python proof records and rejection of bad submitted patches.
-The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
-retains 25 independently accepted proofs and 11 failed attempts, all timeouts.
-Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
+PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
+Finish M3 on `milestone/complete-proof-authoring`, including the merged 0.86.1 release update.
+The [task guide](tests/agent-eval/proof-writing/README.md) owns the fixed claims, checks and publication limits.
+The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
+28 submitted a patch and eight timed out without one. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
+accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
+GLM and Kimi submitted no page-count proof in either setup.
 
-GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
-Next: finish CI and validate the new library-reading repairs.
-Checking an existing theorem after a direct proof edit passed the rebuilt-tool checks.
-Use the recorded failures to improve library discovery and draft repair while keeping the requested claims and limits.
-Run another comparison only after a concrete repair or capability has passed its checks.
-Keep all 173 outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
+M3 remains open. The complete comparison stays paused while we improve the experiment process.
+Follow the [improvement method](docs/agent-improvement.md): observe, explain, test a prediction, decide and review the method itself.
+GLM and Kimi each completed four of six fr-available attempts in the first and latest complete comparisons.
+Neither delivered a page-count proof in fourteen fr-available attempts across seven complete comparisons.
+Using fr more consistently has not established a sustained rise in total success.
+For example, eleven items at five per page need three pages; valid inputs must never produce more pages than items.
+The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates searches, actual checks and delivered patches.
+
+The [first controlled diagnostic](tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) ran all eight attempts once.
+All eight submitted proofs passed independent checking. Six complete attempts passed; GLM timed out after passing checks,
+and Kimi overwrote the supplied check settings. The stated rules give no demonstrated benefit from supplying the initial error report.
+Review found that this diagnostic skipped the shared execution instructions. That defect is fixed and has a regression.
+The later construction check used the corrected instructions. The 150-second limit stays unchanged.
+
+The [four construction attempts](tests/agent-eval/proof-construction/local-results/README.md) retained three accepted patches and one Kimi timeout without a patch.
+All preserved check settings. Both Kimi attempts hit a reader defect: Lean accepts an inline `calc` chain, but fr rejects it.
+For example, a proof can start `calc n = n := rfl` and continue on the next line with another equality.
+The measured reader mistakes that next step for the end of the calculation.
+All 29 hosted preparation checks passed after the reader repair.
+The [rebuilt-command replay](tests/agent-eval/proof-construction/reader-control-summary.json) now accepts the earlier valid draft without model calls.
+The timed-out attempt's draft reaches Lean and reports its remaining unknown library names.
+That replay found another defect: tagged Lean errors lose their draft locations in fr's report.
+This familiar case has no timing baseline and establishes no causal improvement.
+
+The next tasks stay inside this milestone PR:
+
+Draft PR #591 implements interactive proof authoring. `proof-state` shows the original
+claim, available facts, branch goals and draft position after each step. Hosted Lean tests exercise
+branch completion and reject an unfinished proof. The deadline controls and packaged skill examples also pass.
+The shared skill and access-rule lesson teach the inspect/edit/check loop.
+Keep current reports and final-commit CI checked before delivery. These are tool checks and supplied examples, not new agent successes.
+The page-count proofs remain missing. The next controlled diagnostic passes its tool checks; its eight paid attempts have not started.
+
+1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
+   All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
+   Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
+2. Preserve the checked diagnostic repair for messages such as `error(lean.unknownIdentifier)`.
+   All 29 hosted preparation checks and Python-record checks pass.
+   An [exact replay](tests/agent-eval/proof-construction/diagnostic-control-summary.json) now locates both unknown names in the submitted tactics.
+   The original construction timeout remains failed.
+3. Preserve the [four page-count results](tests/agent-eval/proof-page-count/local-results/README.md).
+   All four timed out without a patch; independent checking confirms all four failures.
+   GLM checked drafts but received proof errors. Kimi searched without a draft in one attempt and checked late in the other.
+   Some commands cut off feedback. GLM also encountered another valid syntax form that fr rejected.
+4. Keep the repaired reader for nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
+   All 29 hosted preparation checks passed.
+   The [exact replay](tests/agent-eval/proof-page-count/reader-control-summary.json) now reaches Lean and still rejects the original draft.
+   The [error review](tests/agent-eval/proof-page-count/draft-error-review.json) separates earlier failures from the remaining arithmetic goals.
+   The specification and original agent outcomes stay unchanged.
+5. Qualify the [eight-attempt division-fact diagnostic](tests/agent-eval/proof-division-facts/README.md).
+   Both conditions keep the same task, fr and instructions; one supplies four current library declaration types.
+   Check handout preservation, exact types, rejected patches and complete delivery before freezing inputs or making calls.
+   Use the recorded per-agent decision rules; supply no completed proof.
+   The page-count prediction failed, so the full comparison stays paused.
+   Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
+   Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.
+6. Add the requested [Luna, GLM and Kimi team workflow](docs/team-solve.md) in this same PR.
+   Use native local CLIs. Luna plans and implements; GLM and Kimi propose independently.
+   Kimi reviews actual check results. Luna repairs once only if initial checks fail.
+   The scripted controls cover fresh contexts, protected source and claims, failed checks,
+   skipped repair after success, and retained resource failures.
+   The [first live pilot](tests/agent-eval/team-solve/README.md) passed all eight Python cases
+   in 249.9 seconds across five agent sessions, with repair skipped. Retain its patch and reviewed
+   summary; handoffs and transcripts stay local. No role invoked fr on that tiny task.
+   Hosted CI remains required. Any quality comparison must use frozen tasks, checks,
+   explicit solo and team budgets, every failure and complete role time and reported usage.
+   The runner now supports one agent session and a team of Luna sessions as explicit comparison conditions.
+   Checks cover the exact session sequence and reject passing patches that miss the complete deadline.
+   All team stages share that deadline. No paid comparison of the new conditions has run.
+   Do not use a team success to close the unchanged 150-second M3 solo requirements.
+
+Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.
+Do not repeat full comparisons until one passes. Keep all earlier records and their timing limitations intact.
 
 ### M1. Run the selected agents on three complete tasks
 

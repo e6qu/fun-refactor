@@ -58,6 +58,18 @@ class SelectedPublicTests(unittest.TestCase):
     def test_m3_export_keeps_raw_proof_prompts_and_records_private(self):
         self.assert_private_export('M3', 36)
 
+    def test_feedback_export_keeps_initial_reports_and_native_records_private(self):
+        self.assert_private_export('M3-feedback', 8)
+
+    def test_construction_export_keeps_prompts_and_native_records_private(self):
+        self.assert_private_export('M3-construction', 4)
+
+    def test_page_count_export_keeps_prompts_and_native_records_private(self):
+        self.assert_private_export('M3-page-count', 4)
+
+    def test_division_fact_export_keeps_handouts_and_native_records_private(self):
+        self.assert_private_export('M3-facts', 8)
+
     def assert_private_export(self, milestone, count):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -76,7 +88,9 @@ class SelectedPublicTests(unittest.TestCase):
                 directory = root / 'attempts' / row['id']
                 directory.mkdir(parents=True)
                 record = {key: row[key] for key in ('id', 'profile', 'task', 'setup')}
-                record.update(status='failed', plan_sha256=plan['sha256'], elapsed_seconds=1,
+                record.update(status='failed', plan_sha256=plan['sha256'], elapsed_seconds=3,
+                              timing_clock='includes-system-sleep',
+                              suspended_seconds=1.25 if row == schedule['attempts'][0] else 0,
                               verification_seconds=0.1, patch_delivered=False,
                               process=None, usage=None, collection_errors=[], complete_attempt_deadline_missed=False,
                               checking_input_changes=['.fr/checks.json'],
@@ -84,8 +98,30 @@ class SelectedPublicTests(unittest.TestCase):
                 (directory / 'result.json').write_text(json.dumps(record))
                 (directory / 'prompt.txt').write_text(canary)
                 (directory / 'native.stdout').write_text('incomplete-json-' + canary)
+                if milestone == 'M3-feedback':
+                    record.update(initial_check_seconds=0.2, initial_check_bytes=100,
+                                  initial_check_sha256='a' * 64, initial_feedback_supplied=row['setup'] == 'supplied-feedback',
+                                  native_stdout_sha256=public.common.digest(directory / 'native.stdout'))
+                    (directory / 'result.json').write_text(json.dumps(record))
+                elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+                    record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
+                    (directory / 'result.json').write_text(json.dumps(record))
                 review[row['id']] = {'record_sha256': public.common.digest(directory / 'result.json'),
                                     'contributing_actions': [], 'failure_summary': 'Native command timed out before delivery.'}
+                if milestone == 'M3-feedback':
+                    review[row['id']]['feedback_observations'] = {
+                        'first_correct_repair_seconds': None, 'repeated_argument_type_errors': None,
+                        'execution_validity': 'collection-failed'}
+                elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+                    review[row['id']]['proof_observations'] = {
+                        'first_passing_proof_seconds': None, 'package_check_seconds': None,
+                        'patch_delivery_seconds': None, 'proof_check_passed': None,
+                        'proof_written_with_fr': None, 'package_check_passed': None,
+                        'execution_validity': 'collection-failed'}
+                    if milestone in {'M3-page-count', 'M3-facts'}:
+                        review[row['id']]['proof_observations']['first_proof_check_seconds'] = None
+                    if milestone == 'M3-facts':
+                        review[row['id']]['proof_observations']['proof_write_seconds'] = None
             destination = root / 'approved'
             with patch.object(public.local, 'implementation_bindings', return_value={}), \
                     patch.object(public.grading, 'core_digest', return_value='checker'):
@@ -93,11 +129,23 @@ class SelectedPublicTests(unittest.TestCase):
             self.assertEqual(len(result['attempts']), count)
             self.assertEqual(result['public_check_environment']['CARGO_PROFILE_DEV_OPT_LEVEL'], '0')
             self.assertEqual(result['client_finish_seconds'], 10)
+            self.assertEqual(result['attempts'][0]['timing_clock'], 'includes-system-sleep')
+            self.assertEqual(result['attempts'][0]['suspended_seconds'], 1.25)
+            self.assertEqual(result['collection_notes']['system_sleep'], [{
+                'attempt': schedule['attempts'][0]['id'], 'suspended_seconds': 1.25,
+                'included_in_total_seconds': True}])
             self.assertTrue(all(row['checking_input_changes'] == ['.fr/checks.json'] for row in result['attempts']))
             self.assertTrue(all(row['native_status'] == 'failed' and row['collection_error_recorded']
                                 for row in result['attempts']))
             self.assertNotIn(canary, (destination / 'summary.json').read_text())
             self.assertEqual([path.name for path in destination.rglob('*') if path.is_file()], ['summary.json'])
+            if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+                self.assertIsNone(result['attempts'][0]['proof_observations']['first_passing_proof_seconds'])
+                self.assertIsNone(result['attempts'][0]['proof_observations']['package_check_seconds'])
+                self.assertIsNone(result['attempts'][0]['proof_observations']['patch_delivery_seconds'])
+            if milestone == 'M3-facts':
+                self.assertIsNone(result['provider_request_count'])
+                self.assertIsNone(result['attempts'][0]['proof_observations']['proof_write_seconds'])
 
 
 if __name__ == '__main__':

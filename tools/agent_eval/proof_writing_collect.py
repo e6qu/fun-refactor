@@ -27,7 +27,11 @@ def combine(artifacts, commit, run, bindings):
         cases[case] = {flag: proof[flag] for flag in tasks.CONTROL_FLAGS - {'runtime_checked'}}
         cases[case].update(runtime_checked=True, source_implementation_proved=proof['source_implementation_proved'])
     native = json.loads((artifacts / 'm3-native-controls/summary.json').read_text())
-    profiles = json.loads((tasks.ROOT / 'tests/agent-eval/selected-agents/profiles.json').read_text())
+    profiles_path = tasks.ROOT / tasks.DIRECTORY / 'profiles.json'
+    profiles = json.loads(profiles_path.read_text())
+    require(native['profiles'] == profiles and
+            native['profiles_sha256'] == hashlib.sha256(profiles_path.read_bytes()).hexdigest(),
+            'native controls must use the exact M3 model and reasoning settings')
     expected = {name + '-' + setup for name in profiles for setup in ('files', 'fr')}
     require(native['passed'] is True and native['live_model_calls'] == 0 and
             set(native['exchanges']) == expected and all(row['status'] == 'passed' for row in native['exchanges'].values()),

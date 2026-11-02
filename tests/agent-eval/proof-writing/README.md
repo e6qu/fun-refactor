@@ -5,20 +5,29 @@ can write and check proofs for fixed program models. A model describes selected 
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
-The [latest comparison](local-results/README.md) records all 36 attempts: independent grading accepted 25 proofs.
-Eleven attempts timed out and remain failed. All 25 delivered patches passed their independent checks.
-The timer now includes system sleep; no sleep was detected. The deadline remains 150 seconds.
-The rebuilt tool passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
-Goal discovery supplies an exact `target`, valid proofs may use temporary goals that later tactics solve,
-and both setups can read the explicitly named Lean library directory.
+The [latest comparison](local-results/README.md) retains all 36 attempts and 28 submitted patches.
+Eight attempts timed out without a patch. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
+accepted all 28 submitted patches. Before its first call, the instructions passed [hosted proof and client checks](https://github.com/e6qu/fun-refactor/actions/runs/41047411811)
+and the existing M1/M2 workflows, using the exact previously checked native build.
 
-GLM and Kimi delivered no page-count proof with fr in this run, so M3 remains open.
-Keep all 173 outcomes. The [earlier attempts](#earlier-attempts) retain their original results;
-a repair never erases an earlier failed attempt.
+All three agents used actual fr checks and writes in access and range submissions.
+GLM and Kimi delivered no page-count patch in either setup, so M3 remains open.
+The [command and timing review](behavior-review.md) distinguishes searching, checking a draft and delivering a proof.
+None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
+The updated root skill links it directly and starts by checking a small unfinished draft.
+Its effect on live proofs remains unmeasured.
+The next full comparison is paused under the [improvement method](../../../docs/agent-improvement.md).
+First check the evaluator and prepare a small diagnostic that separates finding feedback from using it to repair a proof.
+Earlier feedback alone cannot establish better final results.
+Native and hosted regression checks can continue while new agent calls stay paused.
 
-This milestone is in progress. Scripted controls and the real agent comparison are separate.
-The complete implementation, examples, checked attempts and tracking belong in one PR.
-The [roadmap](../../../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs)
+The 150-second complete-attempt limit stayed unchanged. No recorded slot was retried.
+Keep all 335 outcomes, including the [299 earlier outcomes](#earlier-attempts).
+The previous [low-setting](low-reasoning-results/README.md) and [high-setting](introduction-results/README.md)
+comparisons remain unchanged, including the earlier sleep-affected timing and deleted-check failure.
+
+Scripted controls and real agent results are separate. Complete implementation, examples, checked attempts
+and tracking belong in one milestone PR. The [roadmap](../../../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs)
 owns its completion conditions.
 
 ## The three requests
@@ -101,8 +110,22 @@ verdicts with the published outcomes, retaining original failures and timeouts e
 
 ## Run and measure the selected local CLIs
 
+The [separate arithmetic diagnostic](../proof-feedback/README.md#what-the-first-run-established) retains eight assisted repairs and their two failed deliveries.
+The [four construction attempts](../proof-construction/README.md#what-the-first-run-established) retain three accepted patches and one Kimi timeout without a patch.
+They exposed a valid inline calculation that fr rejected; its repair passes hosted checks and an exact replay.
+The later [four page-count attempts](../proof-page-count/local-results/README.md) all timed out without patches.
+They exposed another reader defect in nested assumption patterns. Its repair must pass hosted checking before more calls.
+None of these diagnostics closes this milestone. The [roadmap](../../../PLAN.md#next-work) names the next tasks.
+
 Use the [selected client guide](../selected-agents/README.md) for client identities and the
 [local runner](../../../tools/agent_eval/selected_local.py) with the explicit `M3` milestone.
+M3 uses its own [profile settings](profiles.json): Luna Fast with high reasoning,
+GLM Flash with low reasoning, and non-Pro Kimi K3 with low reasoning.
+Both OpenCode2 models expose the low setting in the installed 2.0.32 client's model catalog.
+The preceding high-setting trials spent their page-count window reading and planning without checking a draft.
+The complete low-setting comparison still lacks accepted fr page-count proofs from both OpenCode2 models.
+Both tool setups receive the same setting. M1/M2 retain their separate high settings.
+Native controls must check the exact selected settings before live calls.
 Build the macOS fr executable on GitHub. Freeze the downloaded source archives, successful
 controls, checker image, CLI releases, model settings and instructions before the first call.
 Use the workstation resource guard for every local invocation. Do not rebuild fr locally.
@@ -156,7 +179,8 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 
 ## Earlier attempts
 
-These packets retain all 137 outcomes that preceded the latest 36 attempts.
+These archives retain all 335 recorded outcomes. The latest checked comparison also appears unchanged in `local-results`.
+The introduction-pattern run stopped when fr rejected valid syntax in a draft; its remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
 
 | Packet | Recorded attempts | Original result or interruption |
@@ -167,6 +191,13 @@ An accepted result passed independent checking and came from a completed client 
 | [Second complete comparison](second-results/README.md) | 36 | 25 accepted; GLM and Kimi still lacked accepted fr page-count proofs |
 | [Library access run](library-access-interrupted-results/README.md) | 15 | OpenCode2 denied a permitted library directory; 21 slots never started |
 | [Run affected by sleep](clock-interrupted-results/README.md) | 36 | 18 client completions and 18 failures; ten failed attempts have unreliable elapsed times |
+| [Third complete comparison](clocked-results/README.md) | 36 | 25 accepted proofs and 11 timeouts under the timer that includes sleep |
+| [Introduction-pattern run](introduction-interrupted-results/README.md) | 18 | Valid proof syntax was rejected before Lean checking; 18 slots never started |
+| [High-setting comparison after the reader repair](introduction-results/README.md) | 36 | 26 accepted proofs, nine timeouts and one rejected proof |
+| [Low-setting comparison before the claim view](low-reasoning-results/README.md) | 36 | 26 accepted attempts, eight timeouts, one deleted check file and one rejected proof |
+| [Claim-view comparison](claim-view-results/README.md) | 36 | 27 accepted proofs and nine timeouts; four agent/task cases still lack an accepted useful fr step |
+| [Direct checking commands and arithmetic lesson](direct-proof-results/README.md) | 36 | 28 accepted proofs and eight timeouts; only GLM and Kimi page counting still lack accepted fr proofs |
 
-All submitted patches and original failures remain available. The last two packets have no
-independent acceptance result. The sleep-affected packet cannot establish speed or cost differences.
+All submitted patches and original failures remain available. The library-access, sleep-affected
+and introduction-pattern packets have no independent acceptance result. The sleep-affected packet
+cannot establish speed or cost differences.

@@ -23,6 +23,34 @@ license = "MIT"
 generated_with = "tree-sitter-cli 0.27.0"
 
 [[patch]]
+subject = "introducing hypotheses with discard patterns"
+rule = "tactic_rintro"
+change = "reuse destructuring patterns for rintro while retaining typed binders"
+accepts = ["rintro ⟨ha, -, -, -⟩", "rintro (n : Nat)", "rintro (ha | hb)"]
+why = "a live proof attempt used a valid dash to discard an unused hypothesis; treating it as a negative expression rejected the draft before Lean could check it"
+
+[[patch]]
+subject = "simplifier lemmas applied before their arguments"
+rule = "tactic_config, simp_phase"
+change = "retain the downward simplification prefix inside tactic argument lists"
+accepts = ["simp only [↓reduceIte]"]
+why = "the same draft used Lean's simplification phase marker; this is tactic syntax rather than an ordinary term operator"
+
+[[patch]]
+subject = "named arguments in declaration attributes"
+rule = "attribute_entry"
+change = "retain parenthesized named arguments such as the since date of a deprecated declaration"
+accepts = ["@[deprecated replacement (since := \"2025-09-01\")] def oldName := replacement"]
+why = "the pinned division library uses dated deprecation attributes between its theorems; rejecting the metadata hid subsequent declarations"
+
+[[patch]]
+subject = "Unicode lambda arrows and branching obtain patterns"
+rule = "fun, tactic_have"
+change = "accept the mapsto spelling of a lambda arrow and alternatives in obtain bindings, including tuple branches"
+accepts = ["fun n ↦ n", "obtain hp | hq := h", "obtain ⟨hp, hq⟩ | hr := h"]
+why = "these forms occur before division theorems in the pinned integer library; their syntax errors hid later declarations from library search"
+
+[[patch]]
 subject = "subscript names and explicit conversions"
 rule = "identifier, synthetic_hole, coercion"
 change = "allow Lean's numeric and alphabetic subscript continuations in names and named goals; retain explicit value, function and type conversions as nodes with atomic/postfix operands"

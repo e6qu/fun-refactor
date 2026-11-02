@@ -14,7 +14,10 @@ def check(binary, folder):
     lesson = (ROOT / 'docs/first-lean-proof.md').read_text()
     manifest, = blocks(lesson, 'toml')
     source, = blocks(lesson, 'rust')
-    bad_tactics, tactics = blocks(lesson, 'lean')
+    bad_tactics, initial, partial, tactics = blocks(lesson, 'lean')
+    drafts = {'bad-proof.lean': bad_tactics, 'initial.lean': initial,
+              'partial.lean': partial, 'proof.lean': tactics}
+    states = []
     property_author, = blocks(lesson, 'python')
     (folder / 'src').mkdir()
     (folder / 'Cargo.toml').write_text(manifest)
@@ -41,17 +44,21 @@ def check(binary, folder):
                 redirect, arguments = folder / arguments[at + 1], arguments[:at]
             model = folder / 'specs/FrSpecs/SrcLibRsAllowed.lean'
             before = model.read_bytes() if model.exists() else None
-            if 'proof-check' in arguments:
+            if 'proof-check' in arguments or 'proof-state' in arguments:
                 filename = arguments[arguments.index('--from') + 1]
-                assert filename in {'bad-proof.lean', 'proof.lean'}
-                (folder / filename).write_text(bad_tactics if filename == 'bad-proof.lean' else tactics)
+                assert filename in drafts
+                (folder / filename).write_text(drafts[filename])
             result = run(binary, folder, arguments)
             commands += 1
             if redirect is not None:
                 redirect.write_text(json.dumps(result))
+            if 'proof-state' in arguments:
+                assert model.read_bytes() == before
+                assert result['acceptance'] == 'not-checked'
+                states.append((result['status'], len(result['goals'])))
             if 'proof-check' in arguments:
                 assert model.read_bytes() == before
-                if filename == 'bad-proof.lean':
+                if filename in {'bad-proof.lean', 'partial.lean'}:
                     assert result['passed'] is False and result['receipt'] is None and result['diagnostics'], result
                     rejected = True
                 else:
@@ -62,6 +69,7 @@ def check(binary, folder):
             if 'evidence' in arguments:
                 evidence = result
     assert source_path.read_text() == source
+    assert states == [('goals', 1), ('goals', 2), ('closed-at-position', 0), ('goals', 1)], states
     assert checked and rejected and evidence is not None
     assert evidence['correspondence']['proved_implementation_model'] is False
     assert any(row['name'].endswith('allowedModel_access_rule') and row['status'] == 'checked_by_lean'

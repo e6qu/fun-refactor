@@ -26,7 +26,10 @@ class CompleteProofControls(unittest.TestCase):
                 'case': case, 'live_model_calls': 0, 'source_implementation_proved': False,
                 'passed': True, 'checks': [{'returncode': 0}], 'input_cases': 4,
                 'source_sha256': hashlib.sha256((tasks.ROOT / tasks.DIRECTORY / 'fixtures' / entry['path']).read_bytes()).hexdigest()}
+        profiles = tasks.ROOT / tasks.DIRECTORY / 'profiles.json'
         values['m3-native-controls'] = {'passed': True, 'live_model_calls': 0,
+            'profiles': json.loads(profiles.read_text()),
+            'profiles_sha256': hashlib.sha256(profiles.read_bytes()).hexdigest(),
             'exchanges': {name + '-' + setup: {'status': 'passed'} for name in AGENTS for setup in ('files', 'fr')}}
         values['m3-private-controls'] = {'passed': True, 'live_model_calls': 0, 'checked_controls': 18,
             'source_commit': 'a' * 40, 'run': '123', 'bindings': {'checker': 'c' * 64}, 'fr_sha256': 'e' * 64,
@@ -67,6 +70,16 @@ class CompleteProofControls(unittest.TestCase):
         values = self.reports()
         values['m3-private-controls']['controls']['page-count-changed-claim']['accepted'] = True
         with self.assertRaises(ValueError):
+            self.combine(values)
+
+    def test_native_controls_with_other_reasoning_settings_are_refused(self):
+        values = self.reports()
+        values['m3-native-controls']['profiles']['opencode2-kimi-k3']['model']['variant'] = 'high'
+        with self.assertRaisesRegex(ValueError, 'exact M3 model and reasoning'):
+            self.combine(values)
+        values = self.reports()
+        values['m3-native-controls']['profiles_sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'exact M3 model and reasoning'):
             self.combine(values)
 
     def test_private_checker_identity_must_match_before_model_calls(self):

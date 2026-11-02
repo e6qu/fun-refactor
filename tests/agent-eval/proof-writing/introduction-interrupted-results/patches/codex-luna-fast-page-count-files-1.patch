@@ -1,0 +1,14 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..17f3798 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,7 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  grind [page_countModel]
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

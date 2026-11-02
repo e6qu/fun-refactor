@@ -21,7 +21,10 @@ class ConsumerEvidence(unittest.TestCase):
                                  'answer_bytes': 12} for workload in ('128', '512', 'repository')]}
         (root / 'baseline.json').write_text(json.dumps(baseline))
         (root / 'task.json').write_text(json.dumps({'baseline': 'a' * 40, 'reader_review': 'review.json'}))
+        previous = b'{"purpose":"unchanged first review"}\n'
+        (root / 'lean-reader-review.json').write_bytes(previous)
         inventory = {'lean_facts_sha256': 'e' * 64,
+            'previous_review': {'path': 'lean-reader-review.json', 'sha256': hashlib.sha256(previous).hexdigest()},
             'changes': {'added_symbols': [{}], 'removed_symbols': [], 'added_references': [], 'removed_references': [{}]},
             'corpora': {'a' * 40: {'original_counts': {'symbols': 4, 'references': 10},
                 'before': {'symbols': 4, 'references': 8}, 'after': {'symbols': 5, 'references': 7}}}}
@@ -77,6 +80,14 @@ class ConsumerEvidence(unittest.TestCase):
                 mutate(changed)
                 with self.assertRaises(AssertionError):
                     self.check(changed, sites, root)
+
+    def test_changed_first_inventory_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            value, sites = self.packet(root)
+            (root / 'lean-reader-review.json').write_text('{"purpose":"changed"}\n')
+            with self.assertRaises(AssertionError):
+                self.check(value, sites, root)
 
 
 if __name__ == '__main__':

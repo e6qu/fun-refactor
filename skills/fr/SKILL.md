@@ -1,18 +1,14 @@
 ---
 name: fr
-description: Find code, refactor, check edits, and write Lean proofs.
+description: Find code, refactor, check edits, and interactively write or repair Lean proofs with fr.
 ---
 # Work with fr
 
-Lean: a goal is a claim; tactics are proof steps. Discover the target:
-```sh
-fr --json spec goals specs --limit 8 --token-limit 4096
-```
-Copy `target` as `<LEAN_TARGET>`. Write `.fr/proof-tactics` without `by`:
-```sh
-fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
-```
-Read `passed` and diagnostics. [Proofs](references/lean.md) covers repairs and saving.
+For edits read [Author](references/author.md); for discovery read [Explore](references/explore.md). Read omissions.
 
-Code edits: [Author](references/author.md); [Explore](references/explore.md).
-Copy IDs and bases; read omissions.
+For proofs read [Lean](references/lean.md); for comparisons and division read [Arithmetic](references/lean-arithmetic.md).
+Keep the claim, model and program fixed. Start `.fr/proof-tactics` with `skip` (no `by`). Inspect after it:
+```sh
+fr --json spec proof-state '<LEAN_TARGET>' --from .fr/proof-tactics --at 1:5 --token-limit 4096 --timeout-seconds 30
+```
+Edit, then inspect each step's goals and available facts. A closed branch is not an accepted proof: require `proof-check`'s `passed: true` before `prove --write`. Preserve `.fr/checks.json`.

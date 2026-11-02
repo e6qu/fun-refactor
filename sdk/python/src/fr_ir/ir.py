@@ -1728,11 +1728,11 @@ def _byte_budget(value: Any, description: str) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class ProofTask:
-    """A proof context and empty templates whose tactics an agent must author."""
+    """The fixed claim's parts; an agent must author its proof steps."""
 
     goal: Mapping[str, Any]
     contract: Mapping[str, Any]
-    templates: Sequence[Mapping[str, Any]]
+    claim: Mapping[str, Any]
     object_digest: str
     actions: Mapping[str, Sequence[str]]
     token_budget: Mapping[str, Any]
@@ -1740,7 +1740,7 @@ class ProofTask:
     @classmethod
     def from_data(cls, value: Any) -> ProofTask:
         value = _exact_mapping(value, {
-            "schema", "goal", "contract", "templates", "object_digest", "actions", "token_budget",
+            "schema", "goal", "contract", "claim", "object_digest", "actions", "token_budget",
         }, "proof task")
         if value["schema"] != PROOF_TASK_SCHEMA:
             raise IrError(f"proof task schema must be {PROOF_TASK_SCHEMA}")
@@ -1770,7 +1770,7 @@ class ProofTask:
         contract = _exact_mapping(value["contract"], {
             "author", "format", "insertion_point", "normalization", "forbidden", "checker",
         }, "proof input contract")
-        actions = _exact_mapping(value["actions"], {"check", "apply", "verify"}, "proof task actions")
+        actions = _exact_mapping(value["actions"], {"inspect", "check", "apply", "verify"}, "proof task actions")
         budget = _byte_budget(value["token_budget"], "proof task budget")
         if contract["author"] != "agent":
             raise IrError("proof task author must be agent")
@@ -1778,25 +1778,30 @@ class ProofTask:
                    for key in ("format", "insertion_point", "normalization", "checker")):
             raise IrError("proof input contract fields must be non-empty strings")
         _string_vector(contract["forbidden"], "proof input forbidden list")
-        if not isinstance(value["templates"], list):
-            raise IrError("proof templates must be a list")
-        templates = []
-        for template in value["templates"]:
-            template = _exact_mapping(template, {"kind", "lines"}, "proof template")
-            if not isinstance(template["kind"], str) or not template["kind"]:
-                raise IrError("proof template kind must be a non-empty string")
-            lines = _string_vector(template["lines"], "proof template lines")
-            if not any("agent-written" in line for line in lines):
-                raise IrError("proof template must reserve agent-written tactics")
-            templates.append({"kind": template["kind"], "lines": list(lines)})
+        claim = _exact_mapping(value["claim"], {"parameters", "parts"}, "proof claim")
+        parameters = _string_vector(claim["parameters"], "proof claim parameters")
+        if len(parameters) > 64 or any(not text.strip() for text in parameters):
+            raise IrError("proof claim needs at most 64 nonempty parameter groups")
+        if not isinstance(claim["parts"], list) or not 1 <= len(claim["parts"]) <= 64:
+            raise IrError("proof claim needs between 1 and 64 parts")
+        fields = 0
+        for part in claim["parts"]:
+            part = _exact_mapping(part, {"assumptions", "conclusions"}, "proof claim part")
+            assumptions = _string_vector(part["assumptions"], "proof claim assumptions")
+            conclusions = _string_vector(part["conclusions"], "proof claim conclusions")
+            if not conclusions or any(not text.strip() for text in (*assumptions, *conclusions)):
+                raise IrError("proof claim parts need nonempty conclusions and no empty fields")
+            fields += len(assumptions) + len(conclusions)
+        if fields > 64:
+            raise IrError("proof claim exceeds 64 assumption and conclusion fields")
         checked_actions = {key: _string_vector(actions[key], f"proof task {key}") for key in actions}
         core = {
             "schema": value["schema"], "goal": value["goal"], "contract": value["contract"],
-            "templates": value["templates"],
+            "claim": value["claim"],
         }
         if not _is_digest(value["object_digest"]) or merkle_object_digest(core) != value["object_digest"]:
             raise IrError("proof task fails its Merkle content address")
-        return cls(dict(goal), dict(contract), tuple(templates), value["object_digest"],
+        return cls(dict(goal), dict(contract), dict(claim), value["object_digest"],
                    checked_actions, dict(budget))
 
     @classmethod
@@ -1806,7 +1811,7 @@ class ProofTask:
     def to_data(self) -> dict[str, Any]:
         return {
             "schema": PROOF_TASK_SCHEMA, "goal": dict(self.goal), "contract": dict(self.contract),
-            "templates": [dict(item) for item in self.templates], "object_digest": self.object_digest,
+            "claim": dict(self.claim), "object_digest": self.object_digest,
             "actions": {key: list(value) for key, value in self.actions.items()},
             "token_budget": dict(self.token_budget),
         }
@@ -1835,22 +1840,39 @@ class ProofAttempt:
             raise IrError("proof attempt diagnostics must be a list")
         for diagnostic in value["diagnostics"]:
             diagnostic = _exact_mapping(
-                diagnostic, {"severity", "line", "column", "message", "context"}, "proof diagnostic"
+                diagnostic, {"severity", "code", "draft_location", "checked_location", "message", "context",
+                             "context_omitted_lines"}, "proof diagnostic"
             )
             if diagnostic["severity"] not in ("error", "warning"):
                 raise IrError("proof diagnostic severity is invalid")
+            code = diagnostic["code"]
+            if code is not None and (not isinstance(code, str) or not code):
+                raise IrError("proof diagnostic code must be a nonempty string or null")
             if not isinstance(diagnostic["message"], str):
                 raise IrError("proof diagnostic message must be a string")
             _string_vector(diagnostic["context"], "proof diagnostic context")
-            for location in ("line", "column"):
-                item = diagnostic[location]
-                if item is not None and (not isinstance(item, int) or isinstance(item, bool) or item < 0):
-                    raise IrError("proof diagnostic locations must be non-negative integers or null")
+            for key in ("draft_location", "checked_location"):
+                if diagnostic[key] is None:
+                    continue
+                location = _exact_mapping(diagnostic[key], {"path", "line", "column", "source_excerpt"},
+                                          "proof diagnostic location")
+                if not isinstance(location["path"], str) or not location["path"]:
+                    raise IrError("proof diagnostic path must be a nonempty string")
+                for coordinate in ("line", "column"):
+                    item = location[coordinate]
+                    if not isinstance(item, int) or isinstance(item, bool) or item < 1:
+                        raise IrError("proof diagnostic coordinates must be positive integers")
+                if location["source_excerpt"] is not None and not isinstance(location["source_excerpt"], str):
+                    raise IrError("proof diagnostic source excerpt must be a string or null")
+            omitted_lines = diagnostic["context_omitted_lines"]
+            if not isinstance(omitted_lines, int) or isinstance(omitted_lines, bool) or omitted_lines < 0:
+                raise IrError("proof diagnostic omitted context must be a non-negative integer")
         omitted = value["diagnostics_omitted"]
         if not isinstance(omitted, int) or isinstance(omitted, bool) or omitted < 0:
             raise IrError("proof diagnostics omitted count must be a non-negative integer")
         _byte_budget(value["token_budget"], "proof attempt budget")
-        actions = _exact_mapping(value["actions"], {"revise", "apply", "verify"}, "proof actions")
+        actions = _exact_mapping(value["actions"], {"inspect", "revise", "apply", "verify"}, "proof actions")
+        _string_vector(actions["inspect"], "proof inspect action")
         _string_vector(actions["revise"], "proof revise action")
         _string_vector(actions["verify"], "proof verify action")
         if actions["apply"] is not None:
@@ -1869,6 +1891,55 @@ class ProofAttempt:
 
     @classmethod
     def from_json(cls, text: str) -> ProofAttempt:
+        return cls.from_data(json.loads(text))
+
+    def to_data(self) -> dict[str, Any]:
+        return json.loads(json.dumps(self.data))
+
+
+@dataclass(frozen=True)
+class ProofState:
+    """Lean's current goals at a draft cursor; never a proof-acceptance receipt."""
+
+    data: Mapping[str, Any]
+
+    @classmethod
+    def from_data(cls, value: Any) -> ProofState:
+        value = _exact_mapping(value, {
+            "operation", "target", "goal_id", "proof_digest", "checker", "theorem",
+            "draft_location", "status", "goals", "acceptance", "scope", "check", "token_budget",
+        }, "proof state")
+        if value["operation"] != "proof-state" or value["acceptance"] != "not-checked":
+            raise IrError("proof state is inspection and cannot accept a proof")
+        if not all(_is_digest(value[key]) for key in ("goal_id", "proof_digest")):
+            raise IrError("proof state identities must be canonical digests")
+        for key in ("target", "checker", "theorem", "scope"):
+            if not isinstance(value[key], str) or not value[key]:
+                raise IrError("proof state fields must be nonempty text")
+        goals = _string_vector(value["goals"], "proof state goals")
+        if any(not goal for goal in goals):
+            raise IrError("proof state goals cannot contain empty entries")
+        if (not isinstance(value["status"], str)
+                or value["status"] not in {"goals", "closed-at-position", "no-tactic-at-position"}):
+            raise IrError("unknown proof state status")
+        if bool(goals) != (value["status"] == "goals"):
+            raise IrError("proof state status contradicts its goals")
+        location = _exact_mapping(value["draft_location"], {"path", "line", "column", "source_excerpt"},
+                                  "proof state location")
+        if not isinstance(location["path"], str) or not location["path"]:
+            raise IrError("proof state location needs a path")
+        if any(type(location[key]) is not int or location[key] < 1 for key in ("line", "column")):
+            raise IrError("proof state cursor uses positive one-based coordinates")
+        if location["source_excerpt"] is not None and not isinstance(location["source_excerpt"], str):
+            raise IrError("proof state excerpt must be text or null")
+        check = _string_vector(value["check"], "proof state check action")
+        if check[:3] != ("spec", "proof-check", value["target"]):
+            raise IrError("proof state must direct complete acceptance to proof-check")
+        _byte_budget(value["token_budget"], "proof state budget")
+        return cls(json.loads(json.dumps(value)))
+
+    @classmethod
+    def from_json(cls, text: str) -> ProofState:
         return cls.from_data(json.loads(text))
 
     def to_data(self) -> dict[str, Any]:

@@ -20,23 +20,35 @@ jobs:
             .github/actions/native-tools/python-wheels.txt
             tools
             sdk/python/src
+            skills/fr
             tests/agent-eval/selected-agents
             tests/agent-eval/project-edits
             tests/agent-eval/proof-writing
+            tests/agent-eval/proof-feedback
+            tests/agent-eval/proof-construction
+            tests/agent-eval/proof-page-count
+            tests/agent-eval/proof-division-facts
+            tests/agent-eval/team-solve
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
       - name: Check the complete M1 attempt schedule without model calls
+        id: unit-tests
         shell: bash
-        run: >-
-          python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v
-          2>&1 | tee "$RUNNER_TEMP/m1-unit-tests.log"
+        run: |
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/m1-unit-tests.log"
+          python3 -B tools/agent_eval/test_proof_feedback.py 2>&1 | tee -a "$RUNNER_TEMP/m1-unit-tests.log"
+          python3 -B tools/agent_eval/test_proof_division_facts.py 2>&1 | tee -a "$RUNNER_TEMP/m1-unit-tests.log"
+          python3 -B tools/agent_eval/test_team_solve.py -v 2>&1 | tee -a "$RUNNER_TEMP/m1-unit-tests.log"
       - run: python3 -B tools/selected-agent-probe.py --output "$RUNNER_TEMP/m1-clients"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && (steps.unit-tests.outcome == 'success' || steps.unit-tests.outcome == 'failure')
         with:
           name: m1-client-probe
-          path: ${{ runner.temp }}/m1-clients/report.json
+          path: |
+            ${{ runner.temp }}/m1-unit-tests.log
+            ${{ runner.temp }}/m1-clients/report.json
           if-no-files-found: error
           retention-days: 30
   tasks:
@@ -65,7 +77,7 @@ jobs:
             "$RUNNER_TEMP/m1-report-tools/agent_eval/"
           mkdir -p "$RUNNER_TEMP/m1-native-tools"
           cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
-            tools/agent_eval/selected_cli.py "$RUNNER_TEMP/m1-native-tools/"
+            tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py "$RUNNER_TEMP/m1-native-tools/"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -119,11 +131,12 @@ jobs:
           done
       - name: Exercise real native tool results with scripted replies and no external network
         run: |
-          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py' EXIT
-          for helper in opencode2_client.py selected_native_probe.py selected_cli.py; do
+          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py' EXIT
+          for helper in opencode2_client.py selected_native_probe.py selected_cli.py selected_native.py; do
             cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
           done
           python3 -B -m agent_eval.selected_native --fr target/debug/fr \
+          --profiles tests/agent-eval/selected-agents/profiles.json \
           --output "$RUNNER_TEMP/m1-native"
       - name: Reject wrong changes and deliver correct patches inside private containers
         run: >-

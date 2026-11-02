@@ -18,6 +18,7 @@ from fr_ir.ir import (
     Expr,
     FormalPlan,
     ProofAttempt,
+    ProofState,
     ProofTask,
     PropertyProposition,
     PropertyTask,
@@ -54,6 +55,33 @@ def kinds(namespace):
 
 
 class TestIr:
+    def test_live_proof_state_never_substitutes_for_complete_acceptance(self):
+        target = "specs/Demo.lean::pair"
+        state = {
+            "operation": "proof-state", "target": target,
+            "goal_id": "a" * 64, "proof_digest": "b" * 64,
+            "checker": "leanprover/lean4:v4.28.0", "theorem": "P ∧ Q",
+            "draft_location": {"path": "draft.tactics", "line": 3, "column": 8,
+                               "source_excerpt": "  · exact hP"},
+            "status": "goals", "goals": ["case right\nhQ : Q\n⊢ Q"],
+            "acceptance": "not-checked", "scope": "Editor goals at this position",
+            "check": ["spec", "proof-check", target, "--from", "draft.tactics"],
+            "token_budget": {"limit": 4096, "used_upper_bound": 1100,
+                             "measurement": "serialized_utf8_bytes"},
+        }
+        assert ProofState.from_json(json.dumps(state)).to_data() == state
+        for status in ("closed-at-position", "no-tactic-at-position"):
+            closed = {**state, "status": status, "goals": []}
+            assert ProofState.from_data(closed).to_data() == closed
+        for mutation in (
+            {"acceptance": "accepted"}, {"status": "closed-at-position"},
+            {"goals": [""]}, {"status": "accepted"}, {"status": []},
+            {"check": ["spec", "prove", target]}, {"receipt": "c" * 64},
+            {"draft_location": {**state["draft_location"], "line": 0}},
+        ):
+            with pytest.raises(IrError):
+                ProofState.from_data({**state, **mutation})
+
     def test_task_change_builder_mirrors_inline_reviewed_session(self):
         request = ProjectRequest("target", [
             "find", "render", "--signature", "--source", "--bytes", "2048",
@@ -178,15 +206,17 @@ class TestIr:
             "normalization": "trim-outer-newlines-indent-two-spaces", "forbidden": ["sorry"],
             "checker": "leanprover/lean4:v4.28.0",
         }
-        templates = [{"kind": "direct", "lines": ["<agent-written-tactics>"]}]
+        claim = {"parameters": ["(x : Bool)"],
+                 "parts": [{"assumptions": [], "conclusions": ["keep x = x"]}]}
         task = {
             "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
-            "templates": templates,
+            "claim": claim,
             "object_digest": merkle_object_digest({
                 "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
-                "templates": templates,
+                "claim": claim,
             }),
             "actions": {
+                "inspect": ["spec", "proof-state"],
                 "check": ["spec", "proof-check"], "apply": ["spec", "prove"],
                 "verify": ["spec", "verify"],
             },
@@ -204,17 +234,33 @@ class TestIr:
         bound["goal"]["model_context_digest"] = merkle_object_digest("current model module")
         addressed = {key: bound["goal"][key] for key in ("name", "spec", "target", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
         bound["goal"]["id"] = bound["goal"]["object_digest"] = merkle_object_digest(addressed)
-        core = {key: bound[key] for key in ("schema", "goal", "contract", "templates")}
+        core = {key: bound[key] for key in ("schema", "goal", "contract", "claim")}
         bound["object_digest"] = merkle_object_digest(core)
         assert ProofTask.from_data(bound).to_data() == bound
         bound["goal"]["model_context_digest"] = merkle_object_digest("changed model module")
-        bound["object_digest"] = merkle_object_digest({key: bound[key] for key in ("schema", "goal", "contract", "templates")})
+        bound["object_digest"] = merkle_object_digest({key: bound[key] for key in ("schema", "goal", "contract", "claim")})
         with pytest.raises(IrError, match="model context identity"):
             ProofTask.from_data(bound)
         changed_task = json.loads(json.dumps(task))
         changed_task["goal"]["theorem"] = "changed"
         with pytest.raises(IrError, match="model context identity"):
             ProofTask.from_data(changed_task)
+
+        changed_claim = json.loads(json.dumps(task))
+        changed_claim["claim"]["parts"][0]["conclusions"] = ["False"]
+        with pytest.raises(IrError, match="content address"):
+            ProofTask.from_data(changed_claim)
+        for claim in (
+            {"parameters": [], "parts": []},
+            {"parameters": [""], "parts": [{"assumptions": [], "conclusions": ["True"]}]},
+            {"parameters": [], "parts": [{"assumptions": [""], "conclusions": ["True"]}]},
+            {"parameters": [], "parts": [{"assumptions": [], "conclusions": []}]},
+            {"parameters": [], "parts": [{"assumptions": ["True"] * 64, "conclusions": ["True"]}]},
+        ):
+            malformed = json.loads(json.dumps(task))
+            malformed["claim"] = claim
+            with pytest.raises(IrError, match="proof claim"):
+                ProofTask.from_data(malformed)
 
         proof_digest = merkle_object_digest("rfl")
         checker_context = merkle_object_digest("checked module and exact package inputs")
@@ -230,6 +276,7 @@ class TestIr:
             "diagnostics": [], "diagnostics_omitted": 0,
             "receipt": merkle_object_digest(receipt_core),
             "actions": {
+                "inspect": ["spec", "proof-state"],
                 "revise": ["spec", "proof-check"], "apply": ["spec", "prove"],
                 "verify": ["spec", "verify"],
             },
@@ -238,6 +285,40 @@ class TestIr:
             },
         }
         assert ProofAttempt.from_data(attempt).to_data() == attempt
+        rejected = json.loads(json.dumps(attempt))
+        rejected.update(passed=False, receipt=None)
+        rejected["actions"]["apply"] = None
+        rejected["diagnostics"] = [{
+            "severity": "error", "message": "Unknown identifier `missingLemma`",
+            "code": "lean.unknownIdentifier",
+            "draft_location": {"path": "draft.tactics", "line": 2, "column": 9,
+                               "source_excerpt": "  exact missingLemma"},
+            "checked_location": {"path": "<PROOF_CHECK>", "line": 42, "column": 11,
+                                 "source_excerpt": "    exact missingLemma"},
+            "context": ["⊢ True"], "context_omitted_lines": 12,
+        }]
+        assert ProofAttempt.from_data(rejected).to_data() == rejected
+        for code in (None, "lean.unknownIdentifier", "linter.unusedVariables"):
+            changed = json.loads(json.dumps(rejected))
+            changed["diagnostics"][0]["code"] = code
+            assert ProofAttempt.from_data(changed).to_data() == changed
+        for code in ("", False, 17, [], {}):
+            changed = json.loads(json.dumps(rejected))
+            changed["diagnostics"][0]["code"] = code
+            with pytest.raises(IrError, match="diagnostic code"):
+                ProofAttempt.from_data(changed)
+        missing_code = json.loads(json.dumps(rejected))
+        del missing_code["diagnostics"][0]["code"]
+        with pytest.raises(IrError):
+            ProofAttempt.from_data(missing_code)
+        for key, value in (("line", 0), ("column", True), ("path", ""), ("source_excerpt", 3)):
+            changed = json.loads(json.dumps(rejected))
+            changed["diagnostics"][0]["draft_location"][key] = value
+            with pytest.raises(IrError):
+                ProofAttempt.from_data(changed)
+        rejected["diagnostics"][0]["context_omitted_lines"] = -1
+        with pytest.raises(IrError, match="omitted context"):
+            ProofAttempt.from_data(rejected)
         changed_context = json.loads(json.dumps(attempt))
         changed_context["checker_context_digest"] = merkle_object_digest("changed dependency")
         with pytest.raises(IrError, match="invalid receipt"):

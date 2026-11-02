@@ -106,8 +106,19 @@ fr -C . --json spec proof-task specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_
 
 The plan describes the selected source, generated definition, claim and assumptions. Review it before
 scaffolding, which creates the Lean definition and an unfinished theorem. The goals report lists the
-one claim. `proof-task` reveals its context and empty proof templates. An unfinished theorem contains
+one claim. `proof-task` reveals its context, parameters and the claim's parts. An unfinished theorem contains
 `sorry`, a visible proof gap; it is not an accepted proof.
+
+Each `claim.parts` entry lists `assumptions` and `conclusions` copied from the theorem's syntax.
+Assumptions are facts you may use while proving that part. Conclusions are statements you must prove.
+An empty assumptions list means that part needs no extra assumption beyond the theorem's parameters.
+For example, a page-count claim lists “items is nonnegative” and “page size is at least one” separately.
+An alternative such as “items is negative or page size is nonpositive” stays together; it does not assert both.
+This view supplies no proof steps and does not change the theorem. Lean still checks the proof's meaning.
+
+For numeric proofs, the [arithmetic examples](../skills/fr/references/lean-arithmetic.md)
+introduce Boolean comparisons, assumptions joined by “and” or “or”, and library facts
+whose arguments are proofs. Each example is checked with the pinned Lean release.
 
 For these exact names, the theorem target is
 `specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule`.
@@ -131,16 +142,74 @@ The report should say `passed: false` and include Lean's explanation: a Boolean 
 of the requested equality. A successful process exit means a report was produced; inspect `passed`
 to find out whether the proof worked. A rejected attempt has no checked receipt and changes no source.
 
-Save the corrected tactics as `proof.lean`:
+Each diagnostic's `draft_location` points into your tactics file and includes a short source excerpt.
+For example, an unknown tactic on line 2 of `bad-proof.lean` points to that file's line 2.
+`checked_location` identifies Lean's checked file, whose generated lines can shift the error's position.
+A location is `null` when the error cannot be assigned to that file, such as an error in an imported module.
+`context` includes the goal marked by `⊢`; `context_omitted_lines` counts lines left out of the bounded report.
+
+## Inspect your progress after each step
+
+You can ask Lean where you are before the whole proof is finished.
+Save `initial.lean` with this one tactic, which deliberately does nothing:
 
 ```lean
-cases staff <;> rfl
+skip
 ```
 
-`cases staff` considers both possible values of `staff`. `<;>` runs the following tactic on each case.
-`rfl` proves equality when both sides reduce to the same expression. For staff, both sides become
-`true`; otherwise both sides become `owner`. The tactics file omits `by`: fr inserts these steps
-inside the theorem's existing proof region.
+```sh
+fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from initial.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
+```
+
+`--at 1:5` means line 1, character column 5: immediately after `skip`.
+Lines and columns start at one. Count Unicode characters rather than bytes.
+The report identifies the original `theorem`, the checked draft fingerprint and `draft_location`.
+In `goals`, lines such as `staff owner : Bool` are available inputs.
+The statement after `⊢` is the current objective: prove the access rule.
+The parameters are already available; introducing `staff` again would be a mistake.
+
+Now save `partial.lean`:
+
+```lean
+cases staff
+· rfl
+· skip
+```
+
+`cases staff` splits the proof into false and true cases. Each bullet `·` focuses one case.
+`rfl` proves equality when both expressions reduce to the same value.
+Here the false case reduces to `owner = owner`; the true case reduces to `true = true`.
+We leave the second case open deliberately. Inspect three positions:
+
+```sh
+fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 1:12 --token-limit 4096 --timeout-seconds 30
+fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 2:6 --token-limit 4096 --timeout-seconds 30
+fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 3:7 --token-limit 4096 --timeout-seconds 30
+fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --token-limit 4096
+```
+
+After the split, `status: "goals"` includes both cases and their available facts.
+After the first `rfl`, `closed-at-position` means that branch is finished.
+At the final `skip`, one goal remains. The complete check reports `passed: false`.
+This is why an empty local goal list is never a proof receipt.
+A cursor outside a tactic reports `no-tactic-at-position`; move into a tactic to inspect progress.
+Every inspection has `acceptance: "not-checked"`.
+
+The selected `--token-limit` bounds UTF-8 response bytes, not model tokens. If the complete
+state does not fit, fr refuses rather than silently removing a goal or assumption.
+The explicit 30-second deadline covers dependency preparation and the editor query together.
+Inspect after each new step and use its actual goal to choose the next one.
+
+Replace the remaining `skip` with `rfl`, and save the complete tactics as `proof.lean`:
+
+```lean
+cases staff
+· rfl
+· rfl
+```
+
+The tactics file omits `by`: fr inserts these steps inside the existing proof region.
+Only a complete check with `passed: true` establishes acceptance. Then preview and save:
 
 ```sh
 fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean

@@ -57,8 +57,14 @@ jobs:
       - uses: actions/setup-node@v7
         if: matrix.target == 'conformance'
         with:
-          node-version: 26
+          node-version: '26.5.0'
           package-manager-cache: false
+      - name: Install the declared TypeScript checker
+        if: matrix.target == 'conformance'
+        working-directory: tests/typesafety/typescript
+        run: |
+          npm ci --no-fund --no-audit
+          echo "$GITHUB_WORKSPACE/tests/typesafety/typescript/node_modules/.bin" >> "$GITHUB_PATH"
       - uses: ./.github/actions/go-toolchain
         if: matrix.target == 'conformance'
       - uses: ./.github/actions/java-toolchain

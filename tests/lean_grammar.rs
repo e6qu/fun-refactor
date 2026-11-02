@@ -6,6 +6,276 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn local_lemmas_retain_parameters_and_following_declarations() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if name == "afterLocalLemmaParameters" {
+            checked.insert(name);
+            continue;
+        }
+        if !matches!(
+            name,
+            "localLemmaParameters" | "anonymousLemmaParameters" | "termLemmaParameters"
+        ) {
+            continue;
+        }
+        let body = definition.child_by_field_name("body").unwrap();
+        let lemma = if name == "termLemmaParameters" {
+            assert_eq!(body.kind(), "have");
+            body
+        } else {
+            let lemma = body.named_child(0).unwrap();
+            assert_eq!(lemma.kind(), "tactic_have");
+            assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+            lemma
+        };
+        let parameters = lemma.child_by_field_name("parameters").unwrap();
+        assert_eq!(parameters.kind(), "parameters");
+        assert_eq!(parameters.named_child_count(), 3);
+        assert_eq!(
+            &source[parameters.byte_range()],
+            "(a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b)"
+        );
+        assert_eq!(lemma.child_by_field_name("value").unwrap().kind(), "by");
+        checked.insert(name);
+    }
+    assert_eq!(checked.len(), 4);
+}
+
+#[test]
+fn proposition_connectives_group_like_lean_without_changing_boolean_operators() {
+    for (operator, field) in [
+        ("∧", "right"),
+        ("∨", "right"),
+        ("&&", "left"),
+        ("||", "left"),
+    ] {
+        let lean_type = if operator.is_ascii() { "Bool" } else { "Prop" };
+        let source = format!("def grouped (p q r : {lean_type}) := p {operator} q {operator} r\n");
+        let parsed = Parsers::new().parse(Language::Lean, &source).unwrap();
+        assert!(!parsed.has_errors(), "{}", parsed.root().to_sexp());
+        let definition = parsed.root().named_child(0).unwrap();
+        let expression = definition.child_by_field_name("body").unwrap();
+        assert_eq!(expression.kind(), "binary_expression");
+        assert_eq!(
+            expression.child_by_field_name(field).unwrap().kind(),
+            "binary_expression",
+            "{operator} must group to the {field}"
+        );
+    }
+    let source = "theorem precedence (p q r : Prop) : p ∨ q → r := by sorry\n";
+    let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!parsed.has_errors());
+    let proposition = parsed
+        .root()
+        .named_child(0)
+        .unwrap()
+        .child_by_field_name("type")
+        .unwrap();
+    assert_eq!(proposition.kind(), "arrow");
+    assert_eq!(
+        proposition.child_by_field_name("domain").unwrap().kind(),
+        "binary_expression"
+    );
+}
+
+#[test]
+fn introductions_keep_discarded_hypotheses_and_simplifier_phases() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        match name {
+            "introduceAndDiscard" | "introduceTyped" | "introduceAlternatives" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                let introduction = body.named_child(0).unwrap();
+                assert_eq!(introduction.kind(), "tactic_rintro");
+                let pattern = introduction.child_by_field_name("pattern").unwrap();
+                let expected = match name {
+                    "introduceAndDiscard" => "rcases_tuple_pattern",
+                    "introduceTyped" => "rintro_binder",
+                    _ => "rcases_alternative_pattern",
+                };
+                assert_eq!(pattern.kind(), expected);
+                if name == "introduceTyped" {
+                    assert_eq!(
+                        &source[pattern.child_by_field_name("type").unwrap().byte_range()],
+                        "Nat"
+                    );
+                }
+                if name == "introduceAlternatives" {
+                    assert!(pattern.to_sexp().contains("rcases_alternative_pattern"));
+                }
+                if name == "introduceAndDiscard" {
+                    assert_eq!(&source[pattern.byte_range()], "⟨ha, -, -, -⟩");
+                    assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+                }
+            }
+            "simplifyBeforeArguments" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                assert!(body.to_sexp().contains("(simp_phase"));
+            }
+            "afterIntroductionSyntax" => {}
+            _ => continue,
+        }
+        checked.insert(name);
+    }
+    assert_eq!(checked.len(), 5);
+    let (_directory, index) = common::workspace(&[("Introductions.lean", source)]);
+    for name in checked {
+        assert_eq!(
+            index.symbols.iter().filter(|s| s.name == name).count(),
+            1,
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn dated_attributes_preserve_their_arguments_and_following_declarations() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let declaration = tree
+        .root()
+        .named_children(&mut cursor)
+        .find(|node| {
+            node.kind() == "declaration" && source[node.byte_range()].contains("libraryAlias")
+        })
+        .unwrap();
+    let attributes = declaration.child_by_field_name("attributes").unwrap();
+    let entry = attributes.named_child(0).unwrap();
+    let mut cursor = entry.walk();
+    let argument = entry
+        .named_children(&mut cursor)
+        .find(|node| node.kind() == "named_argument")
+        .unwrap();
+    assert_eq!(argument.kind(), "named_argument");
+    assert_eq!(
+        &source[argument.child_by_field_name("name").unwrap().byte_range()],
+        "since"
+    );
+    assert_eq!(
+        &source[argument.child_by_field_name("value").unwrap().byte_range()],
+        "\"2025-09-01\""
+    );
+    let (_directory, index) = common::workspace(&[("Library.lean", source)]);
+    for name in ["libraryReplacement", "libraryAlias", "afterAttributeSyntax"] {
+        assert_eq!(
+            index
+                .symbols
+                .iter()
+                .filter(|s| s.kind == SymbolKind::Function && s.name == name)
+                .count(),
+            1,
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn installed_integer_library_exposes_division_facts() {
+    let prefix = std::process::Command::new("lean")
+        .arg("--print-prefix")
+        .output()
+        .expect("the Lean grammar gate requires the pinned Lean installation");
+    assert!(prefix.status.success());
+    let source_path = std::path::PathBuf::from(String::from_utf8(prefix.stdout).unwrap().trim())
+        .join("src/lean/Init/Data/Int/DivMod/Lemmas.lean");
+    let source = std::fs::read_to_string(source_path).unwrap();
+    let (_directory, index) = common::workspace(&[("Lemmas.lean", &source)]);
+    for name in [
+        "tdiv_eq_ediv_of_nonneg",
+        "mul_tdiv_add_tmod",
+        "tdiv_mul_add_tmod",
+        "tdiv_nonneg",
+        "tmod_nonneg",
+        "tmod_lt_of_pos",
+    ] {
+        let found: Vec<_> = index
+            .symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Function && s.name == name)
+            .collect();
+        assert_eq!(found.len(), 1, "missing or repeated division fact: {name}");
+        let declaration = &source[found[0].full_span.start..found[0].full_span.end];
+        assert!(declaration.starts_with("theorem "), "{declaration}");
+        assert!(declaration.contains(name));
+        assert!(
+            !declaration.contains("\ntheorem "),
+            "{name} consumed another theorem"
+        );
+    }
+}
+
+#[test]
+fn library_lambda_and_obtain_branches_preserve_following_declarations() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let definitions: Vec<_> = tree.root().named_children(&mut cursor).collect();
+    let mut checked = BTreeSet::new();
+    for definition in definitions {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        match name {
+            "unicodeLambda" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                assert_eq!(body.kind(), "fun");
+                assert_eq!(
+                    &source[body.child_by_field_name("body").unwrap().byte_range()],
+                    "n"
+                );
+            }
+            "obtainBranches" | "obtainTupleBranch" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                let binding = body.named_child(0).unwrap();
+                assert_eq!(binding.kind(), "tactic_have");
+                assert_eq!(
+                    binding.child_by_field_name("name").unwrap().kind(),
+                    "rcases_alternative_pattern"
+                );
+                assert_eq!(body.named_child_count(), 3, "{}", body.to_sexp());
+            }
+            "afterBranchSyntax" => {}
+            _ => continue,
+        }
+        checked.insert(name);
+    }
+    assert_eq!(checked.len(), 4);
+    let (_directory, index) = common::workspace(&[("Library.lean", source)]);
+    for name in checked {
+        assert_eq!(
+            index
+                .symbols
+                .iter()
+                .filter(|s| s.kind == SymbolKind::Function && s.name == name)
+                .count(),
+            1,
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn subscript_names_and_conversions_keep_their_full_tokens_and_operands() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
@@ -77,7 +347,7 @@ fn simplifier_locations_and_equality_transport_parse() {
             .to_sexp()
             .matches("(rcases_tuple_pattern ")
             .count(),
-        1
+        3
     );
 }
 
@@ -215,6 +485,58 @@ fn fields_and_subscripts_belong_to_the_function_argument() {
 }
 
 #[test]
+fn inline_calculations_preserve_steps_and_following_declarations() {
+    fn calculation(node: tree_sitter::Node<'_>) -> Option<tree_sitter::Node<'_>> {
+        if matches!(node.kind(), "tactic_calc" | "calc") {
+            return Some(node);
+        }
+        let mut cursor = node.walk();
+        let found = node.named_children(&mut cursor).find_map(calculation);
+        found
+    }
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if !matches!(
+            name,
+            "calcFirstSameLine"
+                | "calcExact"
+                | "calcTerm"
+                | "calcNestedSameLine"
+                | "afterInlineCalc"
+        ) {
+            continue;
+        }
+        checked.insert(name);
+        if name == "afterInlineCalc" {
+            continue;
+        }
+        let body = definition.child_by_field_name("body").unwrap();
+        let calc = calculation(body).unwrap();
+        let mut steps = calc.walk();
+        assert_eq!(
+            calc.named_children(&mut steps)
+                .filter(|node| node.kind() == "calc_step")
+                .count(),
+            2,
+            "{}",
+            calc.to_sexp()
+        );
+        if name == "calcNestedSameLine" {
+            assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+        }
+    }
+    assert_eq!(checked.len(), 5);
+}
+
+#[test]
 fn calculation_steps_and_following_tactics_keep_their_boundaries() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
@@ -326,6 +648,44 @@ fn typed_proofs_keep_their_annotations_and_case_labels() {
 }
 
 #[test]
+fn nested_assumption_patterns_preserve_grouping_and_the_next_declaration() {
+    fn tuple_depth(node: tree_sitter::Node<'_>) -> usize {
+        let mut cursor = node.walk();
+        usize::from(node.kind() == "rcases_tuple_pattern")
+            + node
+                .named_children(&mut cursor)
+                .map(tuple_depth)
+                .max()
+                .unwrap_or(0)
+    }
+
+    let source = include_str!("fixtures/lean-nested-assumptions.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let actual: Vec<_> = tree
+        .root()
+        .named_children(&mut cursor)
+        .filter(|node| node.kind() == "definition")
+        .map(|node| {
+            let name = node.child_by_field_name("name").unwrap();
+            (&source[name.byte_range()], tuple_depth(node))
+        })
+        .collect();
+    assert_eq!(
+        actual,
+        [
+            ("nestedObtain", 3),
+            ("nestedRCases", 3),
+            ("nestedRIntro", 3),
+            ("nestedAlternative", 1),
+            ("afterNested", 0),
+        ]
+    );
+    assert!(tree.root().to_sexp().contains("rcases_alternative_pattern"));
+}
+
+#[test]
 fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
     for source in [
         "def bad : Nat := Nat.succ if true then 1 else 0",
@@ -334,7 +694,17 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "def bad (p q : Prop) : Prop := p ⊢ q",
         "theorem bad (p : Prop) : p := show p",
         "theorem bad (a : Int) : a = a := by\n  calc\n    a = a :=\n",
+        "theorem bad (a : Int) : a = a := by\n  calc a = a := rfl\n    _ = a :=\n",
+        "theorem bad (a : Int) : a = a := by\n  exact calc a = a :=\n",
         "theorem bad : True := by exact (by trivial : )",
+        "def bad : Nat → Nat := fun n ↦",
+        "theorem bad (h : True) : True := by obtain hp | := h",
+        "theorem bad (h : True) : True := by obtain ⟨⟨a, b⟩ c⟩ := h",
+        "theorem bad (h : True) : True := by rcases h with ⟨⟨a, b⟩, c",
+        "theorem bad (h : True) : True := by rcases h with ⟨a |, b⟩",
+        "@[deprecated replacement (since := )] def bad : Nat := 0",
+        "theorem bad (h : True) : True := by have hp | hq := h",
+        "theorem bad (h : True) : True := by suffices hp | hq := h",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");

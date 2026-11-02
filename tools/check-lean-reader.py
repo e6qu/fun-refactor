@@ -1,5 +1,7 @@
 """Check generated syntax before committing it to a development branch."""
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -8,10 +10,10 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def check(binary, diagnostics):
+def check(binary, diagnostics, integer_library):
     diagnostics.mkdir(parents=True, exist_ok=False)
     failures = []
-    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean']:
+    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean', 'lean-nested-assumptions.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
@@ -23,11 +25,39 @@ def check(binary, diagnostics):
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
+        if fixture == 'lean-nested-assumptions.lean':
+            def tuple_depth(node):
+                return (node.tag == 'rcases_tuple_pattern') + max(map(tuple_depth, node), default=0)
+            expected = {'nestedObtain': 3, 'nestedRCases': 3, 'nestedRIntro': 3,
+                        'nestedAlternative': 1, 'afterNested': 0}
+            found = {}
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is not None:
+                    found[''.join(''.join(name.itertext()).split())] = tuple_depth(definition)
+            if found != expected:
+                failures.append(fixture + ': nested patterns or the following declaration changed: ' + str(found))
         if fixture == 'lean-proof-locations.lean' and len(list(tree.iter('for_in'))) != 2:
             failures.append(fixture + ': expected two nested for loops')
         if fixture == 'lean-proof-locations.lean':
+            grouping = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'conjunctionGrouping', 'disjunctionGrouping'}:
+                    continue
+                grouping.add(text)
+                proposition = definition.find("arrow[@field='type']")
+                premise = proposition.find("binary_expression[@field='domain']") if proposition is not None else None
+                if premise is None or premise.find("binary_expression[@field='right']") is None:
+                    failures.append(text + ': proposition connectives must group to the right before implication')
+            if grouping != {'conjunctionGrouping', 'disjunctionGrouping'}:
+                failures.append(fixture + ': missing proposition grouping examples')
             for kind, count in [('do_while', 2), ('do_unless', 1), ('let_bind', 2),
-                                ('tactic_rcases', 2), ('rcases_tuple_pattern', 1)]:
+                                ('tactic_rcases', 2), ('rcases_tuple_pattern', 3),
+                                ('tactic_rintro', 3), ('simp_phase', 1)]:
                 if len(list(tree.iter(kind))) != count:
                     failures.append(fixture + ': expected ' + str(count) + ' ' + kind + ' statements')
             checked = set()
@@ -67,19 +97,23 @@ def check(binary, diagnostics):
                 if name is None:
                     continue
                 text = ''.join(''.join(name.itertext()).split())
-                if text not in {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
+                if text not in {'calcInline', 'calcNested', 'calcNegative', 'afterCalc',
+                                'calcFirstSameLine', 'calcExact', 'calcTerm', 'calcNestedSameLine', 'afterInlineCalc'}:
                     continue
                 calculated.add(text)
-                if text == 'afterCalc':
+                if text in {'afterCalc', 'afterInlineCalc'}:
                     continue
                 calc = next(definition.iter('tactic_calc'), None)
+                if calc is None:
+                    calc = next(definition.iter('calc'), None)
                 if calc is None or len(calc.findall('calc_step')) != 2:
                     failures.append(text + ': expected two separate calculation steps')
-                if text == 'calcNested':
+                if text in {'calcNested', 'calcNestedSameLine'}:
                     body = definition.find('by')
                     if body is None or [child.tag for child in body] != ['tactic_have', 'tactic_apply']:
                         failures.append(text + ': following exact tactic escaped its proof')
-            if calculated != {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
+            if calculated != {'calcInline', 'calcNested', 'calcNegative', 'afterCalc',
+                               'calcFirstSameLine', 'calcExact', 'calcTerm', 'calcNestedSameLine', 'afterInlineCalc'}:
                 failures.append(fixture + ': missing calculation proof declarations')
             typed = set()
             for definition in tree.iter('definition'):
@@ -131,6 +165,38 @@ def check(binary, diagnostics):
             if converted != {'castArgument', 'castSum', 'functionCoercion', 'typeCoercion',
                              'indexedClaim₁', 'afterLibrarySyntax'}:
                 failures.append(fixture + ': missing subscript or conversion declarations')
+            branches = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'unicodeLambda', 'obtainBranches', 'obtainTupleBranch', 'afterBranchSyntax'}:
+                    continue
+                branches.add(text)
+                if text == 'unicodeLambda' and definition.find('fun') is None:
+                    failures.append(text + ': lambda escaped its declaration')
+                if text in {'obtainBranches', 'obtainTupleBranch'}:
+                    body = definition.find('by')
+                    pattern = body.find('tactic_have/rcases_alternative_pattern') if body is not None else None
+                    if pattern is None or len(body) != 3:
+                        failures.append(text + ': alternatives or following proof branches escaped their binding')
+            if branches != {'unicodeLambda', 'obtainBranches', 'obtainTupleBranch', 'afterBranchSyntax'}:
+                failures.append(fixture + ': missing declarations after library branch syntax')
+            aliases = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is not None:
+                    text = ''.join(''.join(name.itertext()).split())
+                    if text in {'libraryReplacement', 'libraryAlias', 'afterAttributeSyntax'}:
+                        aliases.add(text)
+            if aliases != {'libraryReplacement', 'libraryAlias', 'afterAttributeSyntax'}:
+                failures.append(fixture + ': missing declarations after dated attributes')
+            if not any(node.find("identifier[@field='name']") is not None and
+                       node.find("identifier[@field='name']").text == 'since' and
+                       node.find("string[@field='value']") is not None
+                       for node in tree.findall('.//attribute_entry/named_argument')):
+                failures.append(fixture + ': missing named attribute argument')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -142,6 +208,32 @@ def check(binary, diagnostics):
             if names != expected:
                 failures.append(fixture + ': declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)}))
         print('Checked', fixture, flush=True)
+    library_source = integer_library.read_bytes()
+    assert hashlib.sha256(library_source).hexdigest() == '2e8bc644e6198a9fdd14c99558a77c459c0c5c6e6414dea2af0d3ef19704d8f2'
+    result = subprocess.run([str(binary), 'parse', '--xml', str(integer_library)],
+                            cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
+    (diagnostics / 'integer-library.xml').write_text(result.stdout)
+    (diagnostics / 'integer-library.stderr').write_text(result.stderr)
+    assert result.returncode in {0, 1}, result.stderr
+    start = result.stdout.index('<sources>')
+    end = result.stdout.index('</sources>', start) + len('</sources>')
+    tree = ET.fromstring(result.stdout[start:end])
+    expected = {'tdiv_eq_ediv_of_nonneg', 'mul_tdiv_add_tmod', 'tdiv_mul_add_tmod',
+                'tdiv_nonneg', 'tmod_nonneg', 'tmod_lt_of_pos'}
+    names = []
+    for definition in tree.iter('definition'):
+        name = definition.find('qualified_name')
+        if name is not None:
+            names.append(''.join(''.join(name.itertext()).split()))
+    gaps = [node.attrib for node in tree.iter('ERROR')]
+    report = {'source_sha256': hashlib.sha256(library_source).hexdigest(),
+              'required_facts': sorted(expected), 'recovered_facts': sorted(set(names) & expected),
+              'syntax_gaps': gaps, 'complete_syntax_support': not gaps}
+    (diagnostics / 'integer-library.json').write_text(json.dumps(report, indent=2) + '\n')
+    print('Integer library:', json.dumps(report), flush=True)
+    for name in sorted(expected):
+        if names.count(name) != 1:
+            failures.append('integer library: missing or repeated division fact: ' + name)
     for name, source in [
         ('if', 'def bad : Nat := Nat.succ if true then 1 else 0'),
         ('match', 'def bad : Nat := Nat.succ match true with | true => 1 | false => 0'),
@@ -149,9 +241,16 @@ def check(binary, diagnostics):
         ('goal-marker', 'def bad (p q : Prop) : Prop := p ⊢ q'),
         ('show', 'theorem bad (p : Prop) : p := show p'),
         ('calc', 'theorem bad (a : Int) : a = a := by\n  calc\n    a = a :='),
+        ('inline-calc', 'theorem bad (a : Int) : a = a := by\n  calc a = a := rfl\n    _ = a :='),
+        ('exact-calc', 'theorem bad (a : Int) : a = a := by\n  exact calc a = a :='),
         ('proof-type', 'theorem bad : True := by exact (by trivial : )'),
         ('conversion', 'def bad : Int := ↑'),
         ('subscript-name', 'def ₁bad : Nat := 0'),
+        ('lambda-body', 'def bad : Nat → Nat := fun n ↦'),
+        ('obtain-branch', 'theorem bad (h : True) : True := by obtain hp | := h'),
+        ('attribute-value', '@[deprecated replacement (since := )] def bad : Nat := 0'),
+        ('have-alternatives', 'theorem bad (h : True) : True := by have hp | hq := h'),
+        ('suffices-alternatives', 'theorem bad (h : True) : True := by suffices hp | hq := h'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')
@@ -169,5 +268,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tree-sitter', type=Path, required=True)
     parser.add_argument('--diagnostics', type=Path, required=True)
+    parser.add_argument('--integer-library', type=Path, required=True)
     args = parser.parse_args()
-    check(args.tree_sitter.resolve(), args.diagnostics.resolve())
+    check(args.tree_sitter.resolve(), args.diagnostics.resolve(), args.integer_library.resolve())

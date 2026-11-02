@@ -62,6 +62,20 @@ jobs:
           if operation == 'verify':
               assert tool == 'build' and report == 'check'
           PY
+      - uses: actions/checkout@v7
+        if: inputs.operation != 'grade' && inputs.tool_run == 'build'
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Install the pinned formatter before starting build jobs
+        if: inputs.operation != 'grade' && inputs.tool_run == 'build'
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - name: Reject formatting errors before compiler and language jobs start
+        if: inputs.operation != 'grade' && inputs.tool_run == 'build'
+        run: cargo +1.99.1 fmt --all --check
   audit:
     name: Recheck original proof submissions with a rebuilt auditor
     needs: configuration
@@ -225,12 +239,19 @@ jobs:
             tests/agent-eval/proof-writing/interrupted-results.sha256 \
             tests/agent-eval/proof-writing/proof-guide-interrupted-results.sha256 \
             tests/agent-eval/proof-writing/library-access-interrupted-results.sha256 \
-            tests/agent-eval/proof-writing/clock-interrupted-results.sha256
+            tests/agent-eval/proof-writing/clock-interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/introduction-interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/clocked-results.sha256 \
+            tests/agent-eval/proof-writing/introduction-results.sha256 \
+            tests/agent-eval/proof-writing/low-reasoning-results.sha256 \
+            tests/agent-eval/proof-writing/claim-view-results.sha256 \
+            tests/agent-eval/proof-writing/direct-proof-results.sha256
           python3 -B - <<'PY'
           from pathlib import Path
           for name in ('first-results', 'second-results', 'interrupted-results',
                        'proof-guide-interrupted-results', 'library-access-interrupted-results',
-                       'clock-interrupted-results'):
+                       'clock-interrupted-results', 'introduction-interrupted-results', 'clocked-results', 'introduction-results',
+                       'low-reasoning-results', 'claim-view-results', 'direct-proof-results'):
               directory = Path('tests/agent-eval/proof-writing') / name
               manifest = directory.with_suffix('.sha256')
               expected = {line.split('  ', 1)[1] for line in manifest.read_text().splitlines()}
@@ -290,6 +311,7 @@ jobs:
       - name: Use scripted replies in network-free native clients
         run: >-
           python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/m3-tool/fr"
+          --profiles tests/agent-eval/proof-writing/profiles.json
           --output "$RUNNER_TEMP/m3-native"
       - uses: actions/upload-artifact@v7
         if: always()
@@ -325,7 +347,7 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/
-      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -346,17 +368,25 @@ jobs:
         with:
           key: m3-proof-writing
           cache-on-failure: true
-      - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
         run: |
           cc -std=c11 -Wall -Wextra -Werror -I grammars/lean/src grammars/lean/tests/layout.c -o "$RUNNER_TEMP/lean-layout"
           "$RUNNER_TEMP/lean-layout"
           lean -j 1 tests/fixtures/lean-proof-locations.lean
+          lean -j 1 tests/fixtures/lean-nested-assumptions.lean
           cargo test --locked --test lean_grammar --test known_grammar_gaps --test translate_lean -- --test-threads=1
           cargo test --locked --test cli capability_filters_apply_to_json_markdown_and_text_totals -- --exact --test-threads=1
           cargo test --locked --test lean_adoption -- --test-threads=1
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel -- --test-threads=1
-          cargo test --locked --lib spec::tests::proof_package_sources -- --test-threads=1
+          cargo test --locked --test proof_state -- --test-threads=1
+          cargo test --locked --lib checks::deadline_tests -- --test-threads=1
+          cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
+          cargo test --locked --lib spec::tests::proof_ -- --test-threads=1
+          cargo test --locked --lib spec::proof_claim::tests -- --test-threads=1
+          cargo test --locked --test project_cli lean_library_signatures_keep_types_without_including_equation_proofs -- --exact --test-threads=1
+          cargo test --locked --lib span::tests -- --test-threads=1
+          cargo test --locked --lib navigate::tests -- --test-threads=1
+          cargo test --locked --lib analysis::impact::tests -- --test-threads=1
       - name: Check complete schedules and refuse unaudited live-call inputs
         run: |
           python3 -B tools/agent_eval/test_proof_writing_tasks.py
@@ -409,6 +439,21 @@ jobs:
           python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
           --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-sdk-build.json"
       - run: chmod +x target/debug/fr
+      - name: Find the proof checker in its source file with fr
+        timeout-minutes: 3
+        run: |
+          target/debug/fr --no-cache --json -C src/spec.rs project find check_prepared_proof \
+            --in spec.rs --contains --signature --limit 1 > "$RUNNER_TEMP/m3-proof-checker-location.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'm3-proof-checker-location.json').read_text())
+          row, = [dict(zip(report['columns'], values)) for values in report['rows']]
+          assert row['name'] == 'check_prepared_proof' and row['path'] == 'spec.rs'
+          assert row['signature']['basis'] == 'syntax-header'
+          assert report['coverage']['indexed_files'] == 1
+          print('Found check_prepared_proof in spec.rs; indexed exactly one source file.')
+          PY
       - name: Execute the current skill examples and supplied-theorem proof route
         run: python3 -B tools/check-agent-skill.py --fr target/debug/fr
       - run: |

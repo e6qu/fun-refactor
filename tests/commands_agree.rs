@@ -23,6 +23,11 @@ fn workspace() -> &'static (PathBuf, Index) {
     })
 }
 
+fn call_graph() -> &'static CallGraph {
+    static GRAPH: std::sync::OnceLock<CallGraph> = std::sync::OnceLock::new();
+    GRAPH.get_or_init(|| CallGraph::build(&workspace().1))
+}
+
 #[test]
 fn the_self_hosted_recipe_replays_without_changing_the_workspace() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -70,7 +75,7 @@ fn sampled(index: &Index, n: u64) -> impl Iterator<Item = &fun_refactor::model::
 #[test]
 fn every_call_edge_has_the_reference_that_produced_it() {
     let (_root, index) = workspace();
-    let graph = CallGraph::build(index);
+    let graph = call_graph();
 
     let sites: HashSet<(SymbolId, &Path, usize)> = index
         .references
@@ -106,7 +111,7 @@ fn every_call_edge_has_the_reference_that_produced_it() {
 #[test]
 fn every_call_site_sits_inside_the_function_it_is_attributed_to() {
     let (_root, index) = workspace();
-    let graph = CallGraph::build(index);
+    let graph = call_graph();
     let mut wrong = Vec::new();
     for symbol in &index.symbols {
         for (caller, edge) in graph.callers(symbol.id) {
@@ -137,7 +142,7 @@ fn every_call_site_sits_inside_the_function_it_is_attributed_to() {
 #[test]
 fn callers_and_callees_are_two_views_of_one_edge() {
     let (_root, index) = workspace();
-    let graph = CallGraph::build(index);
+    let graph = call_graph();
     let mut edges = 0;
     for symbol in sampled(index, 23) {
         for (caller, _) in graph.callers(symbol.id) {
@@ -224,8 +229,8 @@ fn impact_covers_every_reference_it_could_rewrite() {
             unreferenced += 1;
             continue;
         }
-        let report =
-            impact::analyse(index, symbol.id, 2).expect("impact on an indexed declaration");
+        let report = impact::analyse_with_graph(index, symbol.id, 2, call_graph())
+            .expect("impact on an indexed declaration");
         reports += 1;
         let covered: HashSet<(PathBuf, usize)> = report
             .items
@@ -298,7 +303,7 @@ fn a_report_that_stops_early_says_how_many_it_left_out() {
         .iter()
         .max_by_key(|s| index.reference_count(s.id))
         .expect("a symbol");
-    let Ok(report) = impact::analyse(index, busiest.id, 2) else {
+    let Ok(report) = impact::analyse_with_graph(index, busiest.id, 2, call_graph()) else {
         return;
     };
     let text = impact::format_report(index, &report);
@@ -387,7 +392,7 @@ fn a_comment_naming_a_symbol_is_reported_by_usages() {
 fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
     // What the playground draws.
     let (_root, index) = workspace();
-    let graph = CallGraph::build(index);
+    let graph = call_graph();
 
     let start = index
         .symbols
@@ -438,7 +443,7 @@ fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
 fn every_symbol_in_a_neighbourhood_can_be_pointed_at() {
     // The browser opens a file at the node's position when a reader clicks it.
     let (_root, index) = workspace();
-    let graph = CallGraph::build(index);
+    let graph = call_graph();
     let start = index
         .symbols
         .iter()
@@ -469,7 +474,7 @@ fn every_symbol_in_a_neighbourhood_can_be_pointed_at() {
 #[test]
 fn a_symbol_nothing_calls_draws_only_itself() {
     let (_root, index) = workspace();
-    let graph = CallGraph::build(index);
+    let graph = call_graph();
     let lonely = index
         .symbols
         .iter()

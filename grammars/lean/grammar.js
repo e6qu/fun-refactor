@@ -11,8 +11,9 @@
 // Centralized precedence levels (higher = binds tighter)
 // Based on Lean 4's actual precedence: https://leanprover.github.io/lean4/doc/operators.html
 const PREC = {
-  // Expression precedences (6 binary levels + unary/app/proj/atom)
-  low: 25,          // $ || ∨ (merged: or + $)
+  // Expression precedences (7 binary levels + unary/app/proj/atom)
+  low: 25,          // arrows and low-precedence application
+  or: 30,
   and: 35,          // &&
   compare: 40,      // == != < > <= >=
   add: 55,          // + - ++ :: × (merged: cons + add + product)
@@ -50,6 +51,7 @@ module.exports = grammar({
     $._binding_start,           // Track a binding value's indentation separately
     $._calc_step_start,         // Close each calculation step before its sibling
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
+    $._calc_body_start,         // Inline steps continue inside the enclosing proof
     $._do_body_start,           // The following `do` opens a statement body
   ],
 
@@ -324,7 +326,7 @@ module.exports = grammar({
 
     attribute_entry: $ => seq(
       field('name', $._name),
-      repeat(field('arg', choice($.identifier, $.escaped_identifier, $.string, $.number))),
+      repeat(field('arg', choice($.identifier, $.escaped_identifier, $.string, $.number, $.named_argument))),
     ),
 
     // def/theorem/lemma/abbrev — name is required, no ambiguity with binders.
@@ -497,6 +499,7 @@ module.exports = grammar({
       alias($._block_application, $.application),
       $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
       $.if, $.if_let, $.match, $.do, $.by, $.show, $.try, $.return, $.as_pattern,
+      prec(-1, alias($.tactic_calc, $.calc)),
     ),
 
     _application_head: $ => choice(
@@ -648,8 +651,9 @@ module.exports = grammar({
       // 6 levels (reduced from 9) to minimize parser states.
       // Merged: or+$ → low, cons+add+product → add.
       const leftAssoc = [
-        [PREC.low, choice('||', '∨', '|||', '<|>', '<$>', '<*>', '*>', '<*')],
-        [PREC.and, choice('&&', '∧', '&&&')],
+        [PREC.or, '||'],
+        [PREC.low, choice('|||', '<|>', '<$>', '<*>', '*>', '<*')],
+        [PREC.and, choice('&&', '&&&')],
         [PREC.compare, choice('==', '!=', '=', '<', '>', '<=', '>=', '≤', '≥', '≠',
                                '∈', '∉', '⊆', '⊂', '∣', '↔')],
         [PREC.add, choice('+', '-', '++', '∪', '∩', '×', '\\')],
@@ -657,8 +661,10 @@ module.exports = grammar({
         [PREC.app + 1, choice('|>', '|>.')],
       ];
 
-      // Right-associative: $, <|, ::, ^, ∘
+      // Propositions group to the right; Bool operators above group to the left.
       const rightAssoc = [
+        [PREC.or, '∨'],
+        [PREC.and, '∧'],
         [PREC.low, choice('$', '▸')],
         [PREC.add, '::'],
         [PREC.mul, choice('^', '∘')],
@@ -711,7 +717,7 @@ module.exports = grammar({
         seq(
           field('binders', repeat1(choice($._pattern, $._bracketed_binder))),
           optional($._type_spec),
-          '=>',
+          choice('=>', '↦'),
           $._layout_start,
           field('body', $._expression),
           optional($._layout_end),
@@ -748,7 +754,10 @@ module.exports = grammar({
     have: $ => prec.right(seq(
       $._binding_start,
       'have',
-      optional(field('name', $.identifier)),
+      optional(seq(
+        field('name', $.identifier),
+        optional(field('parameters', $.parameters)),
+      )),
       optional($._type_spec),
       $._binding_body,
     )),
@@ -788,8 +797,8 @@ module.exports = grammar({
     )),
 
     // ── Tactic primitives ─────────────────────────────────────
-    // Each rule here lives exclusively inside `by` blocks.
-    // None of these appear in `_expression`.
+    // Calculations also occur as terms, including `exact calc ...`.
+    // Prefer the tactic form when both categories are available.
 
     _tactic: $ => choice(
       $.tactic_apply,
@@ -799,6 +808,7 @@ module.exports = grammar({
       $.tactic_by_cases,
       $.tactic_cases,
       $.tactic_rcases,
+      $.tactic_rintro,
       $.tactic_have,
       $.tactic_let,
       $.tactic_show,
@@ -856,6 +866,20 @@ module.exports = grammar({
       field('pattern', $._rcases_pattern),
     )),
 
+    // `rintro` introduces hypotheses through the same destructuring patterns.
+    // A dash discards a hypothesis; it is not a negative expression.
+    tactic_rintro: $ => prec.right(3, seq(
+      'rintro',
+      repeat1(field('pattern', choice($._rcases_pattern, $.rintro_binder))),
+    )),
+
+    rintro_binder: $ => prec.right(2, seq(
+      '(',
+      repeat1(field('pattern', choice($._rcases_pattern, $.rintro_binder))),
+      optional($._type_spec),
+      ')',
+    )),
+
     _rcases_pattern: $ => choice(
       $._rcases_atom,
       $.rcases_tuple_pattern,
@@ -865,7 +889,7 @@ module.exports = grammar({
     _rcases_atom: $ => choice($.identifier, $.hole, '-', 'rfl'),
 
     rcases_tuple_pattern: $ => seq(
-      '⟨', commaSep1($._rcases_atom), '⟩',
+      '⟨', commaSep1($._rcases_pattern), '⟩',
     ),
 
     rcases_alternative_pattern: $ => prec.right(1, choice(
@@ -882,8 +906,12 @@ module.exports = grammar({
     // Configuration list: `[lemma1, ←lemma2, *]`
     // The ← before lemmas is handled by unary_expression.
     tactic_config: $ => prec(1, seq(
-      '[', commaSep(choice($._expression, '*')), ']',
+      '[', commaSep(choice($._expression, '*', $.simp_phase)), ']',
     )),
+
+    // Simplification can run a lemma before descending into its arguments.
+    // This prefix belongs to the tactic list, not ordinary term syntax.
+    simp_phase: $ => seq('↓', field('lemma', $._expression)),
 
     // Focus: `· tactic1; tactic2`
     tactic_focus: $ => prec.right(seq(
@@ -916,8 +944,24 @@ module.exports = grammar({
     // `have h : T := proof` in tactic mode
     tactic_have: $ => prec.right(1, seq(
       $._binding_start,
-      choice('have', 'obtain', 'suffices'),
-      optional(field('name', choice($._pattern, $.rcases_tuple_pattern))),
+      choice(
+        seq(
+          choice('have', 'suffices'),
+          optional(choice(
+            // As in Lean's letIdDecl, a name introduces a declaration with
+            // optional parameters. It is not a constructor-pattern head.
+            seq(
+              field('name', choice($.identifier, $.hole)),
+              optional(field('parameters', $.parameters)),
+            ),
+            field('name', choice($.tuple_pattern, $.rcases_tuple_pattern, $.syntax_quotation)),
+          )),
+        ),
+        seq(
+          'obtain',
+          optional(field('name', choice($._pattern, $.rcases_tuple_pattern, $.rcases_alternative_pattern))),
+        ),
+      ),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
@@ -941,7 +985,7 @@ module.exports = grammar({
     // `calc` block with steps
     tactic_calc: $ => prec.right(seq(
       'calc',
-      $._layout_start,
+      $._calc_body_start,
       repeat1($.calc_step),
       $._layout_end,
     )),

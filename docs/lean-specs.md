@@ -26,6 +26,7 @@ source hashes and builds the owning Lean packages. It also prepares proof work i
 | `fr spec candidates` / `property-task` / `plan` | Discover the conservative generated-kernel subset and emit built-in or agent-authored property plans with content fingerprints and without source text |
 | `fr spec scaffold --from` | Revalidate a plan against current source and generate proof-preserving definitions and theorem regions |
 | `fr spec goals` / `proof-task` / `proof-check` / `prove` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
+| `fr spec proof-state` | Show the theorem, available assumptions and remaining goals at a draft cursor; a closed branch still requires a complete proof check |
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
 | `fr spec evidence` | Report model properties, assumptions, trusted components, model-to-code connections and remaining work |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
@@ -555,6 +556,9 @@ when manually supplying the model boundary. Review the generated source anchor, 
 definition and obligation, then write the proof tactics. Unsupported declarations still require a
 manual model and correspondence statement. Run `fr spec check --strict` afterward.
 Run `fr spec verify` to check correspondence and build the owning package.
+When checking tactics, read each diagnostic's `message` and `draft_location`.
+For example, `exact missingLemma` needs the missing name repaired at the reported draft line and column.
+Its `code`, `lean.unknownIdentifier`, names Lean's error category. Untagged messages have `code: null`.
 Add shared input/output cases when the model mirrors an implementation.
 Generate CI after choosing the current debt ceiling. The workflow pins this `fr`
 release, runs strict correspondence and uses the official

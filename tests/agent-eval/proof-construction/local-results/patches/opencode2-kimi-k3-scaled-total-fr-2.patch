@@ -1,0 +1,14 @@
+diff --git a/specs/FrSpecs/SrcScaledRsScaledTotal.lean b/specs/FrSpecs/SrcScaledRsScaledTotal.lean
+index 5bfc177..3b16810 100644
+--- a/specs/FrSpecs/SrcScaledRsScaledTotal.lean
++++ b/specs/FrSpecs/SrcScaledRsScaledTotal.lean
+@@ -11,8 +11,7 @@ def scaled_totalModel (a : Int) (b : Int) : Int :=
+ -- fr:property agent unproved
+ theorem scaled_totalModel_at_least_input (a : Int) (b : Int) : ((((0 : Int)) ≤ (a)) ∧ (((1 : Int)) ≤ (b))) → ((a) ≤ (scaled_totalModel (a) (b))) := by
+   -- fr:proof-begin scaled_totalModel_at_least_input
+-  -- fr:debt scaled_totalModel_at_least_input
+-  sorry
++  intro h; obtain ⟨h0, h1⟩ := h; show a ≤ a * b; have e : a * 1 ≤ a * b := Int.mul_le_mul_of_nonneg_left h1 h0; rwa [Int.mul_one] at e
+   -- fr:proof-end scaled_totalModel_at_least_input
+ -- fr:generated-end formal-kernel
+ 

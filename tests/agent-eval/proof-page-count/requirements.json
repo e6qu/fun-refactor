@@ -1,0 +1,25 @@
+{
+  "purpose": "Check complete delivery on the unresolved M3 page-count task before another full comparison",
+  "tasks": {
+    "page-count": {
+      "request": "Write proof steps for the fixed Lean page-count theorem. For example, eleven items at five per page need three pages. Read all claim parts: the invalid-input result, valid-input bounds and this example. The theorem starts without a proof. Keep the Rust source, Lean model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof into the marked region. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved."
+    }
+  },
+  "profiles_file": "../proof-writing/profiles.json",
+  "profiles": ["opencode2-glm-flash", "opencode2-kimi-k3"],
+  "repetitions": 2,
+  "setups": ["fr"],
+  "attempts": 4,
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "client_finish_seconds": 10,
+  "decision_if_prediction_met": "Each agent delivered at least one accepted complete result. Prepare the full 36-attempt comparison with Luna and ordinary-tool baselines; M3 remains open.",
+  "decision_if_prediction_fails": "Keep the full comparison paused. Inspect the first unresolved proof or delivery step and any execution failure before selecting another change.",
+  "publication": "Patches and reviewed summaries only; native records, prompts, drafts, snapshots and account data stay local"
+}

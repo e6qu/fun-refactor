@@ -1,6 +1,7 @@
 # Run declared checks
 
-A check is a project command. For a rounding fix, review the rounding check. Its basis links execution to that listing; `<TX>` identifies a saved edit.
+A check runs a project command. `.fr/checks.json` stores settings; save reports elsewhere.
+For a rounding fix, review the rounding check. Its basis identifies that listing; `<TX>` identifies a saved edit.
 
 Review the listing, then run relevant names with its basis:
 ```sh
@@ -12,6 +13,8 @@ fr checks --run unit --basis '<CHECK_BASIS>' --record-for '<TX>' --quiet-success
 
 Read `passed`, `results`, `not_run`, `source_snapshot_stable` and `configuration_stable`. Null means no execution. Quiet success keeps stream byte counts; failures retain bounded diagnostics. `--no-declarations` needs a matching listing.
 
-Source or configuration drift fails. `--record-for` preflights an applied transaction and records results tied to recorded source inputs. Required checks bind configuration and ordered names. Commands run without a file lock. Unrelated checks, coverage labels and syntax acceptance do not establish behavior.
+Changed source or settings fail the check. `--record-for` checks an applied edit and records its source inputs.
+Required checks bind settings and ordered names. Commands run without a file lock.
+Parsing and unrelated checks do not establish the requested behavior.
 
-For compiler diagnostics and identities, read [Compiler](compiler.md).
+[Compiler diagnostics and identities](compiler.md).

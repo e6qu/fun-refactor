@@ -158,6 +158,27 @@ int main(void) {
   assert(scan(scanner, &following_tactic, LAYOUT_END));
   assert(scanner->depth == 0);
 
+  Input calc_proof = input("  calc n = n := rfl");
+  assert(scan(scanner, &calc_proof, LAYOUT_START));
+  Input inline_first = input("       n = n := rfl");
+  assert(scan(scanner, &inline_first, CALC_BODY_START));
+  assert(top_indent(scanner) == 3);
+  assert(scan(scanner, &inline_first, CALC_STEP_START));
+  assert(top_indent(scanner) == 7);
+  Input inline_second = input("\n    _ = n := rfl");
+  assert(scan(scanner, &inline_second, LAYOUT_END));
+  assert(top_indent(scanner) == 3);
+  assert(!scan(scanner, &inline_second, LAYOUT_END));
+  assert(scan(scanner, &inline_second, CALC_STEP_START));
+  assert(top_indent(scanner) == 4);
+  Input after_inline = input("\n  exact h");
+  assert(scan(scanner, &after_inline, LAYOUT_END));
+  assert(scan(scanner, &after_inline, LAYOUT_END));
+  assert(top_indent(scanner) == 2);
+  assert(scan(scanner, &after_inline, LAYOUT_SEMICOLON));
+  assert(scan(scanner, &done, LAYOUT_END));
+  assert(scanner->depth == 0);
+
   Input have = input("have h := by rfl");
   assert(scan(scanner, &have, BINDING_START));
   char state[1024];

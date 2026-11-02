@@ -522,10 +522,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
-      - name: Verify the current records selected for study audits
+      - name: Select current audit records and evidence linked by the guides
         run: |
           python3 -B - <<'PY'
-          import hashlib, json, subprocess
+          import hashlib, json, runpy, subprocess
           from pathlib import Path
           catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
           scalar = json.loads(Path('tests/agent-eval/current-scalar-reports.json').read_text())
@@ -533,8 +533,10 @@ jobs:
           paths += [Path(row['path']) for row in scalar['reports'].values()]
           for path in paths:
               assert path.resolve().is_relative_to(Path.cwd())
-          patterns = ''.join('/' + path.as_posix() + '/\n' for path in sorted({p.parent for p in paths}))
-          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'], input=patterns,
+          docs = runpy.run_path('tools/review-docs.py')
+          patterns = {'/' + path.as_posix() + '/' for path in {p.parent for p in paths}}
+          patterns.update('/' + path.as_posix() for path in docs['evidence_links'](docs['guides']()))
+          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'], input=''.join(p + '\n' for p in sorted(patterns)),
                          text=True, check=True, timeout=60)
           for entry in catalog['evidence']:
               assert hashlib.sha256(Path(entry['path']).read_bytes()).hexdigest() == entry['sha256']
@@ -586,10 +588,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout-cone-mode: false
+          persist-credentials: false
           sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            .github/actions/grading-registry
+            tools
+            tests/agent-eval/opencode
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
@@ -692,6 +695,8 @@ jobs:
           - {kind: native, index: 3}
           - {kind: native, index: 4}
           - {kind: native, index: 5}
+          - {kind: native, index: 6}
+          - {kind: native, index: 7}
           - {kind: sdk, index: 0}
           - {kind: sdk, index: 1}
           - {kind: sdk, index: 2}

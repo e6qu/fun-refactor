@@ -1,5 +1,14 @@
 import Std
 
+theorem conjunctionGrouping (p q r : Prop) : p ∧ q ∧ r → p := by
+  intro h
+  exact h.1
+
+theorem disjunctionGrouping (p q r : Prop) : p ∨ q ∨ r → r ∨ q ∨ p := by
+  intro h
+  exact h.elim (fun hp => Or.inr (Or.inr hp))
+    (fun hqr => hqr.elim (fun hq => Or.inr (Or.inl hq)) (fun hr => Or.inl hr))
+
 theorem simplify_hypothesis (n : Nat) (h : n + 0 = 0) : n = 0 := by
   simp only [Nat.add_zero] at h
   exact h
@@ -248,6 +257,26 @@ theorem calcNegative (a : Int) : -a = -a := by
 
 theorem afterCalc : True := by trivial
 
+theorem calcFirstSameLine (n : Int) : n = n := by
+  calc n = n := rfl
+    _ = n := rfl
+
+theorem calcExact (n : Int) : n = n := by
+  exact calc n = n := rfl
+    _ = n := rfl
+
+theorem calcTerm (n : Int) : n = n :=
+  calc n = n := rfl
+    _ = n := rfl
+
+theorem calcNestedSameLine (n : Int) : n = n := by
+  have h : n = n := by
+    calc n = n := rfl
+      _ = n := rfl
+  exact h
+
+theorem afterInlineCalc : True := by trivial
+
 theorem typedProof (n : Int) (h : 0 ≤ n) : 0 ≤ n := by
   exact (by exact h : 0 ≤ n)
 
@@ -293,3 +322,59 @@ instance carrierCoercion : CoeSort Carrier Type where
 def typeCoercion (c : Carrier) : Type := ↥c
 
 def afterLibrarySyntax : Nat := 1
+
+def unicodeLambda : Nat → Nat := fun n ↦ n
+
+theorem obtainBranches (p q : Prop) (h : p ∨ q) : q ∨ p := by
+  obtain hp | hq := h
+  · exact Or.inr hp
+  · exact Or.inl hq
+
+theorem obtainTupleBranch (p q r : Prop) (h : (p ∧ q) ∨ r) : r ∨ (q ∧ p) := by
+  obtain ⟨hp, hq⟩ | hr := h
+  · exact Or.inr ⟨hq, hp⟩
+  · exact Or.inl hr
+
+def afterBranchSyntax : Nat := 2
+
+def libraryReplacement : Nat := 1
+
+@[deprecated libraryReplacement (since := "2025-09-01")]
+def libraryAlias := libraryReplacement
+
+def afterAttributeSyntax : Nat := 3
+
+theorem introduceAndDiscard (a b c d : Prop) : (a ∧ b ∧ c ∧ d) → a := by
+  rintro ⟨ha, -, -, -⟩
+  exact ha
+
+theorem introduceTyped : ∀ n : Nat, n = n := by
+  rintro (n : Nat)
+  rfl
+
+theorem introduceAlternatives (a b : Prop) : (a ∨ b) → (b ∨ a) := by
+  rintro (ha | hb)
+  · exact Or.inr ha
+  · exact Or.inl hb
+
+theorem simplifyBeforeArguments : (if True then (1 : Nat) else 0) = 1 := by
+  simp only [↓reduceIte]
+
+def afterIntroductionSyntax : Nat := 4
+
+theorem localLemmaParameters : (0 : Int) ≤ 2 * 3 := by
+  have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+    exact Int.mul_nonneg ha hb
+  exact nonnegative 2 3 (by decide) (by decide)
+
+theorem anonymousLemmaParameters (value : Bool) : value = value := by
+  have _ (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+    exact Int.mul_nonneg ha hb
+  rfl
+
+def termLemmaParameters : (0 : Int) ≤ 2 * 3 :=
+  have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+    exact Int.mul_nonneg ha hb
+  nonnegative 2 3 (by decide) (by decide)
+
+def afterLocalLemmaParameters : Nat := 5

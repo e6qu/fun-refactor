@@ -7,52 +7,86 @@ The three jobs are refactoring, targeted code changes and Lean proof writing.
 [BUGS.md](../BUGS.md) owns actionable defects.
 The [retained-results report](roadmap-status.md) audits earlier claims; its A–D counts are not completion counts for the new roadmap.
 
-## M1 results and the next change
+## Current milestone
 
-Use the [three selected profiles](../PLAN.md#target-agents): Codex with Luna Fast, and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
-The [M1 report](../tests/agent-eval/selected-agents/local-results/README.md) retains all thirty-six local CLI attempts.
-Read the successful outcomes, timeouts and measured overhead before changing the next task route.
-The [client and task guide](../tests/agent-eval/selected-agents/README.md) explains the pinned versions and scripted controls.
-Those controls use supplied answers; they stay separate from the agents' actual patches.
-The requests were:
+Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
+M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-- Rename Boltons' `clamp` to `clamp_value` through its declared consumers; preserve the result of limiting 70 to 0 through 50.
-- Repair the recorded Unicode Dice comparison and pass its independent regression set.
-- Have the agent write a Lean proof of the Rust access model's exact `staff || owner` rule.
+The current addition in draft PR #591 is interactive proof authoring. `spec proof-state`
+reads Lean's actual goals at a draft cursor, including available assumptions and the original
+claim. It cannot issue a proof receipt; `closed-at-position` can describe only one solved branch.
+The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edit/check loop.
+[Real Lean branch tests](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004157),
+[deadline controls and packaged skill examples](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004148) pass.
+[Full proof preparation](https://github.com/e6qu/fun-refactor/actions/runs/41348391677) and
+[the next diagnostic’s controls](https://github.com/e6qu/fun-refactor/actions/runs/41353218026) also pass,
+using the same checked executable. No new agent attempts have started.
+Keep full PR CI and current-report checks mandatory. These checks establish tool behavior; they add no agent successes.
 
-The user chose the installed native CLIs with their existing accounts. Credentials and full run records stay local.
-Only submitted patches and summaries are public. GitHub independently checks each patch in an isolated container.
-Every timed-out slot remains failed and was not retried. The interrupted-session recording fix continued only unstarted slots
-under a second immutable packet; the public summary keeps both packet hashes and each original record hash.
-There is no shared enforceable token/request cap, and actual billing is unknown.
+**The full comparison remains paused. Three small diagnostics are closed; the next is being qualified.**
+Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
+Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
+Keep the diagnostic's original source, checker and input identities. Do not rerun its closed slots.
+Native and hosted regression checks can continue.
 
-M2's [latest comparison](../tests/agent-eval/project-edits/local-results/README.md) has 43 accepted attempts and five retained timeouts.
-All 48 patches passed independent checks. Every agent has an accepted result per task using a contributing fr step.
-The implementation, runnable examples, private controls and all four complete comparisons belong in one M2 PR.
-The M2 PR passed its full CI gate and was merged.
+The latest complete M3 comparison has 28 accepted patches and eight page-count timeouts.
+Both GLM and Kimi still lack accepted page-count proofs.
+Each finished four of six fr-available attempts in the first and latest complete comparisons.
+The [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) distinguishes changed tool use from unchanged total success.
 
-The [task guide](../tests/agent-eval/project-edits/README.md) links all 192 M2 attempts and explains the fixes.
-The supplied regex command now checks actual text, byte counts, allocations and append behavior with an explicitly unoptimized build.
-Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
-Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
+The evaluator now rejects stopped successes, successes beyond their recorded deadline and invalid timing values.
+Its [audit](../tests/agent-eval/proof-writing/report-audit.json) retains hashes and expected statistics for twelve complete reports and 480 attempts.
+Focused regression checks preserve all those statistics. Original reports and verdicts stay unchanged.
 
-PR #587 merged the M3 implementation before its full CI gate finished.
-Complete its remaining checks, repairs and new comparison on `milestone/finish-agent-proofs`.
-The [task guide](../tests/agent-eval/proof-writing/README.md)
-lists the access-rule lesson, eight language examples, two numeric tasks and exact validation steps.
-Early-return guards, truncating integer division, dependency-sensitive proof receipts and preservation
-of handwritten theorems are implemented on that branch. The latter fixes a defect found by the new controls.
-All ten source/proof controls, six native exchanges and eighteen isolated patch controls passed before the first complete comparison.
-Two interrupted packets preserve [seven initial attempts](../tests/agent-eval/proof-writing/interrupted-results/README.md)
-and [seven after the parser repairs](../tests/agent-eval/proof-writing/proof-guide-interrupted-results/README.md).
-The [first complete comparison](../tests/agent-eval/proof-writing/first-results/README.md) independently accepted 26 of 36 attempts.
-Eight page-count attempts timed out; two Luna fr attempts delivered rejected or empty page proofs.
-The three agents still need accepted fr page-count proofs. Keep all fifty earlier outcomes.
-The rebuilt implementation passes the inline-proof API and generated-model checks.
-Finish qualifying the direct proof instructions and library lookup example before a complete new comparison.
-Use the same model selections and limits. Each attempt now gives fr its own cache under `.fr/cache`.
-Keep its implementation, examples, real attempts and results in one milestone PR.
-Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
+The [eight-attempt diagnostic](../tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) compared a small division repair with and without the initial error report.
+Independent grading accepted all eight submitted proofs. Six complete attempts passed.
+GLM timed out after a passing proof and package check; Kimi overwrote `.fr/checks.json` with a proof-check report.
+Both remain failed. The decision rules give no demonstrated benefit from supplying the report.
+
+Its shorter prompt omitted the shared execution instructions. The runner now adds those instructions to the diagnostic too.
+A regression rejects the measured prompt and passes the correction. The skill distinguishes check settings from reports and explains proof writes' `applied` field.
+The [four construction attempts](../tests/agent-eval/proof-construction/README.md#what-the-first-run-established) used these changes after hosted qualification passed.
+Independent grading accepted three patches; Kimi timed out once without a patch. All four kept the check settings unchanged.
+Both Kimi attempts hit a reader defect: Lean accepts inline calculation steps that measured fr rejects before Lean runs.
+All 29 hosted preparation checks passed in run 41214408630. The exact rebuilt-command replay also passed without model calls.
+It accepts the earlier valid calculation and lets Lean reject the timed-out draft's unknown names.
+That replay exposed a second defect: tagged unknown-name errors lost their structured draft locations.
+Its repair passed all 29 hosted preparation checks and Python-record checks.
+An [exact replay](../tests/agent-eval/proof-construction/diagnostic-control-summary.json) now keeps the error code, message and submitted line and column.
+Keep all four original outcomes unchanged.
+
+The [four page-count attempts](../tests/agent-eval/proof-page-count/README.md) all timed out without patches; independent grading confirms all four failures.
+They exposed another reader defect in nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
+The repair passed all 29 hosted preparation checks.
+The [rebuilt-reader replay](../tests/agent-eval/proof-page-count/reader-control-summary.json) reaches Lean and still rejects the original draft.
+The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates redundant introductions, wrong assumption grouping and missing division facts.
+Its final manual control proves the unchanged claim. It is neither an agent success nor a timing comparison.
+Before another paid diagnostic, freeze a prediction about finding and using those facts; keep the completed proof out of the agent inputs.
+The [division-fact protocol](../tests/agent-eval/proof-division-facts/README.md) compares selecting declarations with receiving their exact types.
+It has eight balanced slots, unchanged 150-second limits and protected handouts.
+No slots have started. Hosted qualification must pass before inputs are frozen or clients run.
+
+The requested [team workflow](team-solve.md) uses fresh local Luna, GLM and Kimi sessions with explicit file handoffs.
+The [Python pilot](../tests/agent-eval/team-solve/README.md) passed eight cases in 249.9 seconds across five CLI sessions.
+It has no solo baseline, and no role invoked fr. The actual number of provider requests is unknown.
+The runner now supports a single session, an all-Luna team and the mixed team with explicit complete-run budgets.
+Nineteen workflow controls passed the hosted documentation gate.
+Complete hosted CI remains required before readiness.
+No paid comparison of those conditions has run. Team results cannot close the M3 solo requirements.
+
+Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
+Hosted M3 checks passed; a clean proof remains checkable while another theorem is unfinished.
+The current skill and restored shared instructions passed M1, M2 and documentation qualification before the four construction attempts.
+Dependency controls needed a repair because they unfolded the model twice and triggered the new unused-argument warning check.
+Focused checks now accept the clean reference and reject the changed dependency. Keep the strict warning rule.
+The known-file fr lookup also passes locally by indexing exactly one file; its CI deadline remains three minutes.
+
+All 335 M3 outcomes remain in the [complete and interrupted archives](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
+The eight repair, four construction and four page-count attempts are separate; they cannot replace a full-study failure.
+Retain original input identities, failures, sleep limitations and record hashes.
+Only submitted patches and summaries may leave the workstation.
+Keep logs, drafts, source archives, session exports and account data local.
+Old diagnostic copies and executables may have verified compressed copies; preserve their private integrity records when restoring them.
 
 ## Keep the other milestones concrete
 
@@ -104,6 +138,9 @@ The previous CodeGraph comparison, broad repeated-task study and stopped studies
    Confirm that this preserves earlier acceptance conditions while linking current work to PLAN.md.
 5. Run the full static gate and changed runnable lessons before the final PR gate.
 6. Check the full PR commit. Fix failures and timeout causes without raising limits or dropping coverage.
+
+Start report publishers after code qualification passes. Run them one at a time and keep the branch free of other pushes until publication finishes.
+A failed fast-forward push preserves the checked artifact; integrate the source change before publishing those same measurements again.
 
 Builds, full tests and large collections run on GitHub.
 Follow the [workstation rules](development.md#working-on-a-shared-desktop); do not bypass a guard refusal.

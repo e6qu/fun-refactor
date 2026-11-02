@@ -91,6 +91,14 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     let before_show = std::fs::read(&model).unwrap();
     for tactics in [
         "refine ?_\nrfl\n",
+        "have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by\n  exact?\nrfl\n",
+        include_str!("fixtures/lean-local-lemma-bound.tactics"),
+        include_str!("fixtures/lean-anonymous-lemma.tactics"),
+        include_str!("fixtures/lean-discard-proof.tactics"),
+        include_str!("fixtures/lean-nested-obtain.tactics"),
+        include_str!("fixtures/lean-nested-rcases.tactics"),
+        include_str!("fixtures/lean-nested-rintro.tactics"),
+        "have h : (if True then keepModel x else !x) = x := by\n  simp only [↓reduceIte]\n  rfl\nexact h\n",
         "have h : keepModel x = x ∧ keepModel x = x := by\n  refine ⟨?_, ?_⟩\n  · rfl\n  · rfl\nexact h.1\n",
         "exact (show keepModel x = x by rfl)\n",
         "exact (show keepModel x = x from rfl)\n",
@@ -98,6 +106,9 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "  have h : keepModel x = x := by rfl\n  exact h\n",
         "\n  \n    have h : keepModel x = x := by\n      rfl\n    exact h\n  \n\n",
         "let q := x\nhave : q = x := by rfl\ncalc\n  keepModel x = q := by rfl\n  _ = x := this\n",
+        "calc keepModel x = x := rfl\n  _ = x := rfl\n",
+        "exact calc keepModel x = x := rfl\n  _ = x := rfl\n",
+        "have h : keepModel x = x := by\n  calc keepModel x = x := rfl\n    _ = x := rfl\nexact h\n",
     ] {
         let proof = workspace.path().join("proof.lean");
         std::fs::write(&proof, tactics).unwrap();
@@ -111,11 +122,101 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         assert_eq!(std::fs::read(&model).unwrap(), before_show);
     }
     let proof = workspace.path().join("proof.lean");
+    std::fs::write(&proof, "simp only [keepModel, Bool.not_not]\n").unwrap();
+    let warned = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(
+        !warned.passed,
+        "unused simp arguments must fail before saving"
+    );
+    assert!(warned.receipt.is_none());
+    let warning = warned
+        .diagnostics
+        .iter()
+        .find(|item| item.message.contains("simp argument is unused"))
+        .unwrap();
+    assert_eq!(warning.severity, "warning");
+    let location = warning.draft_location.as_ref().unwrap();
+    assert_eq!(location.line, 1);
+    assert!(location
+        .source_excerpt
+        .as_ref()
+        .unwrap()
+        .contains("Bool.not_not"));
+    assert!(fun_refactor::spec::prove(workspace.path(), target, &proof).is_err());
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
+
+    let with_other_debt = format!(
+        "{}\nexample : True := by sorry\n",
+        std::str::from_utf8(&before_show).unwrap()
+    );
+    std::fs::write(&model, &with_other_debt).unwrap();
+    std::fs::write(&proof, "rfl\n").unwrap();
+    let clean = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(clean.passed, "{}", serde_json::to_string(&clean).unwrap());
+    assert!(clean.diagnostics.is_empty());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), with_other_debt);
+    std::fs::write(&model, &before_show).unwrap();
+
     std::fs::write(&proof, "refine ?_\n").unwrap();
     let unfinished =
         fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
     assert!(!unfinished.passed);
     assert!(!unfinished.diagnostics.is_empty());
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    std::fs::write(
+        &proof,
+        "\n\n  have h : True := by trivial\n  unknown_step\n",
+    )
+    .unwrap();
+    let unknown = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(!unknown.passed);
+    let diagnostic = unknown
+        .diagnostics
+        .iter()
+        .find(|item| item.message == "unknown tactic")
+        .unwrap();
+    let location = diagnostic.draft_location.as_ref().unwrap();
+    assert_eq!(location.path, proof);
+    assert_eq!((location.line, location.column), (4, 4));
+    assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
+    assert!(diagnostic.checked_location.as_ref().unwrap().line > location.line);
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    std::fs::write(&proof, "\n\n  exact missingLemma\n").unwrap();
+    let named = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        named.status.success(),
+        "{}",
+        String::from_utf8_lossy(&named.stderr)
+    );
+    let named: serde_json::Value = serde_json::from_slice(&named.stdout).unwrap();
+    assert_eq!(named["passed"], false);
+    assert!(named["receipt"].is_null());
+    let diagnostic = named["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["code"] == "lean.unknownIdentifier")
+        .unwrap();
+    assert!(diagnostic["message"]
+        .as_str()
+        .unwrap()
+        .contains("missingLemma"));
+    assert_eq!(diagnostic["draft_location"]["line"], 3);
+    assert_eq!(diagnostic["draft_location"]["column"], 9);
+    assert_eq!(
+        diagnostic["draft_location"]["source_excerpt"],
+        "  exact missingLemma"
+    );
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
     std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
     let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
@@ -132,6 +233,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "{syntax_error}"
     );
     assert!(syntax_error.ends_with("; no files changed."));
+    assert!(syntax_error.contains(&format!("{}:1:", proof.display())));
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
     let manually_edited = std::str::from_utf8(&before_show).unwrap().replace(
         "  -- fr:debt keepModel_identity\n  sorry\n",
@@ -574,10 +676,18 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let proof_task: serde_json::Value = serde_json::from_slice(&proof_task.stdout).unwrap();
     assert_eq!(proof_task["schema"], "fr-proof-task-1");
     assert_eq!(proof_task["contract"]["author"], "agent");
-    assert!(proof_task["templates"][0]["lines"][0]
-        .as_str()
-        .unwrap()
-        .contains("agent-written"));
+    assert_eq!(
+        proof_task["claim"]["parameters"],
+        serde_json::json!(["(x : Bool)"])
+    );
+    assert_eq!(
+        proof_task["claim"]["parts"][0]["assumptions"],
+        serde_json::json!([])
+    );
+    assert_eq!(
+        proof_task["claim"]["parts"][0]["conclusions"],
+        serde_json::json!(["keepModel x = x"])
+    );
     assert!(!proof_task.to_string().contains("rfl"));
     let source_path = workspace.path().join("src/lib.rs");
     let current_source = std::fs::read_to_string(&source_path).unwrap();

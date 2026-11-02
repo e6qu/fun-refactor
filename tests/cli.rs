@@ -96,7 +96,6 @@ fn cache_uses_a_reported_runtime_fallback_when_the_default_is_unwritable() {
 
 #[test]
 fn a_path_filter_actually_narrows_the_report() {
-    // The regression this file exists for.
     let ws = workspace();
 
     let (all, ok) = ws.run(&["duplicates", "--language", "go", "--min-tokens", "40"]);

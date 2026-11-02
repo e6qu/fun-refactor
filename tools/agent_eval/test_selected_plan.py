@@ -88,6 +88,26 @@ class SelectedPlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'explicitly'):
             plan.prepare(self.root, 'latest')
 
+    def test_m3_uses_its_explicit_low_variants_and_keeps_the_same_limits(self):
+        directory = plan.CASE_DIRECTORIES['M3']
+        shutil.copytree(plan.ROOT / directory, self.root / directory)
+        frozen = plan.prepare(self.root, 'M3')
+        self.assertEqual(len(frozen['attempts']), 36)
+        self.assertEqual(frozen['requirements']['limits']['wall_seconds'], 150)
+        self.assertIn(str(directory / 'profiles.json'), frozen['bindings'])
+        self.assertEqual(frozen['profiles']['codex-luna-fast']['reasoning_effort'], 'high')
+        for name in ('opencode2-glm-flash', 'opencode2-kimi-k3'):
+            self.assertEqual(frozen['profiles'][name]['model']['variant'], 'low')
+            self.assertEqual(plan.prepare(self.root, 'M1')['profiles'][name]['model']['variant'], 'high')
+        path = self.root / directory / 'profiles.json'
+        original = json.loads(path.read_text())
+        for variant in ('high', 'medium', 'max'):
+            changed = copy.deepcopy(original)
+            changed['opencode2-glm-flash']['model']['variant'] = variant
+            path.write_text(json.dumps(changed))
+            with self.subTest(variant=variant), self.assertRaisesRegex(ValueError, 'reasoning'):
+                plan.verify(frozen, self.root, 'M3')
+
 
 if __name__ == '__main__':
     unittest.main()

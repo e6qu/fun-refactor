@@ -1,0 +1,39 @@
+{
+  "purpose": "Check construction and complete delivery on one fresh development example; no causal improvement or full M3 claim",
+  "task": "scaled-total",
+  "tasks": {
+    "scaled-total": {
+      "request": "Write proof steps for the one fixed Lean theorem in the supplied project. The theorem starts without a proof. Keep the source, model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and write the accepted proof into the marked region. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the declared mathematical model, not the Rust program's overflow behavior or its connection to the model."
+    }
+  },
+  "source": "fixtures/scaled.rs",
+  "project_source": "src/scaled.rs",
+  "symbol": "scaled_total",
+  "property_name": "at_least_input",
+  "proof_package": "specs",
+  "tactics_file": ".fr/proof-tactics",
+  "model_claim": "a <= scaled_total(a,b) under 0 <= a and 1 <= b, using Lean Int arithmetic",
+  "source_claim": "Signed-64 overflow and source-to-model equivalence remain unproved",
+  "starting_proof": "empty",
+  "initial_error_report": false,
+  "profiles_file": "../proof-writing/profiles.json",
+  "profiles": ["opencode2-glm-flash", "opencode2-kimi-k3"],
+  "client_release": "OpenCode2 2.0.32",
+  "repetitions": 2,
+  "setups": ["fr"],
+  "attempts": 4,
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "client_finish_seconds": 10,
+  "required_observations": ["first passing proof check", "passing supplied package check", "submitted patch", "completed session", "preserved checking inputs"],
+  "success": "Independent patch acceptance, observed fr proof checking and writing, a passing supplied package check, unchanged protected inputs and completed delivery within 150 seconds",
+  "decision_if_all_four_pass": "Inspect the first unresolved page-count construction step; this small case does not close M3",
+  "decision_if_any_fail": "Keep every outcome and inspect the first unresolved failure before another instruction change or paid batch",
+  "publication": "Submitted patches and summaries only; native records, prompts and execution packets stay local"
+}

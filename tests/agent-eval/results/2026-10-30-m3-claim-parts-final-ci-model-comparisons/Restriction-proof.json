@@ -1,0 +1,38 @@
+{
+  "schema": "fr-proof-attempt-1",
+  "goal_id": "23d7bdf1345a984f0ed5829061b7b6eca3afe84ed1e57ac61f97cd866383bdbb",
+  "proof_digest": "9d43222b6ebc2c5e085b5ad4838e0445573dd0650a9bef102eeb8437da60a41a",
+  "checker": "leanprover/lean4:v4.28.0",
+  "checker_context_digest": "fdf29c89d62ecb2dede878cad13724462d74f56745dfbbef408edc9a3b5ad72f",
+  "passed": true,
+  "diagnostics": [],
+  "diagnostics_omitted": 0,
+  "receipt": "7fac44288f157c14f16d5642bdeee63a00d0cba8f62d486ee8c252339fafc65e",
+  "actions": {
+    "revise": [
+      "spec",
+      "proof-check",
+      "specs/FrSpecs/Restriction.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-41032840390-1/refinement-evidence/2026-10-30-m3-claim-parts-final-model-comparisons/tactics.txt"
+    ],
+    "apply": [
+      "spec",
+      "prove",
+      "specs/FrSpecs/Restriction.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-41032840390-1/refinement-evidence/2026-10-30-m3-claim-parts-final-model-comparisons/tactics.txt",
+      "--write"
+    ],
+    "verify": [
+      "spec",
+      "verify",
+      "/tmp/fr-refinement-eval-m56vy0pw/native/specs/FrSpecs/Restriction.lean"
+    ]
+  },
+  "token_budget": {
+    "limit": 4096,
+    "used_upper_bound": 1300,
+    "measurement": "serialized_utf8_bytes"
+  }
+}

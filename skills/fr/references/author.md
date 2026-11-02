@@ -1,7 +1,7 @@
 # Prepare one complete change
 
-A function body holds its executable statements.
-A parameter is an input in its declaration; an argument is a value supplied by a caller.
+A body holds executable statements.
+A parameter declares an input; an argument supplies its value at a call.
 Use `project find NAME --in FILE --source` to select a declaration.
 Read each `rows` entry using the matching `columns` names.
 For insertion, the query's `root` selects the file.
@@ -23,8 +23,7 @@ Parameter removal updates declared direct callers. The discarded argument must b
 Retained expressions keep their evaluation order. Refuse removal of an argument with effects, such as `record()`.
 External consumers remain unknown; read warnings and review every affected file.
 
-For example, replace `increment`'s body with `{ value + 1 }` and add this helper.
-Save the body as `.fr/body` and the helper below as `.fr/helper`:
+Replace `increment`'s body with `{ value + 1 }` in `.fr/body`. Save this helper in `.fr/helper`:
 ```rust
 /// Calls increment twice.
 pub fn increment_twice(value: u32) -> u32 { increment(increment(value)) }

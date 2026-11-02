@@ -35,6 +35,7 @@ ROUTES = {
     "semantic-intent": ["SKILL.md", "references/semantic-intent.md", "references/author.md"],
     "task": ["SKILL.md", "references/task.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
+    "lean-arithmetic": ["SKILL.md", "references/lean.md", "references/lean-arithmetic.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
     "verified-workflow": ["SKILL.md", "references/workflow.md"],
 }
@@ -135,11 +136,14 @@ def source_workflow(exercise, root):
     query_manifest.write_text(blocks(reference / "batch.md", "json")[0])
     exercise.values["<PROJECT_QUERIES>"] = str(query_manifest)
 
+    exercise.values["<KNOWN_FILE>"] = str(root / "app.py")
     for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
             if "spec" in command:
                 continue
             value = exercise.example(root, path, command)
+            if "<KNOWN_FILE>" in command:
+                assert value["coverage"]["indexed_files"] == 1
             if value.get("query") == "explore" and value.get("mode") == "names":
                 selected, = [row for row in value["rows"] if row["name"] == "greet"]
                 exercise.values["<HANDLE>"] = selected["handle"]
@@ -529,6 +533,13 @@ def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
     (root / ".fr").mkdir()
+    example = root / "arithmetic-example.lean"
+    for source in blocks(SKILL / "references/lean-arithmetic.md", "lean"):
+        example.write_text(source)
+        checked = subprocess.run(["lean", "-j", "1", str(example)], cwd=root,
+                                 capture_output=True, text=True, timeout=30)
+        assert checked.returncode == 0, checked.stdout + checked.stderr
+    example.unlink()
     source = root / "src/lib.rs"
     source.write_text("pub fn allowed(value: bool) -> bool { value }\n")
     exercise.run(root, ["spec", "init", "specs", "--write"])
@@ -555,13 +566,33 @@ def lean_workflow(exercise, root):
                       if "spec" in command]
     proof_examples += [(path, command) for command in commands(path)]
     for example_path, command in proof_examples:
-        value = exercise.example(root, example_path, command)
+        if "proof-state" in command:
+            tactics = root / ".fr/proof-tactics"
+            tactics.write_text("skip\n")
+            state = exercise.example(root, example_path, command)
+            assert state["status"] == "goals" and state["acceptance"] == "not-checked"
+            assert len(state["goals"]) == 1 and "⊢" in state["goals"][0]
+            assert "value : Bool" in state["goals"][0]
+            assert state["draft_location"]["line"] == 1 and state["draft_location"]["column"] == 5
+            assert model.read_bytes() == original
+            tactics.write_text("rfl\n")
+            value = state
+        else:
+            value = exercise.example(root, example_path, command)
         if "goals" in command:
             goal, = value["catalog"]
             assert goal["target"] == exercise.values["<LEAN_TARGET>"]
+        if "proof-task" in command:
+            assert value["claim"]["parameters"] == ["(value : Bool)"]
+            part, = value["claim"]["parts"]
+            assert part["assumptions"] == [] and len(part["conclusions"]) == 1
+            assert "allowedModel" in part["conclusions"][0] and "value" in part["conclusions"][0]
+            assert value["token_budget"]["used_upper_bound"] <= 4096
         if "<LIBRARY_QUERY>" in command:
-            assert value["rows"] and value["page"]["returned"] <= 12
-            assert value["source_budget"]["returned_bytes"] <= 1536
+            assert value["rows"] and value["page"]["returned"] <= 4
+            assert "source" not in value["columns"]
+            signature = value["columns"].index("signature")
+            assert all(row[signature]["basis"] == "syntax-header" for row in value["rows"])
             assert "coverage" in value and "omitted" in value
         if "proof-check" in command:
             assert value["passed"] and model.read_bytes() == original

@@ -1,0 +1,3 @@
+have _ (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+  exact Int.mul_nonneg ha hb
+rfl

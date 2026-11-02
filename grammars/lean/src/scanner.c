@@ -41,6 +41,7 @@ enum TokenType {
   BINDING_START,
   CALC_STEP_START,
   TACTIC_LABEL_COLON,
+  CALC_BODY_START,
   DO_BODY_START,
 };
 
@@ -312,6 +313,20 @@ bool tree_sitter_lean_external_scanner_scan(
   if (valid_symbols[LAYOUT_START]) {
     push_layout_indent(s, lexer);
     lexer->result_symbol = LAYOUT_START;
+    return true;
+  }
+
+  if (valid_symbols[CALC_BODY_START]) {
+    skip_spaces(lexer);
+    if (is_nl(lexer->lookahead)) {
+      push_layout_indent(s, lexer);
+    } else {
+      // `calc a = b := h` may continue on the next line to the left of
+      // `a`, while still inside the surrounding proof's indentation.
+      push(s, top_indent(s) + 1, false);
+      s->queued_indent = NO_QUEUED;
+    }
+    lexer->result_symbol = CALC_BODY_START;
     return true;
   }
 
