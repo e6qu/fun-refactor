@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "live_model_calls": 0,
+  "source_commit": "bc0be64a2f94ec9dd2a55ae0c93af1601301af05",
+  "run": "41431252796",
+  "fr_sha256": "ffd73ec662e4cb8776d35b469725f1c1ad2539de2e38d6e8ecae68485726c421",
+  "canonical_patches": 8,
+  "misplaced_diagnostics": 1,
+  "original_outcomes_changed": false,
+  "checks": [
+    {
+      "id": "opencode2-kimi-k3-euclid-supplied-declarations-1",
+      "study": "M3-algorithm-facts",
+      "patch_sha256": "d1e9d27e0938687c84c8c9ba749462069c0b17460c4f5ca40d5eef2b792131cc",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "codex-luna-fast-euclid-checklist-1",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "feda4fef9dc556bb993b62c9c507b640951e756fdc71ae4d359d21f434a1718b",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "codex-luna-fast-euclid-graph-1",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "fa9bdd8e02e3aca497cb46428855f1c87e6269d1edf825175f94ac1d643d78f5",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-checklist-1",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "e32c610cd868a75e9ab661c511408d40e9ebe36ec1003178c454c78f3a34b4eb",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-graph-1",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "8421b25042521e30fcf144cc9f6b6e9def5ac6f8b0ee0740306c7afb70ff18ad",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "codex-luna-fast-euclid-graph-2",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "5c1af47abb7350175a6e87b62c6cd086d2e9752cb0f6ccc3af9957f7073ff687",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "codex-luna-fast-euclid-checklist-2",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "6794e82eb0a8677ede9ee80609d1385effd8dd6d84d878f8746e39f4ce9fbab3",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-graph-2",
+      "study": "M3-algorithm-presentation",
+      "patch_sha256": "a5c9c7b9e3accbb004ed89dc8de3e799f23f6e14a8b0b860b56bddc4cbc10a44",
+      "passed": true,
+      "stage": "complete"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-checklist-2",
+      "study": "misplaced diagnostic only",
+      "patch_sha256": "f1bb6a9ea9c3dcf93b40bf1d59a70fb838da611aa4a156ea71ef01369cd03b1b",
+      "passed": true,
+      "stage": "complete"
+    }
+  ],
+  "scope": "Current checker replay only. The misplaced diff remains a failed original delivery; no new model success or timing result."
+}

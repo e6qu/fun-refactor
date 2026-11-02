@@ -81,7 +81,7 @@ def collect(revisions, output):
             assert len(binaries) == 1
             facts_path = output / (label + '.json')
             env = dict(os.environ, FR_READER_ROOT=str(corpus), FR_READER_OUTPUT=str(facts_path))
-            subprocess.run([binaries[0], 'record_lean_reader_facts', '--exact', '--ignored', '--test-threads=1'],
+            subprocess.run([binaries[0], 'record_lean_reader_facts', '--exact', '--ignored', '--test-threads=1', '--nocapture'],
                            cwd=checkout, env=env, check=True, timeout=240)
             facts[label] = json.loads(facts_path.read_text())
             subprocess.run(['git', 'worktree', 'remove', '--force', str(checkout)], cwd=ROOT, check=True, timeout=30)
