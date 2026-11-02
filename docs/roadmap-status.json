@@ -260,24 +260,13 @@
       "scope": "Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-01-interactive-deadline-text-package-recheck",
-      "changed_sources": [
-        ".github/workflows/refinement-evidence.yml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "queries/lean/facts.scm",
-        "src/spec/proof_state.rs",
-        "tools/agent_eval/bounded_host.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-02-explicit-package-worker-text-package-recheck",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-explicit-package-worker-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
@@ -460,8 +449,10 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-02-one-worker-projects-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tools/package-questions.py"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -487,7 +478,7 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 4,
         "total": 5
@@ -495,14 +486,13 @@
       "engineering_remaining": 1,
       "remaining": [
         "B.scalar",
-        "B.contract",
-        "B.repository-flow"
+        "B.contract"
       ],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
@@ -510,13 +500,14 @@
       "engineering_remaining": 0,
       "remaining": [
         "C.resume",
-        "C.clean"
+        "C.clean",
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 3,
+      "demonstrated": 2,
       "engineering": {
         "done": 3,
         "total": 6
@@ -524,6 +515,7 @@
       "engineering_remaining": 3,
       "remaining": [
         "D.checked",
+        "D.structural",
         "D.existing-proof",
         "D.new-proof"
       ],
@@ -721,9 +713,7 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -767,7 +757,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
@@ -864,7 +854,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -883,7 +875,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -962,7 +954,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -981,7 +975,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
