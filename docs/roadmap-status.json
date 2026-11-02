@@ -17,7 +17,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
@@ -32,7 +33,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "exact-facts",
@@ -47,7 +49,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "package-flow",
@@ -62,7 +65,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "repository-tasks",
@@ -77,7 +81,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "cache-measurements",
@@ -102,7 +107,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "structural",
@@ -137,7 +143,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
@@ -152,7 +159,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "python-contract",
@@ -167,7 +175,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "index-resolution",
@@ -238,7 +247,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "original-package-questions",
@@ -384,13 +394,13 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41375694509",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41377916634",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-41375694509/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-41377916634/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
@@ -399,7 +409,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "checked-translation",
@@ -414,7 +425,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "python-effects",
@@ -429,7 +441,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "python-text-flow",
@@ -445,7 +458,8 @@
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c"
+        "grammars/lean/src/parser.c",
+        "src/spec/proof_state.rs"
       ],
       "freshness": "stale",
       "id": "current-project-changes",
