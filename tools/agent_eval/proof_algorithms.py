@@ -1,5 +1,6 @@
 """Qualify fixed executable Lean algorithms before any live agent attempt."""
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -8,7 +9,7 @@ import re
 import subprocess
 
 from . import selected_tasks as common
-from .selected_plan import ALGORITHM_STUDIES, ROOT, require
+from .selected_plan import ALGORITHM_STUDIES, ROOT, encoded, require
 
 DIRECTORY = Path('tests/agent-eval/proof-algorithms')
 SPEC = 'specs/FrSpecs/Euclid.lean'
@@ -178,12 +179,31 @@ def validate_controls(value, study):
             'freeze the exact checker, handouts, native clients and reference-free task seed')
     require(re.fullmatch('[0-9a-f]{64}', value['private_image_archive_sha256']) is not None,
             'freeze the qualified private checker archive')
+    retained = ROOT / DIRECTORY / 'interrupted-results/summary.json'
+    require(value['retained_agent_patch']['patch_accepted'] is True and
+            value['retained_agent_patch']['summary_sha256'] == common.digest(retained),
+            'retain and independently check the earlier submitted algorithm proof')
     return value
 
 
 VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics',
             'changed-claim', 'changed-source', 'library-substitution', 'extra-axiom',
             'changed-package', 'missing-patch', 'wrong-patch')
+
+
+def retained_submission(directory, prepared):
+    summary = json.loads((directory / 'summary.json').read_text())
+    require(summary['task_source_sha256'] == hashlib.sha256(encoded(prepared['original'])).hexdigest(),
+            'recheck the original algorithm source supplied to the interrupted batch')
+    submitted = [row for row in summary['attempts'] if row['patch_file'] is not None]
+    require(len(submitted) == 1, 'retain the one originally submitted patch')
+    row, = submitted
+    require(row['patch_file'] == 'patches/' + row['id'] + '.patch' and
+            re.fullmatch('[a-z0-9-]+', row['id']) is not None, 'unsafe retained patch path')
+    patch = directory / row['patch_file']
+    require(not patch.is_symlink() and patch.is_file() and common.digest(patch) == row['patch_sha256'],
+            'the original interrupted-batch patch changed')
+    return row, patch
 
 
 def controls(binary, output, native):
@@ -269,6 +289,15 @@ def controls(binary, output, native):
         common.save(output / ('verdict-' + variant + '.json'), verdict)
         require(verdict['passed'] == (variant == 'reference'), 'algorithm control misgraded: ' + variant)
         verdicts[variant] = {'accepted': verdict['passed']}
+    retained = ROOT / DIRECTORY / 'interrupted-results'
+    row, patch = retained_submission(retained, prepared)
+    checked = grading.grade(image, 'euclid', original, prepared, binary, rust, patch,
+                            output / 'grade-retained-agent', milestone='M3-algorithm-facts', tools={})
+    require(checked['passed'] is True, 'the retained Kimi patch must independently prove the fixed algorithm')
+    retained_check = {'patch_accepted': True, 'id': row['id'], 'patch_sha256': common.digest(patch),
+                      'summary_sha256': common.digest(retained / 'summary.json'),
+                      'scope': 'Current qualified checker replays the original submitted patch. This does not repair the interrupted resource accounting or establish a guidance advantage.'}
+    common.save(output / 'retained-agent-patch.json', retained_check)
     result = {'passed': True, 'live_model_calls': 0, 'run': os.environ['GITHUB_RUN_ID'],
               'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'fr_sha256': common.digest(binary), 'controls': verdicts,
@@ -278,6 +307,7 @@ def controls(binary, output, native):
               'core_checker_sha256': public.core_digest('M3-algorithm-facts'),
               'declarations_sha256': declarations_digest, 'private_image': image,
               'private_image_archive_sha256': common.digest(image_archive),
+              'retained_agent_patch': retained_check,
               'native': {'passed': True, 'live_model_calls': 0, 'exchanges': 6}}
     for study in ALGORITHM_STUDIES:
         validate_controls(result, study)

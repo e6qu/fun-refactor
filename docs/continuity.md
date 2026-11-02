@@ -9,10 +9,12 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 
 ## Current milestone
 
-Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
+Continue on `research/proof-guidance` in [draft PR #592](https://github.com/e6qu/fun-refactor/pull/592).
+Keep its algorithm experiment, encountered fixes, results and tracking together.
+M3 remains open; these diagnostics cannot replace its missing page-count proofs.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-The current addition in draft PR #591 is interactive proof authoring. `spec proof-state`
+Merged PR #591 added interactive proof authoring. `spec proof-state`
 reads Lean's actual goals at a draft cursor, including available assumptions and the original
 claim. It cannot issue a proof receipt; `closed-at-position` can describe only one solved branch.
 The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edit/check loop.
@@ -20,10 +22,20 @@ The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edi
 [deadline controls and packaged skill examples](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004148) pass.
 [Full proof preparation](https://github.com/e6qu/fun-refactor/actions/runs/41348391677) and
 [the next diagnostic’s controls](https://github.com/e6qu/fun-refactor/actions/runs/41353218026) also pass,
-using the same checked executable. No new agent attempts have started.
+using the same checked executable. These remain tool checks, not new agent successes.
 Keep full PR CI and current-report checks mandatory. These checks establish tool behavior; they add no agent successes.
 
-**The full comparison remains paused. Three small diagnostics are closed; the next is being qualified.**
+**The full M3 comparison remains paused. The current diagnostic proves executable algorithms.**
+Start with Euclid's GCD: the fixed function must stop and return the standard GCD
+for every pair of nonnegative inputs. Reserve accumulator list reversal for transfer.
+The [algorithm guide](../tests/agent-eval/proof-algorithms/README.md) owns the exact task.
+Its first batch stopped in slot five. Preserve the [interruption](../tests/agent-eval/proof-algorithms/interrupted-results/README.md),
+including three timeouts, one Kimi submission and all unstarted slots.
+Fix detached-server accounting, output flushing and multi-input induction before
+fresh hosted qualification and new frozen plans. Do not reuse either invalidated plan.
+Then compare declarations in eight GLM/Kimi sessions and equal-information
+checklist/graph guidance in twelve Luna/GLM/Kimi sessions. Keep 150 seconds for each
+complete attempt. Full builds and independent grading stay on GitHub.
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
 Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
 Keep the diagnostic's original source, checker and input identities. Do not rerun its closed slots.

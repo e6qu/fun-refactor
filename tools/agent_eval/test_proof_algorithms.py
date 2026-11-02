@@ -2,10 +2,12 @@
 from pathlib import Path
 import tempfile
 import unittest
+import hashlib
+import json
 
 from . import proof_algorithms as algorithms
 from . import selected_tasks as common
-from .selected_plan import ROOT
+from .selected_plan import ROOT, encoded
 
 
 class AlgorithmChecks(unittest.TestCase):
@@ -62,6 +64,24 @@ class AlgorithmChecks(unittest.TestCase):
         self.assertEqual(self.text.count('sorry'), 2)
         self.assertNotIn('Nat.strongRecOn', self.text)
         self.assertEqual(len(algorithms.spans(self.text)), 2)
+
+    def test_retained_agent_patch_keeps_exact_source_and_patch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / 'patches').mkdir()
+            patch = directory / 'patches/agent-task-1.patch'
+            patch.write_text('original submitted patch\n')
+            prepared = {'original': {'source': 'unchanged'}}
+            value = {'task_source_sha256': hashlib.sha256(encoded(prepared['original'])).hexdigest(),
+                     'attempts': [{'id': 'agent-task-1', 'patch_file': 'patches/agent-task-1.patch',
+                                   'patch_sha256': common.digest(patch)}]}
+            (directory / 'summary.json').write_text(json.dumps(value))
+            self.assertEqual(algorithms.retained_submission(directory, prepared)[1], patch)
+            with self.assertRaises(ValueError):
+                algorithms.retained_submission(directory, {'original': {'source': 'different'}})
+            patch.write_text('replacement patch\n')
+            with self.assertRaises(ValueError):
+                algorithms.retained_submission(directory, prepared)
 
 
 if __name__ == '__main__':

@@ -66,6 +66,8 @@ def implementation_bindings(milestone):
                       directory / 'declarations.txt', directory / 'guidance.json']
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'reserved').glob('*.lean'))
+            paths += [directory / 'interrupted-results/summary.json']
+            paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
         if milestone == 'M3-page-count':
             paths += [ROOT / CASE_DIRECTORIES['M3'] / name for name in

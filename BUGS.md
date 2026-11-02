@@ -5,8 +5,23 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Repairs under review
 
-These repairs are on `milestone/complete-proof-authoring`; the complete M3 PR is still in progress.
-The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit before its latest agent comparison.
+The current work is in [draft PR #592](https://github.com/e6qu/fun-refactor/pull/592),
+on `research/proof-guidance`. The interrupted algorithm batch exposed these defects:
+
+| Problem | Repair and remaining check |
+| --- | --- |
+| The inner memory and CPU monitor missed OpenCode's detached private server | Follow descendants across process groups and stop observed workers on exit. Twenty focused monitor tests pass locally; hosted checks remain required |
+| Killing the controller could lose buffered native feedback | Flush every received block. A regression checks that partial output is readable while the controller is still running |
+| Fr rejected induction over two inputs before Lean ran | Add the explicit recursor and comma-separated inputs; a small example passes pinned Lean. Generated-reader and native qualification remain required |
+| Recursive definitions and local helpers confused the reader | The hosted algorithm checks accept Euclid's termination hints and isolate local-helper renames. Preserve the exact benchmark-fact audits |
+
+The [interrupted batch](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+remains inconclusive. The exact allocation behind its outer memory stop is unknown;
+the repair must not be described as a measured reduction in client memory.
+
+The earlier repairs below belong to merged M3 work, including PR #591.
+The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
+before the earlier complete comparison. Those counts do not qualify the current changes.
 
 | Earlier problem | Current branch behavior |
 | --- | --- |

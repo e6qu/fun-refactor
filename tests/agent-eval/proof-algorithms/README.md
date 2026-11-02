@@ -35,11 +35,14 @@ wrong tactics, a weaker claim, a changed implementation, replacing the function
 with library GCD, an extra axiom, changed package settings, and missing or invalid patches.
 A proof-check receipt for one region cannot establish that the whole algorithm is proved.
 
-**Current status:** the fixed Euclid task builds on GitHub, and the repaired reader
-accepts its recursive syntax. All six scripted native-client exchanges pass.
-The fact-handout verifier now handles Lean's type annotations and checks the supplied
-types against the installed library. Complete private-grader qualification and all
-live comparisons remain pending. No improved agent result is claimed.
+**Current status:** the [checked build](https://github.com/e6qu/fun-refactor/actions/runs/41383408769)
+passed twelve patch controls and six scripted native-client exchanges. Its exact Mac
+build also passed a focused local proof-state and termination check.
+The [first live batch](interrupted-results/README.md) stopped in its fifth slot at
+the workstation memory limit. It retained three timeouts and one Kimi submission.
+The investigation found missing detached-server accounting, lost buffered feedback
+and a reader rejection of induction over two inputs. Their repairs need fresh
+hosted qualification before the complete comparisons run. No guidance advantage is claimed.
 
 The fixed [reserved list-reversal implementation](reserved/Reverse.lean) and its
 reference proof are also recorded before development attempts. A small guarded Lean

@@ -66,6 +66,8 @@ def core_digest(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'fixtures').glob('*.lean'))
             paths += list((directory / 'reserved').glob('*.lean'))
+            paths += [directory / 'interrupted-results/summary.json']
+            paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
     bindings = {str(path.relative_to(ROOT)): local.hash_file(path) for path in sorted(paths)}
     return hashlib.sha256(encoded(bindings)).hexdigest()
 

@@ -94,7 +94,12 @@ First compare selecting library facts with receiving their declarations in eight
 Then run twelve Luna/GLM/Kimi sessions comparing a checklist with a graph containing exactly the same information.
 Reserve accumulator-based list reversal for transfer after the development decisions are fixed.
 Test automatic backtracking separately; a diagram and a search controller are different changes.
-No new live comparison has measured the merged interactive command or graph guidance.
+No complete new comparison has measured the merged interactive command or graph guidance.
+The [first algorithm batch](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+stopped in slot five at the workstation memory limit. Preserve its three timeouts,
+one Kimi submission, interrupted slot and fifteen unstarted slots. Repair and qualify
+descendant accounting, partial-output retention and multi-input induction before
+freezing fresh complete comparisons. Keep the same claims, agents and limits.
 
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.

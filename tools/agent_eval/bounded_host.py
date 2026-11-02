@@ -80,7 +80,7 @@ def process_identity(pid):
         return info.start_seconds, info.start_microseconds
     try:
         raw = (Path('/proc') / str(pid) / 'stat').read_text()
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
         return None
     fields = raw.rsplit(')', 1)[1].split()
     return int(fields[19])
@@ -157,7 +157,7 @@ def sample(group):
     for pid in selected:
         try:
             fields = (Path('/proc') / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             continue
         memory += rows[pid][2] * 1024
         cpu[pid] = (int(fields[11]) + int(fields[12])) / ticks
