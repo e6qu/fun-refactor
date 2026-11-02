@@ -16,7 +16,7 @@ from .bounded_host import run as bounded_run
 from .bounded_host import elapsed_time
 from .selected_cli import configuration, invocation, export_session, verify_export
 from . import selected_tasks as tasks
-from .selected_plan import PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import ALGORITHM_STUDIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
@@ -59,6 +59,10 @@ def implementation_bindings(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += [ROOT / '.github/workflows/proof-feedback.yml']
             paths += [ROOT / '.github/workflows/refinement-evidence.yml']
+        elif milestone in ALGORITHM_STUDIES:
+            paths += [ROOT / PROFILE_PATHS[milestone], ROOT / '.github/workflows/proof-algorithms.yml',
+                      directory / 'declarations.txt', directory / 'guidance.json']
+            paths += list((directory / 'controls').glob('*.lean'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
         if milestone == 'M3-page-count':
             paths += [ROOT / CASE_DIRECTORIES['M3'] / name for name in
@@ -88,7 +92,13 @@ def checking_input_changes(project, expected):
 
 
 def prompt(task, setup, checkers, milestone):
-    if milestone in PROOF_DIAGNOSTICS:
+    if milestone in ALGORITHM_STUDIES:
+        from . import algorithm_guidance
+        require(task == 'euclid' and setup in prepare(ROOT, milestone)['requirements']['setups'],
+                'choose the algorithm task and condition explicitly')
+        request = algorithm_guidance.request() + '\nInstalled Lean library source: ' + checkers['lean']['source_root']
+        checks = [shlex.join([checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'])]
+    elif milestone in PROOF_DIAGNOSTICS:
         from . import proof_feedback
         setups = set(prepare(ROOT, milestone)['requirements']['setups'])
         require(task == proof_feedback.case_details(milestone)['task'] and setup in setups,
@@ -154,7 +164,7 @@ def prompt(task, setup, checkers, milestone):
         + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md. '
            'Use fr for a contributing discovery, preview, edit or check step in the delivered change. '
            'Ordinary tools remain available for the rest.\n'
-           if setup == 'fr' or milestone in PROOF_DIAGNOSTICS else 'Fr is not provided in this setup. Use the ordinary tools.\n')
+           if setup == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES else 'Fr is not provided in this setup. Use the ordinary tools.\n')
         + 'Available project checking commands:\n' + '\n'.join(checks) + '\n'
         'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. '
         'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
@@ -349,6 +359,8 @@ def freeze(inputs, binaries, runtime, output, milestone):
     elif milestone in PROOF_STUDIES:
         if milestone == 'M3':
             from .proof_writing_tasks import validate_controls
+        elif milestone in ALGORITHM_STUDIES:
+            from .proof_algorithms import validate_controls
         else:
             from .proof_feedback import validate_controls
         value['fr_build'] = verified_fr_build(value['source'], paths['fr']['sha256'], runtime['fr_build'])
@@ -365,6 +377,10 @@ def freeze(inputs, binaries, runtime, output, milestone):
         for task in seeds:
             prepared = json.loads((inputs / task / 'project.json').read_text())
             require(prepared['original'] == seeds[task]['receipt']['original'], 'fixed proof input differs from its seed')
+            if milestone in ALGORITHM_STUDIES:
+                value['formal_inputs'][task] = {name: prepared[name] for name in
+                    ('spec', 'obligations', 'protected_source', 'proved_program', 'source_model_bridge')}
+                continue
             value['formal_inputs'][task] = {name: prepared[name] for name in
                 ('source', 'spec', 'obligation', 'goal_digest', 'assumptions', 'arithmetic')}
             value['formal_inputs'][task].update(
@@ -459,7 +475,7 @@ def attempt(plan_path, attempt_id):
     rows = [row for row in value['schedule']['attempts'] if row['id'] == attempt_id]
     require(len(rows) == 1, 'attempt is not in the frozen milestone schedule')
     row = rows[0]
-    with_fr = row['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS
+    with_fr = row['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES
     output = plan_path.parent / 'attempts' / attempt_id
     output.mkdir(parents=True, exist_ok=False)
     report = {'id': attempt_id, 'status': 'started', 'plan_sha256': value['sha256'], 'profile': row['profile'],
@@ -533,6 +549,9 @@ def attempt(plan_path, attempt_id):
             from .proof_feedback import install_declarations
             handout = install_declarations(project, row['setup'])
             checking_inputs['.fr/declarations.txt'] = hash_file(handout)
+        elif milestone in ALGORITHM_STUDIES:
+            from .algorithm_guidance import install
+            checking_inputs.update(install(project, row['setup'], milestone))
         require((shutil.which('fr', path=env['PATH']) is not None) == with_fr, 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':

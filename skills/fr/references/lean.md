@@ -36,7 +36,7 @@ In each `goals` entry, `h : P` means a named proof of statement `P` is available
 All have `acceptance: "not-checked"`. Insufficient response space fails explicitly. `--token-limit` measures UTF-8 response bytes, not model
 tokens; choose it and the shared dependency/editor deadline explicitly.
 
-Edit one step, inspect, and adjust to the actual goal. For comparisons or division,
+Edit one step and inspect the actual goal. For recursive code, read [Algorithms](lean-algorithms.md). For comparisons or division,
 read [Arithmetic](lean-arithmetic.md). For a missing library fact, run `lean --print-prefix`
 with its working directory
 set to the theorem's Lake package (`specs/` here), so its `lean-toolchain` selects Lean.
@@ -65,7 +65,7 @@ fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
 `applied: true` means written. Preserve proof markers and `.fr/checks.json`.
-Run the supplied package check, review the diff, save the requested
+Run the package check, review the diff, save the requested
 `git diff --binary HEAD` as `change.patch`, and finish. Retain failed diagnostics.
 
 For a missing model or theorem, read [Create a claim](lean-claims.md).

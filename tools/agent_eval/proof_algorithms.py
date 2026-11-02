@@ -8,7 +8,7 @@ import re
 import subprocess
 
 from . import selected_tasks as common
-from .selected_plan import ROOT, require
+from .selected_plan import ALGORITHM_STUDIES, ROOT, require
 
 DIRECTORY = Path('tests/agent-eval/proof-algorithms')
 SPEC = 'specs/FrSpecs/Euclid.lean'
@@ -133,20 +133,34 @@ def check(project, prepared, binary, output):
             'checks': [strict, built, axioms, executed]}
 
 
-def patch_grade(original, prepared, binary, patch, output):
-    output.mkdir(parents=True, exist_ok=False)
-    if patch is None:
-        return {'passed': False, 'stage': 'missing patch'}
-    project = output / 'receiver'
-    common.checkout(original, project)
-    applied = common.command(['git', 'apply', '--index', '--', str(patch.resolve())], project, output / 'apply.json')
-    if applied['returncode'] != 0:
-        return {'passed': False, 'stage': 'patch replay'}
-    verdict = check(project, prepared, binary, output / 'check')
-    reversed_patch = common.command(['git', 'apply', '--reverse', '--index', '--', str(patch.resolve())], project, output / 'undo.json')
-    verdict['undo_exact'] = reversed_patch['returncode'] == 0 and common.sources(project) == prepared['original']
-    verdict['passed'] = verdict['passed'] and verdict['undo_exact']
-    return verdict
+def qualify_declarations(output):
+    expected = (ROOT / DIRECTORY / 'declarations.txt').read_text()
+    names = [line.split()[0] for line in expected.splitlines() if not line.startswith(' ')]
+    require(names == ['Nat.gcd_comm', 'Nat.gcd_rec', 'Nat.gcd_zero_right',
+                      'Nat.mod_lt', 'Nat.pos_of_ne_zero', 'Nat.strongRecOn'], 'preserve the fixed fact handout')
+    probe = output / 'Declarations.lean'
+    probe.write_text('import Std\n' + ''.join('#check ' + name + '\n' for name in names))
+    checked = common.command(['lean', '-j1', str(probe.resolve())], output, output / 'declarations.json')
+    require(checked['returncode'] == 0 and ' '.join(checked['stdout'].split()) == ' '.join(expected.split()),
+            'supplied declarations differ from the pinned Lean installation')
+    return common.digest(ROOT / DIRECTORY / 'declarations.txt')
+
+
+def validate_controls(value, study):
+    from . import selected_local as local
+    from . import selected_local_grade as public
+    require(study in ALGORITHM_STUDIES and value['passed'] is True and value['live_model_calls'] == 0,
+            'require successful hosted algorithm controls without live calls')
+    require(value['controls'] == {name: {'accepted': name == 'reference'} for name in VARIANTS},
+            'all twelve private patch controls must pass')
+    require(value['bindings'] == local.implementation_bindings(study) and
+            value['core_checker_sha256'] == public.core_digest(study) and
+            value['declarations_sha256'] == common.digest(ROOT / DIRECTORY / 'declarations.txt') and
+            value['native'] == {'passed': True, 'live_model_calls': 0, 'exchanges': 6} and
+            value['reference_proofs_in_seed'] is False and value['private_image'].startswith('sha256:') and
+            len(value['source_commit']) == 40 and str(value['run']).isdigit(),
+            'freeze the exact checker, handouts, native clients and reference-free task seed')
+    return value
 
 
 VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics',
@@ -154,11 +168,20 @@ VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', '
             'changed-package', 'missing-patch', 'wrong-patch')
 
 
-def controls(binary, output):
+def controls(binary, output, native):
+    from . import selected_grading as grading
+    from . import selected_local as local
+    from . import selected_local_grade as public
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run full algorithm qualification on GitHub')
     output.mkdir(parents=True, exist_ok=False)
     original = output / 'original'
-    prepared = prepare(binary, original, output / 'inputs')
+    prepared = prepare(binary, original, output / 'inputs/euclid')
+    declarations_digest = qualify_declarations(output)
+    require(native['passed'] is True and native['live_model_calls'] == 0 and
+            len(native['exchanges']) == 6 and all(row['status'] == 'passed' for row in native['exchanges'].values()),
+            'qualify all three native clients before the algorithm comparisons')
+    image = grading.build(output / 'private-image')
+    rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True).strip())
     solved = (original / SPEC).read_text()
     for name in OBLIGATIONS:
         tactics = (ROOT / DIRECTORY / 'controls' / (name.replace('_', '-') + '.lean')).read_text()
@@ -169,7 +192,7 @@ def controls(binary, output):
         common.checkout(original, candidate)
         text = solved
         if variant == 'unfinished':
-            text = (original / SPEC).read_text()
+            text = insert((original / SPEC).read_text(), 'euclid_correct', 'skip')
         elif variant == 'termination-only':
             text = insert(solved, 'euclid_correct', 'sorry')
         elif variant == 'correctness-only':
@@ -211,16 +234,23 @@ def controls(binary, output):
         patch.write_bytes(common.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout)
         if variant == 'wrong-patch':
             patch.write_text('not a patch\n')
-        verdict = patch_grade(original, prepared, binary, None if variant == 'missing-patch' else patch,
-                              output / ('grade-' + variant))
+        verdict = grading.grade(image, 'euclid', original, prepared, binary, rust,
+                                None if variant == 'missing-patch' else patch, output / ('grade-' + variant),
+                                milestone='M3-algorithm-facts', tools={})
         common.save(output / ('verdict-' + variant + '.json'), verdict)
         require(verdict['passed'] == (variant == 'reference'), 'algorithm control misgraded: ' + variant)
-        verdicts[variant] = {'accepted': verdict['passed'], 'stage': verdict['stage']}
+        verdicts[variant] = {'accepted': verdict['passed']}
     result = {'passed': True, 'live_model_calls': 0, 'run': os.environ['GITHUB_RUN_ID'],
               'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'fr_sha256': common.digest(binary), 'controls': verdicts,
               'program': prepared['proved_program'], 'source_model_bridge': prepared['source_model_bridge'],
-              'reference_proofs_in_seed': False}
+              'reference_proofs_in_seed': False,
+              'bindings': local.implementation_bindings('M3-algorithm-facts'),
+              'core_checker_sha256': public.core_digest('M3-algorithm-facts'),
+              'declarations_sha256': declarations_digest, 'private_image': image,
+              'native': {'passed': True, 'live_model_calls': 0, 'exchanges': 6}}
+    for study in ALGORITHM_STUDIES:
+        validate_controls(result, study)
     common.save(output / 'controls.json', result)
     return result
 
@@ -229,5 +259,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--native', type=Path, required=True)
     arguments = parser.parse_args()
-    print(json.dumps(controls(arguments.fr.resolve(), arguments.output.resolve())))
+    print(json.dumps(controls(arguments.fr.resolve(), arguments.output.resolve(), json.loads(arguments.native.read_text()))))

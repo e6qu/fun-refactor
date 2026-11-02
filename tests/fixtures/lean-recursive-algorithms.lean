@@ -8,7 +8,7 @@ decreasing_by
   exact Nat.pos_of_ne_zero (by assumption)
 
 theorem afterEuclid : euclid 48 18 = 6 := by
-  decide
+  simp [euclid]
 
 def reverseInto {α : Type} (xs acc : List α) : List α :=
   match xs with

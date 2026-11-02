@@ -1,0 +1,42 @@
+{
+  "task": "euclid",
+  "profiles_file": "../proof-writing/profiles.json",
+  "repetitions": 2,
+  "phases": [
+    {
+      "name": "facts",
+      "profiles": ["opencode2-glm-flash", "opencode2-kimi-k3"],
+      "conditions": ["select-facts", "supplied-declarations"],
+      "attempts": 8,
+      "guidance": "Both receive the same ordinary task instructions and shared skills; only the declaration handout differs."
+    },
+    {
+      "name": "presentation",
+      "profiles": ["codex-luna-fast", "opencode2-glm-flash", "opencode2-kimi-k3"],
+      "conditions": ["checklist", "graph"],
+      "attempts": 12,
+      "guidance": "Both receive the supplied declarations and the same plan nodes and dependency edges; only rendering differs. This choice is fixed before the fact comparison."
+    }
+  ],
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "client_finish_seconds": 10,
+  "completion": "Both fixed proof regions are complete, all required checks pass, protected inputs are unchanged, and the original patch and native session accounting arrive within 150 seconds. Independent GitHub checking decides acceptance. Partial proofs and late accepted patches remain failed complete attempts.",
+  "decisions": {
+    "2,0": "The second condition warrants a transfer comparison on reserved list reversal for this profile; no general improvement is established.",
+    "0,2": "Inspect whether the second condition harmed this profile before any adoption; retain all failures.",
+    "2,2": "No observed success advantage; compare total work including failures without claiming equal methods in general.",
+    "0,0": "Both conditions failed. Inspect actual tactics, checking and delivery before proposing another experiment.",
+    "mixed": "Inconclusive with two repetitions. Report the actions and failures; do not rerun slots until success."
+  },
+  "decision_key": "accepted counts as second condition,first condition, separately for each profile and phase",
+  "transfer": "Keep accumulator-based list reversal outside development attempts. Fix transfer conditions and controls before any transfer call; do not tune on the transfer result.",
+  "backtracking": "Only propose a separate controlled test if records show repeated failed paths or inability to return to an earlier valid draft. No state deduplication by printed goals.",
+  "publication": "Submitted patches and reviewed summaries only; raw local CLI records stay private. Preserve all twenty slots, every timeout and all earlier evidence."
+}
