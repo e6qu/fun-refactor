@@ -43,6 +43,7 @@ enum TokenType {
   TACTIC_LABEL_COLON,
   CALC_BODY_START,
   DO_BODY_START,
+  TACTIC_SUBJECT_SEPARATOR,
 };
 
 #define MAX_DEPTH 64
@@ -404,6 +405,13 @@ bool tree_sitter_lean_external_scanner_scan(
 
   /* 3. Skip horizontal whitespace before inspecting the character. */
   skip_spaces(lexer);
+
+  if (valid_symbols[TACTIC_SUBJECT_SEPARATOR] && lexer->lookahead == ',') {
+    lexer->advance(lexer, false);
+    lexer->mark_end(lexer);
+    lexer->result_symbol = TACTIC_SUBJECT_SEPARATOR;
+    return true;
+  }
 
   if (valid_symbols[TACTIC_LABEL_COLON] && lexer->lookahead == ':') {
     lexer->advance(lexer, false);

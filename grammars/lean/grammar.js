@@ -53,6 +53,7 @@ module.exports = grammar({
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
     $._calc_body_start,         // Inline steps continue inside the enclosing proof
     $._do_body_start,           // The following `do` opens a statement body
+    $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
 
   // Keyword extraction improves error detection and compile time
@@ -863,7 +864,7 @@ module.exports = grammar({
       field('tactic', choice('cases', 'induction')),
       optional(seq(field('equation', $.identifier), $._tactic_label_colon)),
       field('subject', $._application_head),
-      repeat(seq(',', field('subject', $._application_head))),
+      repeat(seq($._tactic_subject_separator, field('subject', $._application_head))),
       optional(seq('using', field('recursor', $._application_head))),
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(

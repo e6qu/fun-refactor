@@ -41,7 +41,7 @@ static Input input(const char *text) {
   return result;
 }
 static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
-  bool valid[DO_BODY_START + 1] = {false};
+  bool valid[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
   valid[token] = true;
   size_t previous = input->offset;
   input->end = previous;
@@ -71,7 +71,7 @@ int main(void) {
   Input assignment = input(":= value");
   assert(!scan(scanner, &assignment, LAYOUT_END));
   assert(scanner->depth == 1 && assignment.offset == 0);
-  bool label_tokens[DO_BODY_START + 1] = {false};
+  bool label_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
   label_tokens[LAYOUT_END] = label_tokens[TACTIC_LABEL_COLON] = true;
   Input cons = input(":: values");
   assert(!scan(scanner, &cons, LAYOUT_END));
@@ -83,6 +83,17 @@ int main(void) {
   assert(label.lexer.result_symbol == TACTIC_LABEL_COLON && scanner->depth == 1);
   assert(label.end == 1);
   assert(scan(scanner, &blank_end, LAYOUT_END));
+
+  assert(scan(scanner, &proof_body, LAYOUT_START));
+  bool induction_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
+  induction_tokens[LAYOUT_END] = induction_tokens[TACTIC_SUBJECT_SEPARATOR] = true;
+  Input subject_comma = input(", b using recursor");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &subject_comma.lexer, induction_tokens));
+  assert(subject_comma.lexer.result_symbol == TACTIC_SUBJECT_SEPARATOR && scanner->depth == 1);
+  assert(subject_comma.end == 1);
+  Input tuple_comma = input(", second");
+  assert(scan(scanner, &tuple_comma, LAYOUT_END));
+  assert(scanner->depth == 0 && tuple_comma.offset == 0);
 
   Input outer = input("  have bound := f");
   assert(scan(scanner, &outer, LAYOUT_START));
