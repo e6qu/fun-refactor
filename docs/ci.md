@@ -311,7 +311,13 @@ A change to `src/cli.rs` can affect all the groups below in the
 | `resumable-correspondence` | A saved function selection is checked after moves, renames, copies and deletion |
 | `host-recovery` | Edit recovery at process-interruption boundaries |
 | `index-resolution` | Complete symbol and reference answers match a pinned baseline |
+| `structural-change` | Rust rename and parameter removal preserve compiled results, receiver delivery and exact reversal |
+| `project-change-consumer-scope` | Consumer discovery and a checked Python change retain their original behavior and delivery checks |
 | `python-repositories` | Two scripted repository edits pass behavior checks and patch replay |
+
+A reader change also invalidates these structural and consumer-scope records.
+Include them when refreshing the current scalar, language, package and project records.
+Their active test references live in `tests/structural_change.rs` and `tests/agent_acceptance.rs`.
 
 Freeze the bound source inputs before dispatch, then import results from the exact successful
 run after checking every source hash. Update active test references and preserve historical reports.
