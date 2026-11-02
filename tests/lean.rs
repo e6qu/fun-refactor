@@ -81,6 +81,25 @@ fn ordinary_lean_parses_with_no_errors() {
 }
 
 #[test]
+fn recursive_algorithms_keep_their_termination_proofs_and_next_theorem() {
+    let source = include_str!("fixtures/lean-recursive-algorithms.lean");
+    let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!parsed.has_errors(), "{:?}", parsed.error_spans());
+    let (_tmp, index) = workspace(&[("Algorithms.lean", source)]);
+    for name in ["euclid", "afterEuclid", "reverseInto", "afterReverse"] {
+        assert_eq!(
+            index.symbols.iter().filter(|row| row.name == name).count(),
+            1
+        );
+    }
+    assert_eq!(
+        parsed.root().to_sexp().matches("(termination_by").count(),
+        2
+    );
+    assert_eq!(parsed.root().to_sexp().matches("(decreasing_by").count(), 1);
+}
+
+#[test]
 fn the_declarations_a_file_makes_are_symbols() {
     let (_tmp, index) = workspace(&[("Geometry.lean", GEOMETRY)]);
     let found: Vec<(String, SymbolKind)> = index

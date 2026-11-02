@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def check(binary, diagnostics, integer_library):
     diagnostics.mkdir(parents=True, exist_ok=False)
     failures = []
-    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean', 'lean-nested-assumptions.lean']:
+    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean',
+                    'lean-nested-assumptions.lean', 'lean-recursive-algorithms.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
@@ -25,6 +26,17 @@ def check(binary, diagnostics, integer_library):
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
+        if fixture == 'lean-recursive-algorithms.lean':
+            expected = {'euclid': (1, 1), 'afterEuclid': (0, 0),
+                        'reverseInto': (1, 0), 'afterReverse': (0, 0)}
+            found = {}
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is not None:
+                    found[''.join(''.join(name.itertext()).split())] = (
+                        len(list(definition.iter('termination_by'))), len(list(definition.iter('decreasing_by'))))
+            if found != expected:
+                failures.append(fixture + ': termination proof or following theorem moved: ' + str(found))
         if fixture == 'lean-nested-assumptions.lean':
             def tuple_depth(node):
                 return (node.tag == 'rcases_tuple_pattern') + max(map(tuple_depth, node), default=0)
@@ -251,6 +263,8 @@ def check(binary, diagnostics, integer_library):
         ('attribute-value', '@[deprecated replacement (since := )] def bad : Nat := 0'),
         ('have-alternatives', 'theorem bad (h : True) : True := by have hp | hq := h'),
         ('suffices-alternatives', 'theorem bad (h : True) : True := by suffices hp | hq := h'),
+        ('termination-measure', 'def bad (n : Nat) := n\ntermination_by'),
+        ('decreasing-proof', 'def bad (n : Nat) := n\ndecreasing_by'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

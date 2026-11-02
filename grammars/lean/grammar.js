@@ -61,7 +61,7 @@ module.exports = grammar({
   // Control words cannot turn into ordinary arguments when a construct is
   // misplaced. Qualified members and escaped names still admit words such as `if`.
   reserved: {
-    global: _ => ['if', 'then', 'else', 'match', 'with', 'by', 'show'],
+    global: _ => ['if', 'then', 'else', 'match', 'with', 'by', 'show', 'termination_by', 'decreasing_by'],
     qualified: _ => [],
   },
 
@@ -337,6 +337,21 @@ module.exports = grammar({
       optional(field('binders', $.binders)),
       optional($._type_spec),
       $._declaration_body,
+      optional($.termination_by),
+      optional($.decreasing_by),
+    ),
+
+    termination_by: $ => seq(
+      'termination_by',
+      optional('structural'),
+      field('measure', $._expression),
+    ),
+
+    decreasing_by: $ => seq(
+      'decreasing_by',
+      $._layout_start,
+      $._tactic_seq,
+      $._layout_end,
     ),
 
     // Shared body production for definition and instance — factored out

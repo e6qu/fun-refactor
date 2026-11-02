@@ -20,6 +20,12 @@ jobs:
     name: Reject incomplete proofs of the fixed GCD implementation
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,29 +40,25 @@ jobs:
       - uses: ./.github/actions/lean-toolchain
       - name: Check evaluator boundaries and axiom accounting
         run: python3 -B -m unittest agent_eval.test_proof_algorithms
-      - uses: actions/download-artifact@v8
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
         with:
-          name: m3-linux-tool
-          path: ${{ runner.temp }}/algorithm-tool
-          run-id: '41348391677'
-          github-token: ${{ github.token }}
-      - run: chmod +x "$RUNNER_TEMP/algorithm-tool/fr"
-      - name: Verify the exact passing build against current native inputs
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          python3 -B -m agent_eval.proof_writing_artifact --run 41348391677
-          --fr "$RUNNER_TEMP/algorithm-tool/fr" --output "$RUNNER_TEMP/algorithm-build.json"
+          key: m3-proof-writing
+          cache-on-failure: true
+      - name: Check recursive syntax and compile the current command
+        run: |
+          lean -j1 -DwarningAsError=true tests/fixtures/lean-recursive-algorithms.lean
+          cargo test --locked --test lean --test lean_grammar -- --test-threads=1
+          cargo build --locked --bin fr
       - name: Check references, interactive feedback and rejected patches
         run: >-
-          python3 -B -m agent_eval.proof_algorithms --fr "$RUNNER_TEMP/algorithm-tool/fr"
+          python3 -B -m agent_eval.proof_algorithms --fr target/debug/fr
           --output "$RUNNER_TEMP/algorithm-controls"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: algorithm-qualification
           path: |
-            ${{ runner.temp }}/algorithm-build.json
             ${{ runner.temp }}/algorithm-controls/controls.json
             ${{ runner.temp }}/algorithm-controls/inputs
             ${{ runner.temp }}/algorithm-controls/*-state.json
