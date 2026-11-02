@@ -440,6 +440,15 @@ fn selected_edits_refuse_conflicts_duplicates_missing_payloads_and_no_net_change
         assert!(error.contains(message), "{ids:?}: {error}");
     }
     assert!(select(&history, &[99]).is_err());
+    for before in [link("b"), snapshot("b", 0o755), snapshot("b", 0o600)] {
+        history.records[1].changes[0].before = before;
+        history.records[1].basis = basis(&history.records[1].changes).unwrap();
+        assert!(select(&history, &[1, 2])
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("does not follow"));
+    }
     history.records[1].changes.clear();
     assert!(select(&history, &[1, 2])
         .err()
