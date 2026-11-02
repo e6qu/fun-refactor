@@ -1529,6 +1529,65 @@
     }
   },
   {
+    "type": "decreasing_by",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tactic_apply",
+          "named": true
+        },
+        {
+          "type": "tactic_by_cases",
+          "named": true
+        },
+        {
+          "type": "tactic_calc",
+          "named": true
+        },
+        {
+          "type": "tactic_case",
+          "named": true
+        },
+        {
+          "type": "tactic_cases",
+          "named": true
+        },
+        {
+          "type": "tactic_focus",
+          "named": true
+        },
+        {
+          "type": "tactic_have",
+          "named": true
+        },
+        {
+          "type": "tactic_let",
+          "named": true
+        },
+        {
+          "type": "tactic_rcases",
+          "named": true
+        },
+        {
+          "type": "tactic_rewrite",
+          "named": true
+        },
+        {
+          "type": "tactic_rintro",
+          "named": true
+        },
+        {
+          "type": "tactic_show",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "definition",
     "named": true,
     "fields": {
@@ -1620,7 +1679,15 @@
       "required": false,
       "types": [
         {
+          "type": "decreasing_by",
+          "named": true
+        },
+        {
           "type": "match_arm",
+          "named": true
+        },
+        {
+          "type": "termination_by",
           "named": true
         }
       ]
@@ -5918,6 +5985,22 @@
     }
   },
   {
+    "type": "termination_by",
+    "named": true,
+    "fields": {
+      "measure": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "true",
     "named": true,
     "fields": {}
@@ -6558,6 +6641,10 @@
     "named": false
   },
   {
+    "type": "decreasing_by",
+    "named": false
+  },
+  {
     "type": "def",
     "named": false
   },
@@ -6874,6 +6961,10 @@
     "named": true
   },
   {
+    "type": "structural",
+    "named": false
+  },
+  {
     "type": "structure",
     "named": false
   },
@@ -6888,6 +6979,10 @@
   {
     "type": "synthetic_hole",
     "named": true
+  },
+  {
+    "type": "termination_by",
+    "named": false
   },
   {
     "type": "then",
