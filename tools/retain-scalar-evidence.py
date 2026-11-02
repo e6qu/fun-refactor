@@ -138,6 +138,18 @@ def main():
     require(set(runs) == {'flow', 'compiler', 'index', 'repositories', 'python', 'routes', 'repair', 'probes'}
             and all(type(run) is int and run > 0 for run in runs.values()), 'declare all required collections')
     repository = os.environ['GITHUB_REPOSITORY']
+    source_commits = set()
+    workflow_commit = None
+    for key in ('python', 'routes', 'repair'):
+        run = retain.api(f'repos/{repository}/actions/runs/{runs[key]}')
+        require(run['status'] == 'completed' and run['conclusion'] == 'success',
+                'wait for the complete successful collection family')
+        source_commits.add(run['head_sha'])
+        if key == 'routes':
+            workflow_commit = run['head_sha']
+        elif key == 'repair':
+            require(run['head_sha'] == workflow_commit,
+                    'collect the workflow family from one source commit')
     collected = []
     for shard, groups in FLOW.items():
         data, identity = collect(runs['flow'], 'flow-contract-' + shard, 'scalar-evidence (' + shard + ')', repository)
@@ -157,12 +169,7 @@ def main():
         elif key == 'compiler':
             require(set(data) == {'result.json'}, 'compiler report inventory changed')
         collected.append((group, data, identity))
-    source_commits = {identity['source_commit'] for _, _, identity in collected}
-    for key in ('python', 'routes', 'repair'):
-        run = retain.api(f'repos/{repository}/actions/runs/{runs[key]}')
-        require(run['status'] == 'completed' and run['conclusion'] == 'success',
-                'wait for the complete successful collection family')
-        source_commits.add(run['head_sha'])
+    source_commits.update(identity['source_commit'] for _, _, identity in collected)
     for revision in sorted(source_commits):
         require(isinstance(revision, str) and re.fullmatch(r'[0-9a-f]{40}', revision),
                 'need recorded collection commits')
