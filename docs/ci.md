@@ -143,6 +143,21 @@ Retention compares the analyzer's source folders, local dependencies, parsing qu
 Each capture keeps its actual collection commit. Every recorded input still receives its existing report audit.
 The retained Python report uses compact JSON to avoid storing indentation across hundreds of examples.
 Its `artifact.zip` keeps the exact downloaded archive, including the original report bytes.
+
+Route and repair measurements form one report family. They compare preparing edits,
+correcting mistakes and delivering patches. Collect both from the same saved
+repository revision (commit), before changing the branch:
+
+```sh
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=workflow-routes -f prefix=YOUR_NEW_NAME
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=source-repair -f prefix=YOUR_NEW_NAME
+```
+
+After fixing the repair collector, refresh both collections together. Pairing new
+repair results with earlier route results fails before downloads or audits.
+This family requires the exact commit as well as matching analyzer source.
 The reader verifies both files, the original report's fingerprint and the compact copy's exact agreement with the captured values.
 A missing archive, changed value or obsolete receipt stops the check; the current reader accepts one receipt format.
 This changes storage only. The source identity, cases and recorded measurements keep their original values.
