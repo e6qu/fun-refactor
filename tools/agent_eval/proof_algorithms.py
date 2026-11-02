@@ -1,0 +1,233 @@
+"""Qualify fixed executable Lean algorithms before any live agent attempt."""
+import argparse
+import json
+import math
+import os
+from pathlib import Path
+import re
+import subprocess
+
+from . import selected_tasks as common
+from .selected_plan import ROOT, require
+
+DIRECTORY = Path('tests/agent-eval/proof-algorithms')
+SPEC = 'specs/FrSpecs/Euclid.lean'
+OBLIGATIONS = ('euclid_decreases', 'euclid_correct')
+DECLARATIONS = ('euclid_decreases', 'euclid', 'euclid_correct')
+CASES = ((0, 0), (0, 7), (7, 0), (1, 1), (48, 18), (18, 48),
+         (1071, 462), (13, 17), (12, 36), (36, 12), (144, 89),
+         (1000000000000000000000000, 250000000000000000000000))
+
+
+def spans(text):
+    """Require exactly the original, nonoverlapping, whole-line marker pairs."""
+    result = {}
+    markers = list(re.finditer(r'^  -- fr:proof-(begin|end) ([^\n]+)\n', text, re.M))
+    require([(item[1], item[2]) for item in markers] ==
+            [(kind, name) for name in OBLIGATIONS for kind in ('begin', 'end')],
+            'preserve both proof marker pairs in their original order')
+    require(text.count('fr:proof-') == len(markers), 'unexpected proof marker')
+    for begin, end in zip(markers[::2], markers[1::2]):
+        require(begin.end() < end.start(), 'proof region is empty or reversed')
+        result[begin[2]] = (begin.end(), end.start())
+    return result
+
+
+def masked(text):
+    for name, (begin, end) in reversed(list(spans(text).items())):
+        text = text[:begin] + '<proof ' + name + '>\n' + text[end:]
+    return text
+
+
+def insert(text, name, tactics):
+    begin, end = spans(text)[name]
+    return text[:begin] + ''.join('  ' + line + '\n' for line in tactics.strip().splitlines()) + text[end:]
+
+
+def boundaries(project, prepared):
+    current, original = common.sources(project), prepared['original']
+    changed = sorted(name for name in current.keys() | original.keys() if current.get(name) != original.get(name))
+    require(set(changed) <= {SPEC} and SPEC in current, 'change only the two declared proof regions')
+    require(current[SPEC]['mode'] == original[SPEC]['mode'], 'preserve the source file mode')
+    require(masked((project / SPEC).read_text()) == prepared['protected_source'],
+            'preserve the executable algorithm, claims, assumptions and surrounding source')
+    return changed
+
+
+def prepare(binary, project, output):
+    require(not project.exists(), 'use a fresh algorithm project')
+    project.mkdir(parents=True)
+    output.mkdir(parents=True, exist_ok=False)
+    common.fr(binary, project, ['spec', 'init', 'specs', '--write'], output / 'init.json')
+    source = project / SPEC
+    source.parent.mkdir(exist_ok=True)
+    source.write_bytes((ROOT / DIRECTORY / 'fixtures/Euclid.lean').read_bytes())
+    (project / 'specs/FrSpecs.lean').write_text('import FrSpecs.Euclid\n')
+    built = common.command(['lake', 'build'], project / 'specs', output / 'build.json')
+    require(built['returncode'] == 0, 'the original executable algorithm must build with disclosed proof debt')
+    goals = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
+    require(goals['omitted'] == 0 and {row['name'] for row in goals['catalog']} == set(OBLIGATIONS),
+            'disclose exactly the termination and correctness obligations')
+    for name in OBLIGATIONS:
+        task = common.fr(binary, project, ['spec', 'proof-task', SPEC + '::' + name,
+                        '--token-limit', '4096'], output / (name + '-task.json'))
+        require(task['goal']['name'] == name, 'the proof task names the wrong obligation')
+    for name in common.sources(project):
+        (project / name).chmod(0o644)
+    common.comparison_grade.BASE.git(project, 'init', '-q', '-b', 'main')
+    (project / '.git/info/exclude').write_text('\n'.join(sorted((common.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
+    common.comparison_grade.BASE.initialize(project)
+    prepared = {'task': 'euclid', 'spec': SPEC, 'obligations': list(OBLIGATIONS),
+                'original': common.sources(project), 'protected_source': masked(source.read_text()),
+                'proved_program': 'The actual executable Lean Algorithm.euclid, for every pair of Nat inputs.',
+                'source_model_bridge': 'No Rust/Python translation is claimed or involved.'}
+    common.save(output / 'project.json', prepared)
+    common.retain_seed(project, prepared, output)
+    return prepared
+
+
+def axiom_report(text):
+    """Read all three declarations, never infer a whole algorithm from one theorem."""
+    result = {}
+    pattern = (r"'Algorithm\.([^']+)' (?:does not depend on any axioms|"
+               r'depends on axioms:\s*\[([^]]*)\])')
+    for match in re.finditer(pattern, text):
+        name = match[1]
+        require(name in DECLARATIONS and name not in result, 'unexpected or repeated axiom audit declaration')
+        result[name] = sorted(item.strip() for item in (match[2] or '').split(',') if item.strip())
+    require(set(result) == set(DECLARATIONS), 'audit both proofs and the executable function')
+    return result
+
+
+def check(project, prepared, binary, output):
+    output.mkdir(parents=True, exist_ok=False)
+    try:
+        changed = boundaries(project, prepared)
+    except ValueError as error:
+        return {'passed': False, 'stage': 'protected source', 'reason': str(error)}
+    strict = common.command([str(binary), '-C', str(project), '--json', 'spec', 'check',
+                             'specs', '--strict', '--max-debt', '0'], project, output / 'strict.json')
+    if strict['returncode'] != 0:
+        return {'passed': False, 'stage': 'unfinished proof', 'checks': [strict]}
+    built = common.command(['lake', 'build', '--wfail'], project / 'specs', output / 'build.json')
+    if built['returncode'] != 0:
+        return {'passed': False, 'stage': 'Lean package', 'checks': [strict, built]}
+    audit = output / 'Axioms.lean'
+    audit.write_text('import FrSpecs.Euclid\n' + ''.join('#print axioms Algorithm.' + name + '\n' for name in DECLARATIONS))
+    axioms = common.command(['lake', 'env', 'lean', '-j1', '-DwarningAsError=true', str(audit.resolve())],
+                            project / 'specs', output / 'axioms.json')
+    if axioms['returncode'] != 0:
+        return {'passed': False, 'stage': 'axiom audit', 'checks': [strict, built, axioms]}
+    dependencies = axiom_report(axioms['stdout'])
+    approved = all(set(names) <= common.APPROVED_AXIOMS for names in dependencies.values())
+    runtime = output / 'Execution.lean'
+    runtime.write_text('import FrSpecs.Euclid\n' + ''.join(
+        f'#eval Algorithm.euclid {a} {b}\n' for a, b in CASES))
+    executed = common.command(['lake', 'env', 'lean', '-j1', '-DwarningAsError=true', str(runtime.resolve())],
+                             project / 'specs', output / 'execution.json')
+    expected = ''.join(str(math.gcd(a, b)) + '\n' for a, b in CASES)
+    return {'passed': approved and executed['returncode'] == 0 and executed['stdout'] == expected,
+            'stage': 'complete', 'changed_paths': changed, 'axioms': dependencies,
+            'executable_lean_proved': approved, 'finite_execution_cases': len(CASES),
+            'scope': prepared['proved_program'], 'source_model_bridge': prepared['source_model_bridge'],
+            'checks': [strict, built, axioms, executed]}
+
+
+def patch_grade(original, prepared, binary, patch, output):
+    output.mkdir(parents=True, exist_ok=False)
+    if patch is None:
+        return {'passed': False, 'stage': 'missing patch'}
+    project = output / 'receiver'
+    common.checkout(original, project)
+    applied = common.command(['git', 'apply', '--index', '--', str(patch.resolve())], project, output / 'apply.json')
+    if applied['returncode'] != 0:
+        return {'passed': False, 'stage': 'patch replay'}
+    verdict = check(project, prepared, binary, output / 'check')
+    reversed_patch = common.command(['git', 'apply', '--reverse', '--index', '--', str(patch.resolve())], project, output / 'undo.json')
+    verdict['undo_exact'] = reversed_patch['returncode'] == 0 and common.sources(project) == prepared['original']
+    verdict['passed'] = verdict['passed'] and verdict['undo_exact']
+    return verdict
+
+
+VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics',
+            'changed-claim', 'changed-source', 'library-substitution', 'extra-axiom',
+            'changed-package', 'missing-patch', 'wrong-patch')
+
+
+def controls(binary, output):
+    require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run full algorithm qualification on GitHub')
+    output.mkdir(parents=True, exist_ok=False)
+    original = output / 'original'
+    prepared = prepare(binary, original, output / 'inputs')
+    solved = (original / SPEC).read_text()
+    for name in OBLIGATIONS:
+        tactics = (ROOT / DIRECTORY / 'controls' / (name.replace('_', '-') + '.lean')).read_text()
+        solved = insert(solved, name, tactics)
+    verdicts = {}
+    for variant in VARIANTS:
+        candidate = output / ('candidate-' + variant)
+        common.checkout(original, candidate)
+        text = solved
+        if variant == 'unfinished':
+            text = (original / SPEC).read_text()
+        elif variant == 'termination-only':
+            text = insert(solved, 'euclid_correct', 'sorry')
+        elif variant == 'correctness-only':
+            text = insert(solved, 'euclid_decreases', 'sorry')
+        elif variant == 'bad-tactics':
+            text = insert(solved, 'euclid_correct', 'exact Nat.gcd_comm a b')
+        elif variant == 'changed-claim':
+            text = solved.replace('euclid a b = Nat.gcd a b', 'euclid a b = euclid a b')
+        elif variant == 'changed-source':
+            text = solved.replace('then a else', 'then 0 else')
+        elif variant == 'library-substitution':
+            begin, end = solved.index('def euclid '), solved.index('\ntheorem euclid_correct ')
+            text = solved[:begin] + 'def euclid (a b : Nat) : Nat := Nat.gcd a b\n' + solved[end:]
+        elif variant == 'extra-axiom':
+            text = solved + '\naxiom cheat : False\n'
+        elif variant == 'changed-package':
+            path = candidate / 'specs/lakefile.toml'
+            path.write_text(path.read_text() + '\n# edited by candidate\n')
+        (candidate / SPEC).write_text(text)
+        if variant == 'reference':
+            # Qualify the actual interactive authoring path, not only direct replacement.
+            (candidate / SPEC).write_bytes((original / SPEC).read_bytes())
+            for name in OBLIGATIONS:
+                draft = candidate / '.fr' / (name + '.tactics')
+                draft.parent.mkdir(exist_ok=True)
+                draft.write_text('skip\n')
+                state = common.fr(binary, candidate, ['spec', 'proof-state', SPEC + '::' + name,
+                    '--from', str(draft), '--at', '1:5', '--token-limit', '4096', '--timeout-seconds', '30'],
+                    output / (name + '-state.json'))
+                require(state['acceptance'] == 'not-checked', 'interactive state is not proof acceptance')
+                draft.write_text((ROOT / DIRECTORY / 'controls' / (name.replace('_', '-') + '.lean')).read_text())
+                checked = common.fr(binary, candidate, ['spec', 'proof-check', SPEC + '::' + name,
+                                    '--from', str(draft), '--token-limit', '4096'], output / (name + '-check.json'))
+                require(checked['passed'] is True, 'reference tactics must pass through fr')
+                saved = common.fr(binary, candidate, ['spec', 'prove', SPEC + '::' + name,
+                                  '--from', str(draft), '--write'], output / (name + '-save.json'))
+                require(saved['applied'] is True, 'reference tactics must be saved through fr')
+        patch = output / (variant + '.patch')
+        patch.write_bytes(common.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout)
+        if variant == 'wrong-patch':
+            patch.write_text('not a patch\n')
+        verdict = patch_grade(original, prepared, binary, None if variant == 'missing-patch' else patch,
+                              output / ('grade-' + variant))
+        common.save(output / ('verdict-' + variant + '.json'), verdict)
+        require(verdict['passed'] == (variant == 'reference'), 'algorithm control misgraded: ' + variant)
+        verdicts[variant] = {'accepted': verdict['passed'], 'stage': verdict['stage']}
+    result = {'passed': True, 'live_model_calls': 0, 'run': os.environ['GITHUB_RUN_ID'],
+              'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+              'fr_sha256': common.digest(binary), 'controls': verdicts,
+              'program': prepared['proved_program'], 'source_model_bridge': prepared['source_model_bridge'],
+              'reference_proofs_in_seed': False}
+    common.save(output / 'controls.json', result)
+    return result
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--fr', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    arguments = parser.parse_args()
+    print(json.dumps(controls(arguments.fr.resolve(), arguments.output.resolve())))

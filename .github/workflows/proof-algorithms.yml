@@ -1,0 +1,67 @@
+name: Executable Lean algorithms
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: proof-algorithms-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  PYTHONPATH: tools:sdk/python/src
+  PYTHONDONTWRITEBYTECODE: '1'
+  FR_LEAN_JOBS: '1'
+  LEAN_NUM_THREADS: '1'
+  RAYON_NUM_THREADS: '1'
+jobs:
+  qualify:
+    name: Reject incomplete proofs of the fixed GCD implementation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - name: Check evaluator boundaries and axiom accounting
+        run: python3 -B -m unittest agent_eval.test_proof_algorithms
+      - uses: actions/download-artifact@v8
+        with:
+          name: m3-linux-tool
+          path: ${{ runner.temp }}/algorithm-tool
+          run-id: '41348391677'
+          github-token: ${{ github.token }}
+      - run: chmod +x "$RUNNER_TEMP/algorithm-tool/fr"
+      - name: Verify the exact passing build against current native inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B -m agent_eval.proof_writing_artifact --run 41348391677
+          --fr "$RUNNER_TEMP/algorithm-tool/fr" --output "$RUNNER_TEMP/algorithm-build.json"
+      - name: Check references, interactive feedback and rejected patches
+        run: >-
+          python3 -B -m agent_eval.proof_algorithms --fr "$RUNNER_TEMP/algorithm-tool/fr"
+          --output "$RUNNER_TEMP/algorithm-controls"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: algorithm-qualification
+          path: |
+            ${{ runner.temp }}/algorithm-build.json
+            ${{ runner.temp }}/algorithm-controls/controls.json
+            ${{ runner.temp }}/algorithm-controls/inputs
+            ${{ runner.temp }}/algorithm-controls/*-state.json
+            ${{ runner.temp }}/algorithm-controls/*-check.json
+            ${{ runner.temp }}/algorithm-controls/grade-*/check/*.json
+            ${{ runner.temp }}/algorithm-controls/verdict-*.json
+          if-no-files-found: error
+          retention-days: 30

@@ -85,11 +85,14 @@ claim, available facts, branch goals and draft position after each step. Hosted 
 branch completion and reject an unfinished proof. The deadline controls and packaged skill examples also pass.
 The shared skill and access-rule lesson teach the inspect/edit/check loop.
 Keep current reports and final-commit CI checked before delivery. These are tool checks and supplied examples, not new agent successes.
-The page-count proofs remain missing. The next controlled diagnostic passes its tool checks; its eight paid attempts have not started.
+The page-count proofs remain missing. The division-fact diagnostic passed its tool checks; its eight paid attempts have not started.
 
 The [proof-guidance review](docs/proof-guidance-review.md) separates relevant facts, graph presentation and checked search.
-First finish the existing eight-attempt fact diagnostic with the current tool and skills.
-Then prepare twelve sessions comparing a checklist with a graph that contains the same information.
+The next [controlled study](tests/agent-eval/proof-algorithms/README.md) uses actual algorithms.
+Start with Euclid's GCD: keep the executable Lean implementation fixed and prove both termination and correctness.
+First compare selecting library facts with receiving their declarations in eight GLM/Kimi sessions.
+Then run twelve Luna/GLM/Kimi sessions comparing a checklist with a graph containing exactly the same information.
+Reserve accumulator-based list reversal for transfer after the development decisions are fixed.
 Test automatic backtracking separately; a diagram and a search controller are different changes.
 No new live comparison has measured the merged interactive command or graph guidance.
 
@@ -109,12 +112,13 @@ No new live comparison has measured the merged interactive command or graph guid
    The [exact replay](tests/agent-eval/proof-page-count/reader-control-summary.json) now reaches Lean and still rejects the original draft.
    The [error review](tests/agent-eval/proof-page-count/draft-error-review.json) separates earlier failures from the remaining arithmetic goals.
    The specification and original agent outcomes stay unchanged.
-5. Qualify the [eight-attempt division-fact diagnostic](tests/agent-eval/proof-division-facts/README.md).
-   Both conditions keep the same task, fr and instructions; one supplies four current library declaration types.
-   Check handout preservation, exact types, rejected patches and complete delivery before freezing inputs or making calls.
-   Use the recorded per-agent decision rules; supply no completed proof.
-   The page-count prediction failed, so the full comparison stays paused.
-   Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
+5. Qualify the fixed Euclid implementation, reference proofs and independent checker before live calls.
+   Reject patches leaving either termination or correctness unfinished, even when the other proof checks.
+   Keep reference proofs outside agent workspaces. Compare facts first, then equal-information checklist/graph guidance.
+   Freeze source, claims, tools, model settings, order and decisions before sessions; keep the 150-second complete-attempt limit.
+   Report proofs of executable Lean separately from model proofs for other languages.
+   Preserve the earlier division-fact plan as an unrun supporting diagnostic; arithmetic alone cannot replace these algorithm tasks.
+   The full page-count comparison stays paused and both agents still lack accepted page-count proofs.
    Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.
 6. Add the requested [Luna, GLM and Kimi team workflow](docs/team-solve.md) in this same PR.
    Use native local CLIs. Luna plans and implements; GLM and Kimi propose independently.

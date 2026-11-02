@@ -89,16 +89,18 @@ Keep the same delivery guidance in both graph-presentation conditions.
 
 ## Test one explanation at a time
 
-1. **Facts and the current baseline.** Finish the already qualified [division-fact diagnostic](../tests/agent-eval/proof-division-facts/README.md).
-   Keep its eight slots and decision rules. Both conditions use the current fr and shared skill.
-   Freeze the actual matching executable and recheck protected inputs before calls.
-   This tests selecting facts versus receiving their types. It does not test graphs or close the page-count milestone.
-2. **Graph presentation.** Prepare one small branched arithmetic claim and qualified controls before making calls.
+1. **Facts and the current baseline.** Use the fixed executable Euclid GCD task in the
+   [algorithm study](../tests/agent-eval/proof-algorithms/README.md).
+   Prove both termination and correctness. Compare selecting facts with receiving their types in eight GLM/Kimi sessions.
+   Qualify the references, evaluator and negative controls first; references stay outside agent workspaces.
+   The earlier division-fact plan remains an unrun supporting diagnostic, not a substitute for the algorithm.
+2. **Graph presentation.** Use the same fixed Euclid task after the fact comparison.
    Compare a plain checklist with a graph.
    Both contain exactly the same goals, assumptions, facts, dependencies and case guides.
    Both keep the same interactive commands and checking policy. Only presentation changes.
    Use Luna Fast, GLM Flash and Kimi K3, two repetitions per condition: twelve fresh sessions with balanced order.
    Keep the original 150-second complete-attempt limit and workstation limits.
+   Reserve accumulator-based list reversal for transfer after the development decisions are fixed.
 3. **Checked search, only as a separate question.** If navigation or repeated failed paths remain an observed obstacle,
    compare the agent's existing loop with a bounded controller that retains alternatives and returns to a valid earlier state.
    Keep guidance, available facts, proposed-tactic allowance and total time fixed.
