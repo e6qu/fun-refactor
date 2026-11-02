@@ -759,7 +759,7 @@
         "completed_tool_wall_seconds": 14.519,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Saved termination; correctness drafts failed. Looked up the GCD recursion rule near the deadline and timed out without a patch.",
       "complete_attempt_resources": {
@@ -796,6 +796,13 @@
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -850,7 +857,7 @@
         "completed_tool_wall_seconds": 23.785,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Edited both proofs directly. Errors in correctness blocked later termination checks; unsupported command options also consumed time. No patch.",
       "complete_attempt_resources": {
@@ -887,6 +894,13 @@
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -941,7 +955,7 @@
         "completed_tool_wall_seconds": 20.346,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "passed",
       "collection_error_recorded": false,
       "failure_summary": null,
       "complete_attempt_resources": {
@@ -978,6 +992,13 @@
         "package_check_seconds": 130.678377866745,
         "patch_delivery_seconds": 134.04637789726257,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
       }
     },
     {
@@ -1032,7 +1053,7 @@
         "completed_tool_wall_seconds": 23.901,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Correctness drafts used ordinary induction and an unavailable tactic. Output filtering hid some write confirmation. Timed out without a patch.",
       "complete_attempt_resources": {
@@ -1069,6 +1090,13 @@
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -1120,7 +1148,7 @@
         "completed_tool_wall_seconds": 19.557,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Edited both proofs directly and repeatedly checked an empty draft. Induction inputs still disagreed; the package failed and no patch arrived.",
       "complete_attempt_resources": {
@@ -1157,6 +1185,13 @@
         "package_check_seconds": 140.76268100738525,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -1210,7 +1245,7 @@
         "completed_tool_wall_seconds": 23.251,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Repeated unsupported command options, then changed termination while errors in another proof still blocked checking. Timed out without a patch.",
       "complete_attempt_resources": {
@@ -1247,6 +1282,13 @@
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -1299,7 +1341,7 @@
         "completed_tool_wall_seconds": 8.303,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Used an unavailable induction-rule name and invalid branch syntax while repairing correctness. Timed out without a patch.",
       "complete_attempt_resources": {
@@ -1336,6 +1378,13 @@
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -1390,7 +1439,7 @@
         "completed_tool_wall_seconds": 7.523,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Passed both draft checks but spent time interpreting the repeated write result. Correctness was not saved and no patch arrived before timeout.",
       "complete_attempt_resources": {
@@ -1427,6 +1476,13 @@
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41427685363",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     }
   ],
