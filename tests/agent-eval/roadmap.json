@@ -38,36 +38,36 @@
       "sha256": "c90d904d97147dde2e087dde674de69c724a22ace18dce4253a4ef07b228f3c3"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "5845fb3346a60975b8d2610de3a4b714510f90a4ce309466814358a5abe7e18c"
+      "sha256": "d8ed8d2ce6a0e2e1bf82fcc3bc6b2fc74ec6a1b0927009f62cb96c4afd124982"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "92f7723d71399c71b98afaf50f945f7c97e571e2e2c815325fa698ed0b5b5479"
+      "sha256": "2ad10b2e89a40386adc183c0ec2695f671ff4b780b568966a3c9b17c747f0d9e"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "ac1be30fd75e4956de7b3655f1ef6e6982e48d97171350baea212f03bce07d8f"
+      "sha256": "5317a10aa451406098d185521eaeaf3d48a7bc21b1b9849f1d03ebef95113a0b"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "4dc87b6eaced32d409248fbb35ec002c09568639a3fc837be99314031ca43385"
+      "sha256": "524fa04f4dcd5cee3a78a02003e3dd8d8bb6b3d167e87fb93c225975505abb8a"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-ci-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "415c8f15ff143c9a8a7d7b6211e963e77e5a1e47f5bd9adbb18b982220d91841"
+      "sha256": "5766e1a8ac8c100c3289b5cda6b0959a16d5dbca14299eb66d7aabe1e0b25bca"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-02-algorithm-python-contract-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-02-algorithm-python-contract-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "e56fa30da4ddad8faf27a8e4ca0bd40f7cd89194e8db5ff928a409f82827acee"
+      "sha256": "ccc830bbe0ace64fb884e8252cc250471415db56a6404f024df979ee482c54ae"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-02-algorithm-index-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-02-lambda-qualified-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-02-algorithm-index-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "926605ed5471ae972f35617fad0c4d9cffc4a02f3188e29c5e0274ecb5fa3f23"
+      "sha256": "a1726fc32426d4d04793a7bc59042a09a53cff519fdf7189bf5ac64f1787ba7d"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
