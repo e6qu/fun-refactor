@@ -31,8 +31,8 @@ compares twelve executions with independently calculated answers.
 The reference tactics live in `controls/`, outside the exported agent project.
 
 Fourteen patch controls include two valid references and twelve rejection cases.
-The second reference uses a multiline lambda: a function whose argument continues
-on the next line. Lean accepts it, and fr must preserve its following tactic too.
+The second reference uses a multiline lambda, an unnamed function with a body
+across lines. Lean accepts its continued argument; fr must preserve the following tactic too.
 They must reject unfinished termination, unfinished correctness, wrong tactics,
 looping recursive simplification, a weaker claim, a changed implementation, replacing the function
 with library GCD, an extra axiom, changed package settings, and missing or invalid patches.
@@ -53,7 +53,11 @@ and complete no-model local controls admitted all three clients before those cal
 [Fact grades](https://github.com/e6qu/fun-refactor/actions/runs/41427685363) and
 [presentation grades](https://github.com/e6qu/fun-refactor/actions/runs/41427693183)
 retain all original outcomes. Later repairs must pass separate current checks;
-they cannot turn a failed model attempt into a success.
+they cannot turn a failed model attempt into a success. The
+[current-tool replay](current-patch-replay-summary.json) accepts all eight delivered
+patches and the separate misplaced diagnostic. The
+[final-draft replay](final-draft-replay-summary.json) reaches Lean and still rejects
+GLM's last retained draft. That check does not reconstruct its earlier lambda candidate.
 
 | Retained batch | Sessions started | What happened |
 | --- | ---: | --- |

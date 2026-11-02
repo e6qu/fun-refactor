@@ -9,6 +9,6 @@
   "location": "Parent directory instead of the required project-root change.patch.",
   "evidence": "The native command output lists that misplaced file after successful proof saves and package compilation. The complete attempt still timed out.",
   "decision": "Preserve the exact misplaced diff separately. Do not turn it into a canonical submission, alter the original result or add a completed attempt.",
-  "independent_replay": "Pending a separate current-checker replay; outside the original comparison scores.",
+  "independent_replay": "The current checker accepts this exact diff in run 41431252796, job 125233727737. This remains outside original comparison scores; the complete attempt still failed.",
   "patch_file": "patches/opencode2-kimi-k3-euclid-checklist-2.patch"
 }
