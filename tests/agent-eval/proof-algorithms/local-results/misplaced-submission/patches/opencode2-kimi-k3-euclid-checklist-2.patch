@@ -1,0 +1,32 @@
+diff --git a/specs/FrSpecs/Euclid.lean b/specs/FrSpecs/Euclid.lean
+index 53cc91c..05310fc 100644
+--- a/specs/FrSpecs/Euclid.lean
++++ b/specs/FrSpecs/Euclid.lean
+@@ -5,8 +5,7 @@ namespace Algorithm
+ 
+ theorem euclid_decreases (a b : Nat) (hb : b ≠ 0) : a % b < b := by
+   -- fr:proof-begin euclid_decreases
+-  -- fr:debt euclid_decreases
+-  sorry
++  exact Nat.mod_lt a (Nat.pos_of_ne_zero hb)
+   -- fr:proof-end euclid_decreases
+ 
+ def euclid (a b : Nat) : Nat :=
+@@ -18,8 +17,15 @@ decreasing_by
+ 
+ theorem euclid_correct (a b : Nat) : euclid a b = Nat.gcd a b := by
+   -- fr:proof-begin euclid_correct
+-  -- fr:debt euclid_correct
+-  sorry
++  revert a
++  refine Nat.strongRecOn b ?_
++  intro b ih a
++  unfold euclid
++  split
++  · rename_i hb
++    rw [hb, Nat.gcd_zero_right]
++  · rename_i hb
++    rw [ih (a % b) (euclid_decreases a b hb) b, Nat.gcd_comm b (a % b), ← Nat.gcd_rec b a, Nat.gcd_comm]
+   -- fr:proof-end euclid_correct
+ 
+ end Algorithm
