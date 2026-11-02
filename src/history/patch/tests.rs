@@ -394,7 +394,13 @@ fn selected_edits_produce_one_patch_and_its_exact_inverse() {
     let forward = render(&selected.changes, false).unwrap();
     let reverse = render(&selected.changes, true).unwrap();
     assert!(!forward.contains("scratch"));
-    assert_eq!(forward.matches("diff --git a/proof.lean").count(), 1);
+    assert_eq!(
+        forward
+            .lines()
+            .filter(|line| line.starts_with("diff --git "))
+            .count(),
+        2
+    );
     let root = receiving.path();
     git_ok(root, &["init", "-q"], "");
     fs::write(root.join("proof.lean"), "first sorry\nsecond sorry\n").unwrap();
