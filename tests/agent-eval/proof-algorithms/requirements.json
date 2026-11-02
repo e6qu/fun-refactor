@@ -54,5 +54,18 @@
   "backtracking": "Only propose a separate controlled test if records show repeated failed paths or inability to return to an earlier valid draft. No state deduplication by printed goals.",
   "publication": "Submitted patches and reviewed summaries only; raw local CLI records stay private. Preserve all twenty slots, every timeout and all earlier evidence.",
   "resource_observer": "A low-priority observer outside the throttled workload measures the required guard, controller, CLI and workers together. All actual work remains inside fr-local-guard.py. Keep the same wall/CPU/RSS/disk/output limits; a stopped or missing complete-attempt receipt cannot pass.",
-  "task_import": "Fresh cohort uses import Init with the same executable GCD and claims. Preserve the earlier full-Std cohort separately; do not compare its timing or memory directly."
+  "task_import": "Both Euclid and the entry module start with prelude to disable the automatic Init import. Euclid imports Init.Data.Nat.Gcd. The executable and claims are unchanged; preserve the earlier Std and Init batches separately.",
+  "native_admission": {
+    "complete_workflow_required": true,
+    "recursive_loop_rejection_required": true,
+    "session_accounting_required": true,
+    "client_context_reserve_bytes": 134217728,
+    "control_limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    }
+  }
 }

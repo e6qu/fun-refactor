@@ -67,7 +67,7 @@ def implementation_bindings(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'reserved').glob('*.lean'))
             paths += [directory / 'interrupted-results/summary.json']
-            paths += [directory / 'interrupted-results/Euclid.lean']
+            paths += list((directory / 'interrupted-results').glob('*.lean'))
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
         if milestone == 'M3-page-count':
@@ -258,6 +258,8 @@ def freeze(inputs, binaries, runtime, output, milestone):
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
     if milestone in PROOF_STUDIES:
         expected_runtime |= {'fr_build', 'controls'}
+    if milestone in ALGORITHM_STUDIES:
+        expected_runtime.add('admission')
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     clients = {profile['client'] for profile in proposed['profiles'].values()}
     paths, components = freeze_binaries(binaries, output, clients)
@@ -394,7 +396,10 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
     if milestone in ALGORITHM_STUDIES:
         from .selected_guarded import contract
+        from .algorithm_admission import validate_receipts
         value['resource_monitor'] = contract()
+        value['admission'] = validate_receipts(json.loads(runtime['admission'].read_text()), paths,
+            seeds['euclid']['receipt']['archive_sha256'], value['controls']['run'])
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value

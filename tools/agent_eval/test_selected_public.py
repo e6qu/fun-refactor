@@ -91,6 +91,8 @@ class SelectedPublicTests(unittest.TestCase):
                     'binaries': {}, 'components': {}, 'client_finish_seconds': 10, 'formal_inputs': {},
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
+            if milestone in public.ALGORITHM_STUDIES:
+                plan['admission'] = {'profiles': {}, 'receipts_sha256': 'a' * 64}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
             plan_path.write_text(json.dumps(plan))

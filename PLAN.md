@@ -9,7 +9,7 @@ Fr should help it find the right code, prepare a precise edit, check its work an
 | --- | --- | --- |
 | Refactor without changing behavior | Rename a Python function and update its imported callers | The promised callers change, unrelated names stay intact, and behavior checks still pass |
 | Change behavior deliberately | Fix a Unicode comparison or add a function that counts escaped text | Tests reject the original mistake and accept the requested result |
-| Write a Lean proof | Show that an access function returns true exactly for staff or owners | Lean accepts the agent's proof of the unchanged property; the source/model connection and assumptions remain visible |
+| Write a Lean proof | Prove that Euclid's GCD code stops and returns the correct result for every input | Lean accepts both proofs of the unchanged executable; examples include `gcd(48, 18) = 6` |
 
 Prefer edits that retain comments, formatting and source outside the intended change.
 Parsing successfully is a separate check. Preserving behavior is required for a refactoring; repairs and features deliberately change behavior.
@@ -102,10 +102,14 @@ descendant accounting, partial-output retention and multi-input induction before
 freezing fresh complete comparisons. Keep the same claims, agents and limits.
 Qualify the combined Mac CLI/server/fr/Lean workload on the correctness goal
 before live calls. The standalone termination check missed that composition's
-memory cost. The rebuilt single-worker command still exceeds the inner budget with
-the unused full `Std` import. Fresh task qualification uses `Init` with the same
-function and claims. Keep its study separate from the original batch. Observe the
-whole guarded attempt from outside its CPU throttle so sampling keeps running.
+memory cost. The rebuilt single-worker command still exceeds the inner budget with the full `Std` import.
+An [Init-import session](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
+also stopped; its initial-goal check missed later proof and package costs.
+Both replacement task files now disable automatic imports and use only the required library.
+The function and claims stay the same. Check the entire workflow, including rejected
+drafts, both proof saves, the package, patch and accounting. Require all three native
+profiles to leave 128 MiB within the unchanged 768-MiB ceiling before freezing fresh studies.
+Observe the whole guarded attempt from outside its CPU throttle so sampling keeps running.
 Older local OpenCode2 CPU and RSS samples also missed detached servers. Keep their
 original clocks and patch verdicts; those samples cannot prove whole-client resource compliance.
 The [method review](docs/agent-improvement.md#next-comparison-prove-an-executable-algorithm)

@@ -65,6 +65,19 @@ class AlgorithmChecks(unittest.TestCase):
         self.assertNotIn('Nat.strongRecOn', self.text)
         self.assertEqual(len(algorithms.spans(self.text)), 2)
 
+    def test_entry_module_cannot_restore_the_automatic_large_import(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / algorithms.SPEC
+            source.parent.mkdir(parents=True)
+            source.write_text(self.text)
+            entry = root / 'specs/FrSpecs.lean'
+            entry.write_bytes((ROOT / algorithms.DIRECTORY / 'fixtures/FrSpecs.lean').read_bytes())
+            prepared = {'original': common.sources(root), 'protected_source': algorithms.masked(self.text)}
+            entry.write_text('import FrSpecs.Euclid\n')
+            with self.assertRaisesRegex(ValueError, 'two declared proof regions'):
+                algorithms.boundaries(root, prepared)
+
     def test_retained_agent_patch_keeps_exact_source_and_patch(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

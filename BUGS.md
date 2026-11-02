@@ -10,15 +10,22 @@ on `research/proof-guidance`. The interrupted algorithm batch exposed these defe
 
 | Problem | Repair and remaining check |
 | --- | --- |
-| The inner memory and CPU monitor missed OpenCode's detached private server | Follow descendants across process groups and stop observed workers on exit. Twenty focused monitor tests pass locally; hosted checks remain required |
+| The inner memory and CPU monitor missed OpenCode's detached private server | Follow descendants across process groups and stop observed workers on exit. Focused tests pass locally and in [hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41398715778) |
 | Killing the controller could lose buffered native feedback | Flush every received block. A regression checks that partial output is readable while the controller is still running |
-| Fr rejected induction over two inputs before Lean ran | Add the explicit recursor and comma-separated inputs; a small example passes pinned Lean. Generated-reader and native qualification remain required |
-| Inspecting the GCD correctness goal exceeded the combined memory limit | Remove the persistent Lake parent and watchdog from one-file inspection. The direct-worker prototype returns the same goal with less RSS; rebuilt-command and combined-CLI checks remain required |
+| Fr rejected induction over two inputs before Lean ran | The generated reader accepts both inputs and the named induction rule. Native qualification passes; both fixed-corpus audits preserve the reviewed facts |
+| CPU throttling could pause the inner sampler while a new worker ran | Observe the whole required guard and workload from outside the throttled tree. Keep all limits unchanged and preserve the original controller report |
+| Initial-goal admission missed later proof and package memory | Both GCD task files now disable the automatic library import. A complete scripted prototype fits the fixed budget. The freezer now requires full-workflow receipts with client-state headroom; hosted and all-client checks remain required |
+| An interrupted result filled unknown system sleep with zero | The outer observer now compares both clocks, including when the controller is stopped. Keep the earlier result unchanged and label its missing sleep measurement unknown |
 | Recursive definitions and local helpers confused the reader | The hosted algorithm checks accept Euclid's termination hints and isolate local-helper renames. Preserve the exact benchmark-fact audits |
 
 The [interrupted batch](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
 remains inconclusive. The exact allocation behind its outer memory stop is unknown;
 the repair must not be described as a measured reduction in client memory.
+The [later Init session](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
+also remains a failed, incomplete comparison. No graph session has run.
+The project replay also hit its CPU ceiling after accounting improved.
+Its [single-worker replay](https://github.com/e6qu/fun-refactor/actions/runs/41401084179)
+passes with the original CPU and wall budgets. Both the collector and CI now select one worker explicitly.
 
 The earlier repairs below belong to merged M3 work, including PR #591.
 The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit

@@ -15,6 +15,13 @@ call. An induction hypothesis is a fact about smaller calls. If both inputs chan
 the hypothesis must still cover the new first input; fixing it too early can leave
 an unusable hypothesis. Unfold one recursive step and inspect both cases before
 choosing library facts. Read each fact's argument types rather than guessing them.
+Here `b` can fall from 18 to 12. A proof that only knows case 17 may not help.
+Strong induction lets you reuse the proof for every smaller input.
+
+Simplification repeatedly rewrites expressions using known equalities. For a recursive
+function, the same pattern can reappear. If Lean reports a looping simplification after
+`simp [f]`, unfold one call instead and inspect the resulting cases. Do not increase
+the recursion limit to force that loop through.
 
 When one claim uses another unfinished claim, Lean may check that draft while
 retaining an assumption elsewhere. A passing `proof-check` applies to its target.

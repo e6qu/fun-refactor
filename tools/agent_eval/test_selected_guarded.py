@@ -28,18 +28,21 @@ class GuardedAttemptChecks(unittest.TestCase):
         for status in ('completed', 'started'):
             with tempfile.TemporaryDirectory() as temporary:
                 directory = Path(temporary)
-                resources = {'elapsed_seconds': 80, 'stop_reason': 'rss_bytes', 'exit_code': 125}
+                resources = {'elapsed_seconds': 80, 'stop_reason': 'rss_bytes', 'exit_code': 125,
+                             'suspended_seconds': 1.5}
                 (directory / 'resources.json').write_text(json.dumps(resources))
                 record = {'status': status, 'collection_errors': [], 'elapsed_seconds': 50}
                 guarded.attach(record, resources, directory)
                 self.assertEqual(record['status'], 'failed')
                 self.assertEqual(record['elapsed_seconds'], 80)
+                self.assertEqual(record['suspended_seconds'], 1.5)
                 self.assertEqual(bool(record['collection_errors']), status == 'started')
 
     def test_expected_deadline_is_a_failed_attempt_not_a_broken_collection(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
-            resources = {'elapsed_seconds': 150.01, 'stop_reason': 'wall_seconds', 'exit_code': 124}
+            resources = {'elapsed_seconds': 150.01, 'stop_reason': 'wall_seconds', 'exit_code': 124,
+                         'suspended_seconds': 0.2}
             (directory / 'resources.json').write_text(json.dumps(resources))
             record = {'status': 'started', 'collection_errors': [], 'elapsed_seconds': 0}
             guarded.attach(record, resources, directory)

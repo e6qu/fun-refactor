@@ -1,4 +1,5 @@
-import Std
+prelude
+import Init.Data.List.Lemmas
 
 namespace Transfer
 

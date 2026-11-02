@@ -47,9 +47,10 @@ def attach(record, resources, monitor):
     record['complete_attempt_resources'] = resources
     record['complete_attempt_resources_sha256'] = local.hash_file(monitor / 'resources.json')
     record['elapsed_seconds'] = resources['elapsed_seconds']
+    record['suspended_seconds'] = resources['suspended_seconds']
     record['complete_attempt_deadline_missed'] = resources['elapsed_seconds'] > local.LIMITS['wall_seconds']
     if record['status'] == 'started':
-        record.update(status='failed', finished_at=time.time(), suspended_seconds=0)
+        record.update(status='failed', finished_at=time.time())
         record['controller_interrupted'] = True
         if resources['stop_reason'] != 'wall_seconds':
             record['collection_errors'].append({'stage': 'complete attempt', 'error': 'Guarded controller interrupted.'})
@@ -80,8 +81,10 @@ def attempt(plan_path, attempt_id):
     host.sample = sampler
     try:
         with (monitor / 'stdout').open('xb') as stdout, (monitor / 'stderr').open('xb') as stderr:
+            awake_started = time.monotonic()
             resources = host.run(command, b'', stdout, stderr, project_parent,
                                  env=env, cwd=ROOT, **local.LIMITS)
+            resources['suspended_seconds'] = max(0, resources['elapsed_seconds'] - (time.monotonic() - awake_started))
     finally:
         host.sample = previous
     local.tasks.save(monitor / 'resources.json', resources)

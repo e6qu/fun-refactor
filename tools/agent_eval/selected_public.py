@@ -290,6 +290,10 @@ def export(plan_path, review, destination):
         summary['scope'] = 'Eight development-example attempts on selecting and applying division facts. No ordinary-tool timing baseline or full M3 claim.'
         summary['provider_request_count'] = None
     elif milestone in ALGORITHM_STUDIES:
+        summary['native_admission'] = plan['admission']
+        summary['resource_scope'] = ('Independent sampled limits cover the guard, controller, native CLI and workers, '
+            'including preparation and accounting. The observer stays outside the CPU throttle. '
+            'Short peaks and children reparented before discovery can still be missed.')
         summary['scope'] = ('Controlled development comparison on executable Lean Euclid, including termination and correctness. '
                             'No ordinary-tool overhead baseline, Rust/Python translation proof or M3 completion claim.')
         summary['guidance_bytes'] = {}

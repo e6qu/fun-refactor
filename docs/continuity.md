@@ -34,13 +34,19 @@ including three timeouts, one Kimi submission and all unstarted slots.
 Fix detached-server accounting, output flushing and multi-input induction before
 fresh hosted qualification and new frozen plans. Do not reuse either invalidated plan.
 The correctness inspector now uses one Lean worker. The complete workload with
-the unused full `Std` import still exceeds the inner memory budget. Fresh task
-qualification uses `Init` with the same GCD function and theorem statements.
+the unused full `Std` import still exceeds the inner memory budget.
+One [Init-import session](../tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
+also stopped. Its initial-goal check missed the cost of later proof and package work.
+The replacement disables automatic imports in both task files and imports only the required GCD library.
+The function and theorem statements stay the same.
 An observer outside the CPU throttle measures the guard, controller, CLI and workers
 together. All actual work stays inside the required guard and all limits stay fixed.
-The [scripted local checks](../tests/agent-eval/proof-algorithms/local-results/native-admission.json)
-pass for Luna, GLM and Kimi. They make no model calls and establish no guidance advantage.
-Finish hosted reference and rejection controls before freezing new plans.
+The [earlier scripted checks](../tests/agent-eval/proof-algorithms/local-results/native-admission.json)
+passed for Luna, GLM and Kimi but inspected only the initial goal.
+They establish no guidance advantage and cannot admit another study.
+The new gate must reject a looping draft, save both proofs, build, deliver and finish accounting.
+Require all three profiles to leave 128 MiB within the unchanged memory ceiling.
+Finish hosted checks and this complete local gate before freezing new plans.
 Then compare declarations in eight GLM/Kimi sessions and equal-information
 checklist/graph guidance in twelve Luna/GLM/Kimi sessions. Keep 150 seconds for each
 complete attempt. Full builds and independent grading stay on GitHub.

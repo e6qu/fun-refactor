@@ -137,11 +137,161 @@
       "elapsed_seconds": 3.3305995410773903,
       "sampled_aggregate_rss_bytes": 511524864,
       "sampled_cpu_seconds": 1.68
+    },
+    {
+      "id": "batch-default",
+      "scope": "single checker with Lake",
+      "record_sha256": "ce6ea41e98633ab04ccb94390e7fbe199391a9d7c52ab0126231b4b00c573267",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 1.7432220410555601,
+      "sampled_aggregate_rss_bytes": 453263360,
+      "sampled_cpu_seconds": 0.9199999999999999
+    },
+    {
+      "id": "batch-one-thread",
+      "scope": "single checker with Lake",
+      "record_sha256": "aeec53fb5a8d3876eabd24f680c3e40b8cc6eb08f03615c4158dad201d8d6bd4",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 1.7262044169474393,
+      "sampled_aggregate_rss_bytes": 451346432,
+      "sampled_cpu_seconds": 0.8999999999999999
+    },
+    {
+      "id": "batch-synchronous",
+      "scope": "single checker with Lake",
+      "record_sha256": "003bc9f75e5646d3bcf510579e02127dd7048582342049f8d3164113bfd1503c",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 1.7459621250163764,
+      "sampled_aggregate_rss_bytes": 449691648,
+      "sampled_cpu_seconds": 0.9199999999999999
+    },
+    {
+      "id": "reference-gcd-only",
+      "scope": "single checker with Lake; GCD import",
+      "record_sha256": "91a6a891a5e985f401115792edb6f26ba81cb0d0183cfaebe38d6817a05f32c6",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 0.20281633315607905,
+      "sampled_aggregate_rss_bytes": 189038592,
+      "sampled_cpu_seconds": 0.12
+    },
+    {
+      "id": "bad-gcd-only",
+      "scope": "single checker with Lake; GCD import",
+      "record_sha256": "4b1bc78f0afb3dd7cd6f44ba5a3c7c843eb8c46596083bfaae0e536a1bba25cc",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 1.511231750017032,
+      "sampled_aggregate_rss_bytes": 193675264,
+      "sampled_cpu_seconds": 0.7999999999999999
+    },
+    {
+      "id": "complete-init",
+      "scope": "complete native workflow; Init leaf and entry",
+      "record_sha256": "f13580b8f5c07116cf41fb17f42b628bca7b8360a0658bdf8e079d7f792c399a",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 5.619056875118986,
+      "sampled_aggregate_rss_bytes": 799670272,
+      "sampled_cpu_seconds": 2.4299999999999997
+    },
+    {
+      "id": "complete-specific-leaf-only",
+      "scope": "complete native workflow; precise leaf, implicit Init entry",
+      "record_sha256": "68a5820dadaf58674982e89a2aee1ba4e954523b6cd243b53f09db1138ef9377",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 4.786734375171363,
+      "sampled_aggregate_rss_bytes": 805306368,
+      "sampled_cpu_seconds": 2.14
+    },
+    {
+      "id": "complete-specific-both-modules",
+      "scope": "complete native workflow; precise leaf and entry",
+      "record_sha256": "dbbc3b7a67e499ffaec5d8cab98752a34f0d1e84ff8f263ed2aba597aeeb9cfc",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 4.4969924171455204,
+      "sampled_aggregate_rss_bytes": 517160960,
+      "sampled_cpu_seconds": 1.8399999999999999
+    },
+    {
+      "id": "complete-check-missing-bad-file",
+      "scope": "invalid setup; synthetic rejection draft missing",
+      "record_sha256": "bff418ee0800dd9caf658ffa22deff4355dc8c3406e4eee53a7acc3c85c63e78",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 4.018107374897227,
+      "sampled_aggregate_rss_bytes": 518291456,
+      "sampled_cpu_seconds": 1.8
+    },
+    {
+      "id": "complete-check-trimmed-detail",
+      "scope": "invalid assertion; required error context was intentionally omitted by the report budget",
+      "record_sha256": "e1039531e3fe7348e5ceee5b4574384d62452ba9e1e4131992c9d8d08f46d382",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 5.302079708082601,
+      "sampled_aggregate_rss_bytes": 590118912,
+      "sampled_cpu_seconds": 2.67
+    },
+    {
+      "id": "complete-check-loop-and-success",
+      "scope": "complete native workflow plus loop rejection; excludes post-run API accounting",
+      "record_sha256": "5811244c52ff93856bbb7e9ed87eb18cbf06f7be7d03668a6e593e68e46b9d59",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 6.784459499875084,
+      "sampled_aggregate_rss_bytes": 590839808,
+      "sampled_cpu_seconds": 3.03
+    },
+    {
+      "id": "codex-complete-unpinned-package-tool",
+      "scope": "invalid setup; package command selected the unconfigured elan shim",
+      "record_sha256": "ac462846b159b969127acf63dfbf0467e6017017d95968b6f4bd29d5ad00c342",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 36.04924591607414,
+      "sampled_aggregate_rss_bytes": 402505728,
+      "sampled_cpu_seconds": 3.54
+    },
+    {
+      "id": "codex-complete-missing-binary",
+      "scope": "invalid setup; supplied fr path did not exist",
+      "record_sha256": "937d5da2fcaa2b9abda0088f16c70fb2d2cd3b7d5e705c0b8ae294fea9c61a48",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 32.276966833975166,
+      "sampled_aggregate_rss_bytes": 220954624,
+      "sampled_cpu_seconds": 1.94
+    },
+    {
+      "id": "codex-complete-missing-binary-with-path",
+      "scope": "invalid setup; supplied fr path still did not exist",
+      "record_sha256": "8117217371079c46d37890e03df13d99ca87fda731a3cbeb8ddbfd11083a2819",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 32.70928249997087,
+      "sampled_aggregate_rss_bytes": 227311616,
+      "sampled_cpu_seconds": 2.0
+    },
+    {
+      "id": "codex-complete-pinned-tools",
+      "scope": "complete native Codex workflow plus loop rejection; fixed explicit tool paths",
+      "record_sha256": "5edea069bf3b79ba7641be1c942b3ae830e4cea67deeebd824258a5a767be622",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 5.151945041958243,
+      "sampled_aggregate_rss_bytes": 406749184,
+      "sampled_cpu_seconds": 2.1
     }
   ],
-  "interpretation": "The original and rebuilt full-Std combined paths exceed the unchanged memory limit. The CPU guard can pause an inner sampler while a newly started worker runs, so two apparent low-RSS passes missed Lean entirely and are invalid admission evidence. An observer outside the throttled tree counts the complete guard/controller/CLI/worker workload: Std fails at 923549696 bytes; the separately revised Init-import task returns the same GCD goal at 537034752 bytes. The function and theorem statements are unchanged. Fresh hosted qualification and frozen study plans are required; these controls are not model outcomes or an fr-versus-ordinary-tools overhead comparison.",
+  "interpretation": "Full Std and Init workflows can exceed the unchanged memory limit. Initial-goal checks missed later proof and package work. Explicit single-threaded and synchronous Lean checks did not materially reduce the saved bad draft\u2019s memory. Importing only Nat.Gcd reduces the isolated checker cost, but the package entry also needs prelude to avoid implicitly loading Init. Changing both headers preserves the executable and claims and completes the same native workflow at 517160960 sampled bytes. These are controlled no-model checks, not agent outcomes or an fr-versus-ordinary-tools overhead comparison. Require the full automated workflow and 128 MiB of client-state headroom before any fresh calls.",
   "invalid_control": "The first combined control used the Docker fixture directory /workspace and was denied before fr ran. It is retained as invalid setup; the corrected-directory control reached the memory limit.",
   "publication": "Reviewed numeric summaries and hashes only; raw traces remain local.",
   "rebuilt_fr_sha256": "b1fe4b9e0b313e40e00ad8c0657afb7f532bf6b0dfc034323c9d7656d8266d92",
-  "observer_limitation": "The first independent observer used the task-memory API, which rejects the guard’s setuid ps subprocess. It failed closed. The successful observer uses ps RSS and CPU counters, with observed descendant scope and normal sampled-peak limitations."
+  "observer_limitation": "The first independent observer used the task-memory API, which rejects the guard\u2019s setuid ps subprocess. It failed closed. The successful observer uses ps RSS and CPU counters, with observed descendant scope and normal sampled-peak limitations."
 }

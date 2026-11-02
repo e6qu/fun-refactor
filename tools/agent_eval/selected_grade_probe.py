@@ -58,6 +58,8 @@ def run(task, milestone):
                 'choose the current algorithm task or the explicit immutable archive recheck')
         require(task == 'euclid' and prepared['obligations'] == list(cases.OBLIGATIONS) and
                 (original / cases.SPEC).read_bytes() == (ROOT / cases.DIRECTORY / fixture).read_bytes() and
+                (original / 'specs/FrSpecs.lean').read_bytes() ==
+                (ROOT / cases.DIRECTORY / Path(fixture).parent / 'FrSpecs.lean').read_bytes() and
                 prepared['protected_source'] == cases.masked((original / cases.SPEC).read_text()),
                 'private executable algorithm or proof obligations differ')
     elif milestone in {'M3', 'M3-page-count'}:

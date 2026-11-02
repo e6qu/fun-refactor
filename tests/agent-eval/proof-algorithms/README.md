@@ -22,27 +22,34 @@ Finite execution examples provide an additional check; they do not prove the gen
 
 ## What must pass before we call an agent
 
-The [hosted qualification](../../../.github/workflows/proof-algorithms.yml) builds
-the unfinished package, discloses both goals and checks supplied reference tactics
+The [hosted checks](../../../.github/workflows/proof-algorithms.yml) build
+the unfinished package, disclose both goals and check supplied reference tactics
 through `fr spec proof-state`, `proof-check` and `prove`.
 It replays the delivered patch in a clean checkout, builds with warnings treated as
 errors, audits the executable function and both proofs for assumed axioms, and
 compares twelve executions with independently calculated answers.
 The reference tactics live in `controls/`, outside the exported agent project.
 
-Negative controls must reject unfinished termination, unfinished correctness,
-wrong tactics, a weaker claim, a changed implementation, replacing the function
+Thirteen patch controls include the reference and twelve rejection cases.
+They must reject unfinished termination, unfinished correctness, wrong tactics,
+looping recursive simplification, a weaker claim, a changed implementation, replacing the function
 with library GCD, an extra axiom, changed package settings, and missing or invalid patches.
 A proof-check receipt for one region cannot establish that the whole algorithm is proved.
 
-**Current status:** the [checked build](https://github.com/e6qu/fun-refactor/actions/runs/41383408769)
-passed twelve patch controls and six scripted native-client exchanges. Its exact Mac
-build also passed a focused local proof-state and termination check.
-The [first live batch](interrupted-results/README.md) stopped in its fifth slot at
-the workstation memory limit. It retained three timeouts and one Kimi submission.
-The investigation found missing detached-server accounting, lost buffered feedback
-and a reader rejection of induction over two inputs. Their repairs need fresh
-hosted qualification before the complete comparisons run. No guidance advantage is claimed.
+**Current status:** no complete comparison has established a guidance advantage.
+The [checked build](https://github.com/e6qu/fun-refactor/actions/runs/41398715778)
+accepted both reference proofs and the original Kimi patch. Its twelve earlier patch-control tests passed.
+It also passed six scripted client exchanges and the Mac build.
+The current smaller-import task and complete-workflow admission need their own checks before fresh calls.
+
+| Retained batch | Sessions started | What happened |
+| --- | ---: | --- |
+| [Full `Std` import](interrupted-results/README.md) | 5 | Three timeouts, one submitted Kimi proof and a memory stop |
+| [Automatic `Init` import](interrupted-init-results/README.md) | 1 | A looping draft reached the complete-attempt memory ceiling |
+
+Keep both batches and all their unstarted slots. Neither can settle the guidance question.
+The first exposed reader and sampling defects. The second showed that checking only
+the initial goal did not establish that later proof and package work would fit.
 
 The [memory investigation](memory-controls.json) reproduced the correctness-goal
 limit without a model. Fr now removes the redundant Lake parent and Lean watchdog
@@ -57,13 +64,20 @@ controller, CLI and workers through preparation and accounting; it uses the same
 older native-client-only readings. The observer is low priority and cannot run two
 guarded workloads at once.
 
-The fresh task imports `Init`, which provides the required natural-number facts,
-instead of the unused full `Std` library. The executable function and theorem
-statements are unchanged. A complete scripted local check fits the memory limit;
-hosted reference and rejection controls must qualify this exact task before calls.
-The [original task](interrupted-results/Euclid.lean), all failures and misleading
-readings remain recorded separately. No diagnostic is an agent outcome or a
-measurement of fr overhead against ordinary tools.
+Lean normally imports `Init` automatically into each file. Both the algorithm file
+and its entry file now start with `prelude` to turn that off. They then import only
+the required GCD library or the algorithm itself. The function and theorem statements
+are unchanged. Narrowing just the algorithm file left the entry file loading `Init`.
+A complete scripted check dropped from about 763 MiB to 493 MiB after changing both headers.
+These measurements cover the same native workflow, not fr overhead against ordinary Lean.
+
+The [complete check](../../../tools/agent_eval/algorithm_admission.py) must inspect a
+goal, reject a looping draft, check and save both reference proofs, build the package,
+deliver a patch and finish native session accounting. It uses canned local replies,
+with no model calls. All three profiles must pass. It must leave 128 MiB for client
+state within the unchanged 768-MiB attempt ceiling. Freezing a study rejects missing,
+stale or incomplete receipts. An initial-goal spot check cannot satisfy this gate.
+Raw control records remain private. Only reviewed summaries may be published.
 The [generated reader](https://github.com/e6qu/fun-refactor/actions/runs/41390732896)
 now preserves both induction inputs and the named induction rule.
 
@@ -95,6 +109,11 @@ Before live calls, check the actual Mac CLI, private server, fr and Lean togethe
 on the correctness goal. A standalone inspector check cannot establish that the
 combined workload fits its limit. Scripted loopback replies can test this without
 contacting a model provider.
+Use `python3 -B -m agent_eval.algorithm_admission --help` for the complete check's
+required binary, pinned Lean, task archive, hosted-control and guard paths.
+Run it in `observe` mode for each profile with a new private output directory.
+Collect the three `summary.json` objects into a JSON map keyed by profile name.
+Pass that file as the explicit `admission` runtime input when freezing both studies.
 Run each frozen algorithm slot through the independent observer:
 
 ```sh

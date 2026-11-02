@@ -75,6 +75,7 @@ jobs:
           python3 -B -m unittest agent_eval.test_proof_algorithms agent_eval.test_algorithm_guidance
           agent_eval.test_algorithm_results agent_eval.test_selected_public
           agent_eval.test_selected_guarded
+          agent_eval.test_algorithm_admission
           agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2

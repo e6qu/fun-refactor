@@ -1,0 +1,97 @@
+{
+  "purpose": "Preserve the single interrupted Init-import session and every unstarted slot. Do not replace it or claim a guidance result.",
+  "source_commit": "64799573da10e04b556fe567a6702eb971125407",
+  "facts_plan_sha256": "67c67da75071d4719d58da350599733fa3d65f5f196e5b49e35616dda5dd7db8",
+  "presentation_plan_sha256": "24388149f24c7dc134dc2388d14dabb2eb5033556702a59ce1b3210f60c01479",
+  "qualified_run": "41398715778",
+  "fr_sha256": "b1fe4b9e0b313e40e00ad8c0657afb7f532bf6b0dfc034323c9d7656d8266d92",
+  "task_source_sha256": "6b600b232fb92fde68ce4674bb41663192678c1db6ab61faaf396b6524396597",
+  "attempts": [
+    {
+      "id": "opencode2-glm-flash-euclid-select-facts-1",
+      "profile": "opencode2-glm-flash",
+      "setup": "select-facts",
+      "repetition": 1,
+      "status": "failed",
+      "elapsed_seconds": 52.71259004203603,
+      "stop_reason": "rss_bytes",
+      "sampled_aggregate_rss_bytes": 880066560,
+      "patch_delivered": false,
+      "record_sha256": "a85e822d9f98fe85cbe46aba7854c0f0acac053c486bdc8e96b36233ad2baea8",
+      "original_controller_sha256": "b4003c275c1db414ec4bb4cda2d83be2daacc292c5be9e2ba63845fabdbbc7d3",
+      "stream_sha256": "6c5b8d1aec8160174cf97bb63aef20e64b1485f361384289e710f61ca9fc7778",
+      "recovered_export_sha256": "2c7c149d73c53d02b66cf19555ccaefa0cacbf35a64d60f922a2f5c9f73a5e20",
+      "whole_resources_sha256": "d0bac004f67aaee549a513a6917c2a0500440af0a3b54e2779513af23c69c76c",
+      "review": "Inspected termination, then edited both proofs directly. Used ordinary induction and recursive simplification for correctness. A copied-draft Lean check rejects looping simplification. The native CLI did not retain the in-flight command.",
+      "system_sleep_measurement": "Unknown after interruption; the old finalizer wrote zero without an outer clock comparison. The original record is unchanged. The complete elapsed clock includes any sleep."
+    },
+    {
+      "id": "opencode2-glm-flash-euclid-supplied-declarations-1",
+      "profile": "opencode2-glm-flash",
+      "setup": "supplied-declarations",
+      "repetition": 1,
+      "status": "unstarted"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-supplied-declarations-1",
+      "profile": "opencode2-kimi-k3",
+      "setup": "supplied-declarations",
+      "repetition": 1,
+      "status": "unstarted"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-select-facts-1",
+      "profile": "opencode2-kimi-k3",
+      "setup": "select-facts",
+      "repetition": 1,
+      "status": "unstarted"
+    },
+    {
+      "id": "opencode2-glm-flash-euclid-supplied-declarations-2",
+      "profile": "opencode2-glm-flash",
+      "setup": "supplied-declarations",
+      "repetition": 2,
+      "status": "unstarted"
+    },
+    {
+      "id": "opencode2-glm-flash-euclid-select-facts-2",
+      "profile": "opencode2-glm-flash",
+      "setup": "select-facts",
+      "repetition": 2,
+      "status": "unstarted"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-select-facts-2",
+      "profile": "opencode2-kimi-k3",
+      "setup": "select-facts",
+      "repetition": 2,
+      "status": "unstarted"
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-supplied-declarations-2",
+      "profile": "opencode2-kimi-k3",
+      "setup": "supplied-declarations",
+      "repetition": 2,
+      "status": "unstarted"
+    }
+  ],
+  "presentation": {
+    "status": "unstarted",
+    "attempt_ids": [
+      "codex-luna-fast-euclid-checklist-1",
+      "codex-luna-fast-euclid-graph-1",
+      "opencode2-glm-flash-euclid-graph-1",
+      "opencode2-glm-flash-euclid-checklist-1",
+      "opencode2-kimi-k3-euclid-checklist-1",
+      "opencode2-kimi-k3-euclid-graph-1",
+      "codex-luna-fast-euclid-graph-2",
+      "codex-luna-fast-euclid-checklist-2",
+      "opencode2-glm-flash-euclid-checklist-2",
+      "opencode2-glm-flash-euclid-graph-2",
+      "opencode2-kimi-k3-euclid-graph-2",
+      "opencode2-kimi-k3-euclid-checklist-2"
+    ]
+  },
+  "conclusion": "Initial-goal admission missed later proof and package costs. The first session stopped at the fixed memory ceiling. Later controlled import tests retain the function and claims and identify the entry module’s automatic Init import. No guidance advantage is established.",
+  "publication": "Reviewed summary only. Raw conversations, draft source and recovered export stay private."
+}

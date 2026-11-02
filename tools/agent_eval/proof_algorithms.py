@@ -63,7 +63,7 @@ def prepare(binary, project, output, fixture):
     source = project / SPEC
     source.parent.mkdir(exist_ok=True)
     source.write_bytes(fixture.read_bytes())
-    (project / 'specs/FrSpecs.lean').write_text('import FrSpecs.Euclid\n')
+    (project / 'specs/FrSpecs.lean').write_bytes((fixture.parent / 'FrSpecs.lean').read_bytes())
     built = common.command(['lake', 'build'], project / 'specs', output / 'build.json')
     require(built['returncode'] == 0, 'the original executable algorithm must build with disclosed proof debt')
     goals = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
@@ -115,7 +115,7 @@ def check(project, prepared, binary, output):
     if built['returncode'] != 0:
         return {'passed': False, 'stage': 'Lean package', 'checks': [strict, built]}
     audit = output / 'Axioms.lean'
-    audit.write_text('import FrSpecs.Euclid\n' + ''.join('#print axioms Algorithm.' + name + '\n' for name in DECLARATIONS))
+    audit.write_text('prelude\nimport FrSpecs.Euclid\n' + ''.join('#print axioms Algorithm.' + name + '\n' for name in DECLARATIONS))
     axioms = common.command(['lake', 'env', 'lean', '-j1', '-DwarningAsError=true', str(audit.resolve())],
                             project / 'specs', output / 'axioms.json')
     if axioms['returncode'] != 0:
@@ -123,7 +123,7 @@ def check(project, prepared, binary, output):
     dependencies = axiom_report(axioms['stdout'])
     approved = all(set(names) <= common.APPROVED_AXIOMS for names in dependencies.values())
     runtime = output / 'Execution.lean'
-    runtime.write_text('import FrSpecs.Euclid\n' + ''.join(
+    runtime.write_text('prelude\nimport FrSpecs.Euclid\n' + ''.join(
         f'#eval Algorithm.euclid {a} {b}\n' for a, b in CASES))
     executed = common.command(['lake', 'env', 'lean', '-j1', '-DwarningAsError=true', str(runtime.resolve())],
                              project / 'specs', output / 'execution.json')
@@ -141,7 +141,10 @@ def qualify_declarations(output):
     require(names == ['Nat.gcd_comm', 'Nat.gcd_rec', 'Nat.gcd_zero_right',
                       'Nat.mod_lt', 'Nat.pos_of_ne_zero', 'Nat.strongRecOn'], 'preserve the fixed fact handout')
     probe = output / 'Declarations.lean'
-    probe.write_text('import Std\n' + ''.join('#check ' + name + '\n' for name in names))
+    source = (ROOT / DIRECTORY / 'fixtures/Euclid.lean').read_text()
+    imports, separator, _ = source.partition('namespace Algorithm\n')
+    require(separator, 'qualify declarations with the actual task imports')
+    probe.write_text(imports + ''.join('#check ' + name + '\n' for name in names))
     checked = common.command(['lean', '-j1', str(probe.resolve())], output, output / 'declarations.json')
     require(checked['returncode'] == 0 and ' '.join(checked['stdout'].split()) == ' '.join(expected.split()),
             'supplied declarations differ from the pinned Lean installation')
@@ -170,7 +173,7 @@ def validate_controls(value, study):
     require(study in ALGORITHM_STUDIES and value['passed'] is True and value['live_model_calls'] == 0,
             'require successful hosted algorithm controls without live calls')
     require(value['controls'] == {name: {'accepted': name == 'reference'} for name in VARIANTS},
-            'all twelve private patch controls must pass')
+            'all thirteen private patch controls must pass')
     require(value['bindings'] == local.implementation_bindings(study) and
             value['core_checker_sha256'] == public.core_digest(study) and
             value['declarations_sha256'] == common.digest(ROOT / DIRECTORY / 'declarations.txt') and
@@ -187,7 +190,7 @@ def validate_controls(value, study):
     return value
 
 
-VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics',
+VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics', 'recursive-simp-loop',
             'changed-claim', 'changed-source', 'library-substitution', 'extra-axiom',
             'changed-package', 'missing-patch', 'wrong-patch')
 
@@ -249,6 +252,8 @@ def controls(binary, output, native):
             text = insert(solved, 'euclid_decreases', 'sorry')
         elif variant == 'bad-tactics':
             text = insert(solved, 'euclid_correct', 'exact Nat.gcd_comm a b')
+        elif variant == 'recursive-simp-loop':
+            text = insert(solved, 'euclid_correct', 'induction b <;> simp [euclid, Nat.gcd]')
         elif variant == 'changed-claim':
             text = solved.replace('euclid a b = Nat.gcd a b', 'euclid a b = euclid a b')
         elif variant == 'changed-source':

@@ -256,8 +256,17 @@ A single-file worker removes redundant processes, but the rebuilt command with
 the full `Std` import still exceeds the combined budget. An inner sampler can also
 miss work while the workstation CPU guard pauses it. Fresh attempts use a low-priority
 observer outside the guarded tree, with unchanged limits applied to the entire attempt.
-The task replaces unused `Std` with `Init`; its GCD function and theorem statements
-stay fixed. Qualify the exact revised task and native CLI path before freezing plans.
+An Init-import session then stopped too. Its initial-goal preflight missed later proof
+and package work. Keep that [failed session](../tests/agent-eval/proof-algorithms/interrupted-init-results/README.md).
+Explicit single-threaded and synchronous Lean checks did not materially change the copied draft's memory.
+They did not explain the stop, so do not present them as fixes.
+
+The smaller task turns off automatic imports in both files and imports the GCD library directly.
+Its GCD function and theorem statements stay fixed. A complete scripted control now
+fits with substantial headroom. The gate must also reject a looping draft, save both
+proofs, build the package, capture the patch and complete native accounting.
+All three profiles must pass with 128 MiB left within the unchanged 768-MiB ceiling.
+The freezer requires those receipts. It cannot accept another initial-goal spot check.
 Keep this interrupted batch separate; it cannot establish which guidance helped.
 
 This finding also limits older local OpenCode2 reports that used the same monitor.

@@ -1,4 +1,5 @@
-import Init
+prelude
+import Init.Data.Nat.Gcd
 
 namespace Algorithm
 

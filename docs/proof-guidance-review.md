@@ -4,6 +4,8 @@ Reviewed on 2026-11-02 after PR #591 merged. This is a review and experiment pla
 The first five Euclid sessions retain three timeouts, one submitted proof and a memory stop.
 The [interrupted batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
 exposed reader and resource-monitor defects. It cannot establish a guidance advantage.
+The later Init-import attempt also stopped at its memory ceiling. Complete-workflow
+checks now precede fresh plans; an initial-goal check was insufficient.
 No graph session has run yet.
 
 ## What the evidence supports
