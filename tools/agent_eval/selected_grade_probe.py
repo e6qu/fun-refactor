@@ -53,8 +53,11 @@ def run(task, milestone):
         require(task in cases.TASKS and prepared['requirement'] == cases.TASKS[task], 'private M2 task requirements differ')
     elif milestone in ALGORITHM_STUDIES:
         from . import proof_algorithms as cases
+        fixture = prepared['fixture']
+        require(fixture in {'fixtures/Euclid.lean', 'interrupted-results/Euclid.lean'},
+                'choose the current algorithm task or the explicit immutable archive recheck')
         require(task == 'euclid' and prepared['obligations'] == list(cases.OBLIGATIONS) and
-                (original / cases.SPEC).read_bytes() == (ROOT / cases.DIRECTORY / 'fixtures/Euclid.lean').read_bytes() and
+                (original / cases.SPEC).read_bytes() == (ROOT / cases.DIRECTORY / fixture).read_bytes() and
                 prepared['protected_source'] == cases.masked((original / cases.SPEC).read_text()),
                 'private executable algorithm or proof obligations differ')
     elif milestone in {'M3', 'M3-page-count'}:

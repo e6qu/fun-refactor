@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from . import selected_guarded as guarded
+from agent_eval import selected_guarded as guarded
 
 
 class GuardedAttemptChecks(unittest.TestCase):
@@ -35,6 +35,18 @@ class GuardedAttemptChecks(unittest.TestCase):
                 self.assertEqual(record['status'], 'failed')
                 self.assertEqual(record['elapsed_seconds'], 80)
                 self.assertEqual(bool(record['collection_errors']), status == 'started')
+
+    def test_expected_deadline_is_a_failed_attempt_not_a_broken_collection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            resources = {'elapsed_seconds': 150.01, 'stop_reason': 'wall_seconds', 'exit_code': 124}
+            (directory / 'resources.json').write_text(json.dumps(resources))
+            record = {'status': 'started', 'collection_errors': [], 'elapsed_seconds': 0}
+            guarded.attach(record, resources, directory)
+            self.assertEqual(record['status'], 'failed')
+            self.assertTrue(record['complete_attempt_deadline_missed'])
+            self.assertTrue(record['controller_interrupted'])
+            self.assertEqual(record['collection_errors'], [])
 
 
 if __name__ == '__main__':

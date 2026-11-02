@@ -1,0 +1,58 @@
+{
+  "purpose": "Recheck both unchanged corpora after multi-input induction parsing. The cumulative symbols and references are exactly the retained inventory; keep that inventory and original timings unchanged.",
+  "inventory": "lean-reader-current.json",
+  "inventory_sha256": "ebcc0aa3d9c7e95e79bbf166cbf67850b8562d6474fb4094a10126ecff47b6cb",
+  "reviews": [
+    {
+      "run": "41392262458",
+      "after_source": "2c8e065b56ac26018d765dfa69401fb30f84a06c",
+      "repository_revision": "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf",
+      "facts_sha256": "587401b05625f1bc4fc7142314adee56963ce27ae2174819afa1fe8125e45e6b",
+      "stats": {
+        "before": {
+          "files": 1262,
+          "references": 594282,
+          "resolved": 308319,
+          "symbols": 98355
+        },
+        "after": {
+          "files": 1262,
+          "references": 593836,
+          "resolved": 308848,
+          "symbols": 98534
+        }
+      },
+      "artifacts": {
+        "before": "1ec5732da0c979dffc3a975de5e867bd13932153843300c4b3d6bb4f46408dd0",
+        "after": "cbbd40b38697a73849a2e3e4941a1bbef99cb2ef44033aa30749df017b16e4a8",
+        "comparison": "ba83a8e209e6dc397cebfaa40f77c42f20fb2cecfafcc40ddf1e3168a5a38174"
+      }
+    },
+    {
+      "run": "41393827591",
+      "after_source": "2c8e065b56ac26018d765dfa69401fb30f84a06c",
+      "repository_revision": "e423fd2d03e5d74f2efea40b6ccd20812ac1178a",
+      "facts_sha256": "587401b05625f1bc4fc7142314adee56963ce27ae2174819afa1fe8125e45e6b",
+      "stats": {
+        "before": {
+          "files": 1255,
+          "references": 592956,
+          "resolved": 306395,
+          "symbols": 98147
+        },
+        "after": {
+          "files": 1255,
+          "references": 592510,
+          "resolved": 306924,
+          "symbols": 98326
+        }
+      },
+      "artifacts": {
+        "before": "2766b00d2a0e301b251ed324fad1df19497e30ee08ff2662c8db67650b2ed556",
+        "after": "bf85cfa1540b7a8571fa21b5c6de271d005f2283fb212f5c1261ba04f017a55b",
+        "comparison": "45dc3692a923a7a9b56df16330b2314d99b07a36cf2bc0c63ec416402eaa8403"
+      }
+    }
+  ],
+  "timing_baselines_changed": false
+}

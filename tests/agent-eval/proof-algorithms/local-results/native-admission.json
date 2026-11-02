@@ -1,0 +1,65 @@
+{
+  "purpose": "Scripted local admission of the revised Init-import GCD task; no live agent outcome.",
+  "live_model_calls": 0,
+  "upstream_forwarding": false,
+  "fr_sha256": "b1fe4b9e0b313e40e00ad8c0657afb7f532bf6b0dfc034323c9d7656d8266d92",
+  "observer_scope": "Guard, private control process, actual native CLI, fr and Lean; observer outside the CPU throttle. Sampled RSS can miss brief peaks. Both native and complete observers enforce unchanged limits.",
+  "accepted_profiles": [
+    "codex-luna-fast",
+    "opencode2-glm-flash",
+    "opencode2-kimi-k3"
+  ],
+  "controls": [
+    {
+      "id": "codex-missing-provider-dependency",
+      "status": "invalid setup",
+      "record_sha256": "a997b70b680e545c8ad89a84915f41c191958c0c8bd1f07bccc67fe0597aa53d",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 0.2170264171436429,
+      "sampled_aggregate_rss_bytes": 54231040,
+      "sampled_cpu_seconds": 0.12
+    },
+    {
+      "id": "codex-reserved-provider-override",
+      "status": "invalid setup",
+      "record_sha256": "9ab51774cc96d5cb0665b36b52ec57a68d0cf864dda968f64e73e773c36071e0",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 0.3278408329933882,
+      "sampled_aggregate_rss_bytes": 79134720,
+      "sampled_cpu_seconds": 0.16
+    },
+    {
+      "id": "codex-luna-fast",
+      "status": "passed",
+      "record_sha256": "2ef92fe6322d84244f4e3dcf7565d78193dc52998b16861c38bfdb9c05e2a40a",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 3.0530837499536574,
+      "sampled_aggregate_rss_bytes": 332152832,
+      "sampled_cpu_seconds": 1.21
+    },
+    {
+      "id": "opencode2-glm-flash",
+      "status": "passed",
+      "record_sha256": "41e46965533616bf923384253eaa3481949262608bbd060f85f14ab004fcd22b",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 3.2262695839162916,
+      "sampled_aggregate_rss_bytes": 488357888,
+      "sampled_cpu_seconds": 1.5699999999999998
+    },
+    {
+      "id": "opencode2-kimi-k3",
+      "status": "passed",
+      "record_sha256": "ced107810257a227180ce765ca5a3123a2d6d6e69a6c200e0dd4521807ddcddb",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 3.3305995410773903,
+      "sampled_aggregate_rss_bytes": 511524864,
+      "sampled_cpu_seconds": 1.68
+    }
+  ],
+  "publication": "Reviewed numeric summaries only. Raw transcripts and settings stay private."
+}

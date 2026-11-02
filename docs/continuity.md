@@ -33,10 +33,14 @@ Its first batch stopped in slot five. Preserve the [interruption](../tests/agent
 including three timeouts, one Kimi submission and all unstarted slots.
 Fix detached-server accounting, output flushing and multi-input induction before
 fresh hosted qualification and new frozen plans. Do not reuse either invalidated plan.
-The correctness inspector also kept three background programs alive for one file.
-A one-file-worker prototype reduces its memory use. Qualify the rebuilt command
-and the complete Mac CLI/server/fr/Lean workload before live calls; the standalone
-termination preflight missed that combined cost.
+The correctness inspector now uses one Lean worker. The complete workload with
+the unused full `Std` import still exceeds the inner memory budget. Fresh task
+qualification uses `Init` with the same GCD function and theorem statements.
+An observer outside the CPU throttle measures the guard, controller, CLI and workers
+together. All actual work stays inside the required guard and all limits stay fixed.
+The [scripted local checks](../tests/agent-eval/proof-algorithms/local-results/native-admission.json)
+pass for Luna, GLM and Kimi. They make no model calls and establish no guidance advantage.
+Finish hosted reference and rejection controls before freezing new plans.
 Then compare declarations in eight GLM/Kimi sessions and equal-information
 checklist/graph guidance in twelve Luna/GLM/Kimi sessions. Keep 150 seconds for each
 complete attempt. Full builds and independent grading stay on GitHub.

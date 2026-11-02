@@ -50,7 +50,9 @@ def attach(record, resources, monitor):
     record['complete_attempt_deadline_missed'] = resources['elapsed_seconds'] > local.LIMITS['wall_seconds']
     if record['status'] == 'started':
         record.update(status='failed', finished_at=time.time(), suspended_seconds=0)
-        record['collection_errors'].append({'stage': 'complete attempt', 'error': 'Guarded controller interrupted.'})
+        record['controller_interrupted'] = True
+        if resources['stop_reason'] != 'wall_seconds':
+            record['collection_errors'].append({'stage': 'complete attempt', 'error': 'Guarded controller interrupted.'})
     if resources['stop_reason'] is not None or resources['exit_code'] != 0 or record['complete_attempt_deadline_missed']:
         record['status'] = 'failed'
     return record

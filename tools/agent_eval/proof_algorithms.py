@@ -79,6 +79,7 @@ def prepare(binary, project, output, fixture):
     (project / '.git/info/exclude').write_text('\n'.join(sorted((common.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     common.comparison_grade.BASE.initialize(project)
     prepared = {'task': 'euclid', 'spec': SPEC, 'obligations': list(OBLIGATIONS),
+                'fixture': str(fixture.relative_to(ROOT / DIRECTORY)),
                 'original': common.sources(project), 'protected_source': masked(source.read_text()),
                 'proved_program': 'The actual executable Lean Algorithm.euclid, for every pair of Nat inputs.',
                 'source_model_bridge': 'No Rust/Python translation is claimed or involved.'}

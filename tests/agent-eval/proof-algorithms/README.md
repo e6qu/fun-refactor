@@ -95,6 +95,18 @@ Before live calls, check the actual Mac CLI, private server, fr and Lean togethe
 on the correctness goal. A standalone inspector check cannot establish that the
 combined workload fits its limit. Scripted loopback replies can test this without
 contacting a model provider.
+Run each frozen algorithm slot through the independent observer:
+
+```sh
+python3 -B -m agent_eval.selected_guarded --plan /absolute/path/plan.json --id ATTEMPT_ID
+```
+
+This coordinator launches `fr-local-guard.py` itself. Keep the coordinator outside
+the guard so its sampling continues while the guard pauses the workload.
+It preserves the controller's original report and adds a separate whole-attempt receipt.
+The public summary requires that receipt; a successful inner command cannot hide a
+stopped or late complete attempt. The 768-MiB budget is a memory limit, and the
+75-CPU-second budget counts sampled processor work rather than time spent waiting.
 Two successes versus zero in two repetitions justify a transfer test, not a general
 claim that one method is better. Mixed results remain inconclusive.
 
