@@ -16,6 +16,7 @@ on `research/proof-guidance`. The interrupted algorithm batch exposed these defe
 | CPU throttling could pause the inner sampler while a new worker ran | Observe the whole required guard and workload from outside the throttled tree. Keep all limits unchanged and preserve the original controller report |
 | Initial-goal admission missed later proof and package memory | Both GCD task files now disable the automatic library import. A complete scripted prototype fits the fixed budget. The freezer now requires full-workflow receipts with client-state headroom; hosted qualification and all three complete native-client checks passed before the twenty fresh sessions |
 | An interrupted result filled unknown system sleep with zero | The outer observer now compares both clocks, including when the controller is stopped. Keep the earlier result unchanged and label its missing sleep measurement unknown |
+| Lean accepted a multiline function body that fr rejected | Both executable-GCD references now pass, including a continued argument. Tests keep the following tactic and declaration separate. Original failed agent work stays failed |
 | Recursive definitions and local helpers confused the reader | The hosted algorithm checks accept Euclid's termination hints and isolate local-helper renames. Preserve the exact benchmark-fact audits |
 
 The [interrupted batch](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
@@ -36,6 +37,17 @@ exposed another boundary: its fresh worker environment discarded the caller's wo
 Nine Boltons cases exhausted the unchanged CPU budget. The worker now selects one
 Rayon worker explicitly. All nine controlled replays pass below the same limits;
 the largest sampled CPU total is 7.46 seconds against the original ten-second budget.
+
+A separate Mac reasoning control stopped at 825,114,624 sampled RSS bytes,
+above its unchanged 805,306,368-byte ceiling. Its client now uses the explicit
+smaller Bun runtime setting. The [scripted reasoning controls](https://github.com/e6qu/fun-refactor/actions/runs/41434050053)
+pass on Mac and Linux. These controls make no model calls and grant no live-agent admission.
+
+The additional reader comparison exposed a partial-checkout error. Its worktree
+inherited CI exclusions and omitted archived sources. The
+[probe review](tests/agent-eval/index-consumers/lambda-audit-preparation-review.json)
+preserves each failure. The checker now requires every tracked source before indexing.
+Use the two declared benchmark corpora; partial inventories cannot qualify a complete-source claim.
 
 The earlier repairs below belong to merged M3 work, including PR #591.
 The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit

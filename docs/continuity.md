@@ -41,8 +41,10 @@ must audit those reports against that source and replay retained patches separat
 A ninth diff was written outside the project and timed out; keep it as a diagnostic,
 never a delivered success. Raw records and drafts remain private.
 
-Finish the multiline-lambda reader repair and its valid executable-GCD control.
-Lean accepts the reference while the measured fr rejects it before checking.
+The multiline-lambda reader repair passes both executable-GCD reference controls
+and all twelve rejection controls. The measured fr had rejected the valid reference
+before Lean ran. Current-tool replay accepts all eight delivered patches and the
+separate misplaced diagnostic; original scores stay unchanged.
 The original GLM draft also had Lean errors; repairing the reader cannot credit it.
 The shared skills now address observed flag mistakes, clipped diagnostics, neighboring
 broken proofs, already-present writes and project-root patch delivery. These changes
@@ -62,7 +64,11 @@ The 335 original M3 outcomes and sixteen earlier diagnostic outcomes remain unch
 The division-fact plan stays unrun. The mixed-agent Python pilot has no solo baseline
 and no useful fr step; it does not close M3. Preserve all original report hashes.
 
-Refresh changed current evidence on GitHub, publish one source change at a time,
+The full evidence family has fresh successful collections. Retain it on GitHub,
+with one publisher at a time on the PR branch. Verify both complete pinned benchmark
+corpora: worktrees must disable inherited sparse exclusions and retain every tracked
+source. Invalid additional modern-corpus probes supply no complete-source result.
+Use the reviewed probe record; do not raise any timeout. Then publish one source change at a time,
 then pass the full final-head PR gate. Keep [PLAN.md](../PLAN.md#next-work) current.
 Do not merge PR #592. Only reviewed summaries and original patches may be uploaded;
 logs, source archives, drafts and account data stay local.

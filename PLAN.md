@@ -75,24 +75,25 @@ advantage. No agent met the planned two-versus-zero rule for a transfer test;
 accumulator list reversal stays reserved. The results do not yet justify an
 automatic controller that tries alternative proof paths.
 
-**Finish in draft PR #592:**
+**Implemented in draft PR #592:** the reader accepts multiline GCD proofs and
+keeps their following tactic and declaration separate. Both valid references pass;
+all twelve deliberately broken controls fail. The original checker independently
+grades all twenty sessions. Repaired fr accepts the eight delivered patches and
+checks the misplaced ninth diff separately without counting a new success.
+The small proof guides address the observed flag, context and delivery mistakes;
+these instruction changes have no measured success gain yet.
 
-1. Repair multiline lambda proofs that Lean accepts but fr rejects. Check a valid
-   GCD induction proof, its following tactic and its following declaration.
-2. Preserve the original checker and all twenty outcomes. Replay the eight
-   delivered patches with the repaired tool separately. Also check the preserved
-   misplaced Kimi patch without counting its timed-out delivery as a success.
-3. Update the small proof guides for observed mistakes: use supported flags, read
-   the whole error, and save one proof before editing another. Write `change.patch`
-   in the project root after the package passes. These are proposed repairs,
-   not measured gains in agent success.
-4. Keep every earlier failure. The [first five sessions](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+**Finish before the draft is ready:**
+
+1. Check both fixed benchmark corpora with every tracked file present. Reject
+   incomplete checkouts before comparing readers. Keep the original timing baselines.
+2. Retain the complete refreshed report family on GitHub. Preserve the earlier
+   [five sessions](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
    and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
-   remain separate. Full-workflow controls and outside-the-throttle observation
-   now qualify all three native clients before calls. Do not rerun closed slots.
-5. Refresh affected current reports on GitHub and pass all required checks on the
-   final PR commit. Keep raw transcripts private and publish reviewed summaries
-   and patches only. Do not merge this draft.
+   separately. Do not rerun any closed model slot.
+3. Regenerate the tracking pages and pass every required check on the final PR
+   commit. Publish reviewed summaries and patches; keep raw transcripts private.
+   Keep M3 open and do not merge this draft.
 
 After this PR, choose one new testable explanation from the actual failures.
 Do not repeat the full M3 comparison to seek a passing result. A successful
