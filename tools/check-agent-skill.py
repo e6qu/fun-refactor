@@ -36,6 +36,7 @@ ROUTES = {
     "task": ["SKILL.md", "references/task.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
     "lean-arithmetic": ["SKILL.md", "references/lean.md", "references/lean-arithmetic.md"],
+    "lean-algorithms": ["SKILL.md", "references/lean.md", "references/lean-algorithms.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
     "verified-workflow": ["SKILL.md", "references/workflow.md"],
 }

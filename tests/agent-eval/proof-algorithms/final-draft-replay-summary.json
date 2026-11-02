@@ -1,0 +1,21 @@
+{
+  "attempt": "opencode2-glm-flash-euclid-checklist-1",
+  "live_model_calls": 0,
+  "original_outcome": "failed",
+  "original_outcome_changed": false,
+  "source_sha256": "620f967b962a2042cf4984efc1aada0ee1868e38ffd9065c682cb4aab1b0da25",
+  "draft_sha256": "f1412a2bd5e817acac402037e9c6e59b9f095dc20fb5f5ab3a4287c16d886488",
+  "fr_sha256": "5011ebc05c8a0171f7deecfa91901e4e7c656ab1363cf93d3946616d2ffff514",
+  "fr_source_commit": "bc0be64a2f94ec9dd2a55ae0c93af1601301af05",
+  "returncode": 0,
+  "passed": false,
+  "diagnostic_count": 2,
+  "parse_rejection": false,
+  "scope": "The exact final retained source and tactics checked with repaired fr. This is not a reconstruction of the earlier multiline-lambda candidate. Raw proof and diagnostics stay private.",
+  "target": "euclid_correct",
+  "diagnostic_categories": [
+    "neighboring termination proof has an application type mismatch",
+    "final termination tactics submitted for correctness reference an out-of-scope hypothesis"
+  ],
+  "diagnostics_keep_draft_and_checked_locations": true
+}

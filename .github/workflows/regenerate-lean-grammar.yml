@@ -18,6 +18,8 @@ jobs:
             tests/fixtures/lean-proof-locations.lean
             tests/fixtures/lean-source-declarations.lean
             tests/fixtures/lean-nested-assumptions.lean
+            tests/fixtures/lean-recursive-algorithms.lean
+            tests/fixtures/lean-lambda-continuations.lean
             tools/check-lean-reader.py
       - uses: actions/setup-node@v6
         with:
@@ -48,6 +50,17 @@ jobs:
         run: |
           set -euo pipefail
           test "$BRANCH" != main
+          git fetch --no-tags origin "refs/heads/$BRANCH"
+          if ! git diff --quiet HEAD FETCH_HEAD -- \
+            grammars/lean/grammar.js grammars/lean/src/scanner.c grammars/lean/tests \
+            tests/fixtures/lean-proof-locations.lean tests/fixtures/lean-source-declarations.lean \
+            tests/fixtures/lean-nested-assumptions.lean tests/fixtures/lean-recursive-algorithms.lean \
+            tests/fixtures/lean-lambda-continuations.lean \
+            tools/check-lean-reader.py .github/workflows/regenerate-lean-grammar.yml; then
+            echo 'Lean reader inputs changed during generation; regenerate the new head.' >&2
+            exit 1
+          fi
+          git merge --ff-only FETCH_HEAD
           git add grammars/lean/src/parser.c grammars/lean/src/grammar.json grammars/lean/src/node-types.json grammars/lean/src/tree_sitter
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'

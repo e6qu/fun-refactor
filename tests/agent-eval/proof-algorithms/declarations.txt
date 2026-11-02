@@ -1,0 +1,7 @@
+Nat.gcd_comm (m n : Nat) : m.gcd n = n.gcd m
+Nat.gcd_rec (m n : Nat) : m.gcd n = (n % m).gcd m
+Nat.gcd_zero_right (n : Nat) : n.gcd 0 = n
+Nat.mod_lt (x : Nat) {y : Nat} (hy : 0 < y) : x % y < y
+Nat.pos_of_ne_zero {n : Nat} : n ≠ 0 → 0 < n
+Nat.strongRecOn.{u} {motive : Nat → Sort u} (n : Nat) (ind : (n : Nat) → ((m : Nat) → m < n → motive m) → motive n) :
+  motive n

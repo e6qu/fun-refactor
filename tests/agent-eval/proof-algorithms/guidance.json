@@ -1,0 +1,20 @@
+{
+  "nodes": [
+    {"id": "T", "text": "Prove euclid_decreases for arbitrary a and nonzero b. Show that the next second input is smaller."},
+    {"id": "C", "text": "Prove euclid_correct for arbitrary a and b. Keep the implementation and statement fixed."},
+    {"id": "B", "text": "For the zero case of b, relate the returned a to the zero case of the GCD specification."},
+    {"id": "R", "text": "For nonzero b, unfold one recursive step. Use a hypothesis for every smaller second input and every first input; relate the recursive pair to the GCD specification."},
+    {"id": "I", "text": "Inspect actual Lean goals and context after each proposed step. Check every branch; a closed branch is not complete acceptance."},
+    {"id": "D", "text": "Check and save both proofs through fr. Run the supplied package check once after success, review the diff, deliver change.patch, and finish within the complete deadline."}
+  ],
+  "edges": [
+    {"from": "T", "to": "R", "relation": "required before"},
+    {"from": "B", "to": "C", "relation": "required for"},
+    {"from": "R", "to": "C", "relation": "required for"},
+    {"from": "I", "to": "T", "relation": "checks steps in"},
+    {"from": "I", "to": "C", "relation": "checks steps in"},
+    {"from": "T", "to": "D", "relation": "required before"},
+    {"from": "C", "to": "D", "relation": "required before"}
+  ],
+  "meaning": "Every required dependency must be satisfied. This is a suggested proof plan, not a restored Lean state or an automatic search controller. Keep the full source, draft and Lean context when changing branches."
+}

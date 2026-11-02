@@ -10,7 +10,7 @@ import subprocess
 import time
 
 from . import selected_tasks as tasks
-from .selected_plan import PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, require
+from .selected_plan import ALGORITHM_STUDIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, require
 
 
 def restore_dependency_cache(source, destination):
@@ -51,6 +51,17 @@ def run(task, milestone):
     if milestone == 'M2':
         from . import project_edits_tasks as cases
         require(task in cases.TASKS and prepared['requirement'] == cases.TASKS[task], 'private M2 task requirements differ')
+    elif milestone in ALGORITHM_STUDIES:
+        from . import proof_algorithms as cases
+        fixture = prepared['fixture']
+        require(fixture in {'fixtures/Euclid.lean', 'interrupted-results/Euclid.lean'},
+                'choose the current algorithm task or the explicit immutable archive recheck')
+        require(task == 'euclid' and prepared['obligations'] == list(cases.OBLIGATIONS) and
+                (original / cases.SPEC).read_bytes() == (ROOT / cases.DIRECTORY / fixture).read_bytes() and
+                (original / 'specs/FrSpecs.lean').read_bytes() ==
+                (ROOT / cases.DIRECTORY / Path(fixture).parent / 'FrSpecs.lean').read_bytes() and
+                prepared['protected_source'] == cases.masked((original / cases.SPEC).read_text()),
+                'private executable algorithm or proof obligations differ')
     elif milestone in {'M3', 'M3-page-count'}:
         from . import proof_writing_tasks as cases
         require(task in cases.CASES and prepared['property'] == cases.property_for(task,

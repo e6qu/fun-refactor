@@ -12,8 +12,7 @@ pub fn source_identity(symbol: &Symbol, root: &Path) -> Value {
 }
 
 pub fn reviewed_lean_facts(index: &Index, root: &Path) -> Value {
-    let inventory_bytes =
-        include_bytes!("../agent-eval/index-consumers/lean-reader-introductions.json");
+    let inventory_bytes = include_bytes!("../agent-eval/index-consumers/lean-reader-current.json");
     let inventory: Value = serde_json::from_slice(inventory_bytes).unwrap();
     let previous_bytes = include_bytes!("../agent-eval/index-consumers/lean-reader-review.json");
     let previous: Value = serde_json::from_slice(previous_bytes).unwrap();

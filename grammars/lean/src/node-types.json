@@ -1529,6 +1529,65 @@
     }
   },
   {
+    "type": "decreasing_by",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tactic_apply",
+          "named": true
+        },
+        {
+          "type": "tactic_by_cases",
+          "named": true
+        },
+        {
+          "type": "tactic_calc",
+          "named": true
+        },
+        {
+          "type": "tactic_case",
+          "named": true
+        },
+        {
+          "type": "tactic_cases",
+          "named": true
+        },
+        {
+          "type": "tactic_focus",
+          "named": true
+        },
+        {
+          "type": "tactic_have",
+          "named": true
+        },
+        {
+          "type": "tactic_let",
+          "named": true
+        },
+        {
+          "type": "tactic_rcases",
+          "named": true
+        },
+        {
+          "type": "tactic_rewrite",
+          "named": true
+        },
+        {
+          "type": "tactic_rintro",
+          "named": true
+        },
+        {
+          "type": "tactic_show",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "definition",
     "named": true,
     "fields": {
@@ -1620,7 +1679,19 @@
       "required": false,
       "types": [
         {
+          "type": "decreasing_by",
+          "named": true
+        },
+        {
           "type": "match_arm",
+          "named": true
+        },
+        {
+          "type": "termination_by",
+          "named": true
+        },
+        {
+          "type": "where_helpers",
           "named": true
         }
       ]
@@ -5214,8 +5285,138 @@
           }
         ]
       },
-      "subject": {
+      "recursor": {
         "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "anonymous_constructor",
+            "named": true
+          },
+          {
+            "type": "application",
+            "named": true
+          },
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "cdot",
+            "named": true
+          },
+          {
+            "type": "char",
+            "named": true
+          },
+          {
+            "type": "coercion",
+            "named": true
+          },
+          {
+            "type": "double_quoted_name",
+            "named": true
+          },
+          {
+            "type": "ellipsis",
+            "named": true
+          },
+          {
+            "type": "escaped_identifier",
+            "named": true
+          },
+          {
+            "type": "explicit",
+            "named": true
+          },
+          {
+            "type": "false",
+            "named": true
+          },
+          {
+            "type": "float",
+            "named": true
+          },
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "interpolated_string",
+            "named": true
+          },
+          {
+            "type": "list",
+            "named": true
+          },
+          {
+            "type": "named_argument",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "projection",
+            "named": true
+          },
+          {
+            "type": "quoted_name",
+            "named": true
+          },
+          {
+            "type": "range",
+            "named": true
+          },
+          {
+            "type": "sorry",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "structure_instance",
+            "named": true
+          },
+          {
+            "type": "subscript",
+            "named": true
+          },
+          {
+            "type": "subtype",
+            "named": true
+          },
+          {
+            "type": "syntax_quotation",
+            "named": true
+          },
+          {
+            "type": "synthetic_hole",
+            "named": true
+          },
+          {
+            "type": "true",
+            "named": true
+          },
+          {
+            "type": "tuple",
+            "named": true
+          }
+        ]
+      },
+      "subject": {
+        "multiple": true,
         "required": true,
         "types": [
           {
@@ -5918,6 +6119,22 @@
     }
   },
   {
+    "type": "termination_by",
+    "named": true,
+    "fields": {
+      "measure": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "true",
     "named": true,
     "fields": {}
@@ -6281,6 +6498,21 @@
     }
   },
   {
+    "type": "where_helpers",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "where_decl",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "!",
     "named": false
   },
@@ -6555,6 +6787,10 @@
   },
   {
     "type": "dbg_trace",
+    "named": false
+  },
+  {
+    "type": "decreasing_by",
     "named": false
   },
   {
@@ -6874,6 +7110,10 @@
     "named": true
   },
   {
+    "type": "structural",
+    "named": false
+  },
+  {
     "type": "structure",
     "named": false
   },
@@ -6888,6 +7128,10 @@
   {
     "type": "synthetic_hole",
     "named": true
+  },
+  {
+    "type": "termination_by",
+    "named": false
   },
   {
     "type": "then",
@@ -6919,6 +7163,10 @@
   },
   {
     "type": "unsafe",
+    "named": false
+  },
+  {
+    "type": "using",
     "named": false
   },
   {

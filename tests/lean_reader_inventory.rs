@@ -27,7 +27,21 @@ fn record_lean_reader_facts() {
         },
     )
     .unwrap();
-    let index = Index::build_with_cache(&scanned, None).unwrap();
+    eprintln!("reader scan: {} files", scanned.files.len());
+    let started = std::time::Instant::now();
+    let progress = |phase, done, total| {
+        if done == 0 || done == total || done % 100 == 0 {
+            eprintln!(
+                "reader {phase:?}: {done}/{total}, {:.3}s",
+                started.elapsed().as_secs_f64()
+            );
+        }
+    };
+    let index = Index::build_with_cache_reporting(&scanned, None, Some(&progress)).unwrap();
+    eprintln!(
+        "reader index complete: {:.3}s",
+        started.elapsed().as_secs_f64()
+    );
     let mut sources = BTreeMap::new();
     let mut syntax = BTreeMap::new();
     let parsers = Parsers::new();
@@ -39,6 +53,10 @@ fn record_lean_reader_facts() {
             continue;
         }
         let source = std::str::from_utf8(&bytes).unwrap();
+        eprintln!(
+            "reader syntax: {}",
+            file.path.strip_prefix(&root).unwrap().display()
+        );
         let tree = parsers.parse(Language::Lean, source).unwrap();
         syntax.insert(
             name,

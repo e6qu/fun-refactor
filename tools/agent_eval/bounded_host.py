@@ -1,4 +1,4 @@
-"""Sampled POSIX process-group limits for trusted evaluation hosts, not a sandbox."""
+"""Sampled POSIX descendant limits for trusted evaluation hosts, not a sandbox."""
 from __future__ import annotations
 
 import os
@@ -56,8 +56,48 @@ class DarwinTimebase(ctypes.Structure):
     _fields_ = [('numer', ctypes.c_uint32), ('denom', ctypes.c_uint32)]
 
 
+class DarwinBsdInfo(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint32) for name in
+                ('flags', 'status', 'xstatus', 'pid', 'ppid', 'uid', 'gid', 'ruid', 'rgid', 'svuid', 'svgid', 'reserved')]
+    _fields_ += [('comm', ctypes.c_char * 16), ('name', ctypes.c_char * 32)]
+    _fields_ += [(name, ctypes.c_uint32) for name in ('nfiles', 'pgid', 'jobc', 'tdev', 'tpgid')]
+    _fields_ += [('nice', ctypes.c_int32), ('start_seconds', ctypes.c_uint64), ('start_microseconds', ctypes.c_uint64)]
+
+
+def process_identity(pid):
+    """A PID can be reused after a sampled worker exits; never kill its replacement."""
+    if sys.platform == 'darwin':
+        library = ctypes.CDLL('/usr/lib/libproc.dylib', use_errno=True)
+        info = DarwinBsdInfo()
+        ctypes.set_errno(0)
+        size = library.proc_pidinfo(pid, 3, 0, ctypes.byref(info), ctypes.sizeof(info))
+        error = ctypes.get_errno()
+        if size == 0 and error == errno.ESRCH:
+            return None
+        if size != ctypes.sizeof(info):
+            raise OSError(error or errno.EIO, 'cannot identify a monitored macOS process')
+        require(info.pid == pid, 'macOS process identity differs')
+        return info.start_seconds, info.start_microseconds
+    try:
+        raw = (Path('/proc') / str(pid) / 'stat').read_text()
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    fields = raw.rsplit(')', 1)[1].split()
+    return int(fields[19])
+
+
+def descendant_pids(rows, root):
+    """Include children that create their own process group or session."""
+    selected = {root} | {pid for pid, (parent, group) in rows.items() if group == root}
+    while True:
+        expanded = selected | {pid for pid, (parent, group) in rows.items() if parent in selected}
+        if expanded == selected:
+            return selected & rows.keys()
+        selected = expanded
+
+
 def darwin_sample(group):
-    """Read the selected group directly; a CPU throttle can pause a ps subprocess past its deadline."""
+    """Read descendants directly; a CPU throttle can pause a ps subprocess past its deadline."""
     library = ctypes.CDLL('/usr/lib/libproc.dylib', use_errno=True)
     library.proc_listpids.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int]
     library.proc_listpids.restype = ctypes.c_int
@@ -69,17 +109,26 @@ def darwin_sample(group):
     timebase = DarwinTimebase()
     require(system.mach_timebase_info(ctypes.byref(timebase)) == 0 and timebase.numer > 0 and timebase.denom > 0,
             'cannot read the macOS CPU timebase')
-    pids = (ctypes.c_int * 4096)()
-    ctypes.set_errno(0)
-    size = library.proc_listpids(2, group, pids, ctypes.sizeof(pids))
-    error = ctypes.get_errno()
-    if size < 0 or (size == 0 and error):
-        raise OSError(error or errno.EIO, 'cannot list the monitored macOS process group')
-    require(size < ctypes.sizeof(pids) and size % ctypes.sizeof(ctypes.c_int) == 0,
-            'macOS process-group inventory is truncated or malformed')
+    members, pending = set(), [(2, group), (6, group)]
+    while pending:
+        kind, parent = pending.pop()
+        pids = (ctypes.c_int * 4096)()
+        ctypes.set_errno(0)
+        size = library.proc_listpids(kind, parent, pids, ctypes.sizeof(pids))
+        error = ctypes.get_errno()
+        if size < 0 or (size == 0 and error):
+            if error == errno.ESRCH:
+                continue
+            raise OSError(error or errno.EIO, 'cannot list monitored macOS descendants')
+        require(size < ctypes.sizeof(pids) and size % ctypes.sizeof(ctypes.c_int) == 0,
+                'macOS descendant inventory is truncated or malformed')
+        for pid in pids[:size // ctypes.sizeof(ctypes.c_int)]:
+            require(pid > 0, 'invalid macOS process member')
+            if pid not in members:
+                members.add(pid)
+                pending.append((6, pid))
     memory, cpu = 0, {}
-    for pid in pids[:size // ctypes.sizeof(ctypes.c_int)]:
-        require(pid > 0, 'invalid macOS process-group member')
+    for pid in sorted(members):
         info = DarwinTaskInfo()
         ctypes.set_errno(0)
         size = library.proc_pidinfo(pid, 4, 0, ctypes.byref(info), ctypes.sizeof(info))
@@ -96,30 +145,44 @@ def darwin_sample(group):
 def sample(group):
     if sys.platform == 'darwin':
         return darwin_sample(group)
-    rows = subprocess.run(["ps", "-axo", "pid=,pgid=,rss=,time="],
+    raw = subprocess.run(["ps", "-axo", "pid=,ppid=,pgid=,rss=,time="],
                           capture_output=True, text=True, timeout=2, check=True).stdout
+    rows = {}
+    for line in raw.splitlines():
+        pid, parent, pgid, rss, elapsed = line.split()
+        rows[int(pid)] = (int(parent), int(pgid), int(rss))
+    selected = descendant_pids({pid: value[:2] for pid, value in rows.items()}, group)
     memory, cpu = 0, {}
-    for line in rows.splitlines():
-        pid, pgid, rss, elapsed = line.split()
-        if int(pgid) == group:
-            memory += int(rss) * 1024
-            cpu[int(pid)] = cpu_seconds(elapsed)
+    ticks = os.sysconf('SC_CLK_TCK')
+    for pid in selected:
+        try:
+            fields = (Path('/proc') / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        memory += rows[pid][2] * 1024
+        cpu[pid] = (int(fields[11]) + int(fields[12])) / ticks
     return memory, cpu
 
 
-def stop(group):
+def stop(group, identities):
     try:
         os.killpg(group, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    for pid, identity in identities.items():
+        if process_identity(pid) == identity:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
 
 
 def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
         rss_bytes=768 * 1024**2, disk_bytes=128 * 1024**2,
         cpu_limit_seconds=600, transcript_bytes=16 * 1024**2, env=None, cwd=None):
-    """Stop the entire group on a limit, monitor failure, or parent exit.
+    """Stop the group and observed descendants on a limit, monitor failure, or exit.
 
-    Limits are sampled: brief peaks and processes escaping the group need OS
+    Limits are sampled: brief peaks and children reparented before discovery need OS
     containment on the runner. CPU totals retain samples from exited children.
     Disk measures workspace growth; files elsewhere require OS quotas.
     """
@@ -132,7 +195,7 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
         require(value > 0, f"{key} must be positive")
     started, initial_disk = elapsed_time(), disk_size(workspace)
     reason, error, process = None, None, None
-    peak_rss, growth, written, cpu = 0, 0, 0, {}
+    peak_rss, growth, written, cpu, identities = 0, 0, 0, {}, {}
     code = None
     with tempfile.TemporaryFile() as input_file, selectors.DefaultSelector() as selector:
         input_file.write(prompt)
@@ -152,7 +215,13 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
                     memory, current = sample(process.pid)
                     peak_rss = max(peak_rss, memory)
                     for pid, seconds in current.items():
-                        cpu[pid] = max(cpu.get(pid, 0), seconds)
+                        identity = process_identity(pid)
+                        if identity is not None:
+                            identities[pid] = identity
+                        else:
+                            identity = identities.get(pid)
+                        key = (pid, identity)
+                        cpu[key] = max(cpu.get(key, 0), seconds)
                     growth = max(growth, disk_size(workspace) - initial_disk)
                     if peak_rss > rss_bytes:
                         reason = "rss_bytes"
@@ -165,7 +234,7 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
                     break
                 # A completed host must not leave its workers running or holding pipes.
                 if process.poll() is not None:
-                    stop(process.pid)
+                    stop(process.pid, identities)
                 for key, _ in selector.select(0.05):
                     block = os.read(key.fileobj.fileno(), 65536)
                     if not block:
@@ -173,6 +242,7 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
                         continue
                     remaining = max(0, transcript_bytes - written)
                     key.data.write(block[:remaining])
+                    key.data.flush()
                     written += min(len(block), remaining)
                     if len(block) > remaining:
                         reason = "transcript_bytes"
@@ -184,7 +254,7 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
             reason = "launch_error" if process is None else "monitor_error"
         finally:
             if process is not None:
-                stop(process.pid)
+                stop(process.pid, identities)
                 code = process.wait(timeout=5)
                 process.stdout.close()
                 process.stderr.close()

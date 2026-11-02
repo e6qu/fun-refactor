@@ -311,7 +311,13 @@ A change to `src/cli.rs` can affect all the groups below in the
 | `resumable-correspondence` | A saved function selection is checked after moves, renames, copies and deletion |
 | `host-recovery` | Edit recovery at process-interruption boundaries |
 | `index-resolution` | Complete symbol and reference answers match a pinned baseline |
+| `structural-change` | Rust rename and parameter removal preserve compiled results, receiver delivery and exact reversal |
+| `project-change-consumer-scope` | Consumer discovery and a checked Python change retain their original behavior and delivery checks |
 | `python-repositories` | Two scripted repository edits pass behavior checks and patch replay |
+
+A reader change also invalidates these structural and consumer-scope records.
+Include them when refreshing the current scalar, language, package and project records.
+Their active test references live in `tests/structural_change.rs` and `tests/agent_acceptance.rs`.
 
 Freeze the bound source inputs before dispatch, then import results from the exact successful
 run after checking every source hash. Update active test references and preserve historical reports.
@@ -338,6 +344,10 @@ The recovery evaluator binds `tests/host_recovery.rs` itself, so update its repo
 regeneration. This avoids generating a report that immediately becomes stale when its test changes.
 
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
+The Go and Zig toolchain checks fetch only their installer action and shared download script.
+In [run 41452415692](https://github.com/e6qu/fun-refactor/actions/runs/41452415692),
+Go's checkout used almost the entire five-minute job limit before installation started.
+Excluding unrelated source files and saved reports leaves that deadline unchanged.
 A five-minute toolchain check can fill that cache, but native and static jobs now queue independently.
 Each already installs and checksum-verifies its own archive through `native-tools`; waiting for another
 runner adds no validation. On October 5 the main-branch cache was present, yet PR #431's toolchain job

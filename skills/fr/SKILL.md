@@ -4,9 +4,10 @@ description: Find code, refactor, check edits, and interactively write or repair
 ---
 # Work with fr
 
-For edits read [Author](references/author.md); for discovery read [Explore](references/explore.md). Read omissions.
+Edits: [Author](references/author.md). Discovery: [Explore](references/explore.md). Read omissions.
 
-For proofs read [Lean](references/lean.md); for comparisons and division read [Arithmetic](references/lean-arithmetic.md).
+Proofs: [Lean](references/lean.md). For comparisons or division read [Arithmetic](references/lean-arithmetic.md).
+Recursive programs: [Algorithms](references/lean-algorithms.md).
 Keep the claim, model and program fixed. Start `.fr/proof-tactics` with `skip` (no `by`). Inspect after it:
 ```sh
 fr --json spec proof-state '<LEAN_TARGET>' --from .fr/proof-tactics --at 1:5 --token-limit 4096 --timeout-seconds 30

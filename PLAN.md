@@ -9,7 +9,7 @@ Fr should help it find the right code, prepare a precise edit, check its work an
 | --- | --- | --- |
 | Refactor without changing behavior | Rename a Python function and update its imported callers | The promised callers change, unrelated names stay intact, and behavior checks still pass |
 | Change behavior deliberately | Fix a Unicode comparison or add a function that counts escaped text | Tests reject the original mistake and accept the requested result |
-| Write a Lean proof | Show that an access function returns true exactly for staff or owners | Lean accepts the agent's proof of the unchanged property; the source/model connection and assumptions remain visible |
+| Write a Lean proof | Prove that Euclid's GCD code stops and returns the correct result for every input | Lean accepts both proofs of the unchanged executable; examples include `gcd(48, 18) = 6` |
 
 Prefer edits that retain comments, formatting and source outside the intended change.
 Parsing successfully is a separate check. Preserving behavior is required for a refactoring; repairs and features deliberately change behavior.
@@ -47,86 +47,63 @@ Client setup or scripted checks alone are progress within that PR, not separate 
 Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
 PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
-Finish M3 on `milestone/complete-proof-authoring`, including the merged 0.86.1 release update.
+Finish the remaining M3 work together, starting from merged main.
 The [task guide](tests/agent-eval/proof-writing/README.md) owns the fixed claims, checks and publication limits.
 The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
 28 submitted a patch and eight timed out without one. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
 accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
 GLM and Kimi submitted no page-count proof in either setup.
 
-M3 remains open. The complete comparison stays paused while we improve the experiment process.
-Follow the [improvement method](docs/agent-improvement.md): observe, explain, test a prediction, decide and review the method itself.
-GLM and Kimi each completed four of six fr-available attempts in the first and latest complete comparisons.
-Neither delivered a page-count proof in fourteen fr-available attempts across seven complete comparisons.
-Using fr more consistently has not established a sustained rise in total success.
-For example, eleven items at five per page need three pages; valid inputs must never produce more pages than items.
-The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates searches, actual checks and delivered patches.
+M3 remains open: GLM and Kimi still lack accepted page-count proofs within the
+original 150-second limit. The [method](docs/agent-improvement.md) and
+[behavior review](tests/agent-eval/proof-writing/behavior-review.md) explain why
+more tool use alone has not established an improvement.
 
-The [first controlled diagnostic](tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) ran all eight attempts once.
-All eight submitted proofs passed independent checking. Six complete attempts passed; GLM timed out after passing checks,
-and Kimi overwrote the supplied check settings. The stated rules give no demonstrated benefit from supplying the initial error report.
-Review found that this diagnostic skipped the shared execution instructions. That defect is fixed and has a regression.
-The later construction check used the corrected instructions. The 150-second limit stays unchanged.
+The [Euclid study](tests/agent-eval/proof-algorithms/README.md) is now complete:
+all twenty fresh sessions ran once, and independent GitHub checks accepted all
+eight delivered patches. Twelve complete attempts timed out. The executable
+function and its termination and correctness claims stayed fixed.
 
-The [four construction attempts](tests/agent-eval/proof-construction/local-results/README.md) retained three accepted patches and one Kimi timeout without a patch.
-All preserved check settings. Both Kimi attempts hit a reader defect: Lean accepts an inline `calc` chain, but fr rejects it.
-For example, a proof can start `calc n = n := rfl` and continue on the next line with another equality.
-The measured reader mistakes that next step for the end of the calculation.
-All 29 hosted preparation checks passed after the reader repair.
-The [rebuilt-command replay](tests/agent-eval/proof-construction/reader-control-summary.json) now accepts the earlier valid draft without model calls.
-The timed-out attempt's draft reaches Lean and reports its remaining unknown library names.
-That replay found another defect: tagged Lean errors lose their draft locations in fr's report.
-This familiar case has no timing baseline and establishes no causal improvement.
+| Comparison | Observed complete results |
+| --- | --- |
+| Select facts / receive declarations | GLM 0/2 in each; Kimi 0/2 and 1/2 |
+| Checklist / identical-information graph | Luna 2/2 and 2/2; Kimi 1/2 and 2/2; GLM 0/2 in each |
 
-The next tasks stay inside this milestone PR:
+One GLM presentation attempt encountered a confirmed fr reader defect, so we cannot rely on its
+comparison. Two repetitions establish no general graph
+advantage. No agent met the planned two-versus-zero rule for a transfer test;
+accumulator list reversal stays reserved. The results do not yet justify an
+automatic controller that tries alternative proof paths.
 
-Draft PR #591 implements interactive proof authoring. `proof-state` shows the original
-claim, available facts, branch goals and draft position after each step. Hosted Lean tests exercise
-branch completion and reject an unfinished proof. The deadline controls and packaged skill examples also pass.
-The shared skill and access-rule lesson teach the inspect/edit/check loop.
-Keep current reports and final-commit CI checked before delivery. These are tool checks and supplied examples, not new agent successes.
-The page-count proofs remain missing. The next controlled diagnostic passes its tool checks; its eight paid attempts have not started.
+**Implemented in draft PR #592:** the reader accepts multiline GCD proofs and
+keeps their following tactic and declaration separate. Both valid references pass;
+all twelve deliberately broken controls fail. The original checker independently
+grades all twenty sessions. Repaired fr accepts the eight delivered patches and
+checks the misplaced ninth diff separately without counting a new success.
+The small proof guides address the observed flag, context and delivery mistakes;
+these instruction changes have no measured success gain yet.
 
-1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
-   All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
-   Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
-2. Preserve the checked diagnostic repair for messages such as `error(lean.unknownIdentifier)`.
-   All 29 hosted preparation checks and Python-record checks pass.
-   An [exact replay](tests/agent-eval/proof-construction/diagnostic-control-summary.json) now locates both unknown names in the submitted tactics.
-   The original construction timeout remains failed.
-3. Preserve the [four page-count results](tests/agent-eval/proof-page-count/local-results/README.md).
-   All four timed out without a patch; independent checking confirms all four failures.
-   GLM checked drafts but received proof errors. Kimi searched without a draft in one attempt and checked late in the other.
-   Some commands cut off feedback. GLM also encountered another valid syntax form that fr rejected.
-4. Keep the repaired reader for nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
-   All 29 hosted preparation checks passed.
-   The [exact replay](tests/agent-eval/proof-page-count/reader-control-summary.json) now reaches Lean and still rejects the original draft.
-   The [error review](tests/agent-eval/proof-page-count/draft-error-review.json) separates earlier failures from the remaining arithmetic goals.
-   The specification and original agent outcomes stay unchanged.
-5. Qualify the [eight-attempt division-fact diagnostic](tests/agent-eval/proof-division-facts/README.md).
-   Both conditions keep the same task, fr and instructions; one supplies four current library declaration types.
-   Check handout preservation, exact types, rejected patches and complete delivery before freezing inputs or making calls.
-   Use the recorded per-agent decision rules; supply no completed proof.
-   The page-count prediction failed, so the full comparison stays paused.
-   Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
-   Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.
-6. Add the requested [Luna, GLM and Kimi team workflow](docs/team-solve.md) in this same PR.
-   Use native local CLIs. Luna plans and implements; GLM and Kimi propose independently.
-   Kimi reviews actual check results. Luna repairs once only if initial checks fail.
-   The scripted controls cover fresh contexts, protected source and claims, failed checks,
-   skipped repair after success, and retained resource failures.
-   The [first live pilot](tests/agent-eval/team-solve/README.md) passed all eight Python cases
-   in 249.9 seconds across five agent sessions, with repair skipped. Retain its patch and reviewed
-   summary; handoffs and transcripts stay local. No role invoked fr on that tiny task.
-   Hosted CI remains required. Any quality comparison must use frozen tasks, checks,
-   explicit solo and team budgets, every failure and complete role time and reported usage.
-   The runner now supports one agent session and a team of Luna sessions as explicit comparison conditions.
-   Checks cover the exact session sequence and reject passing patches that miss the complete deadline.
-   All team stages share that deadline. No paid comparison of the new conditions has run.
-   Do not use a team success to close the unchanged 150-second M3 solo requirements.
+Both fixed benchmark corpora now pass comparisons with every tracked file
+present, with no changed symbols or references. The
+[audit summary](tests/agent-eval/index-consumers/lambda-reader-control-summary.json)
+records both runs and preserves the original timing baselines. Refreshed reports
+and tracking pages are retained. The earlier
+[five sessions](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
+remain separate; no closed model slot was rerun.
 
-Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.
-Do not repeat full comparisons until one passes. Keep all earlier records and their timing limitations intact.
+**Finish before the draft is ready:** pass every required check on its final
+commit. CI exposed a Go checkout timeout before installation; the toolchain jobs
+now fetch only their installer inputs, keeping the five-minute deadline.
+Publish reviewed summaries and patches; keep raw transcripts private.
+Keep M3 open and do not merge this draft.
+
+After this PR, choose one new testable explanation from the actual failures.
+Do not repeat the full M3 comparison to seek a passing result. A successful
+control or a familiar algorithm cannot replace the missing page-count proofs.
+The [team pilot](tests/agent-eval/team-solve/README.md) and unrun
+[division-fact plan](tests/agent-eval/proof-division-facts/README.md) retain their
+separate scope; neither closes the solo proof-writing milestone.
 
 ### M1. Run the selected agents on three complete tasks
 

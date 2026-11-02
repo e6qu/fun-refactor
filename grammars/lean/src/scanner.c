@@ -41,8 +41,9 @@ enum TokenType {
   BINDING_START,
   CALC_STEP_START,
   TACTIC_LABEL_COLON,
-  CALC_BODY_START,
+  CONTINUATION_BODY_START,
   DO_BODY_START,
+  TACTIC_SUBJECT_SEPARATOR,
 };
 
 #define MAX_DEPTH 64
@@ -316,17 +317,17 @@ bool tree_sitter_lean_external_scanner_scan(
     return true;
   }
 
-  if (valid_symbols[CALC_BODY_START]) {
+  if (valid_symbols[CONTINUATION_BODY_START]) {
     skip_spaces(lexer);
     if (is_nl(lexer->lookahead)) {
       push_layout_indent(s, lexer);
     } else {
-      // `calc a = b := h` may continue on the next line to the left of
-      // `a`, while still inside the surrounding proof's indentation.
+      // An inline `calc` step or lambda body can continue on the next line
+      // left of its first token, but inside the enclosing layout block.
       push(s, top_indent(s) + 1, false);
       s->queued_indent = NO_QUEUED;
     }
-    lexer->result_symbol = CALC_BODY_START;
+    lexer->result_symbol = CONTINUATION_BODY_START;
     return true;
   }
 
@@ -404,6 +405,13 @@ bool tree_sitter_lean_external_scanner_scan(
 
   /* 3. Skip horizontal whitespace before inspecting the character. */
   skip_spaces(lexer);
+
+  if (valid_symbols[TACTIC_SUBJECT_SEPARATOR] && lexer->lookahead == ',') {
+    lexer->advance(lexer, false);
+    lexer->mark_end(lexer);
+    lexer->result_symbol = TACTIC_SUBJECT_SEPARATOR;
+    return true;
+  }
 
   if (valid_symbols[TACTIC_LABEL_COLON] && lexer->lookahead == ':') {
     lexer->advance(lexer, false);

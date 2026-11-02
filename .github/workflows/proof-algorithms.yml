@@ -1,0 +1,215 @@
+name: Executable Lean algorithms
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: proof-algorithms-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  PYTHONPATH: tools:sdk/python/src
+  PYTHONDONTWRITEBYTECODE: '1'
+  FR_LEAN_JOBS: '1'
+  LEAN_NUM_THREADS: '1'
+  RAYON_NUM_THREADS: '1'
+jobs:
+  macos-tool:
+    name: Build the checked algorithm tool for local Mac sessions
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup target add --toolchain 1.98.1 aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m3-macos-agent-tool
+      - run: cargo build --locked --release --bin fr --target aarch64-apple-darwin
+      - name: Bind the local executable to this exact source
+        run: |
+          mkdir -p "$RUNNER_TEMP/algorithm-macos-tool"
+          cp target/aarch64-apple-darwin/release/fr "$RUNNER_TEMP/algorithm-macos-tool/fr"
+          git rev-parse HEAD > "$RUNNER_TEMP/algorithm-macos-tool/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/algorithm-macos-tool/source-tree.txt"
+          shasum -a 256 "$RUNNER_TEMP/algorithm-macos-tool/fr" > "$RUNNER_TEMP/algorithm-macos-tool/fr.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: algorithm-macos-tool
+          path: ${{ runner.temp }}/algorithm-macos-tool
+          if-no-files-found: error
+          retention-days: 30
+  qualify:
+    name: Reject incomplete proofs of the fixed GCD implementation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - name: Check evaluator boundaries and axiom accounting
+        run: >-
+          python3 -B -m unittest agent_eval.test_proof_algorithms agent_eval.test_algorithm_guidance
+          agent_eval.test_algorithm_results agent_eval.test_selected_public
+          agent_eval.test_selected_guarded
+          agent_eval.test_algorithm_admission
+          agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m3-proof-writing
+          cache-on-failure: true
+      - name: Check recursive syntax and compile the current command
+        run: |
+          lean -j1 -DwarningAsError=true tests/fixtures/lean-recursive-algorithms.lean
+          lean -j1 -DwarningAsError=true tests/fixtures/lean-lambda-continuations.lean
+          cargo test --locked --test lean --test lean_grammar -- --test-threads=1
+          cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
+          cargo build --locked --bin fr
+      - name: Check six scripted native CLI exchanges without model access
+        env:
+          GH_TOKEN: ''
+        run: >-
+          python3 -B -m agent_eval.selected_native --fr target/debug/fr
+          --profiles tests/agent-eval/proof-writing/profiles.json --output "$RUNNER_TEMP/algorithm-native"
+      - name: Prove the references and reject changed or unfinished algorithms
+        run: >-
+          python3 -B -m agent_eval.proof_algorithms --fr target/debug/fr
+          --output "$RUNNER_TEMP/algorithm-controls" --native "$RUNNER_TEMP/algorithm-native/summary.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: algorithm-qualification
+          path: |
+            ${{ runner.temp }}/algorithm-controls/controls.json
+            ${{ runner.temp }}/algorithm-controls/retained-agent-patch.json
+            ${{ runner.temp }}/algorithm-controls/inputs
+            ${{ runner.temp }}/algorithm-controls/*-state.json
+            ${{ runner.temp }}/algorithm-controls/*-check.json
+            ${{ runner.temp }}/algorithm-controls/grade-*/check/*.json
+            ${{ runner.temp }}/algorithm-controls/verdict-*.json
+            ${{ runner.temp }}/algorithm-native/summary.json
+            ${{ runner.temp }}/algorithm-controls/grade-*/result.json
+            ${{ runner.temp }}/algorithm-controls/grade-*/grader.stdout
+            ${{ runner.temp }}/algorithm-controls/grade-*/grader.stderr
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: success()
+        with:
+          name: algorithm-private-checker
+          path: ${{ runner.temp }}/algorithm-controls/grader-image.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: success()
+        with:
+          name: algorithm-linux-tool
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 30
+  frozen-audit:
+    name: Preserve the twenty original algorithm outcomes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: actions/checkout@v7
+        with:
+          ref: c1e21f88ffc56eb76a8c775ab651037a67d0c5b2
+          path: .frozen-algorithm-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Verify original inputs, controls, reports and authenticated verdicts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B -m agent_eval.algorithm_replay audit
+          --frozen-root .frozen-algorithm-source --output "$RUNNER_TEMP/algorithm-frozen-audit.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: algorithm-frozen-audit
+          path: ${{ runner.temp }}/algorithm-frozen-audit.json
+          if-no-files-found: error
+  current-replay:
+    name: Check retained algorithm patches with repaired fr
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-qualification
+          path: ${{ runner.temp }}/qualified
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-private-checker
+          path: ${{ runner.temp }}/private-checker
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-linux-tool
+          path: ${{ runner.temp }}/current-tool
+      - name: Replay eight delivered patches and one misplaced diagnostic
+        env:
+          RUSTUP_TOOLCHAIN: '1.99.1'
+        run: |
+          chmod +x "$RUNNER_TEMP/current-tool/fr"
+          docker load --input "$RUNNER_TEMP/private-checker/grader-image.tar.gz"
+          python3 -B -m agent_eval.algorithm_replay replay --fr "$RUNNER_TEMP/current-tool/fr" \
+            --qualification "$RUNNER_TEMP/qualified/algorithm-controls" --output "$RUNNER_TEMP/algorithm-current-replay"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: algorithm-current-replay
+          path: |
+            ${{ runner.temp }}/algorithm-current-replay/summary.json
+            ${{ runner.temp }}/algorithm-current-replay/*/result.json
+          if-no-files-found: error

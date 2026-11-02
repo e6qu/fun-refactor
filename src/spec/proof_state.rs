@@ -76,9 +76,9 @@ pub fn proof_state(
         bail!("proof state dependency preparation failed: {dependencies}");
     }
     let uri = file_uri(&prepared.spec)?;
-    let mut command = Command::new("lake");
+    let mut command = Command::new("lean");
     command
-        .args(["env", "lean", "-j", "1", "--server"])
+        .args(["-j", "1", "--worker", &uri])
         .current_dir(&package);
     let reply = query(
         command,
@@ -306,7 +306,9 @@ fn response(
                 let method = message["method"].as_str().unwrap_or("");
                 if !matches!(
                     method,
-                    "client/registerCapability" | "workspace/inlayHint/refresh"
+                    "client/registerCapability"
+                        | "workspace/inlayHint/refresh"
+                        | "workspace/semanticTokens/refresh"
                 ) {
                     bail!("unsupported Lean editor client request: {method}");
                 }
@@ -500,15 +502,11 @@ fn query(
             json!({"jsonrpc":"2.0", "id":1, "method":"initialize",
             "params":{"processId":std::process::id(),"rootUri":root_uri,"capabilities":{}}}),
         )?;
-        response(&mut output, &mut input, &captured, 1)?;
-        send(
-            &mut input,
-            json!({"jsonrpc":"2.0","method":"initialized","params":{}}),
-        )?;
         send(
             &mut input,
             json!({"jsonrpc":"2.0","method":"textDocument/didOpen",
-            "params":{"textDocument":{"uri":uri,"languageId":"lean4","version":1,"text":source}}}),
+            "params":{"textDocument":{"uri":uri,"languageId":"lean4","version":1,"text":source},
+                      "dependencyBuildMode":"never"}}),
         )?;
         send(
             &mut input,
@@ -575,6 +573,50 @@ mod tests {
     }
 
     #[test]
+    fn editor_refresh_requests_are_acknowledged_before_reading_goals() {
+        for method in [
+            "client/registerCapability",
+            "workspace/inlayHint/refresh",
+            "workspace/semanticTokens/refresh",
+        ] {
+            let mut input = Vec::new();
+            send(
+                &mut input,
+                json!({"jsonrpc":"2.0", "id":"refresh", "method":method, "params":null}),
+            )
+            .unwrap();
+            let goals = json!({"goals":["a b : Nat\nhb : b ≠ 0\n⊢ a % b < b"]});
+            send(&mut input, json!({"jsonrpc":"2.0", "id":2, "result":goals})).unwrap();
+            let mut output = Vec::new();
+            assert_eq!(
+                response(&mut input.as_slice(), &mut output, &AtomicUsize::new(0), 2).unwrap(),
+                goals
+            );
+            let mut replies = output.as_slice();
+            assert_eq!(
+                read_message(&mut replies, &AtomicUsize::new(0)).unwrap(),
+                json!({"jsonrpc":"2.0", "id":"refresh", "result":null})
+            );
+            assert!(replies.is_empty());
+        }
+    }
+
+    #[test]
+    fn an_editor_request_to_change_source_is_still_rejected() {
+        let mut input = Vec::new();
+        send(
+            &mut input,
+            json!({"jsonrpc":"2.0", "id":3, "method":"workspace/applyEdit", "params":{}}),
+        )
+        .unwrap();
+        let mut output = Vec::new();
+        let error =
+            response(&mut input.as_slice(), &mut output, &AtomicUsize::new(0), 2).unwrap_err();
+        assert!(error.to_string().contains("workspace/applyEdit"));
+        assert!(output.is_empty());
+    }
+
+    #[test]
     fn framing_refuses_missing_duplicate_and_excessive_lengths() {
         for raw in [
             b"Content-Type: application/json\r\n\r\n".to_vec(),
@@ -601,6 +643,43 @@ mod tests {
                 "file:///C:/a%20b/%CE%BB.lean"
             );
         }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn one_file_worker_does_not_need_an_initialize_reply_or_repeat_dependency_build() {
+        let script = r#"
+import json, sys
+def read():
+    headers = {}
+    while (line := sys.stdin.buffer.readline()) != b'\r\n':
+        assert line
+        name, value = line.decode().split(':', 1)
+        headers[name.lower()] = value.strip()
+    return json.loads(sys.stdin.buffer.read(int(headers['content-length'])))
+assert read()['method'] == 'initialize'
+opened = read()
+assert opened['method'] == 'textDocument/didOpen'
+assert opened['params']['dependencyBuildMode'] == 'never'
+assert opened['params']['textDocument']['text'] == 'theorem target : True := by\n  skip\n'
+request = read()
+assert request['method'] == '$/lean/plainGoal'
+body = json.dumps({'jsonrpc':'2.0','id':request['id'],'result':{'goals':['⊢ True']}}).encode()
+sys.stdout.buffer.write(('Content-Length: ' + str(len(body)) + '\r\n\r\n').encode() + body)
+sys.stdout.buffer.flush()
+"#;
+        let mut command = Command::new("python3");
+        command.args(["-c", script]);
+        let reply = query(
+            command,
+            "file:///tmp",
+            "file:///tmp/Draft.lean",
+            "theorem target : True := by\n  skip\n",
+            (1, 6),
+            Instant::now() + Duration::from_secs(2),
+        )
+        .unwrap();
+        assert_eq!(reply, json!({"goals":["⊢ True"]}));
     }
 
     #[test]

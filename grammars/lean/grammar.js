@@ -51,8 +51,9 @@ module.exports = grammar({
     $._binding_start,           // Track a binding value's indentation separately
     $._calc_step_start,         // Close each calculation step before its sibling
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
-    $._calc_body_start,         // Inline steps continue inside the enclosing proof
+    $._continuation_body_start,         // Inline terms continue inside the enclosing layout
     $._do_body_start,           // The following `do` opens a statement body
+    $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
 
   // Keyword extraction improves error detection and compile time
@@ -61,7 +62,7 @@ module.exports = grammar({
   // Control words cannot turn into ordinary arguments when a construct is
   // misplaced. Qualified members and escaped names still admit words such as `if`.
   reserved: {
-    global: _ => ['if', 'then', 'else', 'match', 'with', 'by', 'show'],
+    global: _ => ['if', 'then', 'else', 'match', 'with', 'by', 'show', 'where', 'termination_by', 'decreasing_by'],
     qualified: _ => [],
   },
 
@@ -337,6 +338,29 @@ module.exports = grammar({
       optional(field('binders', $.binders)),
       optional($._type_spec),
       $._declaration_body,
+      optional($.where_helpers),
+      optional($.termination_by),
+      optional($.decreasing_by),
+    ),
+
+    where_helpers: $ => seq(
+      'where',
+      $._layout_start,
+      repeat1(seq($.where_decl, optional($._layout_semicolon))),
+      optional($._layout_end),
+    ),
+
+    termination_by: $ => seq(
+      'termination_by',
+      optional('structural'),
+      field('measure', $._expression),
+    ),
+
+    decreasing_by: $ => seq(
+      'decreasing_by',
+      $._layout_start,
+      $._tactic_seq,
+      $._layout_end,
     ),
 
     // Shared body production for definition and instance — factored out
@@ -718,7 +742,7 @@ module.exports = grammar({
           field('binders', repeat1(choice($._pattern, $._bracketed_binder))),
           optional($._type_spec),
           choice('=>', '↦'),
-          $._layout_start,
+          $._continuation_body_start,
           field('body', $._expression),
           optional($._layout_end),
         ),
@@ -840,6 +864,8 @@ module.exports = grammar({
       field('tactic', choice('cases', 'induction')),
       optional(seq(field('equation', $.identifier), $._tactic_label_colon)),
       field('subject', $._application_head),
+      repeat(seq($._tactic_subject_separator, field('subject', $._application_head))),
+      optional(seq('using', field('recursor', $._application_head))),
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
@@ -985,7 +1011,7 @@ module.exports = grammar({
     // `calc` block with steps
     tactic_calc: $ => prec.right(seq(
       'calc',
-      $._calc_body_start,
+      $._continuation_body_start,
       repeat1($.calc_step),
       $._layout_end,
     )),

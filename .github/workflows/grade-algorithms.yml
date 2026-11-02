@@ -1,0 +1,99 @@
+name: Independently grade original algorithm proofs
+on:
+  workflow_dispatch:
+    inputs:
+      control_run:
+        description: Exact successful executable-algorithm qualification run
+        required: true
+        type: string
+      study:
+        description: Frozen comparison whose original public patches must be checked
+        required: true
+        type: choice
+        options: [M3-algorithm-facts, M3-algorithm-presentation]
+  workflow_call:
+    inputs:
+      control_run:
+        required: true
+        type: string
+      study:
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: grade-algorithms-${{ inputs.study }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  PYTHONPATH: tools:sdk/python/src
+  PYTHONDONTWRITEBYTECODE: '1'
+  STUDY: ${{ inputs.study }}
+  CONTROL_RUN: ${{ inputs.control_run }}
+  FR_LEAN_JOBS: '1'
+  LEAN_NUM_THREADS: '1'
+  RAYON_NUM_THREADS: '1'
+jobs:
+  grade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - name: Require the original successful qualification run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$CONTROL_RUN" -gt 0
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CONTROL_RUN" > "$RUNNER_TEMP/control-run.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          row = json.loads((Path(os.environ['RUNNER_TEMP']) / 'control-run.json').read_text())
+          assert row['status'] == 'completed' and row['conclusion'] == 'success'
+          assert row['path'] == '.github/workflows/proof-algorithms.yml'
+          assert row['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+          PY
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-qualification
+          path: ${{ runner.temp }}/algorithm-original
+          run-id: ${{ inputs.control_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-private-checker
+          path: ${{ runner.temp }}/algorithm-original/algorithm-controls
+          run-id: ${{ inputs.control_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-linux-tool
+          path: ${{ runner.temp }}/algorithm-tool
+          run-id: ${{ inputs.control_run }}
+          github-token: ${{ github.token }}
+      - run: chmod +x "$RUNNER_TEMP/algorithm-tool/fr"
+      - name: Grade every original submitted patch in the frozen private checker
+        run: |
+          python3 -B -m agent_eval.algorithm_results grade \
+            --data "tests/agent-eval/proof-algorithms/local-results/$STUDY" \
+            --artifacts "$RUNNER_TEMP/algorithm-original/algorithm-controls" \
+            --fr "$RUNNER_TEMP/algorithm-tool/fr" --control-run "$CONTROL_RUN" --study "$STUDY" \
+            --output "$RUNNER_TEMP/algorithm-checked"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: algorithm-independent-verdicts
+          path: ${{ runner.temp }}/algorithm-checked/checked.json
+          if-no-files-found: error
+          retention-days: 30

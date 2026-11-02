@@ -46,6 +46,14 @@ class SelectedPublicTests(unittest.TestCase):
                          {'input': 7, 'cache': {'read': 3}})
         self.assertEqual(sum_counts([{'input': 3}, {'output': 4}]), {'input': None, 'output': None})
 
+    def test_interactive_proof_operations_are_reported_separately(self):
+        events = [{'type': 'item.completed', 'item': {'type': 'command_execution', 'command': command}}
+                  for command in ('fr --json spec proof-task target --token-limit 4096',
+                                  'fr --json spec proof-state target --from draft --at 1:5 --token-limit 4096 --timeout-seconds 30')]
+        used = observed_fr(events)
+        self.assertEqual(used['commands_observed'], 2)
+        self.assertEqual(used['operations_observed'], ['spec proof-state', 'spec proof-task'])
+
     def test_overlapping_tools_count_once_and_absent_timing_stays_unknown(self):
         events = [{'type': 'tool_use', 'part': {'state': {'time': {'start': start, 'end': end}}}}
                   for start, end in ((1000, 4000), (2000, 5000), (7000, 8000))]
@@ -70,6 +78,10 @@ class SelectedPublicTests(unittest.TestCase):
     def test_division_fact_export_keeps_handouts_and_native_records_private(self):
         self.assert_private_export('M3-facts', 8)
 
+    def test_algorithm_exports_keep_all_records_private_and_all_failures_visible(self):
+        for study, count in [('M3-algorithm-facts', 8), ('M3-algorithm-presentation', 12)]:
+            self.assert_private_export(study, count)
+
     def assert_private_export(self, milestone, count):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -79,6 +91,8 @@ class SelectedPublicTests(unittest.TestCase):
                     'binaries': {}, 'components': {}, 'client_finish_seconds': 10, 'formal_inputs': {},
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
+            if milestone in public.ALGORITHM_STUDIES:
+                plan['admission'] = {'profiles': {}, 'receipts_sha256': 'a' * 64}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
             plan_path.write_text(json.dumps(plan))
@@ -106,6 +120,17 @@ class SelectedPublicTests(unittest.TestCase):
                 elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     (directory / 'result.json').write_text(json.dumps(record))
+                elif milestone in public.ALGORITHM_STUDIES:
+                    record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
+                    resources = {'limits': {'wall_seconds': 150, 'rss_bytes': 805306368, 'cpu_seconds': 75,
+                                 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
+                                 'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100}
+                    monitor = root / 'attempt-monitors' / row['id']
+                    monitor.mkdir(parents=True)
+                    (monitor / 'resources.json').write_text(json.dumps(resources))
+                    record['complete_attempt_resources'] = resources
+                    record['complete_attempt_resources_sha256'] = public.common.digest(monitor / 'resources.json')
+                    (directory / 'result.json').write_text(json.dumps(record))
                 review[row['id']] = {'record_sha256': public.common.digest(directory / 'result.json'),
                                     'contributing_actions': [], 'failure_summary': 'Native command timed out before delivery.'}
                 if milestone == 'M3-feedback':
@@ -122,6 +147,10 @@ class SelectedPublicTests(unittest.TestCase):
                         review[row['id']]['proof_observations']['first_proof_check_seconds'] = None
                     if milestone == 'M3-facts':
                         review[row['id']]['proof_observations']['proof_write_seconds'] = None
+                elif milestone in public.ALGORITHM_STUDIES:
+                    from agent_eval.algorithm_results import CHECKS, TIMINGS
+                    review[row['id']]['algorithm_observations'] = {
+                        **{name: None for name in CHECKS | TIMINGS}, 'execution_validity': 'collection-failed'}
             destination = root / 'approved'
             with patch.object(public.local, 'implementation_bindings', return_value={}), \
                     patch.object(public.grading, 'core_digest', return_value='checker'):

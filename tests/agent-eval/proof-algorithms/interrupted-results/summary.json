@@ -1,0 +1,197 @@
+{
+  "purpose": "Retain the interrupted first algorithm batch without replacing failed or unstarted slots.",
+  "facts_plan_sha256": "95c89bb559c5f4df08235b6be3abccdd7e0d2a73df2aa2940f308d49c69fe5d9",
+  "presentation_plan_sha256": "0f8872a9c8c2437fc54034d383aa141318e526fc0bb16ef52cc877c35e2af25c",
+  "source_commit": "7b8d76b6bd68fe3f35a81c7c06fa4eae51e2b7c3",
+  "source_tree": "d04696e1daefcfa9baf969ce7cdcfc1848ce0bea",
+  "native_inputs": {
+    "src": "0ad118057bad5f8698aafeb18a01450f60d200b5",
+    "grammars": "3ae8190844b66a1cc54a37a8895bc48284d5658c",
+    "crates": "6d9d25a18f856642ead5ab598f583288b2cf7a5e",
+    "queries": "43373da5ff00b75cdff85cf9ed8a5c3059eefdaf",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "e71fcf4fa094507118640f3370cc58ba99e621bf",
+    "Cargo.lock": "2800d1ca4f6646df51efaf876bcc5ef9d98492d1",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "fr_sha256": "6cce3cca3d9ad20323b8167ccd01a24934fcc73553f6366a8d6a625b5d1ee740",
+  "qualified_run": "41383408769",
+  "profiles": {
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "low"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "low"
+      }
+    }
+  },
+  "versions": {
+    "fr": "fr 0.86.1",
+    "opencode2": "opencode v2.0.32"
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "actual_cost": null,
+  "task_source_sha256": "79078981796b7578bd55f77ae635c1d7b104bf46074195007991367d41359814",
+  "attempts": [
+    {
+      "id": "opencode2-glm-flash-euclid-select-facts-1",
+      "profile": "opencode2-glm-flash",
+      "task": "euclid",
+      "setup": "select-facts",
+      "repetition": 1,
+      "status": "failed",
+      "record_sha256": "6875065d608293f9ee982161d432ef9d6ad2a6a106bd74bcb70bb490b22b3941",
+      "stream_sha256": "071addc416a556e2db6bba70bdc643789a1705f1076324af6d08469d5a061781",
+      "recovered_export_sha256": null,
+      "total_seconds": 150.05546516692266,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "Read the skill and task, found the library GCD recursion theorem and edited proofs directly. Timed out without a patch."
+    },
+    {
+      "id": "opencode2-glm-flash-euclid-supplied-declarations-1",
+      "profile": "opencode2-glm-flash",
+      "task": "euclid",
+      "setup": "supplied-declarations",
+      "repetition": 1,
+      "status": "failed",
+      "record_sha256": "2ff9c4ef2258aad017ea8b7201318cbe7eed5da522b76317d2cb08ec401b7cf1",
+      "stream_sha256": "aaf1ce94eb6fe200d41c91a614af7307dc817bd54b26d347c0d6594decad903a",
+      "recovered_export_sha256": null,
+      "total_seconds": 150.04803033405915,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "Reached a passing correctness-draft check. A later check exposed an earlier invalid correctness proof still in the source. Timed out without a patch."
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-supplied-declarations-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "euclid",
+      "setup": "supplied-declarations",
+      "repetition": 1,
+      "status": "failed",
+      "record_sha256": "afa756cde2a8e43dcefdd0c579060e28ba99c776c9e61ed67538a9927408d2de",
+      "stream_sha256": "a86261a3b94bb4d1036f6b293d6691781fee9c1bd7027856a8704b710d448b9c",
+      "recovered_export_sha256": null,
+      "total_seconds": 150.0254067920614,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "Checked and saved termination. Lean rejected the correctness draft. Timed out without a patch."
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-select-facts-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "euclid",
+      "setup": "select-facts",
+      "repetition": 1,
+      "status": "completed",
+      "record_sha256": "eb9307d5657de7a7851b9c6173d240f2a17c05ef56db5937e8a51cbcd8f81ae0",
+      "stream_sha256": "26f48d59f531c4c1b346a9232e46e4b558246f8624cafeda51f9b3d27139448f",
+      "recovered_export_sha256": null,
+      "total_seconds": 104.24180691689253,
+      "patch_file": "patches/opencode2-kimi-k3-euclid-select-facts-1.patch",
+      "patch_sha256": "256936f8b1dcee20ce9ddca3c7c2497c82f99dd6f8ed6e6dc096150a8c78e997",
+      "independent_patch_accepted": null,
+      "review": "Checked and saved both proofs, passed the warning-as-error package build and delivered a patch. Independent patch replay is pending."
+    },
+    {
+      "id": "opencode2-glm-flash-euclid-supplied-declarations-2",
+      "profile": "opencode2-glm-flash",
+      "task": "euclid",
+      "setup": "supplied-declarations",
+      "repetition": 2,
+      "status": "interrupted",
+      "record_sha256": "1da1482421b91b92773afff0d40dd9b078b2574205758848c4dacd0f1b13f00e",
+      "stream_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "recovered_export_sha256": "f3ced8a2fde20207ceba4d9c5ba3fdf84245ed713728b2e114e605b654188b6b",
+      "total_seconds": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "The outer guard stopped aggregate RSS above 1 GiB. Recovery found a reader rejection of multi-input induction and incorrect proof-state arguments. The partial stream had not been flushed."
+    },
+    {
+      "id": "opencode2-glm-flash-euclid-select-facts-2",
+      "profile": "opencode2-glm-flash",
+      "task": "euclid",
+      "setup": "select-facts",
+      "repetition": 2,
+      "status": "unstarted",
+      "record_sha256": null,
+      "stream_sha256": null,
+      "recovered_export_sha256": null,
+      "total_seconds": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "Not started after the resource stop; this slot has not been replaced."
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-select-facts-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "euclid",
+      "setup": "select-facts",
+      "repetition": 2,
+      "status": "unstarted",
+      "record_sha256": null,
+      "stream_sha256": null,
+      "recovered_export_sha256": null,
+      "total_seconds": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "Not started after the resource stop; this slot has not been replaced."
+    },
+    {
+      "id": "opencode2-kimi-k3-euclid-supplied-declarations-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "euclid",
+      "setup": "supplied-declarations",
+      "repetition": 2,
+      "status": "unstarted",
+      "record_sha256": null,
+      "stream_sha256": null,
+      "recovered_export_sha256": null,
+      "total_seconds": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "independent_patch_accepted": null,
+      "review": "Not started after the resource stop; this slot has not been replaced."
+    }
+  ],
+  "presentation": {
+    "status": "unstarted",
+    "scheduled_attempts": 12,
+    "reason": "Invalidated before any call by the discovered reader and resource-monitor repairs."
+  },
+  "inference": "Inconclusive. The batch stopped in slot five. Detached server processes were missing from the inner memory and CPU samples; those metrics are unusable for the completed slots too. Wall-clock times remain the recorded complete-attempt times. No declaration-handout or graph advantage is established.",
+  "memory_cause": "A non-model private-server probe confirmed a child in a separate process group. The original guard did not record a per-process peak, so the exact allocation responsible for the outer memory stop remains unknown.",
+  "repairs": [
+    "Count detached descendants and stop observed workers when their CLI exits.",
+    "Verify process start identity before cleanup; retain departed CPU samples once.",
+    "Flush each received output block so a killed controller preserves partial feedback.",
+    "Accept multi-input induction with an explicit recursor; keep Lean responsible for invalid tactics."
+  ],
+  "publication": "Reviewed summary and the exact submitted patch only. Raw logs, drafts, source snapshots and recovered conversation remain private.",
+  "next": "Qualify the repaired setup and freeze fresh complete comparisons. Preserve this interruption separately; do not replace its slots or compare the old and new setup as if guidance were the only change."
+}

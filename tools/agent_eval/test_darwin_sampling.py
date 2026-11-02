@@ -1,4 +1,4 @@
-"""Check process-group accounting without launching a system-wide ps command."""
+"""Check descendant accounting without launching a system-wide ps command."""
 import ctypes
 import errno
 import os
@@ -29,6 +29,8 @@ class DarwinSampling(unittest.TestCase):
         return 0
 
     def list_pids(self, kind, group, buffer, size):
+        if kind == 6:
+            return 0
         self.assertEqual((kind, group), (2, 123))
         buffer[0], buffer[1] = 201, 202
         return 2 * ctypes.sizeof(ctypes.c_int)
@@ -43,6 +45,15 @@ class DarwinSampling(unittest.TestCase):
     def test_aggregate_bytes_and_mach_ticks_without_subprocesses(self):
         with patch.object(host.subprocess, 'run', side_effect=AssertionError('must not launch ps')):
             self.assertEqual(host.darwin_sample(123), (3072, {201: 0.045, 202: 0.045}))
+
+    def test_private_server_and_its_worker_are_not_hidden_by_new_groups(self):
+        def inventory(kind, parent, buffer, size):
+            children = {(2, 123): [201], (6, 201): [202]}.get((kind, parent), [])
+            for position, pid in enumerate(children):
+                buffer[position] = pid
+            return len(children) * ctypes.sizeof(ctypes.c_int)
+        self.library.proc_listpids.side_effect = inventory
+        self.assertEqual(host.darwin_sample(123), (3072, {201: 0.045, 202: 0.045}))
 
     def test_empty_group_and_truncated_inventory(self):
         self.library.proc_listpids.side_effect = None
@@ -103,6 +114,28 @@ class NativeDarwinSampling(unittest.TestCase):
             self.assertTrue(all(value > 0 for value in cpu.values()))
         finally:
             os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=2)
+            process.stdout.close()
+
+    def test_new_session_worker_is_counted(self):
+        worker = 'import os,time; x=bytearray(4*1024*1024); print(os.getpid(),flush=True); time.sleep(10)'
+        command = ('import os,subprocess,sys,time; '
+                   f'subprocess.Popen([sys.executable,"-c",{worker!r}],start_new_session=True); '
+                   'print(os.getpid(),flush=True); time.sleep(10)')
+        process = subprocess.Popen([sys.executable, '-c', command], stdout=subprocess.PIPE,
+                                   text=True, start_new_session=True)
+        members = set()
+        try:
+            members = {int(process.stdout.readline()), int(process.stdout.readline())}
+            memory, cpu = host.sample(process.pid)
+            self.assertEqual(set(cpu), members)
+            self.assertGreater(memory, 4 * 1024**2)
+        finally:
+            for pid in members | {process.pid}:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
             process.wait(timeout=2)
             process.stdout.close()
 

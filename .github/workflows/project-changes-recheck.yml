@@ -26,6 +26,7 @@ jobs:
       CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
       RUSTUP_TOOLCHAIN: '1.99.1'
+      RAYON_NUM_THREADS: '1'
       PREFIX: ${{ github.event_name == 'push' && format('2026-10-21-current-{0}', github.run_id) || inputs.prefix }}
     steps:
       - uses: actions/checkout@v7

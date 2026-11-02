@@ -9,10 +9,12 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 
 ## Current milestone
 
-Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
+Continue on `research/proof-guidance` in [draft PR #592](https://github.com/e6qu/fun-refactor/pull/592).
+Keep its algorithm experiment, encountered fixes, results and tracking together.
+M3 remains open; these diagnostics cannot replace its missing page-count proofs.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-The current addition in draft PR #591 is interactive proof authoring. `spec proof-state`
+Merged PR #591 added interactive proof authoring. `spec proof-state`
 reads Lean's actual goals at a draft cursor, including available assumptions and the original
 claim. It cannot issue a proof receipt; `closed-at-position` can describe only one solved branch.
 The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edit/check loop.
@@ -20,73 +22,57 @@ The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edi
 [deadline controls and packaged skill examples](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004148) pass.
 [Full proof preparation](https://github.com/e6qu/fun-refactor/actions/runs/41348391677) and
 [the next diagnostic’s controls](https://github.com/e6qu/fun-refactor/actions/runs/41353218026) also pass,
-using the same checked executable. No new agent attempts have started.
+using the same checked executable. These remain tool checks, not new agent successes.
 Keep full PR CI and current-report checks mandatory. These checks establish tool behavior; they add no agent successes.
 
-**The full comparison remains paused. Three small diagnostics are closed; the next is being qualified.**
-Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
-Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
-Keep the diagnostic's original source, checker and input identities. Do not rerun its closed slots.
-Native and hosted regression checks can continue.
+**The full M3 comparison remains paused. All twenty Euclid development sessions are finished.**
+The [results review](../tests/agent-eval/proof-algorithms/local-results/review-context.md)
+records eight independently accepted delivered patches and twelve complete-attempt
+timeouts. Facts: GLM 0/2 with either handout; Kimi 0/2 selecting and 1/2 supplied.
+Presentation: Luna 2/2 with either layout; Kimi checklist 1/2 and graph 2/2;
+GLM 0/2 with either. One GLM session hit a confirmed reader bug, so that comparison
+is uncertain. No profile met the planned two-versus-zero transfer rule. Keep list
+reversal reserved and do not add model sessions or rerun closed slots.
 
-The latest complete M3 comparison has 28 accepted patches and eight page-count timeouts.
-Both GLM and Kimi still lack accepted page-count proofs.
-Each finished four of six fr-available attempts in the first and latest complete comparisons.
-The [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) distinguishes changed tool use from unchanged total success.
+Original independent runs: [facts](https://github.com/e6qu/fun-refactor/actions/runs/41427685363)
+and [presentation](https://github.com/e6qu/fun-refactor/actions/runs/41427693183).
+The frozen-source manifest pins the original checking code. Current qualification
+must audit those reports against that source and replay retained patches separately.
+A ninth diff was written outside the project and timed out; keep it as a diagnostic,
+never a delivered success. Raw records and drafts remain private.
 
-The evaluator now rejects stopped successes, successes beyond their recorded deadline and invalid timing values.
-Its [audit](../tests/agent-eval/proof-writing/report-audit.json) retains hashes and expected statistics for twelve complete reports and 480 attempts.
-Focused regression checks preserve all those statistics. Original reports and verdicts stay unchanged.
+The multiline-lambda reader repair passes both executable-GCD reference controls
+and all twelve rejection controls. The measured fr had rejected the valid reference
+before Lean ran. Current-tool replay accepts all eight delivered patches and the
+separate misplaced diagnostic; original scores stay unchanged.
+The original GLM draft also had Lean errors; repairing the reader cannot credit it.
+The shared skills now address observed flag mistakes, clipped diagnostics, neighboring
+broken proofs, already-present writes and project-root patch delivery. These changes
+have not been measured as agent improvements. No evidence yet supports building an
+automatic proof-backtracking controller.
 
-The [eight-attempt diagnostic](../tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) compared a small division repair with and without the initial error report.
-Independent grading accepted all eight submitted proofs. Six complete attempts passed.
-GLM timed out after a passing proof and package check; Kimi overwrote `.fr/checks.json` with a proof-check report.
-Both remain failed. The decision rules give no demonstrated benefit from supplying the report.
+Both earlier interrupted algorithm cohorts remain unchanged. Complete scripted
+admission passed for all three clients with 128 MiB reserved inside the original
+768-MiB ceiling. The observer runs outside the CPU throttle; actual work stays
+inside the workstation guard. Keep complete attempts at 150 seconds.
+The smaller task disables automatic imports in both entry and algorithm files,
+then imports only the required GCD library. Implementation and claims stay fixed.
+Older OpenCode resource records omitted detached servers; they cannot establish
+whole-client CPU or memory compliance. Their original times and patch verdicts stay.
 
-Its shorter prompt omitted the shared execution instructions. The runner now adds those instructions to the diagnostic too.
-A regression rejects the measured prompt and passes the correction. The skill distinguishes check settings from reports and explains proof writes' `applied` field.
-The [four construction attempts](../tests/agent-eval/proof-construction/README.md#what-the-first-run-established) used these changes after hosted qualification passed.
-Independent grading accepted three patches; Kimi timed out once without a patch. All four kept the check settings unchanged.
-Both Kimi attempts hit a reader defect: Lean accepts inline calculation steps that measured fr rejects before Lean runs.
-All 29 hosted preparation checks passed in run 41214408630. The exact rebuilt-command replay also passed without model calls.
-It accepts the earlier valid calculation and lets Lean reject the timed-out draft's unknown names.
-That replay exposed a second defect: tagged unknown-name errors lost their structured draft locations.
-Its repair passed all 29 hosted preparation checks and Python-record checks.
-An [exact replay](../tests/agent-eval/proof-construction/diagnostic-control-summary.json) now keeps the error code, message and submitted line and column.
-Keep all four original outcomes unchanged.
+The 335 original M3 outcomes and sixteen earlier diagnostic outcomes remain unchanged.
+The division-fact plan stays unrun. The mixed-agent Python pilot has no solo baseline
+and no useful fr step; it does not close M3. Preserve all original report hashes.
 
-The [four page-count attempts](../tests/agent-eval/proof-page-count/README.md) all timed out without patches; independent grading confirms all four failures.
-They exposed another reader defect in nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
-The repair passed all 29 hosted preparation checks.
-The [rebuilt-reader replay](../tests/agent-eval/proof-page-count/reader-control-summary.json) reaches Lean and still rejects the original draft.
-The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates redundant introductions, wrong assumption grouping and missing division facts.
-Its final manual control proves the unchanged claim. It is neither an agent success nor a timing comparison.
-Before another paid diagnostic, freeze a prediction about finding and using those facts; keep the completed proof out of the agent inputs.
-The [division-fact protocol](../tests/agent-eval/proof-division-facts/README.md) compares selecting declarations with receiving their exact types.
-It has eight balanced slots, unchanged 150-second limits and protected handouts.
-No slots have started. Hosted qualification must pass before inputs are frozen or clients run.
-
-The requested [team workflow](team-solve.md) uses fresh local Luna, GLM and Kimi sessions with explicit file handoffs.
-The [Python pilot](../tests/agent-eval/team-solve/README.md) passed eight cases in 249.9 seconds across five CLI sessions.
-It has no solo baseline, and no role invoked fr. The actual number of provider requests is unknown.
-The runner now supports a single session, an all-Luna team and the mixed team with explicit complete-run budgets.
-Nineteen workflow controls passed the hosted documentation gate.
-Complete hosted CI remains required before readiness.
-No paid comparison of those conditions has run. Team results cannot close the M3 solo requirements.
-
-Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
-Hosted M3 checks passed; a clean proof remains checkable while another theorem is unfinished.
-The current skill and restored shared instructions passed M1, M2 and documentation qualification before the four construction attempts.
-Dependency controls needed a repair because they unfolded the model twice and triggered the new unused-argument warning check.
-Focused checks now accept the clean reference and reject the changed dependency. Keep the strict warning rule.
-The known-file fr lookup also passes locally by indexing exactly one file; its CI deadline remains three minutes.
-
-All 335 M3 outcomes remain in the [complete and interrupted archives](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
-The eight repair, four construction and four page-count attempts are separate; they cannot replace a full-study failure.
-Retain original input identities, failures, sleep limitations and record hashes.
-Only submitted patches and summaries may leave the workstation.
-Keep logs, drafts, source archives, session exports and account data local.
-Old diagnostic copies and executables may have verified compressed copies; preserve their private integrity records when restoring them.
+The full evidence family has fresh successful collections. Retain it on GitHub,
+with one publisher at a time on the PR branch. Verify both complete pinned benchmark
+corpora: worktrees must disable inherited sparse exclusions and retain every tracked
+source. Both complete audits now pass; see the reader control summary in the
+index-consumer records. Invalid additional modern-corpus probes supply no complete-source result.
+Use the reviewed probe record; do not raise any timeout. Then publish one source change at a time,
+then pass the full final-head PR gate. Keep [PLAN.md](../PLAN.md#next-work) current.
+Do not merge PR #592. Only reviewed summaries and original patches may be uploaded;
+logs, source archives, drafts and account data stay local.
 
 ## Keep the other milestones concrete
 

@@ -4,6 +4,9 @@ We want smaller agents to deliver correct changes and proofs with less wasted wo
 Each experiment must answer a question that changes what we do next.
 This process improves fr, its instructions and the checks we use to judge them.
 
+Read the [proof-guidance review](proof-guidance-review.md) before changing search or skills.
+It separates missing facts, graph presentation and checked exploration, with specific next comparisons.
+
 ## What the existing proof runs establish
 
 The [retained comparisons](../tests/agent-eval/proof-writing/README.md#earlier-attempts) include these complete runs.
@@ -213,7 +216,7 @@ Then review the first unresolved proof or delivery step and the task requirement
 Do not assume that another wording change will make the complete page-count proof fit the existing limit.
 The four new records stay separate from the 335 M3 outcomes and twelve earlier diagnostic outcomes.
 
-### Next diagnostic: select current facts or apply supplied declarations
+### Earlier unrun plan: select current division facts
 
 The [eight-slot protocol](../tests/agent-eval/proof-division-facts/README.md) uses a smaller fixed division claim.
 Both conditions have the same task, fr, instructions, library and complete 150-second deadline.
@@ -223,8 +226,61 @@ It does not isolate every obstacle in the complete page-count proof.
 
 The runner checks the declarations against pinned Lean output and protects each condition's handout.
 Changed settings, late successes, missing checks and damaged handouts remain failures.
-No calls have started. Hosted checker qualification must pass before freezing all eight slots.
+The hosted tool qualification passed. No calls started and no execution plan was frozen.
 The protocol fixes separate per-agent decisions, including harm, mixed outcomes and invalid execution.
+
+### Next comparison: prove an executable algorithm
+
+The [algorithm study](../tests/agent-eval/proof-algorithms/README.md) now takes priority.
+Euclid's algorithm finds a greatest common divisor: `(48, 18)` becomes `(18, 12)`,
+then `(12, 6)`, then `(6, 0)`, and returns `6`.
+Agents must prove that this fixed executable Lean function stops and always returns the right answer.
+The termination lemma is supporting work; it cannot replace the correctness proof.
+
+All eight relevant-fact and twelve presentation sessions have now finished once.
+The [review](../tests/agent-eval/proof-algorithms/local-results/review-context.md)
+retains eight accepted delivered patches and twelve complete-attempt timeouts.
+Luna completed both layouts twice, Kimi checklist once and graph twice, and GLM
+neither. GLM's presentation comparison is uncertain because of a confirmed reader
+bug. No profile met the fixed two-versus-zero transfer rule. Keep reversal reserved;
+no automatic search controller is justified by these results yet.
+
+Fix the observed command, source-context and delivery mistakes, plus the reader's
+multiline-lambda rejection. A current-tool replay must stay separate from the
+original outcomes. These proposed repairs have no measured success gain yet.
+Keep the 150-second limit and qualify references and negative controls without
+models. Do not start another paid comparison to seek a better score.
+
+The [first algorithm batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+stopped in slot five. Keep its three timeouts, one Kimi submission and all unstarted slots.
+The inner monitor missed OpenCode's detached server. Buffered feedback also disappeared
+when the outer guard stopped the session. Recovering the existing conversation exposed
+a valid induction form that fr rejected before Lean ran.
+
+The [no-model checks](../tests/agent-eval/proof-algorithms/memory-controls.json) then
+reproduced the combined inspector memory failure without paying for another attempt.
+A single-file worker removes redundant processes, but the rebuilt command with
+the full `Std` import still exceeds the combined budget. An inner sampler can also
+miss work while the workstation CPU guard pauses it. Fresh attempts use a low-priority
+observer outside the guarded tree, with unchanged limits applied to the entire attempt.
+An Init-import session then stopped too. Its initial-goal preflight missed later proof
+and package work. Keep that [failed session](../tests/agent-eval/proof-algorithms/interrupted-init-results/README.md).
+Explicit single-threaded and synchronous Lean checks did not materially change the copied draft's memory.
+They did not explain the stop, so do not present them as fixes.
+
+The smaller task turns off automatic imports in both files and imports the GCD library directly.
+Its GCD function and theorem statements stay fixed. A complete scripted control now
+fits with substantial headroom. The gate must also reject a looping draft, save both
+proofs, build the package, capture the patch and complete native accounting.
+All three profiles passed with 128 MiB left within the unchanged 768-MiB ceiling before the twenty calls.
+The freezer requires those receipts. It cannot accept another initial-goal spot check.
+Keep this interrupted batch separate; it cannot establish which guidance helped.
+
+This finding also limits older local OpenCode2 reports that used the same monitor.
+Their inner CPU and RSS totals omit detached server work. Preserve their recorded
+wall-clock times and independently checked patches. Those CPU and RSS records
+cannot establish whole-client resource compliance. Keep the original results unchanged
+and state this limitation when using them; the new monitor cannot recover past samples.
 
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.

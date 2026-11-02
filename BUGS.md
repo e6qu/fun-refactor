@@ -5,8 +5,54 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Repairs under review
 
-These repairs are on `milestone/complete-proof-authoring`; the complete M3 PR is still in progress.
-The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit before its latest agent comparison.
+The current work is in [draft PR #592](https://github.com/e6qu/fun-refactor/pull/592),
+on `research/proof-guidance`. The interrupted algorithm batch exposed these defects:
+
+| Problem | Repair and remaining check |
+| --- | --- |
+| The inner memory and CPU monitor missed OpenCode's detached private server | Follow descendants across process groups and stop observed workers on exit. Focused tests pass locally and in [hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41398715778) |
+| Killing the controller could lose buffered native feedback | Flush every received block. A regression checks that partial output is readable while the controller is still running |
+| Fr rejected induction over two inputs before Lean ran | The generated reader accepts both inputs and the named induction rule. Native qualification passes; both fixed-corpus audits preserve the reviewed facts |
+| CPU throttling could pause the inner sampler while a new worker ran | Observe the whole required guard and workload from outside the throttled tree. Keep all limits unchanged and preserve the original controller report |
+| Initial-goal admission missed later proof and package memory | Both GCD task files now disable the automatic library import. A complete scripted prototype fits the fixed budget. The freezer now requires full-workflow receipts with client-state headroom; hosted qualification and all three complete native-client checks passed before the twenty fresh sessions |
+| An interrupted result filled unknown system sleep with zero | The outer observer now compares both clocks, including when the controller is stopped. Keep the earlier result unchanged and label its missing sleep measurement unknown |
+| Lean accepted a multiline function body that fr rejected | Both executable-GCD references now pass, including a continued argument. Tests keep the following tactic and declaration separate. Original failed agent work stays failed |
+| Recursive definitions and local helpers confused the reader | The hosted algorithm checks accept Euclid's termination hints and isolate local-helper renames. Preserve the exact benchmark-fact audits |
+
+The [interrupted batch](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+remains inconclusive. The exact allocation behind its outer memory stop is unknown;
+the repair must not be described as a measured reduction in client memory.
+The [later Init session](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
+also remains a failed, incomplete comparison. The later twenty-session study is complete;
+see the [results review](tests/agent-eval/proof-algorithms/local-results/review-context.md).
+One GLM presentation attempt hit a multiline-lambda reader defect: Lean accepts
+a function argument continued on the next line while measured fr rejects it.
+The reader repair has a valid GCD reference control and checks following declarations.
+Keep the original failed agent draft separate; it also contained Lean errors.
+The project replay also hit its CPU ceiling after accounting improved.
+Its [single-worker replay](https://github.com/e6qu/fun-refactor/actions/runs/41401084179)
+passes with the original CPU and wall budgets. Both the collector and CI now select one worker explicitly.
+The [package replay](tests/agent-eval/package-questions/cpu-limit-review.json)
+exposed another boundary: its fresh worker environment discarded the caller's worker setting.
+Nine Boltons cases exhausted the unchanged CPU budget. The worker now selects one
+Rayon worker explicitly. All nine controlled replays pass below the same limits;
+the largest sampled CPU total is 7.46 seconds against the original ten-second budget.
+
+A separate Mac reasoning control stopped at 825,114,624 sampled RSS bytes,
+above its unchanged 805,306,368-byte ceiling. Its client now uses the explicit
+smaller Bun runtime setting. The [scripted reasoning controls](https://github.com/e6qu/fun-refactor/actions/runs/41434050053)
+pass on Mac and Linux. These controls make no model calls and grant no live-agent admission.
+
+The additional reader comparison exposed a partial-checkout error. Its worktree
+inherited CI exclusions and omitted archived sources. The
+[probe review](tests/agent-eval/index-consumers/lambda-audit-preparation-review.json)
+preserves each failure. The checker now requires every tracked source before indexing.
+Both [complete fixed-corpus audits](tests/agent-eval/index-consumers/lambda-reader-control-summary.json)
+pass and preserve the recorded source facts. Partial inventories cannot qualify a complete-source claim.
+
+The earlier repairs below belong to merged M3 work, including PR #591.
+The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
+before the earlier complete comparison. Those counts do not qualify the current changes.
 
 | Earlier problem | Current branch behavior |
 | --- | --- |

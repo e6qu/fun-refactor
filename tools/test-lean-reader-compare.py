@@ -3,6 +3,7 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import tempfile
 
 spec = importlib.util.spec_from_file_location('reader', Path(__file__).with_name('lean-reader-compare.py'))
 reader = importlib.util.module_from_spec(spec)
@@ -16,6 +17,18 @@ class ReaderComparison(unittest.TestCase):
         reference = {'file': 'Proof.lean', 'span': {'start': 30, 'end': 35}, 'name': 'proof',
                      'kind': 'read', 'twin': False, 'target': None, 'confidence': 'name-only'}
         return {'sources': {'Proof.lean': 'a' * 64}, 'symbols': [symbol], 'references': [reference]}
+
+    def test_sparse_snapshot_cannot_count_as_a_complete_corpus(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            corpus = Path(temporary)
+            (corpus / 'Main.lean').write_text('def main := 1\n')
+            names = ['Main.lean', 'tests/agent-eval/results/source.py']
+            with self.assertRaisesRegex(AssertionError, 'omitted tracked inputs'):
+                reader.require_complete_snapshot(corpus, names)
+            nested = corpus / names[1]
+            nested.parent.mkdir(parents=True)
+            nested.write_text('def source(): return 2\n')
+            reader.require_complete_snapshot(corpus, names)
 
     def test_changed_target_is_not_a_removed_occurrence(self):
         before = self.packet()

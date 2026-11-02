@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def check(binary, diagnostics, integer_library):
     diagnostics.mkdir(parents=True, exist_ok=False)
     failures = []
-    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean', 'lean-nested-assumptions.lean']:
+    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean',
+                    'lean-nested-assumptions.lean', 'lean-recursive-algorithms.lean',
+                    'lean-lambda-continuations.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
@@ -25,6 +27,41 @@ def check(binary, diagnostics, integer_library):
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
+        if fixture == 'lean-lambda-continuations.lean':
+            names = [''.join(''.join(node.find('qualified_name').itertext()).split())
+                     for node in tree.iter('definition')]
+            if names != ['euclid_decreases', 'euclid', 'euclid_correct',
+                         'afterEuclidLambda', 'afterAlgorithmLambda']:
+                failures.append(fixture + ': lambda swallowed a following declaration: ' + str(names))
+            correct = [node for node in tree.iter('definition')
+                       if ''.join(''.join(node.find('qualified_name').itertext()).split()) == 'euclid_correct']
+            if len(correct) == 1:
+                body = correct[0].find('by')
+                if body is None or [node.tag for node in body] != ['tactic_have', 'tactic_apply']:
+                    failures.append(fixture + ': keep the later exact outside the have value')
+                have = body.find('tactic_have') if body is not None else None
+                if have is None or len(list(have.iter('fun'))) != 3:
+                    failures.append(fixture + ': keep the recursor argument and motive inside the outer lambda')
+        if fixture == 'lean-recursive-algorithms.lean':
+            expected = {'euclid': (1, 1), 'afterEuclid': (0, 0),
+                        'reverseInto': (1, 0), 'afterReverse': (0, 0),
+                        'sumDown': (0, 0), 'localDouble': (0, 0), 'afterHelpers': (0, 0),
+                        'simultaneousInduction': (0, 0)}
+            found = {}
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is not None:
+                    found[''.join(''.join(name.itertext()).split())] = (
+                        len(list(definition.iter('termination_by'))), len(list(definition.iter('decreasing_by'))))
+            if found != expected:
+                failures.append(fixture + ': termination proof or following theorem moved: ' + str(found))
+            if len(list(tree.iter('where_helpers'))) != 2:
+                failures.append(fixture + ': keep each local helper block inside its function')
+            inductions = [node for node in tree.iter('tactic_cases')
+                          if len(node.findall('*[@field="subject"]')) == 2 and
+                          node.find('*[@field="recursor"]') is not None]
+            if len(inductions) != 1:
+                failures.append(fixture + ': preserve both induction inputs and the explicit recursor')
         if fixture == 'lean-nested-assumptions.lean':
             def tuple_depth(node):
                 return (node.tag == 'rcases_tuple_pattern') + max(map(tuple_depth, node), default=0)
@@ -251,6 +288,9 @@ def check(binary, diagnostics, integer_library):
         ('attribute-value', '@[deprecated replacement (since := )] def bad : Nat := 0'),
         ('have-alternatives', 'theorem bad (h : True) : True := by have hp | hq := h'),
         ('suffices-alternatives', 'theorem bad (h : True) : True := by suffices hp | hq := h'),
+        ('termination-measure', 'def bad (n : Nat) := n\ntermination_by'),
+        ('decreasing-proof', 'def bad (n : Nat) := n\ndecreasing_by'),
+        ('local-helper-value', 'def bad : Nat := go\nwhere\n  go : Nat :='),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

@@ -1,0 +1,23 @@
+{
+  "purpose": "Retain the observed CPU failure while testing one explicit worker instead of the runner-dependent Rayon default. Do not raise limits.",
+  "run": "41397516163",
+  "task": "boltons",
+  "case": "analyzer",
+  "route": "saved",
+  "stop_reason": "cpu_seconds",
+  "elapsed_seconds": 4.445414019999987,
+  "sampled_cpu_seconds": 10.05,
+  "cpu_limit_seconds": 10,
+  "wall_limit_seconds": 20,
+  "status": "The controlled replay passes with one explicit Rayon worker and unchanged CPU and wall limits. This establishes compliance, not a general performance claim.",
+  "recheck": {
+    "run": "41401084179",
+    "source_commit": "64799573da10e04b556fe567a6702eb971125407",
+    "path": "tests/agent-eval/results/2026-11-02-one-worker-projects-project-changes-recheck/result.json",
+    "sha256": "16ac7b15fd1e11324e2e93f9cea5c600a2f3a845ce501e9a2f6a05069f9cb564",
+    "passed": true,
+    "rayon_num_threads": 1,
+    "cpu_limit_seconds": 10,
+    "wall_limit_seconds": 20
+  }
+}

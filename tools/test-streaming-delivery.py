@@ -74,7 +74,7 @@ class DeliveryTests(unittest.TestCase):
             root = Path(temporary)
             (root / "11").mkdir()
             (root / "11/stat").write_text(stat)
-            rows, counter = profile.measured_processes("11 10 100 00:01 /tmp/opencode\n12 10 10 00:05 /tmp/exited",
+            rows, counter = profile.measured_processes("11 10 10 100 00:01 /tmp/opencode\n12 10 10 10 00:05 /tmp/exited",
                                                        10, platform="linux", proc=root, ticks=100)
             self.assertEqual(rows, [{"pid": 11, "rss_bytes": 102400, "cpu_seconds": 1.68, "executable": "opencode"}])
             self.assertEqual(counter, {"source": "linux-proc-stat", "quantum_seconds": 0.01})

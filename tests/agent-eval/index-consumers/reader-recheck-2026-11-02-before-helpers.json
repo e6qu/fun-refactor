@@ -1,0 +1,99 @@
+{
+  "purpose": "Review the changed facts before repairing local where helpers; these are public-source controls with no agent calls.",
+  "before_source": "869f6272b291009c95991ae34148d5e40991b60b",
+  "after_source": "b2b7d3f929099845e5510ea2bfdca8f3f0b12e82",
+  "previous_inventory": {
+    "path": "lean-reader-introductions.json",
+    "sha256": "7b68cf530912936428570018bc6323e03e13b8e6047ac8b7e521c543ea69f4db"
+  },
+  "live_model_calls": 0,
+  "corpora": {
+    "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf": {
+      "run": "https://github.com/e6qu/fun-refactor/actions/runs/41378823857",
+      "previous_counts": {
+        "files": 1262,
+        "references": 593972,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "observed_counts": {
+        "files": 1262,
+        "references": 593840,
+        "resolved": 308843,
+        "symbols": 98532
+      },
+      "facts_sha256": "ef4270701d76b1de407a220dbae0a30ac7eaf1fab638477d085cdc997cbe6c85",
+      "new_names_by_kind": {
+        "function": 24,
+        "parameter": 69
+      },
+      "new_names_by_file": {
+        "kernels/FrKernels/Edit.lean": 56,
+        "kernels/FrKernels/Position.lean": 37
+      },
+      "remaining_errors": {
+        "kernels/FrKernels/Edit.lean": [
+          {
+            "end": 595,
+            "start": 548
+          }
+        ],
+        "kernels/FrKernels/Position.lean": [
+          {
+            "end": 380,
+            "start": 326
+          }
+        ]
+      },
+      "artifact_sha256": {
+        "before.json": "1ec5732da0c979dffc3a975de5e867bd13932153843300c4b3d6bb4f46408dd0",
+        "after.json": "f9a6edf3b68a37b7f92e77ac5a6ea981b5cd38e6a256162a9d577eee670e17a3",
+        "comparison.json": "ab914bc6bdd6dc1bce13176c04a6487e43ba4b0a84162597f0114b2b8a5ffd65"
+      }
+    },
+    "e423fd2d03e5d74f2efea40b6ccd20812ac1178a": {
+      "run": "https://github.com/e6qu/fun-refactor/actions/runs/41379894646",
+      "previous_counts": {
+        "files": 1255,
+        "references": 592646,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "observed_counts": {
+        "files": 1255,
+        "references": 592514,
+        "resolved": 306919,
+        "symbols": 98324
+      },
+      "facts_sha256": "ef4270701d76b1de407a220dbae0a30ac7eaf1fab638477d085cdc997cbe6c85",
+      "new_names_by_kind": {
+        "function": 24,
+        "parameter": 69
+      },
+      "new_names_by_file": {
+        "kernels/FrKernels/Edit.lean": 56,
+        "kernels/FrKernels/Position.lean": 37
+      },
+      "remaining_errors": {
+        "kernels/FrKernels/Edit.lean": [
+          {
+            "end": 595,
+            "start": 548
+          }
+        ],
+        "kernels/FrKernels/Position.lean": [
+          {
+            "end": 380,
+            "start": 326
+          }
+        ]
+      },
+      "artifact_sha256": {
+        "before.json": "2766b00d2a0e301b251ed324fad1df19497e30ee08ff2662c8db67650b2ed556",
+        "after.json": "5fc7d23eb505a7dd411954657e638bfa61efea95c9cdea4a86d58d64c3cb82f1",
+        "comparison.json": "b5a3f287d6d647e75ad4382ee78d5e4e2595c8e0ba97ff056561b9e1804557b3"
+      }
+    }
+  },
+  "finding": "Both fixed source copies show the same additional names after local helpers in Edit.lean and Position.lean, while the helpers still have syntax errors. Repair the helper grammar and recheck complete parsing before updating the current benchmark inventory. Original inventories and timing baselines remain unchanged."
+}

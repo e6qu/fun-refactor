@@ -11,7 +11,7 @@ from . import selected_local as local
 from . import selected_local_grade as grading
 from . import selected_tasks as common
 from .project_edits_results import encoded_summary, DETAILS
-from .selected_plan import CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, encoded, require
+from .selected_plan import ALGORITHM_STUDIES, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, encoded, require
 
 
 def command_tokens(command):
@@ -57,7 +57,7 @@ def observed_fr(events):
                 if verb in {'project', 'history', 'spec', 'author', 'file', 'audit'}:
                     subverb = arguments[1] if len(arguments) > 1 else ''
                     operations.add(verb + ' ' + subverb if subverb in {'find', 'show', 'map', 'apply', 'undo', 'redo',
-                        'list', 'proof-check', 'prove', 'check', 'evidence', 'task', 'batch', 'replace', 'read',
+                        'list', 'proof-task', 'proof-state', 'proof-check', 'prove', 'check', 'evidence', 'task', 'batch', 'replace', 'read',
                         'capabilities'} else verb)
                 else:
                     operations.add(verb if verb in {'rename', 'refs', 'def', 'symbols', 'checks', 'check',
@@ -133,6 +133,8 @@ def export(plan_path, review, destination):
             fields.add('feedback_observations')
         elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
             fields.add('proof_observations')
+        elif milestone in ALGORITHM_STUDIES:
+            fields.add('algorithm_observations')
         require(set(review[identity]) == fields,
                 'review the fr contribution and failure summary explicitly')
         failure_summary = review[identity]['failure_summary']
@@ -143,11 +145,11 @@ def export(plan_path, review, destination):
         require(isinstance(actions, list) and len(actions) <= 8 and
                 all(isinstance(action, str) and 0 < len(action) <= 240 and '\n' not in action for action in actions),
                 'publish concise reviewed contributions, not native transcript excerpts')
-        require(planned['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS or not actions,
+        require(planned['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES or not actions,
                 'ordinary-tool attempts cannot claim fr contributions')
         events = []
         stream = directory / 'native.stdout'
-        if milestone in PROOF_DIAGNOSTICS and stream.exists():
+        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES and stream.exists():
             require(common.digest(stream) == record['native_stdout_sha256'], 'diagnostic native stream changed after collection')
         if stream.exists():
             for line in stream.read_bytes().splitlines():
@@ -224,12 +226,32 @@ def export(plan_path, review, destination):
             require(observation['execution_validity'] in {'valid', 'service-failed', 'collection-failed', 'unknown'},
                     'review construction execution explicitly')
             rows[-1]['proof_observations'] = observation
+        elif milestone in ALGORITHM_STUDIES:
+            from .algorithm_results import validate_observations
+            resources = record['complete_attempt_resources']
+            require(resources['limits'] == {'wall_seconds': 150, 'rss_bytes': 805306368,
+                    'cpu_seconds': 75, 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
+                    'retain the complete guarded attempt measurement')
+            receipt = plan_path.parent / 'attempt-monitors' / identity / 'resources.json'
+            require(common.digest(receipt) == record['complete_attempt_resources_sha256'] and
+                    json.loads(receipt.read_text()) == resources, 'complete-attempt resource receipt changed')
+            rows[-1]['complete_attempt_resources'] = resources
+            rows[-1]['complete_attempt_resources_sha256'] = record['complete_attempt_resources_sha256']
+            rows[-1]['stop_reason'] = resources['stop_reason'] or rows[-1]['stop_reason']
+            rows[-1]['sampled_rss_bytes'] = resources['sampled_aggregate_rss_bytes']
+            rows[-1]['algorithm_observations'] = validate_observations(
+                review[identity]['algorithm_observations'], record['elapsed_seconds'])
     comparison = ({'M3-feedback': 'Assisted repair with the same fr, task, draft and instructions; initial feedback visibility differs.',
                    'M3-construction': 'Four fresh construction attempts with fr and corrected shared instructions; no timing baseline.',
                    'M3-facts': 'Eight attempts compare selecting current division facts with receiving four declaration types; no completed proof is supplied.',
                    'M3-page-count': 'Four page-count attempts with fr and the unchanged M3 claim; no timing baseline.'}[milestone]
                   if milestone in PROOF_DIAGNOSTICS else
                   'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.')
+    if milestone in ALGORITHM_STUDIES:
+        comparison = ('The same executable Euclid algorithm, fr and shared skills. Compare selecting library facts '
+                      'with supplied declarations.' if milestone == 'M3-algorithm-facts' else
+                      'The same executable Euclid algorithm, fr, shared skills, declarations, plan nodes and dependencies. '
+                      'Compare checklist and graph rendering only; no automatic search controller.')
     summary = {'study': milestone, 'comparison': comparison,
         'publication': 'User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.',
         'profiles': plan['schedule']['profiles'], 'task_bindings': plan['schedule']['bindings'],
@@ -267,6 +289,22 @@ def export(plan_path, review, destination):
     elif milestone == 'M3-facts':
         summary['scope'] = 'Eight development-example attempts on selecting and applying division facts. No ordinary-tool timing baseline or full M3 claim.'
         summary['provider_request_count'] = None
+    elif milestone in ALGORITHM_STUDIES:
+        summary['native_admission'] = plan['admission']
+        summary['resource_scope'] = ('Independent sampled limits cover the guard, controller, native CLI and workers, '
+            'including preparation and accounting. The observer stays outside the CPU throttle. '
+            'Short peaks and children reparented before discovery can still be missed.')
+        summary['scope'] = ('Controlled development comparison on executable Lean Euclid, including termination and correctness. '
+                            'No ordinary-tool overhead baseline, Rust/Python translation proof or M3 completion claim.')
+        summary['guidance_bytes'] = {}
+        from .algorithm_guidance import install
+        import tempfile
+        with tempfile.TemporaryDirectory() as temporary:
+            for condition in plan['schedule']['requirements']['setups']:
+                project = Path(temporary) / condition
+                project.mkdir()
+                files = install(project, condition, milestone)
+                summary['guidance_bytes'][condition] = {name: (project / name).stat().st_size for name in files}
     (destination / 'summary.json').write_bytes(encoded_summary(summary))
     return summary
 
@@ -278,11 +316,13 @@ def accept_checks(data, checked_path, run):
     checked = json.loads(checked_path.read_text())
     milestone = summary['study']
     require(milestone in PROOF_STUDIES | {'M2'}, 'choose the explicit public study')
-    count = {'M2': 48, 'M3': 36, 'M3-feedback': 8, 'M3-construction': 4, 'M3-page-count': 4, 'M3-facts': 8}[milestone]
+    count = {'M2': 48, 'M3': 36, 'M3-feedback': 8, 'M3-construction': 4, 'M3-page-count': 4, 'M3-facts': 8,
+             'M3-algorithm-facts': 8, 'M3-algorithm-presentation': 12}[milestone]
     require(checked['passed'] is True and checked[f'all_{count}_checked'] is True and checked['checked_attempts'] == count and
             checked['core_checker_sha256'] == summary['core_checker_sha256'] and
             set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'check every original submission')
-    require(checked['control_policy'] == 'frozen' and checked['image'] == summary['controls']['private']['image'],
+    image = (summary['controls']['private_image'] if milestone in ALGORITHM_STUDIES else summary['controls']['private']['image'])
+    require(checked['control_policy'] == 'frozen' and checked['image'] == image,
             'use the independent checker frozen before model calls')
     for row in summary['attempts']:
         verdict = checked['attempts'][row['id']]
@@ -314,12 +354,20 @@ if __name__ == '__main__':
     exporting_facts = commands.add_parser('export-facts')
     for name in ('plan', 'review', 'output'):
         exporting_facts.add_argument('--' + name, type=Path, required=True)
+    exporting_algorithm = commands.add_parser('export-algorithm')
+    for name in ('plan', 'review', 'output'):
+        exporting_algorithm.add_argument('--' + name, type=Path, required=True)
+    exporting_algorithm.add_argument('--study', choices=tuple(sorted(ALGORITHM_STUDIES)), required=True)
     checking = commands.add_parser('accept-checks')
     for name in ('data', 'checks'):
         checking.add_argument('--' + name, type=Path, required=True)
     checking.add_argument('--run', required=True)
     args = parser.parse_args()
-    if args.operation in {'export-m2', 'export-m3', 'export-feedback', 'export-construction', 'export-page-count', 'export-facts'}:
+    if args.operation == 'export-algorithm':
+        require(json.loads(args.plan.read_text())['schedule']['milestone'] == args.study, 'export the selected algorithm phase')
+        summary = export(args.plan.resolve(), json.loads(args.review.read_text()), args.output.resolve())
+        print(json.dumps({'study': summary['study'], 'attempts': len(summary['attempts']), 'publication': 'patches and summary only'}))
+    elif args.operation in {'export-m2', 'export-m3', 'export-feedback', 'export-construction', 'export-page-count', 'export-facts'}:
         require(json.loads(args.plan.read_text())['schedule']['milestone'] ==
                 {'export-m2': 'M2', 'export-m3': 'M3', 'export-feedback': 'M3-feedback',
                  'export-construction': 'M3-construction', 'export-page-count': 'M3-page-count',

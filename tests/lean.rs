@@ -81,6 +81,82 @@ fn ordinary_lean_parses_with_no_errors() {
 }
 
 #[test]
+fn recursive_algorithms_keep_their_termination_proofs_and_next_theorem() {
+    let source = include_str!("fixtures/lean-recursive-algorithms.lean");
+    let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!parsed.has_errors(), "{:?}", parsed.error_spans());
+    let (_tmp, index) = workspace(&[("Algorithms.lean", source)]);
+    for name in [
+        "euclid",
+        "afterEuclid",
+        "reverseInto",
+        "afterReverse",
+        "sumDown",
+        "localDouble",
+        "afterHelpers",
+        "simultaneousInduction",
+    ] {
+        assert_eq!(
+            index.symbols.iter().filter(|row| row.name == name).count(),
+            1
+        );
+    }
+    assert_eq!(
+        parsed.root().to_sexp().matches("(termination_by").count(),
+        2
+    );
+    assert_eq!(parsed.root().to_sexp().matches("(decreasing_by").count(), 1);
+    assert!(parsed.root().to_sexp().contains("recursor:"));
+}
+
+#[test]
+fn a_lean_local_helper_rename_stays_inside_its_own_function() {
+    let source = include_str!("fixtures/lean-recursive-algorithms.lean");
+    let (tmp, index) = workspace(&[("Algorithms.lean", source)]);
+    let outer = symbol(&index, "sumDown");
+    let helper = index
+        .symbols
+        .iter()
+        .find(|row| row.name == "go" && row.container == Some(outer))
+        .unwrap();
+    assert_eq!(helper.kind, SymbolKind::Function);
+    let plan = rename::plan(&index, helper.id, "step").unwrap();
+    let out = applied(tmp.path(), "Algorithms.lean", &plan.edits);
+    assert!(out.contains("def sumDown (n : Nat) : Nat := step n 0"));
+    assert!(out.contains("  step : Nat → Nat → Nat"));
+    assert!(out.contains("| n + 1, total => step n (total + n + 1)"));
+    assert!(out.contains("def localDouble (n : Nat) : Nat := go n"));
+    assert!(out.contains("  go (x : Nat) : Nat := x + x"));
+}
+
+#[test]
+fn local_helpers_do_not_hide_declarations_in_the_project_kernels() {
+    for (file, source, names) in [
+        (
+            "Edit.lean",
+            include_str!("../kernels/FrKernels/Edit.lean"),
+            ["byteToCharIndex", "splice", "applyChecked"],
+        ),
+        (
+            "Position.lean",
+            include_str!("../kernels/FrKernels/Position.lean"),
+            ["lines", "offsetAt", "fullLineSpan"],
+        ),
+    ] {
+        let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+        assert!(!parsed.has_errors(), "{file}: {:?}", parsed.error_spans());
+        let (_tmp, index) = workspace(&[(file, source)]);
+        for name in names {
+            assert_eq!(
+                index.symbols.iter().filter(|row| row.name == name).count(),
+                1,
+                "{file}: keep {name} visible after its local helper"
+            );
+        }
+    }
+}
+
+#[test]
 fn the_declarations_a_file_makes_are_symbols() {
     let (_tmp, index) = workspace(&[("Geometry.lean", GEOMETRY)]);
     let found: Vec<(String, SymbolKind)> = index

@@ -41,7 +41,7 @@ static Input input(const char *text) {
   return result;
 }
 static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
-  bool valid[DO_BODY_START + 1] = {false};
+  bool valid[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
   valid[token] = true;
   size_t previous = input->offset;
   input->end = previous;
@@ -71,7 +71,7 @@ int main(void) {
   Input assignment = input(":= value");
   assert(!scan(scanner, &assignment, LAYOUT_END));
   assert(scanner->depth == 1 && assignment.offset == 0);
-  bool label_tokens[DO_BODY_START + 1] = {false};
+  bool label_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
   label_tokens[LAYOUT_END] = label_tokens[TACTIC_LABEL_COLON] = true;
   Input cons = input(":: values");
   assert(!scan(scanner, &cons, LAYOUT_END));
@@ -83,6 +83,17 @@ int main(void) {
   assert(label.lexer.result_symbol == TACTIC_LABEL_COLON && scanner->depth == 1);
   assert(label.end == 1);
   assert(scan(scanner, &blank_end, LAYOUT_END));
+
+  assert(scan(scanner, &proof_body, LAYOUT_START));
+  bool induction_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
+  induction_tokens[LAYOUT_END] = induction_tokens[TACTIC_SUBJECT_SEPARATOR] = true;
+  Input subject_comma = input(", b using recursor");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &subject_comma.lexer, induction_tokens));
+  assert(subject_comma.lexer.result_symbol == TACTIC_SUBJECT_SEPARATOR && scanner->depth == 1);
+  assert(subject_comma.end == 1);
+  Input tuple_comma = input(", second");
+  assert(scan(scanner, &tuple_comma, LAYOUT_END));
+  assert(scanner->depth == 0 && tuple_comma.offset == 0);
 
   Input outer = input("  have bound := f");
   assert(scan(scanner, &outer, LAYOUT_START));
@@ -161,7 +172,7 @@ int main(void) {
   Input calc_proof = input("  calc n = n := rfl");
   assert(scan(scanner, &calc_proof, LAYOUT_START));
   Input inline_first = input("       n = n := rfl");
-  assert(scan(scanner, &inline_first, CALC_BODY_START));
+  assert(scan(scanner, &inline_first, CONTINUATION_BODY_START));
   assert(top_indent(scanner) == 3);
   assert(scan(scanner, &inline_first, CALC_STEP_START));
   assert(top_indent(scanner) == 7);
@@ -178,6 +189,27 @@ int main(void) {
   assert(scan(scanner, &after_inline, LAYOUT_SEMICOLON));
   assert(scan(scanner, &done, LAYOUT_END));
   assert(scanner->depth == 0);
+
+  // A lambda's same-line application owns a later, less-indented argument.
+  Input lambda_proof = input("  have main := value");
+  assert(scan(scanner, &lambda_proof, LAYOUT_START));
+  lambda_proof.offset = 2; lambda_proof.lexer.lookahead = 'h';
+  assert(scan(scanner, &lambda_proof, BINDING_START));
+  Input lambda_line = input("\n    fun k => recur k");
+  assert(scan(scanner, &lambda_line, CONTINUATION_BODY_START));
+  assert(top_indent(scanner) == 4);
+  Input lambda_inline = input("             recur k");
+  assert(scan(scanner, &lambda_inline, CONTINUATION_BODY_START));
+  assert(top_indent(scanner) == 5);
+  Input lambda_argument = input("\n      (fun j => j)");
+  assert(!scan(scanner, &lambda_argument, LAYOUT_END));
+  Input after_lambda = input("\n  exact main");
+  assert(scan(scanner, &after_lambda, LAYOUT_END));
+  assert(scan(scanner, &after_lambda, LAYOUT_END));
+  assert(scan(scanner, &after_lambda, LAYOUT_END));
+  assert(scanner->depth == 1 && top_indent(scanner) == 2);
+  assert(scan(scanner, &after_lambda, LAYOUT_SEMICOLON));
+  assert(scan(scanner, &done, LAYOUT_END));
 
   Input have = input("have h := by rfl");
   assert(scan(scanner, &have, BINDING_START));

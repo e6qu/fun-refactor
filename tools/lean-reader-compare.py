@@ -8,7 +8,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,6 +50,11 @@ def compare(before, after):
     return result
 
 
+def require_complete_snapshot(corpus, names):
+    missing = [name for name in names if not (corpus / name).exists() and not (corpus / name).is_symlink()]
+    assert not missing, 'reader corpus omitted tracked inputs: ' + repr(missing[:10])
+
+
 def collect(revisions, output):
     assert os.environ.get('GITHUB_ACTIONS') == 'true', 'compile reader comparisons on GitHub'
     keys = ('before_source', 'after_source', 'repository_revision')
@@ -62,13 +66,18 @@ def collect(revisions, output):
     subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', before_source, after_source, repository_revision], cwd=ROOT, check=True, timeout=120)
     with tempfile.TemporaryDirectory(prefix='fr-reader-review-') as temporary:
         work = Path(temporary)
-        archive, corpus = work / 'corpus.tar', work / 'corpus'
-        corpus.mkdir()
-        with archive.open('wb') as stream:
-            subprocess.run(['git', 'archive', repository_revision], cwd=ROOT, stdout=stream, check=True, timeout=30)
-        with tarfile.open(archive) as stream:
-            stream.extractall(corpus, filter='data')
+        corpus = work / 'corpus'
+        # Materialize the complete selected tree; never inherit CI's sparse exclusions.
+        subprocess.run(['git', 'worktree', 'add', '--detach', '--no-checkout', str(corpus), repository_revision],
+                       cwd=ROOT, check=True, timeout=30)
+        subprocess.run(['git', '-c', 'core.sparseCheckout=false', '-c', 'core.sparseCheckoutCone=false',
+                        'checkout', '--detach', '--quiet', repository_revision], cwd=corpus, check=True, timeout=30)
+        tracked = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', '-z', repository_revision],
+                                          cwd=ROOT, timeout=10).split(b'\0')
+        names = [os.fsdecode(name) for name in tracked if name]
+        require_complete_snapshot(corpus, names)
         facts = {}
+        build_environment = dict(os.environ, CARGO_PROFILE_TEST_OPT_LEVEL='1', CARGO_PROFILE_TEST_DEBUG='0')
         for label, revision in [('before', before_source), ('after', after_source)]:
             checkout = work / label
             subprocess.run(['git', 'worktree', 'add', '--detach', '--no-checkout', str(checkout), revision], cwd=ROOT, check=True, timeout=30)
@@ -77,24 +86,28 @@ def collect(revisions, output):
             shutil.copyfile(driver, checkout / 'tests/lean_reader_inventory.rs')
             with (output / (label + '-build.jsonl')).open('w') as stdout, (output / (label + '-build.stderr')).open('w') as stderr:
                 subprocess.run(['cargo', 'test', '--locked', '--test', 'lean_reader_inventory', '--no-run', '--message-format=json'],
-                               cwd=checkout, stdout=stdout, stderr=stderr, check=True, timeout=300)
+                               cwd=checkout, env=build_environment, stdout=stdout, stderr=stderr, check=True, timeout=300)
             messages = [json.loads(line) for line in (output / (label + '-build.jsonl')).read_text().splitlines()]
             binaries = [row['executable'] for row in messages if row.get('reason') == 'compiler-artifact' and
                         row['target']['name'] == 'lean_reader_inventory' and row.get('executable')]
             assert len(binaries) == 1
             facts_path = output / (label + '.json')
             env = dict(os.environ, FR_READER_ROOT=str(corpus), FR_READER_OUTPUT=str(facts_path))
-            subprocess.run([binaries[0], 'record_lean_reader_facts', '--exact', '--ignored', '--test-threads=1'],
+            subprocess.run([binaries[0], 'record_lean_reader_facts', '--exact', '--ignored', '--test-threads=1', '--nocapture'],
                            cwd=checkout, env=env, check=True, timeout=240)
             facts[label] = json.loads(facts_path.read_text())
             subprocess.run(['git', 'worktree', 'remove', '--force', str(checkout)], cwd=ROOT, check=True, timeout=30)
         result = {'before_source': before_source, 'after_source': after_source,
                   'repository_revision': repository_revision,
+                  'tracked_corpus_files': len(names),
+                  'reader_build': {'profile': 'test', 'opt_level': 1, 'debug': 0},
                   'driver_sha256': hashlib.sha256(driver.read_bytes()).hexdigest(),
                   'stats': {label: value['stats'] for label, value in facts.items()},
                   'kernel_stats': {label: value['kernel_stats'] for label, value in facts.items()},
                   'consumer_query_counts': {label: len(value['consumer_queries']) for label, value in facts.items()},
                   **compare(facts['before'], facts['after'])}
+        subprocess.run(['git', 'worktree', 'remove', '--force', str(corpus)],
+                       cwd=ROOT, check=True, timeout=30)
         (output / 'comparison.json').write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'stats': result['stats'], **{key: len(result[key]) for key in
               ('added_symbols', 'removed_symbols', 'added_references', 'removed_references', 'changed_references')}}))

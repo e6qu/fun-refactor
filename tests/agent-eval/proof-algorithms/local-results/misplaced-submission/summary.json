@@ -1,0 +1,14 @@
+{
+  "attempt": "opencode2-kimi-k3-euclid-checklist-2",
+  "original_status": "failed",
+  "original_record_sha256": "242527fc47491e937c9fc17cbba35eea439e91e3ef05047ddd035ce675e48fd9",
+  "original_canonical_patch_delivered": false,
+  "original_complete_seconds": 150.01043050014414,
+  "patch_sha256": "f1bb6a9ea9c3dcf93b40bf1d59a70fb838da611aa4a156ea71ef01369cd03b1b",
+  "bytes": 956,
+  "location": "Parent directory instead of the required project-root change.patch.",
+  "evidence": "The native command output lists that misplaced file after successful proof saves and package compilation. The complete attempt still timed out.",
+  "decision": "Preserve the exact misplaced diff separately. Do not turn it into a canonical submission, alter the original result or add a completed attempt.",
+  "independent_replay": "The current checker accepts this exact diff in run 41431252796, job 125233727737. This remains outside original comparison scores; the complete attempt still failed.",
+  "patch_file": "patches/opencode2-kimi-k3-euclid-checklist-2.patch"
+}

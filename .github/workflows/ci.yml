@@ -124,6 +124,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTUP_TOOLCHAIN: '1.99.1'
+      RAYON_NUM_THREADS: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -238,8 +239,8 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            /.github/actions/zig-toolchain/
+            /tools/fetch-verified-ranges.sh
       - uses: ./.github/actions/zig-toolchain
 
   go-toolchain:
@@ -251,8 +252,8 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            /.github/actions/go-toolchain/
+            /tools/fetch-verified-ranges.sh
       - uses: ./.github/actions/go-toolchain
 
   selected-agents:

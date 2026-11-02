@@ -1,0 +1,99 @@
+{
+  "passed": true,
+  "live_model_calls": 0,
+  "scope": "Every tracked file of both declared fixed benchmark corpora is materialized before analysis. Both readers return the same source facts. Original benchmark timings and agent outcomes remain unchanged.",
+  "before_source": "c1e21f88ffc56eb76a8c775ab651037a67d0c5b2",
+  "after_source": "bc0be64a2f94ec9dd2a55ae0c93af1601301af05",
+  "reader_build": {
+    "profile": "test",
+    "opt_level": 1,
+    "debug": 0
+  },
+  "timing_claim": "This optimized semantic audit makes no product speed or agent-efficiency claim.",
+  "corpora": [
+    {
+      "repository_revision": "e423fd2d03e5d74f2efea40b6ccd20812ac1178a",
+      "run": "41441770234",
+      "url": "https://github.com/e6qu/fun-refactor/actions/runs/41441770234",
+      "comparison_sha256": "63118b604540b1687d96f689ff06ce04c551a6faad63febe7d9dc4f58fdbd579",
+      "before_inventory_sha256": "bf85cfa1540b7a8571fa21b5c6de271d005f2283fb212f5c1261ba04f017a55b",
+      "after_inventory_sha256": "bf85cfa1540b7a8571fa21b5c6de271d005f2283fb212f5c1261ba04f017a55b",
+      "driver_sha256": "a312c4a588cd09011aad3cf787f454ff7cbf5b23b3151de99d4354d3e5a819d5",
+      "tracked_corpus_files": 2520,
+      "stats": {
+        "before": {
+          "files": 1255,
+          "references": 592510,
+          "resolved": 306924,
+          "symbols": 98326
+        },
+        "after": {
+          "files": 1255,
+          "references": 592510,
+          "resolved": 306924,
+          "symbols": 98326
+        }
+      },
+      "kernel_stats": {
+        "before": {
+          "references": 14013,
+          "symbols": 3414
+        },
+        "after": {
+          "references": 14013,
+          "symbols": 3414
+        }
+      },
+      "changed_fact_counts": {
+        "added_symbols": 0,
+        "removed_symbols": 0,
+        "changed_symbols": 0,
+        "added_references": 0,
+        "removed_references": 0,
+        "changed_references": 0
+      }
+    },
+    {
+      "repository_revision": "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf",
+      "run": "41443190139",
+      "url": "https://github.com/e6qu/fun-refactor/actions/runs/41443190139",
+      "comparison_sha256": "ed1388df9b4e70b995822e993ccb00bdd348231ab90f0cad5c81171482bf30c3",
+      "before_inventory_sha256": "cbbd40b38697a73849a2e3e4941a1bbef99cb2ef44033aa30749df017b16e4a8",
+      "after_inventory_sha256": "cbbd40b38697a73849a2e3e4941a1bbef99cb2ef44033aa30749df017b16e4a8",
+      "driver_sha256": "a312c4a588cd09011aad3cf787f454ff7cbf5b23b3151de99d4354d3e5a819d5",
+      "tracked_corpus_files": 2528,
+      "stats": {
+        "before": {
+          "files": 1262,
+          "references": 593836,
+          "resolved": 308848,
+          "symbols": 98534
+        },
+        "after": {
+          "files": 1262,
+          "references": 593836,
+          "resolved": 308848,
+          "symbols": 98534
+        }
+      },
+      "kernel_stats": {
+        "before": {
+          "references": 14013,
+          "symbols": 3414
+        },
+        "after": {
+          "references": 14013,
+          "symbols": 3414
+        }
+      },
+      "changed_fact_counts": {
+        "added_symbols": 0,
+        "removed_symbols": 0,
+        "changed_symbols": 0,
+        "added_references": 0,
+        "removed_references": 0,
+        "changed_references": 0
+      }
+    }
+  ]
+}

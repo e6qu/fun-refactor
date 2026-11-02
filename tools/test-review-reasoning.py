@@ -29,7 +29,7 @@ def fixture(root):
                   "selections": [{k: s[k] for k in ("path", "sha256", "start", "end")} for s in task["packet"]["spans"]]}]
     model = {"providerID": case["provider"], "modelID": case["model"], "variant": case["variant"],
              "configured": True, "context": 32768, "output": 2048}
-    frozen, snapshots = review.freeze(questions, [model], Path(sys.executable), Path(sys.executable), {"case": case})
+    frozen, snapshots = review.freeze(questions, [model], Path(sys.executable), Path(sys.executable), {"case": case, "bun_options": "--smol"})
     (root / "plan.json").write_bytes(encode(frozen))
     import gzip
     (root / "inputs.json.gz").write_bytes(gzip.compress(encode(snapshots), mtime=0))
@@ -175,6 +175,18 @@ class Reasoning(unittest.TestCase):
             changed[1]["messages"][0]["content"] = "invented source"
             (root / "provider.json").write_bytes(encode(changed))
             with self.assertRaisesRegex(ValueError, "source did not reach"):
+                reasoning.report(root)
+
+    def test_changed_runtime_setting_refuses_a_reasoning_success(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fixture(root)
+            frozen = json.loads((root / "plan.json").read_bytes())
+            frozen["plan"]["provenance"]["bun_options"] = ""
+            frozen["sha256"] = hashlib.sha256(encode(frozen["plan"])).hexdigest()
+            (root / "plan.json").write_bytes(encode(frozen))
+            # The capture no longer matches the plan, even before runtime validation.
+            with self.assertRaises(ValueError):
                 reasoning.report(root)
 
     def test_hosted_controls_refuse_local_execution(self):
