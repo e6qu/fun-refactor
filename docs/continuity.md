@@ -33,6 +33,10 @@ Its first batch stopped in slot five. Preserve the [interruption](../tests/agent
 including three timeouts, one Kimi submission and all unstarted slots.
 Fix detached-server accounting, output flushing and multi-input induction before
 fresh hosted qualification and new frozen plans. Do not reuse either invalidated plan.
+The correctness inspector also kept three background programs alive for one file.
+A one-file-worker prototype reduces its memory use. Qualify the rebuilt command
+and the complete Mac CLI/server/fr/Lean workload before live calls; the standalone
+termination preflight missed that combined cost.
 Then compare declarations in eight GLM/Kimi sessions and equal-information
 checklist/graph guidance in twelve Luna/GLM/Kimi sessions. Keep 150 seconds for each
 complete attempt. Full builds and independent grading stay on GitHub.
@@ -73,10 +77,9 @@ The repair passed all 29 hosted preparation checks.
 The [rebuilt-reader replay](../tests/agent-eval/proof-page-count/reader-control-summary.json) reaches Lean and still rejects the original draft.
 The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates redundant introductions, wrong assumption grouping and missing division facts.
 Its final manual control proves the unchanged claim. It is neither an agent success nor a timing comparison.
-Before another paid diagnostic, freeze a prediction about finding and using those facts; keep the completed proof out of the agent inputs.
-The [division-fact protocol](../tests/agent-eval/proof-division-facts/README.md) compares selecting declarations with receiving their exact types.
-It has eight balanced slots, unchanged 150-second limits and protected handouts.
-No slots have started. Hosted qualification must pass before inputs are frozen or clients run.
+Retain the [division-fact protocol](../tests/agent-eval/proof-division-facts/README.md)
+as an unrun supporting arithmetic diagnostic. Its eight slots stay unstarted;
+it does not replace the executable-algorithm study or its original claims.
 
 The requested [team workflow](team-solve.md) uses fresh local Luna, GLM and Kimi sessions with explicit file handoffs.
 The [Python pilot](../tests/agent-eval/team-solve/README.md) passed eight cases in 249.9 seconds across five CLI sessions.

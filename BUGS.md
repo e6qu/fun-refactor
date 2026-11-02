@@ -13,6 +13,7 @@ on `research/proof-guidance`. The interrupted algorithm batch exposed these defe
 | The inner memory and CPU monitor missed OpenCode's detached private server | Follow descendants across process groups and stop observed workers on exit. Twenty focused monitor tests pass locally; hosted checks remain required |
 | Killing the controller could lose buffered native feedback | Flush every received block. A regression checks that partial output is readable while the controller is still running |
 | Fr rejected induction over two inputs before Lean ran | Add the explicit recursor and comma-separated inputs; a small example passes pinned Lean. Generated-reader and native qualification remain required |
+| Inspecting the GCD correctness goal exceeded the combined memory limit | Remove the persistent Lake parent and watchdog from one-file inspection. The direct-worker prototype returns the same goal with less RSS; rebuilt-command and combined-CLI checks remain required |
 | Recursive definitions and local helpers confused the reader | The hosted algorithm checks accept Euclid's termination hints and isolate local-helper renames. Preserve the exact benchmark-fact audits |
 
 The [interrupted batch](tests/agent-eval/proof-algorithms/interrupted-results/README.md)

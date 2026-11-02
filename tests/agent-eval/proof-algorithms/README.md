@@ -44,6 +44,15 @@ The investigation found missing detached-server accounting, lost buffered feedba
 and a reader rejection of induction over two inputs. Their repairs need fresh
 hosted qualification before the complete comparisons run. No guidance advantage is claimed.
 
+The [memory investigation](memory-controls.json) reproduced the correctness-goal
+limit without a model. The complete OpenCode/fr/Lean path exceeds the unchanged
+inner limit. Fr kept a Lake parent, a Lean watchdog and a file worker alive for
+one question. A direct single-file-worker prototype returns the same goal with
+less aggregate RSS. The rebuilt command still needs qualification. Keep the
+invalid setup control and both stopped controls; none is an agent outcome.
+The [generated reader](https://github.com/e6qu/fun-refactor/actions/runs/41390732896)
+now preserves both induction inputs and the named induction rule.
+
 The fixed [reserved list-reversal implementation](reserved/Reverse.lean) and its
 reference proof are also recorded before development attempts. A small guarded Lean
 check accepts the reference. The Euclid task archive contains neither the reserved
@@ -68,6 +77,10 @@ need qualification before any transfer call.
 Freeze inputs, order, model settings, controls, checking tools and decision rules
 before live sessions. Each complete attempt has 150 seconds, including preparation,
 tool use, checks and delivery. Retain every failed or timed-out slot.
+Before live calls, check the actual Mac CLI, private server, fr and Lean together
+on the correctness goal. A standalone inspector check cannot establish that the
+combined workload fits its limit. Scripted loopback replies can test this without
+contacting a model provider.
 Two successes versus zero in two repetitions justify a transfer test, not a general
 claim that one method is better. Mixed results remain inconclusive.
 

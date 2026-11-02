@@ -100,6 +100,9 @@ stopped in slot five at the workstation memory limit. Preserve its three timeout
 one Kimi submission, interrupted slot and fifteen unstarted slots. Repair and qualify
 descendant accounting, partial-output retention and multi-input induction before
 freezing fresh complete comparisons. Keep the same claims, agents and limits.
+Qualify the combined Mac CLI/server/fr/Lean workload on the correctness goal
+before live calls. The standalone termination check missed that composition's
+memory cost. Check the one-file-worker prototype in the rebuilt command.
 
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.

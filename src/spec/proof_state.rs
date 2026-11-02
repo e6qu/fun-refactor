@@ -502,8 +502,6 @@ fn query(
             json!({"jsonrpc":"2.0", "id":1, "method":"initialize",
             "params":{"processId":std::process::id(),"rootUri":root_uri,"capabilities":{}}}),
         )?;
-        // The pinned worker consumes initialize without replying. It serves one
-        // file directly; a watchdog and a persistent Lake parent are unnecessary.
         send(
             &mut input,
             json!({"jsonrpc":"2.0","method":"textDocument/didOpen",

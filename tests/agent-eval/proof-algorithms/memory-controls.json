@@ -1,0 +1,65 @@
+{
+  "purpose": "No-model investigation of the GCD correctness inspector memory limit.",
+  "live_model_calls": 0,
+  "lean": "4.28.0",
+  "original_fr_source": "ada4ff21c3ef9a65f32159cb2fe5fa9f1a11942d",
+  "original_fr_sha256": "6cce3cca3d9ad20323b8167ccd01a24934fcc73553f6366a8d6a625b5d1ee740",
+  "goal": "euclid a b = Nat.gcd a b, with arbitrary a and b : Nat",
+  "inner_rss_limit_bytes": 805306368,
+  "outer_rss_limit_bytes": 1073741824,
+  "controls": [
+    {
+      "id": "fr-correctness-cold",
+      "scope": "command",
+      "record_sha256": "a53b407b6402b24df55385192d529144ce4fea1acc14bc2217fa2a87fda4dafd",
+      "exit_code": 125,
+      "stop_reason": "rss_bytes",
+      "elapsed_seconds": 3.733516957843676,
+      "sampled_aggregate_rss_bytes": 807698432,
+      "sampled_cpu_seconds": 1.875924875
+    },
+    {
+      "id": "fr-correctness-attributed",
+      "scope": "command",
+      "record_sha256": "150e6fc1d390fe94833b45650825d64fe65fa3438481f36b4583d7980fe538e3",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 1.981718375114724,
+      "sampled_aggregate_rss_bytes": 773357568,
+      "sampled_cpu_seconds": 0.9959908749999999
+    },
+    {
+      "id": "single-worker-prototype",
+      "scope": "protocol prototype",
+      "record_sha256": "da775e79efb640874a96ecb63b63df3aa7abbca196ed73b3cf357a750fb290f6",
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 0.574118833988905,
+      "sampled_aggregate_rss_bytes": 547307520,
+      "sampled_cpu_seconds": 0.27211745833333334
+    },
+    {
+      "id": "cli-control-invalid-directory",
+      "scope": "invalid setup",
+      "record_sha256": "a563b93dfc84050c942a0c2987e0cef8b5e6a9486e009ed29285eb786b3b8cc6",
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 2.4186723339371383,
+      "sampled_aggregate_rss_bytes": 295665664,
+      "sampled_cpu_seconds": 1.138026875
+    },
+    {
+      "id": "cli-control-correct-directory",
+      "scope": "combined command",
+      "record_sha256": "881ce6575486fed1141122aed27bbf5d1c258f2ef1c708bc533625b63c149674",
+      "exit_code": 125,
+      "stop_reason": "rss_bytes",
+      "elapsed_seconds": 3.14401812502183,
+      "sampled_aggregate_rss_bytes": 816529408,
+      "sampled_cpu_seconds": 1.539881
+    }
+  ],
+  "interpretation": "The unchanged inner memory limit stops the original complete CLI-plus-fr path. Attribution found a Lake parent, Lean watchdog and Lean worker. A direct worker prototype returns the same goal using less aggregate RSS. The rebuilt fr command and combined native path still need qualification; the prototype is not an agent success or an fr-versus-ordinary-tools overhead measurement.",
+  "invalid_control": "The first combined control used the Docker fixture directory /workspace and was denied before fr ran. It is retained as invalid setup; the corrected-directory control reached the memory limit.",
+  "publication": "Reviewed numeric summaries and hashes only; raw traces remain local."
+}
