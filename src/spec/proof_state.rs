@@ -306,7 +306,9 @@ fn response(
                 let method = message["method"].as_str().unwrap_or("");
                 if !matches!(
                     method,
-                    "client/registerCapability" | "workspace/inlayHint/refresh"
+                    "client/registerCapability"
+                        | "workspace/inlayHint/refresh"
+                        | "workspace/semanticTokens/refresh"
                 ) {
                     bail!("unsupported Lean editor client request: {method}");
                 }
@@ -572,6 +574,50 @@ mod tests {
             decode_goals(json!({"goals":["h : P\n⊢ Q"]})).unwrap().1,
             ["h : P\n⊢ Q"]
         );
+    }
+
+    #[test]
+    fn editor_refresh_requests_are_acknowledged_before_reading_goals() {
+        for method in [
+            "client/registerCapability",
+            "workspace/inlayHint/refresh",
+            "workspace/semanticTokens/refresh",
+        ] {
+            let mut input = Vec::new();
+            send(
+                &mut input,
+                json!({"jsonrpc":"2.0", "id":"refresh", "method":method, "params":null}),
+            )
+            .unwrap();
+            let goals = json!({"goals":["a b : Nat\nhb : b ≠ 0\n⊢ a % b < b"]});
+            send(&mut input, json!({"jsonrpc":"2.0", "id":2, "result":goals})).unwrap();
+            let mut output = Vec::new();
+            assert_eq!(
+                response(&mut input.as_slice(), &mut output, &AtomicUsize::new(0), 2).unwrap(),
+                goals
+            );
+            let mut replies = output.as_slice();
+            assert_eq!(
+                read_message(&mut replies, &AtomicUsize::new(0)).unwrap(),
+                json!({"jsonrpc":"2.0", "id":"refresh", "result":null})
+            );
+            assert!(replies.is_empty());
+        }
+    }
+
+    #[test]
+    fn an_editor_request_to_change_source_is_still_rejected() {
+        let mut input = Vec::new();
+        send(
+            &mut input,
+            json!({"jsonrpc":"2.0", "id":3, "method":"workspace/applyEdit", "params":{}}),
+        )
+        .unwrap();
+        let mut output = Vec::new();
+        let error =
+            response(&mut input.as_slice(), &mut output, &AtomicUsize::new(0), 2).unwrap_err();
+        assert!(error.to_string().contains("workspace/applyEdit"));
+        assert!(output.is_empty());
     }
 
     #[test]
