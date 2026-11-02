@@ -70,16 +70,16 @@ class ClientMemoryProfile(unittest.TestCase):
                     else:
                         self.assertTrue(cell["completed"])
 
-    def test_sampler_uses_only_target_group_and_preserves_exited_process_cpu(self):
+    def test_sampler_includes_detached_descendants_and_preserves_exited_process_cpu(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             sampler = profile.Sampler(root)
             sampler.attempt.mkdir(parents=True)
-            first = "10 10 20 00:01 /usr/bin/python3\n11 10 100 00:02 /tmp/opencode\n12 10 10 00:03 /tmp/tool worker\n90 90 999999 99:00 /private/unrelated\n"
-            second = "10 10 20 00:02 /usr/bin/python3\n11 10 200 00:04 /tmp/opencode\n"
+            first = "10 1 10 20 00:01 /usr/bin/python3\n11 10 11 100 00:02 /tmp/opencode\n12 11 12 10 00:03 /tmp/tool worker\n90 1 90 999999 99:00 /private/unrelated\n"
+            second = "10 1 10 20 00:02 /usr/bin/python3\n11 10 11 200 00:04 /tmp/opencode\n"
             with patch.object(profile.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, first)) as ps:
                 self.assertEqual(sampler(10), (130 * 1024, {10: 1, 11: 2, 12: 3}))
-                self.assertEqual(ps.call_args.args[0], ["ps", "-axo", "pid=,pgid=,rss=,time=,comm="])
+                self.assertEqual(ps.call_args.args[0], ["ps", "-axo", "pid=,ppid=,pgid=,rss=,time=,comm="])
             (sampler.attempt / "request.json").write_text("{}")
             with patch.object(profile.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, second)):
                 self.assertEqual(sampler(10), (220 * 1024, {10: 2, 11: 4}))
@@ -95,15 +95,15 @@ class ClientMemoryProfile(unittest.TestCase):
                     profile.audit(root, changed)
 
     def test_profile_bounds_and_malformed_processes_refuse(self):
-        for rows in ("1 1 -1 0 python", "1 1 1 0 python\n1 1 1 0 python", "1 1 1 0 " + "x" * 129,
-                     "\n".join(f"{i} 1 1 0 python" for i in range(1, profile.MAX_PROCESSES + 2))):
+        for rows in ("1 0 1 -1 0 python", "1 0 1 1 0 python\n1 0 1 1 0 python", "1 0 1 1 0 " + "x" * 129,
+                     "\n".join(f"{i} 1 1 1 0 python" for i in range(1, profile.MAX_PROCESSES + 2))):
             with self.assertRaises(ValueError):
                 profile.processes(rows, 1)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             sampler = profile.Sampler(root)
             sampler.written = profile.MAX_TRACE
-            with patch.object(profile.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "1 1 1 0 python")):
+            with patch.object(profile.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "1 0 1 1 0 python")):
                 with self.assertRaisesRegex(ValueError, "trace exceeds budget"):
                     sampler(1)
             self.assertFalse(sampler.path.exists())

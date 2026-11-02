@@ -31,3 +31,6 @@ where
 
 theorem afterHelpers : sumDown 4 = 10 ∧ localDouble 3 = 6 := by
   constructor <;> rfl
+
+theorem simultaneousInduction (a b : Nat) : True := by
+  induction a, b using euclid.induct <;> trivial

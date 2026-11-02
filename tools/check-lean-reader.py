@@ -29,7 +29,8 @@ def check(binary, diagnostics, integer_library):
         if fixture == 'lean-recursive-algorithms.lean':
             expected = {'euclid': (1, 1), 'afterEuclid': (0, 0),
                         'reverseInto': (1, 0), 'afterReverse': (0, 0),
-                        'sumDown': (0, 0), 'localDouble': (0, 0), 'afterHelpers': (0, 0)}
+                        'sumDown': (0, 0), 'localDouble': (0, 0), 'afterHelpers': (0, 0),
+                        'simultaneousInduction': (0, 0)}
             found = {}
             for definition in tree.iter('definition'):
                 name = definition.find('qualified_name')

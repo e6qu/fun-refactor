@@ -3,10 +3,12 @@ import copy
 import io
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -275,7 +277,7 @@ class BoundedHost(unittest.TestCase):
         self.assertEqual(result['exit_code'], 124)
         awake_clock.assert_not_called()
         sample.assert_not_called()
-        stop.assert_called_with(123)
+        stop.assert_called_with(123, {})
 
     def test_explicit_environment_and_directory_reach_child(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -331,10 +333,55 @@ class BoundedHost(unittest.TestCase):
         self.assertIn("ps unavailable", result["monitor_error"])
 
     def test_cpu_limit_counts_samples_from_departed_children(self):
-        with patch("agent_eval.bounded_host.sample", side_effect=[(100, {1: 0.6}), (100, {2: 0.6})]):
+        with patch("agent_eval.bounded_host.sample", side_effect=[(100, {1: 0.6}), (100, {2: 0.6})]), \
+                patch.object(host, 'process_identity', side_effect=lambda pid: pid), \
+                patch.object(host, 'stop', side_effect=lambda group, _: os.killpg(group, signal.SIGKILL)):
             result, _ = self.execute('import time; time.sleep(5)', cpu_limit_seconds=1)
         self.assertEqual(result["stop_reason"], "cpu_seconds")
         self.assertEqual(result["sampled_cpu_seconds"], 1.2)
+
+    def test_last_cpu_sample_is_not_counted_twice_when_worker_exits(self):
+        with patch.object(host, 'sample', side_effect=[(100, {1: 0.6}), (100, {1: 1.0}), (100, {1: 1.1})]), \
+                patch.object(host, 'process_identity', side_effect=['first', None, None]), \
+                patch.object(host, 'stop', side_effect=lambda group, _: os.killpg(group, signal.SIGKILL)):
+            result, _ = self.execute('import time; time.sleep(5)', cpu_limit_seconds=1.05)
+        self.assertEqual(result['stop_reason'], 'cpu_seconds')
+        self.assertEqual(result['sampled_cpu_seconds'], 1.1)
+
+    def test_timeout_counts_and_stops_a_detached_server(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sentinel = str(Path(directory) / 'survived')
+            worker = ('from pathlib import Path; import time; x=bytearray(4*1024*1024); '
+                      f'time.sleep(0.8); Path({sentinel!r}).touch(); time.sleep(5)')
+            code = ('import subprocess,sys,time; '
+                    f'subprocess.Popen([sys.executable,"-c",{worker!r}],start_new_session=True); '
+                    'time.sleep(5)')
+            result, _ = self.execute(code, wall_seconds=0.3)
+            self.assertEqual(result['stop_reason'], 'wall_seconds')
+            self.assertGreater(result['sampled_aggregate_rss_bytes'], 4 * 1024**2)
+            time.sleep(0.9)
+            self.assertFalse(Path(sentinel).exists())
+
+    def test_cleanup_does_not_kill_a_reused_pid(self):
+        with patch.object(host.os, 'killpg') as group, patch.object(host.os, 'kill') as kill, \
+                patch.object(host, 'process_identity', return_value='replacement'):
+            host.stop(123, {456: 'original'})
+        group.assert_called_once_with(123, signal.SIGKILL)
+        kill.assert_not_called()
+
+    def test_partial_output_is_visible_before_the_controller_finishes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'native.stdout'
+            observed = []
+            original_sample = host.sample
+            def inspect(group):
+                observed.append(path.read_bytes())
+                return original_sample(group)
+            with path.open('wb') as output, patch.object(host, 'sample', side_effect=inspect):
+                result = run([sys.executable, '-c', 'import time; print("progress",flush=True); time.sleep(2)'],
+                    b'', output, io.BytesIO(), Path(directory), wall_seconds=0.5)
+            self.assertEqual(result['stop_reason'], 'wall_seconds')
+            self.assertIn(b'progress\n', observed)
 
     def test_memory_and_disk_limits(self):
         result, _ = self.execute('import time; x=bytearray(2*1024*1024); time.sleep(2)', rss_bytes=1024*1024)

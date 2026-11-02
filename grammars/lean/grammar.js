@@ -863,6 +863,8 @@ module.exports = grammar({
       field('tactic', choice('cases', 'induction')),
       optional(seq(field('equation', $.identifier), $._tactic_label_colon)),
       field('subject', $._application_head),
+      repeat(seq(',', field('subject', $._application_head))),
+      optional(seq('using', field('recursor', $._application_head))),
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',

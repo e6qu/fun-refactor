@@ -94,6 +94,7 @@ fn recursive_algorithms_keep_their_termination_proofs_and_next_theorem() {
         "sumDown",
         "localDouble",
         "afterHelpers",
+        "simultaneousInduction",
     ] {
         assert_eq!(
             index.symbols.iter().filter(|row| row.name == name).count(),
@@ -105,6 +106,7 @@ fn recursive_algorithms_keep_their_termination_proofs_and_next_theorem() {
         2
     );
     assert_eq!(parsed.root().to_sexp().matches("(decreasing_by").count(), 1);
+    assert!(parsed.root().to_sexp().contains("recursor:"));
 }
 
 #[test]

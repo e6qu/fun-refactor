@@ -33,12 +33,14 @@ def measured_processes(raw, group, *, platform=None, proc=Path("/proc"), ticks=N
     ticks = os.sysconf("SC_CLK_TCK") if ticks is None else ticks
     require(type(ticks) is int and ticks > 0, "invalid clock tick rate")
     retained = []
+    groups = {int(fields[0]): int(fields[2]) for line in raw.splitlines()
+              if (fields := line.strip().split(None, 5))}
     for row in rows:
         try:
             stat = (proc / str(row["pid"]) / "stat").read_text()
         except (FileNotFoundError, ProcessLookupError):
             continue  # Exited between ps and stat; never substitute a rounded counter.
-        row["cpu_seconds"] = linux_cpu(stat, group, ticks)
+        row["cpu_seconds"] = linux_cpu(stat, groups[row['pid']], ticks)
         retained.append(row)
     return retained, {"source": "linux-proc-stat", "quantum_seconds": 1 / ticks}
 
@@ -52,10 +54,13 @@ def phase(attempt):
 
 
 def processes(raw, group):
+    entries = [line.strip().split(None, 5) for line in raw.splitlines()]
+    families = {int(pid): (int(parent), int(pgid)) for pid, parent, pgid, *_ in entries}
+    require(len(entries) == len(families), 'duplicate process sample')
+    selected = bounded_host.descendant_pids(families, group)
     result = []
-    for line in raw.splitlines():
-        pid, pgid, rss, elapsed, executable = line.strip().split(None, 4)
-        if int(pgid) != group:
+    for pid, parent, pgid, rss, elapsed, executable in entries:
+        if int(pid) not in selected:
             continue
         name = Path(executable).name
         require(len(name.encode()) <= 128, "process name exceeds profile budget")
@@ -64,7 +69,7 @@ def processes(raw, group):
         require(row["pid"] > 0 and row["rss_bytes"] >= 0, "invalid process sample")
         number(row["cpu_seconds"], "process CPU")
         result.append(row)
-        require(len(result) <= MAX_PROCESSES, "process count exceeds profile budget")
+    require(len(result) <= MAX_PROCESSES, "process count exceeds profile budget")
     require(len({row["pid"] for row in result}) == len(result), "duplicate process sample")
     return sorted(result, key=lambda row: row["pid"])
 
@@ -78,7 +83,7 @@ class Sampler:
 
     def __call__(self, group):
         before, started = phase(self.attempt), time.monotonic() - self.started
-        raw = subprocess.run(["ps", "-axo", "pid=,pgid=,rss=,time=,comm="],
+        raw = subprocess.run(["ps", "-axo", "pid=,ppid=,pgid=,rss=,time=,comm="],
                              capture_output=True, text=True, timeout=2, check=True).stdout
         rows, counter = measured_processes(raw, group)
         record = {"group": group, "started_seconds": started,
@@ -140,4 +145,4 @@ def audit(root, process):
     return {"schema": "fr-client-process-profile-1", "samples": len(samples), "trace_sha256": digest(samples),
             "peak": peak, "phase_peak_rss_bytes": phases,
             "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. "
-                     "Brief peaks, escaped process groups and shared-page double counting remain possible."}
+                     "Brief peaks, children reparented before discovery and shared-page double counting remain possible."}
