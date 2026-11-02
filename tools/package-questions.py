@@ -234,7 +234,7 @@ def execute(output, name, request, scope):
     directory.mkdir()
     save(directory / 'request.json', request)
     environment = {'PATH': os.environ['PATH'], 'HOME': str(directory), 'LANG': 'C.UTF-8',
-                   'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'}
+                   'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0', 'RAYON_NUM_THREADS': '1'}
     command = ([sys.executable, '-I', '-B', '-c', RUNTIME_SOURCE, str(directory / 'request.json')]
                if request['mode'] == 'runtime' else
                [sys.executable, '-I', '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')])

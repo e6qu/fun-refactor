@@ -1,0 +1,145 @@
+{
+  "purpose": "Preserve the actual CPU stops while testing one explicit Rayon worker. Keep all original limits.",
+  "run": "41412308638",
+  "source_commit": "5ec5bcf90c34c661bae749e22a444513cf71a7ef",
+  "failure": "The package worker constructed a fresh environment and discarded the caller\u2019s worker setting. Runner-dependent parallel work exhausted the ten-second aggregate CPU budget in nine Boltons cases.",
+  "repair": "Set RAYON_NUM_THREADS=1 in the explicit worker environment. Do not change CPU or wall limits.",
+  "status": "Await controlled replay before claiming the repair passes.",
+  "observations": [
+    {
+      "case": "earlier-questions/boltons/cache-cold",
+      "record_sha256": "1b380fcfa167727486704835afe98a6fff9f978197fe6d85fbe4ab38aef90ad1",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.609518949999995,
+      "sampled_cpu_seconds": 10.159999999999998,
+      "sampled_aggregate_rss_bytes": 128266240,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/original-overwritten",
+      "record_sha256": "3afb5e144f12f96ca0cbe4153076bd1c7d5a4b94eeab07fde32809792f2801a5",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.716123559999971,
+      "sampled_cpu_seconds": 10.15,
+      "sampled_aggregate_rss_bytes": 120999936,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/original-positive",
+      "record_sha256": "f750345df68155ff6b7c4000c07070dc1f721779f8946e41d945964f126881c1",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.39944243299999,
+      "sampled_cpu_seconds": 10.1,
+      "sampled_aggregate_rss_bytes": 124051456,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/original-steps",
+      "record_sha256": "04a20a317606700b768675531c949d1a3aa355ab8f737a7096911723664b56e7",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.625716822000015,
+      "sampled_cpu_seconds": 10.03,
+      "sampled_aggregate_rss_bytes": 121360384,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/original-unknown",
+      "record_sha256": "8ab7abc4b3da01149e712c076aaebcd06203816819296c404b72f40227ee3728",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.412603769000043,
+      "sampled_cpu_seconds": 10.08,
+      "sampled_aggregate_rss_bytes": 124358656,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/renamed-relocated-overwritten",
+      "record_sha256": "14c866872dcce4234bbc436a2fdfd2bd027a106087701c0e5c217dddfb714641",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.47995271100001,
+      "sampled_cpu_seconds": 10.1,
+      "sampled_aggregate_rss_bytes": 124854272,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/renamed-relocated-positive",
+      "record_sha256": "3be7016873b1a8c300050deecba796fc8c4100b974b3f8a4540582473c1fc519",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.669606994999981,
+      "sampled_cpu_seconds": 10.12,
+      "sampled_aggregate_rss_bytes": 123047936,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/renamed-relocated-steps",
+      "record_sha256": "09af50deb9faaaaecbecb18e98f6ebac3b1f889e69951ef1f82a6101468acb0d",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.483241733999989,
+      "sampled_cpu_seconds": 10.05,
+      "sampled_aggregate_rss_bytes": 124895232,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    },
+    {
+      "case": "earlier-questions/boltons/renamed-relocated-unknown",
+      "record_sha256": "e75af36cd7ed45bb2523bbf976636ca1f2099851034254fbd03750f9840f24e4",
+      "stop_reason": "cpu_seconds",
+      "elapsed_seconds": 4.553813522999974,
+      "sampled_cpu_seconds": 10.040000000000001,
+      "sampled_aggregate_rss_bytes": 121626624,
+      "limits": {
+        "cpu_seconds": 10,
+        "disk_bytes": 16777216,
+        "rss_bytes": 536870912,
+        "transcript_bytes": 1048576,
+        "wall_seconds": 20
+      }
+    }
+  ]
+}

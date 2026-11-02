@@ -26,6 +26,10 @@ also remains a failed, incomplete comparison. No graph session has run.
 The project replay also hit its CPU ceiling after accounting improved.
 Its [single-worker replay](https://github.com/e6qu/fun-refactor/actions/runs/41401084179)
 passes with the original CPU and wall budgets. Both the collector and CI now select one worker explicitly.
+The [package replay](tests/agent-eval/package-questions/cpu-limit-review.json)
+exposed another boundary: its fresh worker environment discarded the caller's worker setting.
+Nine Boltons cases exhausted the unchanged CPU budget. The worker now selects one
+Rayon worker explicitly; the controlled replay still needs to pass.
 
 The earlier repairs below belong to merged M3 work, including PR #591.
 The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
