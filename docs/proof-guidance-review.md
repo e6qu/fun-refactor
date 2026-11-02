@@ -1,7 +1,10 @@
 # Can a graph help smaller agents finish proofs?
 
 Reviewed on 2026-11-02 after PR #591 merged. This is a review and experiment plan.
-No new model attempts have run. Graph guidance has no measured benefit for our agents yet.
+The first five Euclid sessions retain three timeouts, one submitted proof and a memory stop.
+The [interrupted batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+exposed reader and resource-monitor defects. It cannot establish a guidance advantage.
+No graph session has run yet.
 
 ## What the evidence supports
 
@@ -16,7 +19,7 @@ Fixing the assumption grouping exposed arithmetic goals. Normalizing a Boolean c
 The unchanged complete claim passed only after the control supplied suitable division facts as well.
 These are manual controls, not agent successes or measured speedups. Fewer errors alone did not establish progress.
 
-The merged interactive command has passed real Lean tests, but no new live comparison measures its effect yet.
+The merged interactive command has passed real Lean tests. No complete new comparison isolates its effect yet.
 The first baseline must use that command and the current skills. Earlier results describe older tools and instructions.
 
 Research gives useful mechanisms, with important limits:

@@ -74,6 +74,7 @@ jobs:
         run: >-
           python3 -B -m unittest agent_eval.test_proof_algorithms agent_eval.test_algorithm_guidance
           agent_eval.test_algorithm_results agent_eval.test_selected_public
+          agent_eval.test_selected_guarded
           agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2
@@ -86,13 +87,13 @@ jobs:
           cargo test --locked --test lean --test lean_grammar -- --test-threads=1
           cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
           cargo build --locked --bin fr
-      - name: Check references, interactive feedback and rejected patches
+      - name: Check six scripted native CLI exchanges without model access
         env:
           GH_TOKEN: ''
         run: >-
           python3 -B -m agent_eval.selected_native --fr target/debug/fr
           --profiles tests/agent-eval/proof-writing/profiles.json --output "$RUNNER_TEMP/algorithm-native"
-      - name: Qualify the complete algorithm evaluator in private containers
+      - name: Prove the references and reject changed or unfinished algorithms
         run: >-
           python3 -B -m agent_eval.proof_algorithms --fr target/debug/fr
           --output "$RUNNER_TEMP/algorithm-controls" --native "$RUNNER_TEMP/algorithm-native/summary.json"

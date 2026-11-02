@@ -228,6 +228,17 @@ def export(plan_path, review, destination):
             rows[-1]['proof_observations'] = observation
         elif milestone in ALGORITHM_STUDIES:
             from .algorithm_results import validate_observations
+            resources = record['complete_attempt_resources']
+            require(resources['limits'] == {'wall_seconds': 150, 'rss_bytes': 805306368,
+                    'cpu_seconds': 75, 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
+                    'retain the complete guarded attempt measurement')
+            receipt = plan_path.parent / 'attempt-monitors' / identity / 'resources.json'
+            require(common.digest(receipt) == record['complete_attempt_resources_sha256'] and
+                    json.loads(receipt.read_text()) == resources, 'complete-attempt resource receipt changed')
+            rows[-1]['complete_attempt_resources'] = resources
+            rows[-1]['complete_attempt_resources_sha256'] = record['complete_attempt_resources_sha256']
+            rows[-1]['stop_reason'] = resources['stop_reason'] or rows[-1]['stop_reason']
+            rows[-1]['sampled_rss_bytes'] = resources['sampled_aggregate_rss_bytes']
             rows[-1]['algorithm_observations'] = validate_observations(
                 review[identity]['algorithm_observations'], record['elapsed_seconds'])
     comparison = ({'M3-feedback': 'Assisted repair with the same fr, task, draft and instructions; initial feedback visibility differs.',

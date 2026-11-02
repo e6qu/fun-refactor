@@ -45,11 +45,25 @@ and a reader rejection of induction over two inputs. Their repairs need fresh
 hosted qualification before the complete comparisons run. No guidance advantage is claimed.
 
 The [memory investigation](memory-controls.json) reproduced the correctness-goal
-limit without a model. The complete OpenCode/fr/Lean path exceeds the unchanged
-inner limit. Fr kept a Lake parent, a Lean watchdog and a file worker alive for
-one question. A direct single-file-worker prototype returns the same goal with
-less aggregate RSS. The rebuilt command still needs qualification. Keep the
-invalid setup control and both stopped controls; none is an agent outcome.
+limit without a model. Fr now removes the redundant Lake parent and Lean watchdog
+from editor inspection, but the complete OpenCode/fr/Lean path with `import Std`
+still exceeds the unchanged inner limit. A low reading from the inner monitor was
+misleading: CPU throttling paused that monitor while a new worker ran.
+
+Fresh attempts use an observer outside the throttled workload. All actual work
+still runs inside the required workstation guard. The observer counts the guard,
+controller, CLI and workers through preparation and accounting; it uses the same
+150-second, 768-MiB and 75-CPU-second limits. This stricter scope differs from the
+older native-client-only readings. The observer is low priority and cannot run two
+guarded workloads at once.
+
+The fresh task imports `Init`, which provides the required natural-number facts,
+instead of the unused full `Std` library. The executable function and theorem
+statements are unchanged. A complete scripted local check fits the memory limit;
+hosted reference and rejection controls must qualify this exact task before calls.
+The [original task](interrupted-results/Euclid.lean), all failures and misleading
+readings remain recorded separately. No diagnostic is an agent outcome or a
+measurement of fr overhead against ordinary tools.
 The [generated reader](https://github.com/e6qu/fun-refactor/actions/runs/41390732896)
 now preserves both induction inputs and the named induction rule.
 

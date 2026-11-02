@@ -120,6 +120,14 @@ class SelectedPublicTests(unittest.TestCase):
                     (directory / 'result.json').write_text(json.dumps(record))
                 elif milestone in public.ALGORITHM_STUDIES:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
+                    resources = {'limits': {'wall_seconds': 150, 'rss_bytes': 805306368, 'cpu_seconds': 75,
+                                 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
+                                 'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100}
+                    monitor = root / 'attempt-monitors' / row['id']
+                    monitor.mkdir(parents=True)
+                    (monitor / 'resources.json').write_text(json.dumps(resources))
+                    record['complete_attempt_resources'] = resources
+                    record['complete_attempt_resources_sha256'] = public.common.digest(monitor / 'resources.json')
                     (directory / 'result.json').write_text(json.dumps(record))
                 review[row['id']] = {'record_sha256': public.common.digest(directory / 'result.json'),
                                     'contributing_actions': [], 'failure_summary': 'Native command timed out before delivery.'}

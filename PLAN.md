@@ -102,7 +102,14 @@ descendant accounting, partial-output retention and multi-input induction before
 freezing fresh complete comparisons. Keep the same claims, agents and limits.
 Qualify the combined Mac CLI/server/fr/Lean workload on the correctness goal
 before live calls. The standalone termination check missed that composition's
-memory cost. Check the one-file-worker prototype in the rebuilt command.
+memory cost. The rebuilt single-worker command still exceeds the inner budget with
+the unused full `Std` import. Fresh task qualification uses `Init` with the same
+function and claims. Keep its study separate from the original batch. Observe the
+whole guarded attempt from outside its CPU throttle so sampling keeps running.
+Older local OpenCode2 CPU and RSS samples also missed detached servers. Keep their
+original clocks and patch verdicts; those samples cannot prove whole-client resource compliance.
+The [method review](docs/agent-improvement.md#next-comparison-prove-an-executable-algorithm)
+records this limitation without rewriting past outcomes.
 
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.

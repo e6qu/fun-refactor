@@ -55,14 +55,14 @@ def boundaries(project, prepared):
     return changed
 
 
-def prepare(binary, project, output):
+def prepare(binary, project, output, fixture):
     require(not project.exists(), 'use a fresh algorithm project')
     project.mkdir(parents=True)
     output.mkdir(parents=True, exist_ok=False)
     common.fr(binary, project, ['spec', 'init', 'specs', '--write'], output / 'init.json')
     source = project / SPEC
     source.parent.mkdir(exist_ok=True)
-    source.write_bytes((ROOT / DIRECTORY / 'fixtures/Euclid.lean').read_bytes())
+    source.write_bytes(fixture.read_bytes())
     (project / 'specs/FrSpecs.lean').write_text('import FrSpecs.Euclid\n')
     built = common.command(['lake', 'build'], project / 'specs', output / 'build.json')
     require(built['returncode'] == 0, 'the original executable algorithm must build with disclosed proof debt')
@@ -213,7 +213,7 @@ def controls(binary, output, native):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run full algorithm qualification on GitHub')
     output.mkdir(parents=True, exist_ok=False)
     original = output / 'original'
-    prepared = prepare(binary, original, output / 'inputs/euclid')
+    prepared = prepare(binary, original, output / 'inputs/euclid', ROOT / DIRECTORY / 'fixtures/Euclid.lean')
     declarations_digest = qualify_declarations(output)
     qualify_reserved_reference(output)
     profiles_path = ROOT / 'tests/agent-eval/proof-writing/profiles.json'
@@ -290,8 +290,10 @@ def controls(binary, output, native):
         require(verdict['passed'] == (variant == 'reference'), 'algorithm control misgraded: ' + variant)
         verdicts[variant] = {'accepted': verdict['passed']}
     retained = ROOT / DIRECTORY / 'interrupted-results'
-    row, patch = retained_submission(retained, prepared)
-    checked = grading.grade(image, 'euclid', original, prepared, binary, rust, patch,
+    historical = output / 'historical-original'
+    historical_prepared = prepare(binary, historical, output / 'historical-inputs', retained / 'Euclid.lean')
+    row, patch = retained_submission(retained, historical_prepared)
+    checked = grading.grade(image, 'euclid', historical, historical_prepared, binary, rust, patch,
                             output / 'grade-retained-agent', milestone='M3-algorithm-facts', tools={})
     require(checked['passed'] is True, 'the retained Kimi patch must independently prove the fixed algorithm')
     retained_check = {'patch_accepted': True, 'id': row['id'], 'patch_sha256': common.digest(patch),

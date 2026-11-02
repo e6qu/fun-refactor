@@ -67,6 +67,7 @@ def implementation_bindings(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'reserved').glob('*.lean'))
             paths += [directory / 'interrupted-results/summary.json']
+            paths += [directory / 'interrupted-results/Euclid.lean']
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
         if milestone == 'M3-page-count':
@@ -391,6 +392,9 @@ def freeze(inputs, binaries, runtime, output, milestone):
             value['formal_inputs'][task].update(
                 model_sha256=hashlib.sha256(prepared['model'].encode()).hexdigest(),
                 property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
+    if milestone in ALGORITHM_STUDIES:
+        from .selected_guarded import contract
+        value['resource_monitor'] = contract()
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value

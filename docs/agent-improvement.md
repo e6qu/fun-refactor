@@ -244,6 +244,28 @@ Reserve accumulator-based list reversal for transfer after the development decis
 Keep reference answers outside agent projects and qualify the evaluator before calls.
 Service or collection failures cannot establish a benefit from guidance.
 
+The [first algorithm batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+stopped in slot five. Keep its three timeouts, one Kimi submission and all unstarted slots.
+The inner monitor missed OpenCode's detached server. Buffered feedback also disappeared
+when the outer guard stopped the session. Recovering the existing conversation exposed
+a valid induction form that fr rejected before Lean ran.
+
+The [no-model checks](../tests/agent-eval/proof-algorithms/memory-controls.json) then
+reproduced the combined inspector memory failure without paying for another attempt.
+A single-file worker removes redundant processes, but the rebuilt command with
+the full `Std` import still exceeds the combined budget. An inner sampler can also
+miss work while the workstation CPU guard pauses it. Fresh attempts use a low-priority
+observer outside the guarded tree, with unchanged limits applied to the entire attempt.
+The task replaces unused `Std` with `Init`; its GCD function and theorem statements
+stay fixed. Qualify the exact revised task and native CLI path before freezing plans.
+Keep this interrupted batch separate; it cannot establish which guidance helped.
+
+This finding also limits older local OpenCode2 reports that used the same monitor.
+Their inner CPU and RSS totals omit detached server work. Preserve their recorded
+wall-clock times and independently checked patches. Those CPU and RSS records
+cannot establish whole-client resource compliance. Keep the original results unchanged
+and state this limitation when using them; the new monitor cannot recover past samples.
+
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.
 Publish only patches and summaries. Keep native logs, prompts, drafts and account data local.

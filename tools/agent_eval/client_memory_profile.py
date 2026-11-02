@@ -145,4 +145,4 @@ def audit(root, process):
     return {"schema": "fr-client-process-profile-1", "samples": len(samples), "trace_sha256": digest(samples),
             "peak": peak, "phase_peak_rss_bytes": phases,
             "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. "
-                     "Brief peaks, children reparented before discovery and shared-page double counting remain possible."}
+                     "Brief peaks, escaped process groups and shared-page double counting remain possible."}

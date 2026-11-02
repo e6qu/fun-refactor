@@ -12,7 +12,8 @@ class AlgorithmResultsChecks(unittest.TestCase):
                 **{name: None for name in results.TIMINGS}, 'execution_validity': 'valid'},
                 'native_status': 'completed', 'stop_reason': None, 'complete_attempt_deadline_missed': False,
                 'total_seconds': 140, 'checking_input_changes': [], 'collection_error_recorded': False,
-                'suspended_seconds': 0}
+                'suspended_seconds': 0, 'complete_attempt_resources': {'stop_reason': None, 'exit_code': 0,
+                'sampled_aggregate_rss_bytes': 500000000, 'sampled_cpu_seconds': 30}}
 
     def test_both_proofs_and_delivery_are_required(self):
         row = self.row()
@@ -29,6 +30,13 @@ class AlgorithmResultsChecks(unittest.TestCase):
                        {'stop_reason': 'wall_seconds'}, {'complete_attempt_deadline_missed': True},
                        {'checking_input_changes': ['.fr/declarations.txt']}, {'collection_error_recorded': True}):
             self.assertFalse(results.complete({**self.row(), **change}, True))
+
+    def test_inner_success_cannot_hide_complete_attempt_resource_failure(self):
+        for change in ({'stop_reason': 'rss_bytes'}, {'exit_code': 125},
+                       {'sampled_aggregate_rss_bytes': 805306369}, {'sampled_cpu_seconds': 75.01}):
+            row = self.row()
+            row['complete_attempt_resources'].update(change)
+            self.assertFalse(results.complete(row, True))
 
     def test_unknown_service_validity_and_invented_times_do_not_pass(self):
         row = self.row()
