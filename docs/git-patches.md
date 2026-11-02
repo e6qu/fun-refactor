@@ -53,6 +53,13 @@ The `transactions` array lists each selected edit's ID, status, `record_basis`,
 The outer `record_basis` identifies the combined starting snapshots, even in a reverse export.
 It is a history digest, not a Git object ID or a claim about the receiving files.
 The per-edit revision and validation describe past checks; export does not rerun them.
+This information has a context cost. On the fixed six-statement Rust example, a
+one-edit basis report grows from 689 to 954 UTF-8 bytes because it now names the
+selected transactions explicitly. The [earlier measurement](../tests/agent-eval/semantic-delta.json)
+stays intact beside the [current measurement](../tests/agent-eval/semantic-delta-delivery.json).
+Both editing methods still produce the same source and pass behavior, undo and redo
+checks. This compares metadata responses from the earlier and current fr, with one
+edit in each. It measures neither program runtime nor agent success.
 
 ## Deliver several saved edits together
 

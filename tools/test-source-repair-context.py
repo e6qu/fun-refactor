@@ -107,6 +107,18 @@ class SourceRepairEvidence(unittest.TestCase):
         row['parts'].reverse()
         self.reject(value)
 
+    def test_patch_receipt_names_exactly_one_requested_transaction(self):
+        value, row = self.changed()
+        part = row['parts'][0]
+        transaction = part['transactions'][0]['id']
+        part['transactions'].append(copy.deepcopy(part['transactions'][0]))
+        for event in row['events']:
+            if event['request']['arguments'] == ['history', 'patch', str(transaction)]:
+                event['response']['report'] = copy.deepcopy(part)
+        row['metrics'] = repair.routes.metrics(row['events'])
+        row['total_metrics'] = repair.routes.metrics(row['initial_events'] + row['events'])
+        self.reject(value)
+
     def test_patch_bytes_cannot_change(self):
         value, row = self.changed()
         row['patch'] += '\n'
