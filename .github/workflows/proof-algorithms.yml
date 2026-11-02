@@ -16,6 +16,38 @@ env:
   LEAN_NUM_THREADS: '1'
   RAYON_NUM_THREADS: '1'
 jobs:
+  macos-tool:
+    name: Build the checked algorithm tool for local Mac sessions
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup target add --toolchain 1.98.1 aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m3-macos-agent-tool
+      - run: cargo build --locked --release --bin fr --target aarch64-apple-darwin
+      - name: Bind the local executable to this exact source
+        run: |
+          mkdir -p "$RUNNER_TEMP/algorithm-macos-tool"
+          cp target/aarch64-apple-darwin/release/fr "$RUNNER_TEMP/algorithm-macos-tool/fr"
+          git rev-parse HEAD > "$RUNNER_TEMP/algorithm-macos-tool/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/algorithm-macos-tool/source-tree.txt"
+          shasum -a 256 "$RUNNER_TEMP/algorithm-macos-tool/fr" > "$RUNNER_TEMP/algorithm-macos-tool/fr.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: algorithm-macos-tool
+          path: ${{ runner.temp }}/algorithm-macos-tool
+          if-no-files-found: error
+          retention-days: 30
   qualify:
     name: Reject incomplete proofs of the fixed GCD implementation
     runs-on: ubuntu-24.04

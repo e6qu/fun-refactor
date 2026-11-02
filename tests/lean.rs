@@ -128,6 +128,33 @@ fn a_lean_local_helper_rename_stays_inside_its_own_function() {
 }
 
 #[test]
+fn local_helpers_do_not_hide_declarations_in_the_project_kernels() {
+    for (file, source, names) in [
+        (
+            "Edit.lean",
+            include_str!("../kernels/FrKernels/Edit.lean"),
+            ["byteToCharIndex", "splice", "applyChecked"],
+        ),
+        (
+            "Position.lean",
+            include_str!("../kernels/FrKernels/Position.lean"),
+            ["lines", "offsetAt", "fullLineSpan"],
+        ),
+    ] {
+        let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+        assert!(!parsed.has_errors(), "{file}: {:?}", parsed.error_spans());
+        let (_tmp, index) = workspace(&[(file, source)]);
+        for name in names {
+            assert_eq!(
+                index.symbols.iter().filter(|row| row.name == name).count(),
+                1,
+                "{file}: keep {name} visible after its local helper"
+            );
+        }
+    }
+}
+
+#[test]
 fn the_declarations_a_file_makes_are_symbols() {
     let (_tmp, index) = workspace(&[("Geometry.lean", GEOMETRY)]);
     let found: Vec<(String, SymbolKind)> = index

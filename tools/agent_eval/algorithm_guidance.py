@@ -53,6 +53,7 @@ def prepare(root, study):
 def request():
     return ('Prove termination and correctness of the fixed executable Lean Euclid GCD algorithm. '
         'GCD means the largest nonnegative whole number dividing both inputs; gcd(48,18)=6. '
+        'Use the standard convention gcd(0,0)=0. '
         'The function repeatedly replaces (a,b) with (b,a%b), where % is the remainder. '
         'It returns a when b is zero. Fill BOTH euclid_decreases and euclid_correct in '
         'specs/FrSpecs/Euclid.lean. Change only their marked proof regions. Keep the executable '

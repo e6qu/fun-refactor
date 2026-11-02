@@ -10,6 +10,7 @@
 
 (module) @scope
 (definition) @scope
+(where_helpers (where_decl) @scope)
 (structure) @scope
 (inductive) @scope
 (class_inductive) @scope
@@ -30,6 +31,9 @@
 (definition
   name: (qualified_name
     [(identifier) (escaped_identifier)] @name .)) @definition.function
+
+(where_helpers
+  (where_decl name: (identifier) @name) @definition.function)
 
 ; A structure is a record, and its fields qualify under it.
 (structure

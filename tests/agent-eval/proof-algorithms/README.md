@@ -3,6 +3,7 @@
 Start with Euclid's algorithm for the greatest common divisor (GCD).
 The GCD is the largest whole number that divides both inputs without a remainder.
 For example, the GCD of 48 and 18 is 6.
+The standard convention gives GCD zero when both inputs are zero.
 The fixed implementation repeatedly replaces `(a, b)` with `(b, a % b)`;
 `%` means the remainder. Its execution is `(48, 18) → (18, 12) → (12, 6) → (6, 0)`.
 When the second input reaches zero, it returns the first input.
