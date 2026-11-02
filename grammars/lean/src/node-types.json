@@ -1689,6 +1689,10 @@
         {
           "type": "termination_by",
           "named": true
+        },
+        {
+          "type": "where_helpers",
+          "named": true
         }
       ]
     }
@@ -6358,6 +6362,21 @@
       "types": [
         {
           "type": "match_arm",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "where_helpers",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "where_decl",
           "named": true
         }
       ]
