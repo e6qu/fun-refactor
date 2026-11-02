@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import unittest
 
-from evidence_basis import checker_bindings, native_source_bindings, native_source_paths, native_source_roots
+from evidence_basis import checker_bindings, file_digest, native_bindings, native_source_bindings, native_source_paths, native_source_roots
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,6 +24,46 @@ def fixture(root):
 
 
 class NativeInputs(unittest.TestCase):
+    def test_python_release_label_preserves_bindings_but_code_changes_expire_them(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root)
+            client = root / 'sdk/python/src/fr_ir'
+            client.mkdir(parents=True)
+            (root / 'sdk/python/pyproject.toml').write_text('[project]\nname="client"\n')
+            version = client / '_version.py'
+            original = '"""Distribution version."""\n\nVERSION = "0.86.1"  # x-release-please-version\n'
+            version.write_text(original)
+            declared = ['sdk/python/src/fr_ir/_version.py']
+            checker = checker_bindings(root, [])
+            native = native_bindings(root, declared)
+            version.write_text(original.replace('0.86.1', '0.87.0'))
+            self.assertEqual(checker, checker_bindings(root, []))
+            self.assertEqual(native, native_bindings(root, declared))
+            version.write_text(original + 'raise RuntimeError("changed module")\n')
+            self.assertNotEqual(checker, checker_bindings(root, []))
+            self.assertNotEqual(native, native_bindings(root, declared))
+
+    def test_unrecognized_or_duplicate_python_version_assignments_refuse(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version = Path(directory) / 'sdk/python/src/fr_ir/_version.py'
+            version.parent.mkdir(parents=True)
+            assignment = 'VERSION = "0.87.0"  # x-release-please-version\n'
+            for content in ('VERSION = calculate_version()\n', 'VERSION = "0.87.0"\n',
+                            'VERSION = "arbitrary"  # x-release-please-version\n', assignment * 2):
+                with self.subTest(content=content), self.assertRaisesRegex(ValueError, 'marked literal VERSION'):
+                    version.write_text(content)
+                    file_digest(version)
+
+    def test_other_version_modules_keep_their_exact_content_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version = Path(directory) / '_version.py'
+            original = 'VERSION = "0.86.1"  # x-release-please-version\n'
+            version.write_text(original)
+            before = file_digest(version)
+            version.write_text(original.replace('0.86.1', '0.87.0'))
+            self.assertNotEqual(before, file_digest(version))
+
     def test_client_module_changes_additions_and_removals_expire_checker_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

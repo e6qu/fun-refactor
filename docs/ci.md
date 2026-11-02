@@ -415,7 +415,9 @@ The build hashes every declared source file, including generated grammar tables,
 A missing or unreadable input stops the build.
 A symbolic link points to another file or folder. These links are refused inside the declared source roots.
 The result collectors use that same list, so changing a grammar or a helper file cannot escape their source checks.
-Release labels retain the existing normalization used by these recorded behavior comparisons; dependency and code changes remain bound.
+Changing just a release number, such as `0.86.1` to `0.87.0`, keeps these source identities.
+The checker ignores the marked Python `VERSION` string along with Cargo release labels.
+Changes to other Python code still expire the report, and malformed version metadata fails.
 
 The focused runner changes source, grammar, query and dependency inputs in temporary projects.
 It also checks file additions, deletions, renames, build-setting changes and ignored build outputs.
