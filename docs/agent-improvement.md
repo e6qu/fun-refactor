@@ -4,6 +4,9 @@ We want smaller agents to deliver correct changes and proofs with less wasted wo
 Each experiment must answer a question that changes what we do next.
 This process improves fr, its instructions and the checks we use to judge them.
 
+Read the [proof-guidance review](proof-guidance-review.md) before changing search or skills.
+It separates missing facts, graph presentation and checked exploration, with specific next comparisons.
+
 ## What the existing proof runs establish
 
 The [retained comparisons](../tests/agent-eval/proof-writing/README.md#earlier-attempts) include these complete runs.

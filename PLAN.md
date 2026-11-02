@@ -47,7 +47,7 @@ Client setup or scripted checks alone are progress within that PR, not separate 
 Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
 PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
-Finish M3 on `milestone/complete-proof-authoring`, including the merged 0.86.1 release update.
+Finish the remaining M3 work together, starting from merged main.
 The [task guide](tests/agent-eval/proof-writing/README.md) owns the fixed claims, checks and publication limits.
 The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
 28 submitted a patch and eight timed out without one. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
@@ -78,14 +78,20 @@ The timed-out attempt's draft reaches Lean and reports its remaining unknown lib
 That replay found another defect: tagged Lean errors lose their draft locations in fr's report.
 This familiar case has no timing baseline and establishes no causal improvement.
 
-The next tasks stay inside this milestone PR:
+Keep the remaining implementation, qualification, comparisons and tracking together in the next M3 PR.
 
-Draft PR #591 implements interactive proof authoring. `proof-state` shows the original
+Merged PR #591 implements interactive proof authoring. `proof-state` shows the original
 claim, available facts, branch goals and draft position after each step. Hosted Lean tests exercise
 branch completion and reject an unfinished proof. The deadline controls and packaged skill examples also pass.
 The shared skill and access-rule lesson teach the inspect/edit/check loop.
 Keep current reports and final-commit CI checked before delivery. These are tool checks and supplied examples, not new agent successes.
 The page-count proofs remain missing. The next controlled diagnostic passes its tool checks; its eight paid attempts have not started.
+
+The [proof-guidance review](docs/proof-guidance-review.md) separates relevant facts, graph presentation and checked search.
+First finish the existing eight-attempt fact diagnostic with the current tool and skills.
+Then prepare twelve sessions comparing a checklist with a graph that contains the same information.
+Test automatic backtracking separately; a diagram and a search controller are different changes.
+No new live comparison has measured the merged interactive command or graph guidance.
 
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
