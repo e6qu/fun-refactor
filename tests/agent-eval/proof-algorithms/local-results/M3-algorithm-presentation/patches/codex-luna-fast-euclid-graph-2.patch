@@ -1,0 +1,38 @@
+diff --git a/specs/FrSpecs/Euclid.lean b/specs/FrSpecs/Euclid.lean
+index 53cc91c..617faec 100644
+--- a/specs/FrSpecs/Euclid.lean
++++ b/specs/FrSpecs/Euclid.lean
+@@ -5,8 +5,7 @@ namespace Algorithm
+ 
+ theorem euclid_decreases (a b : Nat) (hb : b ≠ 0) : a % b < b := by
+   -- fr:proof-begin euclid_decreases
+-  -- fr:debt euclid_decreases
+-  sorry
++  exact Nat.mod_lt a (Nat.pos_of_ne_zero hb)
+   -- fr:proof-end euclid_decreases
+ 
+ def euclid (a b : Nat) : Nat :=
+@@ -18,8 +17,21 @@ decreasing_by
+ 
+ theorem euclid_correct (a b : Nat) : euclid a b = Nat.gcd a b := by
+   -- fr:proof-begin euclid_correct
+-  -- fr:debt euclid_correct
+-  sorry
++  have h : ∀ n : Nat, ∀ x : Nat, euclid x n = Nat.gcd x n := by
++    intro n
++    induction n using Nat.strongRecOn with
++    | ind n ih =>
++      intro x
++      unfold euclid
++      split
++      · simp_all [Nat.gcd_zero_right]
++      · have hnpos : 0 < n := Nat.pos_of_ne_zero (by assumption)
++        rw [ih (x % n) (Nat.mod_lt x hnpos)]
++        calc
++          Nat.gcd n (x % n) = Nat.gcd (x % n) n := Nat.gcd_comm _ _
++          _ = Nat.gcd n x := (Nat.gcd_rec n x).symm
++          _ = Nat.gcd x n := Nat.gcd_comm _ _
++  exact h b a
+   -- fr:proof-end euclid_correct
+ 
+ end Algorithm

@@ -1,0 +1,36 @@
+diff --git a/specs/FrSpecs/Euclid.lean b/specs/FrSpecs/Euclid.lean
+index 53cc91c..c298a9c 100644
+--- a/specs/FrSpecs/Euclid.lean
++++ b/specs/FrSpecs/Euclid.lean
+@@ -5,8 +5,7 @@ namespace Algorithm
+ 
+ theorem euclid_decreases (a b : Nat) (hb : b ≠ 0) : a % b < b := by
+   -- fr:proof-begin euclid_decreases
+-  -- fr:debt euclid_decreases
+-  sorry
++  exact Nat.mod_lt a (Nat.pos_of_ne_zero hb)
+   -- fr:proof-end euclid_decreases
+ 
+ def euclid (a b : Nat) : Nat :=
+@@ -18,8 +17,19 @@ decreasing_by
+ 
+ theorem euclid_correct (a b : Nat) : euclid a b = Nat.gcd a b := by
+   -- fr:proof-begin euclid_correct
+-  -- fr:debt euclid_correct
+-  sorry
++    apply Nat.strongRecOn (motive := fun b => ∀ a, euclid a b = Nat.gcd a b) b
++    intro b ih
++    intro a
++    cases b with
++    | zero => simp [euclid]
++    | succ b =>
++      have hlt : a % (Nat.succ b) < Nat.succ b := Nat.mod_lt a (Nat.succ_pos b)
++      rw [euclid, if_neg (Nat.succ_ne_zero b)]
++      rw [ih (a % Nat.succ b) hlt (Nat.succ b)]
++      calc
++        Nat.gcd (Nat.succ b) (a % Nat.succ b) = Nat.gcd (a % Nat.succ b) (Nat.succ b) := Nat.gcd_comm _ _
++        _ = Nat.gcd (Nat.succ b) a := (Nat.gcd_rec (Nat.succ b) a).symm
++        _ = Nat.gcd a (Nat.succ b) := Nat.gcd_comm _ _
+   -- fr:proof-end euclid_correct
+ 
+ end Algorithm
