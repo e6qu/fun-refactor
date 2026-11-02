@@ -51,7 +51,7 @@ module.exports = grammar({
     $._binding_start,           // Track a binding value's indentation separately
     $._calc_step_start,         // Close each calculation step before its sibling
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
-    $._calc_body_start,         // Inline steps continue inside the enclosing proof
+    $._continuation_body_start,         // Inline terms continue inside the enclosing layout
     $._do_body_start,           // The following `do` opens a statement body
     $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
@@ -742,7 +742,7 @@ module.exports = grammar({
           field('binders', repeat1(choice($._pattern, $._bracketed_binder))),
           optional($._type_spec),
           choice('=>', '↦'),
-          $._layout_start,
+          $._continuation_body_start,
           field('body', $._expression),
           optional($._layout_end),
         ),
@@ -1011,7 +1011,7 @@ module.exports = grammar({
     // `calc` block with steps
     tactic_calc: $ => prec.right(seq(
       'calc',
-      $._calc_body_start,
+      $._continuation_body_start,
       repeat1($.calc_step),
       $._layout_end,
     )),

@@ -172,8 +172,8 @@ def validate_controls(value, study):
     from . import selected_local_grade as public
     require(study in ALGORITHM_STUDIES and value['passed'] is True and value['live_model_calls'] == 0,
             'require successful hosted algorithm controls without live calls')
-    require(value['controls'] == {name: {'accepted': name == 'reference'} for name in VARIANTS},
-            'all thirteen private patch controls must pass')
+    require(value['controls'] == {name: {'accepted': name in POSITIVE_CONTROLS} for name in VARIANTS},
+            'both reference proofs and all twelve rejection controls must pass')
     require(value['bindings'] == local.implementation_bindings(study) and
             value['core_checker_sha256'] == public.core_digest(study) and
             value['declarations_sha256'] == common.digest(ROOT / DIRECTORY / 'declarations.txt') and
@@ -190,7 +190,8 @@ def validate_controls(value, study):
     return value
 
 
-VARIANTS = ('reference', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics', 'recursive-simp-loop',
+POSITIVE_CONTROLS = {'reference', 'reference-with-multiline-lambda'}
+VARIANTS = ('reference', 'reference-with-multiline-lambda', 'unfinished', 'termination-only', 'correctness-only', 'bad-tactics', 'recursive-simp-loop',
             'changed-claim', 'changed-source', 'library-substitution', 'extra-axiom',
             'changed-package', 'missing-patch', 'wrong-patch')
 
@@ -267,7 +268,7 @@ def controls(binary, output, native):
             path = candidate / 'specs/lakefile.toml'
             path.write_text(path.read_text() + '\n# edited by candidate\n')
         (candidate / SPEC).write_text(text)
-        if variant == 'reference':
+        if variant in POSITIVE_CONTROLS:
             # Qualify the actual interactive authoring path, not only direct replacement.
             (candidate / SPEC).write_bytes((original / SPEC).read_bytes())
             for name in OBLIGATIONS:
@@ -276,14 +277,16 @@ def controls(binary, output, native):
                 draft.write_text('skip\n')
                 state = common.fr(binary, candidate, ['spec', 'proof-state', SPEC + '::' + name,
                     '--from', str(draft), '--at', '1:5', '--token-limit', '4096', '--timeout-seconds', '30'],
-                    output / (name + '-state.json'))
+                    output / (variant + '-' + name + '-state.json'))
                 require(state['acceptance'] == 'not-checked', 'interactive state is not proof acceptance')
-                draft.write_text((ROOT / DIRECTORY / 'controls' / (name.replace('_', '-') + '.lean')).read_text())
+                control = 'euclid-correct-lambda.lean' if (variant == 'reference-with-multiline-lambda' and
+                                                          name == 'euclid_correct') else name.replace('_', '-') + '.lean'
+                draft.write_text((ROOT / DIRECTORY / 'controls' / control).read_text())
                 checked = common.fr(binary, candidate, ['spec', 'proof-check', SPEC + '::' + name,
-                                    '--from', str(draft), '--token-limit', '4096'], output / (name + '-check.json'))
+                                    '--from', str(draft), '--token-limit', '4096'], output / (variant + '-' + name + '-check.json'))
                 require(checked['passed'] is True, 'reference tactics must pass through fr')
                 saved = common.fr(binary, candidate, ['spec', 'prove', SPEC + '::' + name,
-                                  '--from', str(draft), '--write'], output / (name + '-save.json'))
+                                  '--from', str(draft), '--write'], output / (variant + '-' + name + '-save.json'))
                 require(saved['applied'] is True, 'reference tactics must be saved through fr')
         patch = output / (variant + '.patch')
         patch.write_bytes(common.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout)
@@ -293,7 +296,7 @@ def controls(binary, output, native):
                                 None if variant == 'missing-patch' else patch, output / ('grade-' + variant),
                                 milestone='M3-algorithm-facts', tools={})
         common.save(output / ('verdict-' + variant + '.json'), verdict)
-        require(verdict['passed'] == (variant == 'reference'), 'algorithm control misgraded: ' + variant)
+        require(verdict['passed'] == (variant in POSITIVE_CONTROLS), 'algorithm control misgraded: ' + variant)
         verdicts[variant] = {'accepted': verdict['passed']}
     retained = ROOT / DIRECTORY / 'interrupted-results'
     historical = output / 'historical-original'

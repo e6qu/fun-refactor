@@ -172,7 +172,7 @@ int main(void) {
   Input calc_proof = input("  calc n = n := rfl");
   assert(scan(scanner, &calc_proof, LAYOUT_START));
   Input inline_first = input("       n = n := rfl");
-  assert(scan(scanner, &inline_first, CALC_BODY_START));
+  assert(scan(scanner, &inline_first, CONTINUATION_BODY_START));
   assert(top_indent(scanner) == 3);
   assert(scan(scanner, &inline_first, CALC_STEP_START));
   assert(top_indent(scanner) == 7);
@@ -189,6 +189,27 @@ int main(void) {
   assert(scan(scanner, &after_inline, LAYOUT_SEMICOLON));
   assert(scan(scanner, &done, LAYOUT_END));
   assert(scanner->depth == 0);
+
+  // A lambda's same-line application owns a later, less-indented argument.
+  Input lambda_proof = input("  have main := value");
+  assert(scan(scanner, &lambda_proof, LAYOUT_START));
+  lambda_proof.offset = 2; lambda_proof.lexer.lookahead = 'h';
+  assert(scan(scanner, &lambda_proof, BINDING_START));
+  Input lambda_line = input("\n    fun k => recur k");
+  assert(scan(scanner, &lambda_line, CONTINUATION_BODY_START));
+  assert(top_indent(scanner) == 4);
+  Input lambda_inline = input("             recur k");
+  assert(scan(scanner, &lambda_inline, CONTINUATION_BODY_START));
+  assert(top_indent(scanner) == 5);
+  Input lambda_argument = input("\n      (fun j => j)");
+  assert(!scan(scanner, &lambda_argument, LAYOUT_END));
+  Input after_lambda = input("\n  exact main");
+  assert(scan(scanner, &after_lambda, LAYOUT_END));
+  assert(scan(scanner, &after_lambda, LAYOUT_END));
+  assert(scan(scanner, &after_lambda, LAYOUT_END));
+  assert(scanner->depth == 1 && top_indent(scanner) == 2);
+  assert(scan(scanner, &after_lambda, LAYOUT_SEMICOLON));
+  assert(scan(scanner, &done, LAYOUT_END));
 
   Input have = input("have h := by rfl");
   assert(scan(scanner, &have, BINDING_START));

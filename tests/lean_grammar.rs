@@ -820,3 +820,48 @@ theorem alternatives (invalid : 0 < 1 ∨ 1 < 2) : True := by
         "{structure}"
     );
 }
+
+#[test]
+fn multiline_lambda_keeps_its_argument_and_following_tactic() {
+    let source = include_str!("fixtures/lean-lambda-continuations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let (_directory, index) = common::workspace(&[("Lambda.lean", source)]);
+    let names: BTreeSet<_> = index
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    for name in [
+        "euclid_decreases",
+        "euclid",
+        "euclid_correct",
+        "afterEuclidLambda",
+        "afterAlgorithmLambda",
+    ] {
+        assert!(names.contains(name), "missing {name}: {names:?}");
+    }
+    let mut found = false;
+    let mut pending = vec![tree.root()];
+    while let Some(node) = pending.pop() {
+        let mut cursor = node.walk();
+        pending.extend(node.named_children(&mut cursor));
+        if node.kind() != "definition" {
+            continue;
+        }
+        let Some(name) = node.child_by_field_name("name") else {
+            continue;
+        };
+        if &source[name.byte_range()] != "euclid_correct" {
+            continue;
+        }
+        found = true;
+        let body = node.child_by_field_name("body").unwrap();
+        assert_eq!(body.named_child(0).unwrap().kind(), "tactic_have");
+        let following = body.named_child(1).unwrap();
+        assert_eq!(following.kind(), "tactic_apply");
+        assert_eq!(&source[following.byte_range()], "exact main b a");
+    }
+    assert!(found);
+}
