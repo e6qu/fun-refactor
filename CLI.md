@@ -1981,6 +1981,7 @@ fr history
 fr history show 1
 fr history patch 1 > /tmp/change.patch
 fr history patch 1 --output ../artifacts/change.patch
+fr history patch 1 2 --output change.patch
 fr history patch 1 --reverse > /tmp/reverse.patch
 fr history patch 1 --check
 fr history patch 1 --check --against /path/to/receiving/workspace
@@ -2002,6 +2003,16 @@ the first `compact` form previews the retention change.
 `patch` prints a Git text patch, or metadata with a `patch` string under `--json`.
 `patch --output FILE` creates a new artifact and returns JSON with its SHA-256 and byte count, without patch text.
 Relative paths start at the workspace root. Existing paths refuse.
+List each selected transaction ID in application order; `1 3` selects two edits, not a range.
+For example, save a termination proof as edit 1 and a correctness proof as edit 2.
+Export both with `history patch 1 2 --output change.patch`.
+Changes to the same file must join exactly: each later recorded input must match
+the preceding selected result. Missing steps, incompatible branches, repeated IDs,
+compacted snapshots and a selection with no final change refuse.
+The `transactions` array retains each selected edit's ID, status, source revision,
+validation label and recorded basis. The outer `record_basis` describes the combined
+starting snapshots. Export does not validate the combined program.
+The same selection works with `--reverse`, `--check` and `--git-check`.
 `patch --check` prints a JSON basis report and exits unsuccessfully when affected contents or link targets, entry kinds, existence or Git modes differ.
 `--against` selects a receiving directory; `--reverse` checks the recorded result as the starting state.
 `patch --git-check` reports Git application checks; `--index` also checks the affected index entries.

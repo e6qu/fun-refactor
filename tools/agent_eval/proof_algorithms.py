@@ -271,6 +271,7 @@ def controls(binary, output, native):
         if variant in POSITIVE_CONTROLS:
             # Qualify the actual interactive authoring path, not only direct replacement.
             (candidate / SPEC).write_bytes((original / SPEC).read_bytes())
+            transactions = []
             for name in OBLIGATIONS:
                 draft = candidate / '.fr' / (name + '.tactics')
                 draft.parent.mkdir(exist_ok=True)
@@ -288,8 +289,26 @@ def controls(binary, output, native):
                 saved = common.fr(binary, candidate, ['spec', 'prove', SPEC + '::' + name,
                                   '--from', str(draft), '--write'], output / (variant + '-' + name + '-save.json'))
                 require(saved['applied'] is True, 'reference tactics must be saved through fr')
+                require(saved['status'] == 'written' and saved['proof_checked'] is True,
+                        'a saved proof must explicitly report its checked placement')
+                transactions.append(str(saved['transaction']))
+                if name == OBLIGATIONS[0]:
+                    journal = (candidate / '.fr-history/state.json').read_bytes()
+                    repeated = common.fr(binary, candidate, ['spec', 'prove', SPEC + '::' + name,
+                        '--from', str(draft), '--write'], output / (variant + '-repeated-save.json'))
+                    require(repeated['status'] == 'already-present' and repeated['proof_checked'] is True and
+                            repeated['applied'] is False and repeated['transaction'] is None and
+                            (candidate / '.fr-history/state.json').read_bytes() == journal,
+                            'a repeated checked proof must not create another edit')
         patch = output / (variant + '.patch')
-        patch.write_bytes(common.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout)
+        if variant in POSITIVE_CONTROLS:
+            exported = common.fr(binary, candidate, ['history', 'patch', *transactions, '--output', str(patch.resolve())],
+                                 output / (variant + '-delivery.json'))
+            require([str(row['id']) for row in exported['transactions']] == transactions and
+                    exported['files'] == 1 and exported['patch_bytes'] > 0,
+                    'deliver both saved proofs together using their explicit transaction IDs')
+        else:
+            patch.write_bytes(common.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout)
         if variant == 'wrong-patch':
             patch.write_text('not a patch\n')
         verdict = grading.grade(image, 'euclid', original, prepared, binary, rust,

@@ -1,5 +1,5 @@
 use super::*;
-use crate::history::{basis, Change, SnapshotKind};
+use crate::history::{basis, Change, Record, SnapshotKind};
 use std::fs;
 use std::io::Write;
 use std::os::unix::ffi::OsStrExt;
@@ -181,12 +181,12 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
             })
             .collect(),
     );
-    let forward = render(&record, false).unwrap();
-    let reverse = render(&record, true).unwrap();
+    let forward = render(&record.changes, false).unwrap();
+    let reverse = render(&record.changes, true).unwrap();
     assert!(forward.contains("\\ No newline at end of file\n"));
     let mut reordered = record.clone();
     reordered.changes.reverse();
-    assert_eq!(forward, render(&reordered, false).unwrap());
+    assert_eq!(forward, render(&reordered.changes, false).unwrap());
     let stored = tempfile::tempdir().unwrap();
     let mut history = History::read(stored.path()).unwrap();
     history.records.push(record.clone());
@@ -214,11 +214,11 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
         }
         git_ok(root, &["add", "."], "");
         let index = fs::read(root.join(".git/index")).unwrap();
-        let before = check_patch_basis(stored.path(), 1, false, Some(root)).unwrap();
-        let git_check = check_git_patch(stored.path(), 1, false, Some(root), false).unwrap();
+        let before = check_patch_basis(stored.path(), &[1], false, Some(root)).unwrap();
+        let git_check = check_git_patch(stored.path(), &[1], false, Some(root), false).unwrap();
         assert!(git_check.applicable, "{}", git_check.stderr);
         assert!(
-            check_git_patch(stored.path(), 1, false, Some(root), true)
+            check_git_patch(stored.path(), &[1], false, Some(root), true)
                 .unwrap()
                 .applicable
         );
@@ -230,7 +230,7 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
             .windows(2)
             .all(|pair| pair[0].path < pair[1].path));
         fs::write(root.join("empty-add"), "collision").unwrap();
-        let collision = check_patch_basis(stored.path(), 1, false, Some(root)).unwrap();
+        let collision = check_patch_basis(stored.path(), &[1], false, Some(root)).unwrap();
         assert!(!collision.matches_patch_basis);
         let row = collision
             .files
@@ -246,18 +246,18 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
             assert_snapshot(root, change, false);
         }
         assert!(
-            !check_patch_basis(stored.path(), 1, false, Some(root))
+            !check_patch_basis(stored.path(), &[1], false, Some(root))
                 .unwrap()
                 .matches_patch_basis
         );
-        let after = check_patch_basis(stored.path(), 1, true, Some(root)).unwrap();
+        let after = check_patch_basis(stored.path(), &[1], true, Some(root)).unwrap();
         assert!(
-            check_git_patch(stored.path(), 1, true, Some(root), false)
+            check_git_patch(stored.path(), &[1], true, Some(root), false)
                 .unwrap()
                 .applicable
         );
         assert!(
-            !check_git_patch(stored.path(), 1, true, Some(root), true)
+            !check_git_patch(stored.path(), &[1], true, Some(root), true)
                 .unwrap()
                 .applicable
         );
@@ -279,7 +279,7 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
             assert_snapshot(root, change, true);
         }
         assert!(
-            check_patch_basis(stored.path(), 1, false, Some(root))
+            check_patch_basis(stored.path(), &[1], false, Some(root))
                 .unwrap()
                 .matches_patch_basis
         );
@@ -304,17 +304,23 @@ fn export_reads_only_journal_snapshots_and_retains_record_metadata() {
         .unwrap()
         .contains("\"kind\""));
     History::read(root).unwrap();
-    let forward = export_patch(root, 1, false).unwrap();
-    let reverse = export_patch(root, 1, true).unwrap();
+    let forward = export_patch(root, &[1], false).unwrap();
+    let reverse = export_patch(root, &[1], true).unwrap();
     assert_eq!(forward.record_basis, record.basis);
     assert_eq!(reverse.record_basis, record.basis);
     assert_eq!(forward.files, 1);
     assert!(reverse.reverse);
-    assert_eq!(forward.source_revision, record.source_revision);
-    assert_eq!(forward.validation, record.validation);
+    assert_eq!(
+        forward.transactions[0].source_revision,
+        record.source_revision
+    );
+    assert_eq!(forward.transactions[0].validation, record.validation);
     let journal = fs::read(root.join(".fr-history/state.json")).unwrap();
     fs::write(root.join("app.rs"), "unrelated drift").unwrap();
-    assert_eq!(forward.patch, export_patch(root, 1, false).unwrap().patch);
+    assert_eq!(
+        forward.patch,
+        export_patch(root, &[1], false).unwrap().patch
+    );
     assert_eq!(
         fs::read(root.join(".fr-history/state.json")).unwrap(),
         journal
@@ -332,11 +338,114 @@ fn export_reads_only_journal_snapshots_and_retains_record_metadata() {
             vec![]
         };
         history.save().unwrap();
-        let export = export_patch(root, 1, false).unwrap();
-        assert_eq!(export.status, status);
+        let export = export_patch(root, &[1], false).unwrap();
+        assert_eq!(export.transactions[0].status, status);
         assert_eq!(export.patch, forward.patch);
     }
-    assert!(export_patch(root, 2, false).is_err());
+    assert!(export_patch(root, &[2], false).is_err());
+}
+
+#[test]
+fn selected_edits_produce_one_patch_and_its_exact_inverse() {
+    let stored = tempfile::tempdir().unwrap();
+    let receiving = tempfile::tempdir().unwrap();
+    let first = record(vec![
+        Change {
+            path: "proof.lean".into(),
+            before: snapshot("first sorry\nsecond sorry\n", 0o644),
+            after: snapshot("first done\nsecond sorry\n", 0o644),
+        },
+        Change {
+            path: "scratch".into(),
+            before: None,
+            after: snapshot("temporary\n", 0o644),
+        },
+    ]);
+    let mut second = record(vec![
+        Change {
+            path: "proof.lean".into(),
+            before: snapshot("first done\nsecond sorry\n", 0o644),
+            after: snapshot("first done\nsecond done\n", 0o644),
+        },
+        Change {
+            path: "scratch".into(),
+            before: snapshot("temporary\n", 0o644),
+            after: None,
+        },
+        Change {
+            path: "run.sh".into(),
+            before: snapshot("echo checked\n", 0o644),
+            after: snapshot("echo checked\n", 0o755),
+        },
+    ]);
+    second.id = 2;
+    let mut history = History::read(stored.path()).unwrap();
+    history.records = vec![first, second];
+    let selected = select(&history, &[1, 2]).unwrap();
+    assert_eq!(selected.changes.len(), 2);
+    assert_eq!(
+        selected
+            .transactions
+            .iter()
+            .map(|t| t.id)
+            .collect::<Vec<_>>(),
+        [1, 2]
+    );
+    let forward = render(&selected.changes, false).unwrap();
+    let reverse = render(&selected.changes, true).unwrap();
+    assert!(!forward.contains("scratch"));
+    assert_eq!(forward.matches("diff --git a/proof.lean").count(), 1);
+    let root = receiving.path();
+    git_ok(root, &["init", "-q"], "");
+    fs::write(root.join("proof.lean"), "first sorry\nsecond sorry\n").unwrap();
+    fs::write(root.join("run.sh"), "echo checked\n").unwrap();
+    fs::set_permissions(root.join("run.sh"), fs::Permissions::from_mode(0o644)).unwrap();
+    git_ok(root, &["apply", "--check", "-"], &forward);
+    git_ok(root, &["apply", "-"], &forward);
+    for change in &selected.changes {
+        assert_snapshot(root, change, false);
+    }
+    git_ok(root, &["apply", "--check", "-"], &reverse);
+    git_ok(root, &["apply", "-"], &reverse);
+    for change in &selected.changes {
+        assert_snapshot(root, change, true);
+    }
+}
+
+#[test]
+fn selected_edits_refuse_conflicts_duplicates_missing_payloads_and_no_net_change() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut history = History::read(dir.path()).unwrap();
+    for (index, (before, after)) in [("a", "b"), ("b", "c"), ("c", "a"), ("wrong", "d")]
+        .into_iter()
+        .enumerate()
+    {
+        let mut entry = record(vec![Change {
+            path: "file".into(),
+            before: snapshot(before, 0o644),
+            after: snapshot(after, 0o644),
+        }]);
+        entry.id = index as u64 + 1;
+        history.records.push(entry);
+    }
+    for (ids, message) in [
+        (vec![], "at least one"),
+        (vec![1, 1], "more than once"),
+        (vec![2, 1], "does not follow"),
+        (vec![1, 3], "does not follow"),
+        (vec![1, 4], "does not follow"),
+        (vec![1, 2, 3], "no net change"),
+    ] {
+        let error = select(&history, &ids).err().unwrap().to_string();
+        assert!(error.contains(message), "{ids:?}: {error}");
+    }
+    assert!(select(&history, &[99]).is_err());
+    history.records[1].changes.clear();
+    assert!(select(&history, &[1, 2])
+        .err()
+        .unwrap()
+        .to_string()
+        .contains("compacted"));
 }
 
 #[test]
@@ -370,7 +479,7 @@ fn export_refuses_binary_and_unrepresentable_permissions() {
             after,
         }]);
         for reverse in [false, true] {
-            let error = render(&record, reverse).unwrap_err().to_string();
+            let error = render(&record.changes, reverse).unwrap_err().to_string();
             assert!(error.contains(reason), "{error}");
         }
     }

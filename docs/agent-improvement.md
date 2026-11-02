@@ -245,11 +245,25 @@ neither. GLM's presentation comparison is uncertain because of a confirmed reade
 bug. No profile met the fixed two-versus-zero transfer rule. Keep reversal reserved;
 no automatic search controller is justified by these results yet.
 
-Fix the observed command, source-context and delivery mistakes, plus the reader's
-multiline-lambda rejection. A current-tool replay must stay separate from the
-original outcomes. These proposed repairs have no measured success gain yet.
+PR #592 repaired the multiline-lambda rejection and updated the guides for the
+observed command, source-context and delivery mistakes. Separate replay accepts
+the eight delivered patches and the misplaced diagnostic diff without changing
+any original outcome. These repairs have no measured agent success gain yet.
 Keep the 150-second limit and qualify references and negative controls without
 models. Do not start another paid comparison to seek a better score.
+
+The next development question is whether proof saving and delivery accurately
+explain what has already happened. One Kimi attempt misread a repeated save;
+another proved both claims and passed the package check but wrote the patch outside
+the project. Check explicit save outcomes and delivery of both saved edits without
+a model first. Passing these controls establishes the tool behavior, not an agent
+improvement. Any later paid comparison needs a separate prediction and frozen plan.
+
+The original presentation report's generic invalid-execution sentence mentions
+service, collection and sleep disruptions. That sentence does not describe the
+observed GLM reader defect. Its reviewed cause is recorded in the results review;
+no provider error or measured system sleep was observed. Original report bytes
+stay frozen. Current report generation distinguishes uncertainty from its cause.
 
 The [first algorithm batch](../tests/agent-eval/proof-algorithms/interrupted-results/README.md)
 stopped in slot five. Keep its three timeouts, one Kimi submission and all unstarted slots.

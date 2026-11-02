@@ -74,7 +74,7 @@ fn saved_plan_exports_without_git_and_applies_without_disturbing_unrelated_chang
     assert_eq!(report["patch"].as_str().unwrap().as_bytes(), patch);
     assert_eq!(report["format"], "git-text-diff");
     assert_eq!(report["mode_scope"], "regular-executable-or-symlink");
-    assert_eq!(report["status"], "planned");
+    assert_eq!(report["transactions"][0]["status"], "planned");
     assert_eq!(report["reverse"], false);
     assert_eq!(report["files"], 1);
     success(git(root, &["init", "-q"], b""));
@@ -135,6 +135,90 @@ fn saved_plan_exports_without_git_and_applies_without_disturbing_unrelated_chang
         fs::read(root.join(".fr-history/state.json")).unwrap(),
         journal
     );
+}
+
+#[test]
+fn combines_two_saved_edits_without_git_or_working_tree_drift_in_the_patch() {
+    let source = tempfile::tempdir().unwrap();
+    let receiving = tempfile::tempdir().unwrap();
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    fs::write(source.path().join("app.rs"), original).unwrap();
+    success(fr(
+        source.path(),
+        &["rename", "helper", "middle", "--write"],
+    ));
+    success(fr(
+        source.path(),
+        &["rename", "middle", "finished", "--write"],
+    ));
+    let journal = fs::read(source.path().join(".fr-history/state.json")).unwrap();
+    fs::write(source.path().join("app.rs"), "unrelated later drift\n").unwrap();
+    let report: Value = serde_json::from_slice(&success(fr(
+        source.path(),
+        &["history", "patch", "1", "2", "--output", "change.patch"],
+    )))
+    .unwrap();
+    assert_eq!(report["transactions"][0]["id"], 1);
+    assert_eq!(report["transactions"][1]["id"], 2);
+    assert_eq!(report["files"], 1);
+    let patch = fs::read(source.path().join("change.patch")).unwrap();
+    assert!(!String::from_utf8_lossy(&patch).contains("middle"));
+    let root = receiving.path();
+    success(git(root, &["init", "-q"], b""));
+    fs::write(root.join("app.rs"), original).unwrap();
+    checked(
+        source.path(),
+        &[
+            "history",
+            "patch",
+            "1",
+            "2",
+            "--check",
+            "--against",
+            root.to_str().unwrap(),
+        ],
+        true,
+    );
+    success(git(root, &["apply", "--check", "-"], &patch));
+    success(git(root, &["apply", "-"], &patch));
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        original.replace("helper", "finished")
+    );
+    let reverse = success(fr(
+        source.path(),
+        &["history", "patch", "1", "2", "--reverse"],
+    ));
+    checked(
+        source.path(),
+        &[
+            "history",
+            "patch",
+            "1",
+            "2",
+            "--reverse",
+            "--check",
+            "--against",
+            root.to_str().unwrap(),
+        ],
+        true,
+    );
+    success(git(root, &["apply", "-"], &reverse));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), original);
+    assert_eq!(
+        fs::read(source.path().join(".fr-history/state.json")).unwrap(),
+        journal
+    );
+    assert_eq!(
+        fs::read_to_string(source.path().join("app.rs")).unwrap(),
+        "unrelated later drift\n"
+    );
+    assert!(!fr(source.path(), &["history", "patch", "2", "1"])
+        .status
+        .success());
+    assert!(!fr(source.path(), &["history", "patch", "1", "1"])
+        .status
+        .success());
 }
 
 #[test]

@@ -48,10 +48,32 @@ fr history patch 1 --output ../artifacts/change.patch
 ```
 
 This mode returns JSON metadata with `patch_bytes`, `patch_sha256` and the requested `output` path, omits the patch string, and refuses to replace an existing path.
-Fields include transaction identity, status, validation label, direction, file count and format.
-`record_basis` always identifies the original transaction's before snapshots, even in a reverse export.
+The `transactions` array lists each selected edit's ID, status, `record_basis`,
+`source_revision` and `validation` label. Direction, file count and format describe the complete patch.
+The outer `record_basis` identifies the combined starting snapshots, even in a reverse export.
 It is a history digest, not a Git object ID or a claim about the receiving files.
-`source_revision` and `validation` describe the recorded transaction; export does not rerun validation.
+The per-edit revision and validation describe past checks; export does not rerun them.
+
+## Deliver several saved edits together
+
+Suppose edit 4 saved an algorithm's termination proof and edit 7 saved its correctness
+proof in the same file. Both belong in the delivered patch:
+
+```sh
+fr history patch 4 7 --output change.patch
+fr history patch 4 7 --check --against /path/to/receiver
+fr history patch 4 7 --reverse --git-check --against /path/to/completed/receiver
+```
+
+These IDs select exactly two edits. They do not include edits 5 and 6 implicitly.
+For each shared file, the second input must exactly match the first result,
+including its kind and permissions. If edit 5 changed that file, omitting it
+refuses when edit 7 expects its result. Unrelated files need no intervening edit.
+Each file appears once in the patch, from its first selected input to its final result.
+A temporary file created and then removed contributes no final change.
+Repeated IDs, conflicting order, unavailable snapshots and an entirely cancelled
+selection refuse. Current working files are never used to fill a gap.
+Run the requested project checks on the combined result before delivering it.
 
 ## Check a receiving workspace
 

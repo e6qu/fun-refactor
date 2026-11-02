@@ -74,6 +74,56 @@ fn error(output: Output, message: &str) {
 }
 
 #[test]
+fn git_checks_the_combined_basis_and_reverse_for_selected_transactions() {
+    let source = tempfile::tempdir().unwrap();
+    let receiving = tempfile::tempdir().unwrap();
+    fs::write(source.path().join("app.rs"), ORIGINAL).unwrap();
+    success(
+        fr(source.path(), &["rename", "helper", "middle", "--write"])
+            .output()
+            .unwrap(),
+    );
+    success(
+        fr(source.path(), &["rename", "middle", "finished", "--write"])
+            .output()
+            .unwrap(),
+    );
+    let root = receiving.path();
+    git(root, &["init", "-q"]);
+    fs::write(root.join("app.rs"), ORIGINAL).unwrap();
+    git(root, &["add", "app.rs"]);
+    let args = [
+        "history",
+        "patch",
+        "1",
+        "2",
+        "--git-check",
+        "--index",
+        "--against",
+        root.to_str().unwrap(),
+    ];
+    let report = checked(fr(source.path(), &args).output().unwrap(), true);
+    assert_eq!(report["transactions"].as_array().unwrap().len(), 2);
+    assert_eq!(report["checked_files"], 1);
+    fs::write(root.join("app.rs"), "conflicting source\n").unwrap();
+    checked(fr(source.path(), &args).output().unwrap(), false);
+    fs::write(root.join("app.rs"), ORIGINAL.replace("helper", "finished")).unwrap();
+    git(root, &["add", "app.rs"]);
+    let reverse = [
+        "history",
+        "patch",
+        "1",
+        "2",
+        "--reverse",
+        "--git-check",
+        "--index",
+        "--against",
+        root.to_str().unwrap(),
+    ];
+    checked(fr(source.path(), &reverse).output().unwrap(), true);
+}
+
+#[test]
 fn git_checks_context_index_conflicts_and_reverse_without_writes() {
     let source = tempfile::tempdir().unwrap();
     let receiving = tempfile::tempdir().unwrap();

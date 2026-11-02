@@ -61,7 +61,10 @@ def decisions(summary):
         usable = all(row['algorithm_observations']['execution_validity'] == 'valid' and
                      not row['collection_error_recorded'] and row['suspended_seconds'] < 1 for row in selected)
         decision = (plan['requirements']['decisions'].get(key, plan['requirements']['decisions']['mixed'])
-                    if usable else plan['requirements']['invalid_execution'])
+                    if usable else
+                    'Execution is invalid or unverified in at least one attempt. '
+                    'Review its recorded cause before drawing conclusions about guidance or agent ability. '
+                    'Preserve every original outcome; do not replace failed slots.')
         result[profile] = {'accepted': counts, 'decision': decision, 'execution_usable': usable,
             'total_seconds_including_failures': sum(row['total_seconds'] for row in selected),
             'transfer_candidate': usable and counts[second] == 2 and counts[first] == 0}

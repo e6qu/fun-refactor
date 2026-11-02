@@ -65,8 +65,8 @@ Only `passed: true` supplies a checked receipt. Then save:
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-`applied: true` means written. If `applied: false` has an empty diff and a receipt,
-the proof is already present; inspect before repeating. Preserve `.fr/checks.json`.
+`status: written` saved a checked proof; `already-present` needs no repeated save.
+Preserve `.fr/checks.json`.
 Run the package check, review the diff, then from the project root write
 `git diff --binary HEAD > change.patch` and finish. Keep failed diagnostics.
 

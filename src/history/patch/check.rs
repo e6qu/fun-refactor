@@ -1,4 +1,4 @@
-use super::{git_snapshot_mode, matches_patch_basis, render, History, Status};
+use super::{git_snapshot_mode, matches_patch_basis, render, select, History, PatchTransaction};
 use crate::history::{matches_snapshot, snapshot, target, SnapshotKind};
 use anyhow::{bail, Result};
 use serde::Serialize;
@@ -21,8 +21,7 @@ pub struct PatchBasisFile {
 
 #[derive(Debug, Serialize)]
 pub struct PatchBasisCheck {
-    pub id: u64,
-    pub status: Status,
+    pub transactions: Vec<PatchTransaction>,
     pub record_basis: String,
     pub reverse: bool,
     pub receiving_root: PathBuf,
@@ -35,18 +34,18 @@ pub struct PatchBasisCheck {
 
 pub fn check_patch_basis(
     root: &Path,
-    id: u64,
+    ids: &[u64],
     reverse: bool,
     against: Option<&Path>,
 ) -> Result<PatchBasisCheck> {
     let history = History::read(root)?;
-    let record = history.record(id)?;
-    render(record, reverse)?;
+    let selection = select(&history, ids)?;
+    render(&selection.changes, reverse)?;
     let receiving_root = against.unwrap_or(&history.root).canonicalize()?;
     if !receiving_root.is_dir() {
         bail!("patch basis checks require a receiving directory");
     }
-    let mut changes = record.changes.iter().collect::<Vec<_>>();
+    let mut changes = selection.changes.iter().collect::<Vec<_>>();
     changes.sort_by(|a, b| a.path.cmp(&b.path));
     let mut files = Vec::with_capacity(changes.len());
     for change in changes {
@@ -79,9 +78,8 @@ pub fn check_patch_basis(
         });
     }
     Ok(PatchBasisCheck {
-        id,
-        status: record.status,
-        record_basis: record.basis.clone(),
+        transactions: selection.transactions,
+        record_basis: selection.record_basis,
         reverse,
         receiving_root,
         scope: "affected-paths-content-kind-and-git-mode",

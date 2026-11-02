@@ -19,7 +19,7 @@ mod patch;
 pub use patch::{
     check_git_patch, check_patch_basis, export_patch, git_mode, git_mode_change_supported,
     git_snapshot_mode, matches_patch_basis, owner_executable_mode, GitPatchCheck, PatchBasisCheck,
-    PatchBasisFile, PatchExport,
+    PatchBasisFile, PatchExport, PatchTransaction,
 };
 
 const DIRECTORY: &str = ".fr-history";

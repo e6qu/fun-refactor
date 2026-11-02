@@ -371,7 +371,7 @@ fn preflight_manifest(
         );
     }
 
-    let export = history::export_patch(&root, manifest.transaction, false)?;
+    let export = history::export_patch(&root, &[manifest.transaction], false)?;
     let patch_digest = hex::encode(Sha256::digest(export.patch.as_bytes()));
     let resolved_path = manifest
         .patch

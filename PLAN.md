@@ -75,7 +75,7 @@ advantage. No agent met the planned two-versus-zero rule for a transfer test;
 accumulator list reversal stays reserved. The results do not yet justify an
 automatic controller that tries alternative proof paths.
 
-**Implemented in draft PR #592:** the reader accepts multiline GCD proofs and
+**Merged in PR #592:** the reader accepts multiline GCD proofs and
 keeps their following tactic and declaration separate. Both valid references pass;
 all twelve deliberately broken controls fail. The original checker independently
 grades all twenty sessions. Repaired fr accepts the eight delivered patches and
@@ -92,13 +92,27 @@ and tracking pages are retained. The earlier
 and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
 remain separate; no closed model slot was rerun.
 
-**Finish before the draft is ready:** pass every required check on its final
-commit. CI exposed a Go checkout timeout before installation; the toolchain jobs
-now fetch only their installer inputs, keeping the five-minute deadline.
-Publish reviewed summaries and patches; keep raw transcripts private.
-Keep M3 open and do not merge this draft.
+The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41466033975)
+passed on the reviewed commit. Toolchain checks fetch only their installer inputs,
+fixing Go's checkout timeout within its existing five-minute deadline.
+The missing Mac runner check passed on a targeted retry, on the same platform.
+Reviewed summaries and patches are public; raw transcripts remain private.
 
-After this PR, choose one new testable explanation from the actual failures.
+**Next PR: make checked proofs straightforward to save and deliver together.**
+
+1. Make `spec prove` distinguish a written proof from an already-present checked
+   proof. A repeated save must preserve the source and history without suggesting
+   another write is needed.
+2. Let `history patch` combine explicitly selected saved edits. Two proof saves
+   must produce one patch accepted by the independent GCD checker. Reject repeated
+   IDs, incompatible file states, missing snapshots and an empty combined result.
+   Check the complete patch, its reverse and conflicts in a receiving checkout.
+3. Teach this workflow with executable examples and clear metadata. Correct the
+   generic report explanation without changing original study records or scores.
+4. Refresh affected measurements on GitHub and pass the complete CI gate on the
+   final PR commit. Do not claim an agent success gain from scripted controls.
+
+After those controls pass, choose one testable agent prediction from the failures.
 Do not repeat the full M3 comparison to seek a passing result. A successful
 control or a familiar algorithm cannot replace the missing page-count proofs.
 The [team pilot](tests/agent-eval/team-solve/README.md) and unrun
