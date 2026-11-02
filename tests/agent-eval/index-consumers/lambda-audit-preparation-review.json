@@ -1,0 +1,29 @@
+{
+  "purpose": "Preserve failed operator diagnostics and prevent incomplete snapshots from qualifying reader claims. No model calls or model outcomes changed.",
+  "probes": [
+    {
+      "run": "41431630993",
+      "repository_revision": "7a98faddb716528b2cd88c3b187a4229ee1722dd",
+      "outcome": "failed",
+      "cause": "Exporting the additional modern repository with git archive exceeded its 30-second preparation deadline."
+    },
+    {
+      "run": "41434139407",
+      "outcome": "invalid and timed out",
+      "cause": "The replacement worktree inherited CI sparse exclusions. It materialized 4879 of 74505 tracked files, omitting 69626 archived result files. Its before-reader index exceeded 240 seconds."
+    },
+    {
+      "run": "41436324617",
+      "outcome": "invalid and timed out",
+      "cause": "The same partial snapshot scanned 2994 files and attempted 880043 reference resolutions. It reached 819200 at 235.896 seconds, then hit the 240-second deadline. These are diagnostic progress counts, not complete-corpus benchmark facts."
+    },
+    {
+      "run": "41439712658",
+      "outcome": "canceled as invalid",
+      "cause": "An explicit optimized build alone could not repair the inherited snapshot exclusions. Do not use its outputs as complete-source evidence."
+    }
+  ],
+  "repair": "Materialize the explicitly selected complete Git tree with sparse checkout disabled; require every tracked input to exist before indexing. Build both semantic readers with the same recorded optimization. Preserve build300s, execution240s and job15m limits.",
+  "qualification_scope": "Use both declared fixed benchmark corpora (e423fd2d03e5d74f2efea40b6ccd20812ac1178a and 3fdba43036f4fac2a6e73a659c5dbf7e907c48cf). The additional modern repository probe was not a qualified benchmark and supplies no reader-equivalence or speed result.",
+  "original_benchmarks_changed": false
+}

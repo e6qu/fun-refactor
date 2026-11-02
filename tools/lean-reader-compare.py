@@ -50,6 +50,11 @@ def compare(before, after):
     return result
 
 
+def require_complete_snapshot(corpus, names):
+    missing = [name for name in names if not (corpus / name).exists() and not (corpus / name).is_symlink()]
+    assert not missing, 'reader corpus omitted tracked inputs: ' + repr(missing[:10])
+
+
 def collect(revisions, output):
     assert os.environ.get('GITHUB_ACTIONS') == 'true', 'compile reader comparisons on GitHub'
     keys = ('before_source', 'after_source', 'repository_revision')
@@ -62,9 +67,15 @@ def collect(revisions, output):
     with tempfile.TemporaryDirectory(prefix='fr-reader-review-') as temporary:
         work = Path(temporary)
         corpus = work / 'corpus'
-        # Checkout batches missing blobs; archive can fetch them one at a time in a partial clone.
-        subprocess.run(['git', 'worktree', 'add', '--detach', str(corpus), repository_revision],
+        # Materialize the complete selected tree; never inherit CI's sparse exclusions.
+        subprocess.run(['git', 'worktree', 'add', '--detach', '--no-checkout', str(corpus), repository_revision],
                        cwd=ROOT, check=True, timeout=30)
+        subprocess.run(['git', '-c', 'core.sparseCheckout=false', '-c', 'core.sparseCheckoutCone=false',
+                        'checkout', '--detach', '--quiet', repository_revision], cwd=corpus, check=True, timeout=30)
+        tracked = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', '-z', repository_revision],
+                                          cwd=ROOT, timeout=10).split(b'\0')
+        names = [os.fsdecode(name) for name in tracked if name]
+        require_complete_snapshot(corpus, names)
         facts = {}
         build_environment = dict(os.environ, CARGO_PROFILE_TEST_OPT_LEVEL='1', CARGO_PROFILE_TEST_DEBUG='0')
         for label, revision in [('before', before_source), ('after', after_source)]:
@@ -88,6 +99,7 @@ def collect(revisions, output):
             subprocess.run(['git', 'worktree', 'remove', '--force', str(checkout)], cwd=ROOT, check=True, timeout=30)
         result = {'before_source': before_source, 'after_source': after_source,
                   'repository_revision': repository_revision,
+                  'tracked_corpus_files': len(names),
                   'reader_build': {'profile': 'test', 'opt_level': 1, 'debug': 0},
                   'driver_sha256': hashlib.sha256(driver.read_bytes()).hexdigest(),
                   'stats': {label: value['stats'] for label, value in facts.items()},
