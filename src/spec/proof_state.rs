@@ -76,9 +76,9 @@ pub fn proof_state(
         bail!("proof state dependency preparation failed: {dependencies}");
     }
     let uri = file_uri(&prepared.spec)?;
-    let mut command = Command::new("lake");
+    let mut command = Command::new("lean");
     command
-        .args(["env", "lean", "-j", "1", "--server"])
+        .args(["-j", "1", "--worker", &uri])
         .current_dir(&package);
     let reply = query(
         command,
@@ -502,15 +502,13 @@ fn query(
             json!({"jsonrpc":"2.0", "id":1, "method":"initialize",
             "params":{"processId":std::process::id(),"rootUri":root_uri,"capabilities":{}}}),
         )?;
-        response(&mut output, &mut input, &captured, 1)?;
-        send(
-            &mut input,
-            json!({"jsonrpc":"2.0","method":"initialized","params":{}}),
-        )?;
+        // The pinned worker consumes initialize without replying. It serves one
+        // file directly; a watchdog and a persistent Lake parent are unnecessary.
         send(
             &mut input,
             json!({"jsonrpc":"2.0","method":"textDocument/didOpen",
-            "params":{"textDocument":{"uri":uri,"languageId":"lean4","version":1,"text":source}}}),
+            "params":{"textDocument":{"uri":uri,"languageId":"lean4","version":1,"text":source},
+                      "dependencyBuildMode":"never"}}),
         )?;
         send(
             &mut input,
@@ -647,6 +645,43 @@ mod tests {
                 "file:///C:/a%20b/%CE%BB.lean"
             );
         }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn one_file_worker_does_not_need_an_initialize_reply_or_repeat_dependency_build() {
+        let script = r#"
+import json, sys
+def read():
+    headers = {}
+    while (line := sys.stdin.buffer.readline()) != b'\r\n':
+        assert line
+        name, value = line.decode().split(':', 1)
+        headers[name.lower()] = value.strip()
+    return json.loads(sys.stdin.buffer.read(int(headers['content-length'])))
+assert read()['method'] == 'initialize'
+opened = read()
+assert opened['method'] == 'textDocument/didOpen'
+assert opened['params']['dependencyBuildMode'] == 'never'
+assert opened['params']['textDocument']['text'] == 'theorem target : True := by\n  skip\n'
+request = read()
+assert request['method'] == '$/lean/plainGoal'
+body = json.dumps({'jsonrpc':'2.0','id':request['id'],'result':{'goals':['⊢ True']}}).encode()
+sys.stdout.buffer.write(('Content-Length: ' + str(len(body)) + '\r\n\r\n').encode() + body)
+sys.stdout.buffer.flush()
+"#;
+        let mut command = Command::new("python3");
+        command.args(["-c", script]);
+        let reply = query(
+            command,
+            "file:///tmp",
+            "file:///tmp/Draft.lean",
+            "theorem target : True := by\n  skip\n",
+            (1, 6),
+            Instant::now() + Duration::from_secs(2),
+        )
+        .unwrap();
+        assert_eq!(reply, json!({"goals":["⊢ True"]}));
     }
 
     #[test]

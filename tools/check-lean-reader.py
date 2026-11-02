@@ -41,6 +41,11 @@ def check(binary, diagnostics, integer_library):
                 failures.append(fixture + ': termination proof or following theorem moved: ' + str(found))
             if len(list(tree.iter('where_helpers'))) != 2:
                 failures.append(fixture + ': keep each local helper block inside its function')
+            inductions = [node for node in tree.iter('tactic_cases')
+                          if len(node.findall('*[@field="subject"]')) == 2 and
+                          node.find('*[@field="recursor"]') is not None]
+            if len(inductions) != 1:
+                failures.append(fixture + ': preserve both induction inputs and the explicit recursor')
         if fixture == 'lean-nested-assumptions.lean':
             def tuple_depth(node):
                 return (node.tag == 'rcases_tuple_pattern') + max(map(tuple_depth, node), default=0)
