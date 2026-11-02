@@ -239,8 +239,8 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            /.github/actions/zig-toolchain/
+            /tools/fetch-verified-ranges.sh
       - uses: ./.github/actions/zig-toolchain
 
   go-toolchain:
@@ -252,8 +252,8 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            /.github/actions/go-toolchain/
+            /tools/fetch-verified-ranges.sh
       - uses: ./.github/actions/go-toolchain
 
   selected-agents:

@@ -344,6 +344,10 @@ The recovery evaluator binds `tests/host_recovery.rs` itself, so update its repo
 regeneration. This avoids generating a report that immediately becomes stale when its test changes.
 
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
+The Go and Zig toolchain checks fetch only their installer action and shared download script.
+In [run 41452415692](https://github.com/e6qu/fun-refactor/actions/runs/41452415692),
+Go's checkout used almost the entire five-minute job limit before installation started.
+Excluding unrelated source files and saved reports leaves that deadline unchanged.
 A five-minute toolchain check can fill that cache, but native and static jobs now queue independently.
 Each already installs and checksum-verifies its own archive through `native-tools`; waiting for another
 runner adds no validation. On October 5 the main-branch cache was present, yet PR #431's toolchain job
