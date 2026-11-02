@@ -39,11 +39,11 @@ def capture(root, case, binary, client):
             settings["provider"] = {case["provider"]: {"options": {"apiKey": "scripted-no-credential"}}}
             fixture = root / "fixture.json"
             fixture.write_bytes(encode({"provider": settings["provider"]}))
-            env.update(OPENCODE_CONFIG=str(fixture), OPENCODE_MODELS_PATH=str(root / "catalog.json"), BUN_OPTIONS="")
+            env.update(OPENCODE_CONFIG=str(fixture), OPENCODE_MODELS_PATH=str(root / "catalog.json"), BUN_OPTIONS="--smol")
             model = {"providerID": case["provider"], "modelID": case["model"], "configured": True,
                      "context": 32768, "output": 2048, "variant": case["variant"]}
             frozen, snapshots = review.freeze(control["questions"]("configured"), [model], binary, client,
-                {"kind": "scripted reasoning control", "case": case,
+                {"kind": "scripted reasoning control", "case": case, "bun_options": "--smol",
                  "catalog_sha256": source_reviews.identity(CATALOG), "script_sha256": source_reviews.identity(Path(__file__))})
             (root / "plan.json").write_bytes(encode(frozen))
             (root / "inputs.json.gz").write_bytes(gzip.compress(encode(snapshots), mtime=0))
@@ -69,6 +69,7 @@ def report(root):
     result = review.report(frozen, snapshots, root / "attempts")
     attempt = result["attempts"][0]
     require(attempt["status"] == "completed", "reasoning control did not complete")
+    require(frozen["plan"]["provenance"]["bun_options"] == "--smol", "reasoning runtime setting differs")
     case = frozen["plan"]["provenance"]["case"]
     require(case in CASES, "unknown reasoning control")
     model = frozen["plan"]["models"][0]

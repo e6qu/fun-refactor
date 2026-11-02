@@ -8,7 +8,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,12 +61,10 @@ def collect(revisions, output):
     subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', before_source, after_source, repository_revision], cwd=ROOT, check=True, timeout=120)
     with tempfile.TemporaryDirectory(prefix='fr-reader-review-') as temporary:
         work = Path(temporary)
-        archive, corpus = work / 'corpus.tar', work / 'corpus'
-        corpus.mkdir()
-        with archive.open('wb') as stream:
-            subprocess.run(['git', 'archive', repository_revision], cwd=ROOT, stdout=stream, check=True, timeout=30)
-        with tarfile.open(archive) as stream:
-            stream.extractall(corpus, filter='data')
+        corpus = work / 'corpus'
+        # Checkout batches missing blobs; archive can fetch them one at a time in a partial clone.
+        subprocess.run(['git', 'worktree', 'add', '--detach', str(corpus), repository_revision],
+                       cwd=ROOT, check=True, timeout=30)
         facts = {}
         for label, revision in [('before', before_source), ('after', after_source)]:
             checkout = work / label
@@ -95,6 +92,8 @@ def collect(revisions, output):
                   'kernel_stats': {label: value['kernel_stats'] for label, value in facts.items()},
                   'consumer_query_counts': {label: len(value['consumer_queries']) for label, value in facts.items()},
                   **compare(facts['before'], facts['after'])}
+        subprocess.run(['git', 'worktree', 'remove', '--force', str(corpus)],
+                       cwd=ROOT, check=True, timeout=30)
         (output / 'comparison.json').write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'stats': result['stats'], **{key: len(result[key]) for key in
               ('added_symbols', 'removed_symbols', 'added_references', 'removed_references', 'changed_references')}}))
