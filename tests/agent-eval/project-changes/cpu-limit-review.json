@@ -1,0 +1,13 @@
+{
+  "purpose": "Retain the observed CPU failure while testing one explicit worker instead of the runner-dependent Rayon default. Do not raise limits.",
+  "run": "41397516163",
+  "task": "boltons",
+  "case": "analyzer",
+  "route": "saved",
+  "stop_reason": "cpu_seconds",
+  "elapsed_seconds": 4.445414019999987,
+  "sampled_cpu_seconds": 10.05,
+  "cpu_limit_seconds": 10,
+  "wall_limit_seconds": 20,
+  "status": "Await the controlled single-worker replay; no performance improvement is claimed yet."
+}

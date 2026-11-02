@@ -118,12 +118,12 @@
       "sha256": "08a90aed9753f4abaf201d7b114b46e7b9173a5d3a50b2bb7afc58c2feeba3b8"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-01-interactive-deadline-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-02-algorithm-index-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-02-algorithm-index-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "0dec69413b7542e1da1019c470b16c0701634e57bcced9584f11df7d415c9b3c"
+      "sha256": "926605ed5471ae972f35617fad0c4d9cffc4a02f3188e29c5e0274ecb5fa3f23"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
