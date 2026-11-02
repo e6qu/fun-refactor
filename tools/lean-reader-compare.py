@@ -66,6 +66,7 @@ def collect(revisions, output):
         subprocess.run(['git', 'worktree', 'add', '--detach', str(corpus), repository_revision],
                        cwd=ROOT, check=True, timeout=30)
         facts = {}
+        build_environment = dict(os.environ, CARGO_PROFILE_TEST_OPT_LEVEL='1', CARGO_PROFILE_TEST_DEBUG='0')
         for label, revision in [('before', before_source), ('after', after_source)]:
             checkout = work / label
             subprocess.run(['git', 'worktree', 'add', '--detach', '--no-checkout', str(checkout), revision], cwd=ROOT, check=True, timeout=30)
@@ -74,7 +75,7 @@ def collect(revisions, output):
             shutil.copyfile(driver, checkout / 'tests/lean_reader_inventory.rs')
             with (output / (label + '-build.jsonl')).open('w') as stdout, (output / (label + '-build.stderr')).open('w') as stderr:
                 subprocess.run(['cargo', 'test', '--locked', '--test', 'lean_reader_inventory', '--no-run', '--message-format=json'],
-                               cwd=checkout, stdout=stdout, stderr=stderr, check=True, timeout=300)
+                               cwd=checkout, env=build_environment, stdout=stdout, stderr=stderr, check=True, timeout=300)
             messages = [json.loads(line) for line in (output / (label + '-build.jsonl')).read_text().splitlines()]
             binaries = [row['executable'] for row in messages if row.get('reason') == 'compiler-artifact' and
                         row['target']['name'] == 'lean_reader_inventory' and row.get('executable')]
@@ -87,6 +88,7 @@ def collect(revisions, output):
             subprocess.run(['git', 'worktree', 'remove', '--force', str(checkout)], cwd=ROOT, check=True, timeout=30)
         result = {'before_source': before_source, 'after_source': after_source,
                   'repository_revision': repository_revision,
+                  'reader_build': {'profile': 'test', 'opt_level': 1, 'debug': 0},
                   'driver_sha256': hashlib.sha256(driver.read_bytes()).hexdigest(),
                   'stats': {label: value['stats'] for label, value in facts.items()},
                   'kernel_stats': {label: value['kernel_stats'] for label, value in facts.items()},

@@ -22,8 +22,8 @@ fr --json spec proof-state '<LEAN_TARGET>' --from .fr/proof-tactics --at 1:5 --t
 
 `--at` is a one-based line and character column in your draft. Column 5 is just
 after `skip`. Count Unicode characters, not bytes. Query the end of the step
-you just wrote; before it you may see the previous state. Each query reads the draft. `goal_id`, `proof_digest` and `draft_location` identify that snapshot.
-`theorem` retains the original objective.
+you just wrote; before it you may see the previous state. Each query reads the draft. `goal_id` names the obligation; `proof_digest` identifies draft content.
+Keep the source, imports and full draft together. `theorem` retains the original objective.
 
 In each `goals` entry, `h : P` means a named proof of statement `P` is available;
 `⊢ Q` means you must prove `Q`. Read all entries after a split. For `P ∧ Q`,
