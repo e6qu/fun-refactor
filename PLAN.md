@@ -83,17 +83,20 @@ checks the misplaced ninth diff separately without counting a new success.
 The small proof guides address the observed flag, context and delivery mistakes;
 these instruction changes have no measured success gain yet.
 
-**Finish before the draft is ready:**
+Both fixed benchmark corpora now pass comparisons with every tracked file
+present, with no changed symbols or references. The
+[audit summary](tests/agent-eval/index-consumers/lambda-reader-control-summary.json)
+records both runs and preserves the original timing baselines. Refreshed reports
+and tracking pages are retained. The earlier
+[five sessions](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
+and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
+remain separate; no closed model slot was rerun.
 
-1. Check both fixed benchmark corpora with every tracked file present. Reject
-   incomplete checkouts before comparing readers. Keep the original timing baselines.
-2. Retain the complete refreshed report family on GitHub. Preserve the earlier
-   [five sessions](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
-   and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
-   separately. Do not rerun any closed model slot.
-3. Regenerate the tracking pages and pass every required check on the final PR
-   commit. Publish reviewed summaries and patches; keep raw transcripts private.
-   Keep M3 open and do not merge this draft.
+**Finish before the draft is ready:** pass every required check on its final
+commit. CI exposed a Go checkout timeout before installation; the toolchain jobs
+now fetch only their installer inputs, keeping the five-minute deadline.
+Publish reviewed summaries and patches; keep raw transcripts private.
+Keep M3 open and do not merge this draft.
 
 After this PR, choose one new testable explanation from the actual failures.
 Do not repeat the full M3 comparison to seek a passing result. A successful

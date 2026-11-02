@@ -35,8 +35,9 @@ a failed complete attempt and does not add a canonical submission.
 A separate no-model control exposed the reader defect. Lean accepts a multiline
 lambda used to build the GCD induction proof, while the measured fr reader rejects
 it before Lean runs. That control supplies a reference proof; it does not credit
-the failed agent draft, which also contained Lean errors. Repair and replay the
-reader separately, keeping every original outcome unchanged.
+the failed agent draft, which also contained Lean errors. The reader is now
+repaired and checked separately. Current fr accepts the eight delivered patches
+and the misplaced diff; every original outcome remains unchanged.
 
 Total elapsed time includes the outer guard. Step clocks use recorded tool-call
 completion times relative to controller entry; a batched call gives an upper bound
