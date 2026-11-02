@@ -61,9 +61,11 @@ def core_digest(milestone):
             directory = ROOT / CASE_DIRECTORIES[milestone]
             paths += [ROOT / 'tools/agent_eval/proof_algorithms.py', ROOT / 'tools/agent_eval/algorithm_guidance.py',
                       ROOT / '.github/workflows/proof-algorithms.yml', directory / 'checkers.json',
+                      ROOT / '.github/workflows/grade-algorithms.yml', ROOT / '.github/workflows/refinement-evidence.yml',
                       directory / 'requirements.json', directory / 'guidance.json', directory / 'declarations.txt']
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'fixtures').glob('*.lean'))
+            paths += list((directory / 'reserved').glob('*.lean'))
     bindings = {str(path.relative_to(ROOT)): local.hash_file(path) for path in sorted(paths)}
     return hashlib.sha256(encoded(bindings)).hexdigest()
 

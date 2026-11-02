@@ -21,8 +21,9 @@ class AlgorithmGuidanceChecks(unittest.TestCase):
                 self.assertEqual([row['setup'] for row in rows[:2]], [row['setup'] for row in rows[2:]][::-1])
                 self.assertEqual({row['task'] for row in rows}, {'euclid'})
             for path in ('requirements.json', 'guidance.json', 'declarations.txt', 'fixtures/Euclid.lean',
-                         'controls/euclid-correct.lean', 'controls/euclid-decreases.lean'):
+                         'controls/euclid-correct.lean', 'controls/euclid-decreases.lean', 'reserved/Reverse.lean'):
                 self.assertIn(str(guidance.DIRECTORY / path), plan['bindings'])
+                self.assertIn(str(guidance.DIRECTORY / path), local.implementation_bindings(study))
 
     def test_presentations_have_exactly_the_same_nodes_edges_and_explanation(self):
         plan = json.loads((ROOT / guidance.DIRECTORY / 'guidance.json').read_text())

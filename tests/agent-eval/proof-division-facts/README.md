@@ -1,7 +1,8 @@
 # Can the agents select and apply current division facts?
 
-This diagnostic is being qualified. No agent attempts have started and no execution plan is frozen.
-It stays inside the complete M3 milestone PR.
+The hosted tool qualification passed, but no agent attempts started and no execution plan was frozen.
+The new [algorithm study](../proof-algorithms/README.md) takes priority.
+Keep this plan as a supporting diagnostic; it cannot replace an algorithm proof or close M3.
 The [earlier page-count attempts](../proof-page-count/README.md) keep their original failures.
 
 ## The question

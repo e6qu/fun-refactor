@@ -61,8 +61,11 @@ def implementation_bindings(milestone):
             paths += [ROOT / '.github/workflows/refinement-evidence.yml']
         elif milestone in ALGORITHM_STUDIES:
             paths += [ROOT / PROFILE_PATHS[milestone], ROOT / '.github/workflows/proof-algorithms.yml',
+                      ROOT / '.github/workflows/grade-algorithms.yml',
+                      ROOT / '.github/workflows/refinement-evidence.yml',
                       directory / 'declarations.txt', directory / 'guidance.json']
             paths += list((directory / 'controls').glob('*.lean'))
+            paths += list((directory / 'reserved').glob('*.lean'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
         if milestone == 'M3-page-count':
             paths += [ROOT / CASE_DIRECTORIES['M3'] / name for name in
@@ -507,6 +510,9 @@ def attempt(plan_path, attempt_id):
         if with_fr:
             (binary_directory / 'fr').symlink_to(value['binaries']['fr']['path'])
             shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
+            if milestone in ALGORITHM_STUDIES:
+                checking_inputs.update({str(path.relative_to(project)): hash_file(path)
+                    for path in (project / '.agents/skills/fr').rglob('*') if path.is_file()})
         env = {key: os.environ[key] for key in ('HOME', 'PATH', 'LANG', 'CODEX_HOME', 'XDG_CONFIG_HOME',
             'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME', 'SSL_CERT_FILE', 'CODEX_CA_CERTIFICATE') if key in os.environ}
         checkers = value['checkers']
@@ -621,7 +627,7 @@ def attempt(plan_path, attempt_id):
                 report['status'] = 'failed'
             retain_result(project, output, report)
         report['elapsed_seconds'] = elapsed_time() - started
-        if milestone in PROOF_DIAGNOSTICS and (output / 'native.stdout').exists():
+        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES and (output / 'native.stdout').exists():
             report['native_stdout_sha256'] = hash_file(output / 'native.stdout')
         report['finished_at'] = time.time()
         report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))

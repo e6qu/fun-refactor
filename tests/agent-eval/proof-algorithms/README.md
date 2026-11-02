@@ -34,9 +34,17 @@ wrong tactics, a weaker claim, a changed implementation, replacing the function
 with library GCD, an extra axiom, changed package settings, and missing or invalid patches.
 A proof-check receipt for one region cannot establish that the whole algorithm is proved.
 
-**Current status:** task and evaluator implementation in progress. A small guarded
-Lean check accepts the reference proof; hosted qualification and all live comparisons
-are still pending. No improved agent result is claimed.
+**Current status:** the fixed Euclid task builds on GitHub, and the repaired reader
+accepts its recursive syntax. All six scripted native-client exchanges pass.
+The fact-handout verifier now handles Lean's type annotations and checks the supplied
+types against the installed library. Complete private-grader qualification and all
+live comparisons remain pending. No improved agent result is claimed.
+
+The fixed [reserved list-reversal implementation](reserved/Reverse.lean) and its
+reference proof are also recorded before development attempts. A small guarded Lean
+check accepts the reference. The Euclid task archive contains neither the reserved
+task nor either reference answer. Transfer-specific agent guidance and grading still
+need qualification before any transfer call.
 
 ## The comparisons, in order
 

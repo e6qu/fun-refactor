@@ -75,6 +75,8 @@ on:
           - proof-page-count-grade
           - proof-facts-prepare
           - proof-facts-grade
+          - proof-algorithm-facts-grade
+          - proof-algorithm-presentation-grade
           - freeze-repository-flow
           - retain-scalar
           - retain-ci-reports
@@ -129,6 +131,15 @@ concurrency:
   group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
+  proof-algorithms:
+    if: inputs.group == 'proof-algorithm-facts-grade' || inputs.group == 'proof-algorithm-presentation-grade'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/grade-algorithms.yml
+    with:
+      study: ${{ inputs.group == 'proof-algorithm-facts-grade' && 'M3-algorithm-facts' || 'M3-algorithm-presentation' }}
+      control_run: ${{ inputs.collection_run }}
   proof-feedback:
     if: inputs.group == 'proof-feedback-prepare' || inputs.group == 'proof-feedback-grade' || inputs.group == 'proof-construction-prepare' || inputs.group == 'proof-construction-grade' || inputs.group == 'proof-page-count-prepare' || inputs.group == 'proof-page-count-grade' || inputs.group == 'proof-facts-prepare' || inputs.group == 'proof-facts-grade'
     permissions:

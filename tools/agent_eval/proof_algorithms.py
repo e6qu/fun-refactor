@@ -135,7 +135,7 @@ def check(project, prepared, binary, output):
 
 def qualify_declarations(output):
     expected = (ROOT / DIRECTORY / 'declarations.txt').read_text()
-    names = [line.split()[0] for line in expected.splitlines() if not line.startswith(' ')]
+    names = [line.split()[0].split('.{', 1)[0] for line in expected.splitlines() if not line.startswith(' ')]
     require(names == ['Nat.gcd_comm', 'Nat.gcd_rec', 'Nat.gcd_zero_right',
                       'Nat.mod_lt', 'Nat.pos_of_ne_zero', 'Nat.strongRecOn'], 'preserve the fixed fact handout')
     probe = output / 'Declarations.lean'
@@ -144,6 +144,22 @@ def qualify_declarations(output):
     require(checked['returncode'] == 0 and ' '.join(checked['stdout'].split()) == ' '.join(expected.split()),
             'supplied declarations differ from the pinned Lean installation')
     return common.digest(ROOT / DIRECTORY / 'declarations.txt')
+
+
+def qualify_reserved_reference(output):
+    source = (ROOT / DIRECTORY / 'reserved/Reverse.lean').read_text()
+    require(source.count('  sorry\n') == 1, 'keep the one reserved transfer proof')
+    tactics = (ROOT / DIRECTORY / 'controls/reverse-into-correct.lean').read_text()
+    checked_source = source.replace('  -- fr:debt reverseInto_correct\n', '').replace(
+        '  sorry\n', ''.join('  ' + line + '\n' for line in tactics.splitlines()))
+    probe = output / 'ReservedReference.lean'
+    probe.write_text(checked_source + '\n#print axioms Transfer.reverseInto\n'
+                     '#print axioms Transfer.reverseInto_correct\n'
+                     '#eval Transfer.reverseInto [1, 2, 3] [9]\n')
+    checked = common.command(['lean', '-j1', '-DwarningAsError=true', str(probe.resolve())],
+                             output, output / 'reserved-reference.json')
+    require(checked['returncode'] == 0 and 'sorryAx' not in checked['stdout'] and
+            '[3, 2, 1, 9]\n' in checked['stdout'], 'the reserved executable reference must prove its unchanged claim')
 
 
 def validate_controls(value, study):
@@ -160,6 +176,8 @@ def validate_controls(value, study):
             value['reference_proofs_in_seed'] is False and value['private_image'].startswith('sha256:') and
             len(value['source_commit']) == 40 and str(value['run']).isdigit(),
             'freeze the exact checker, handouts, native clients and reference-free task seed')
+    require(re.fullmatch('[0-9a-f]{64}', value['private_image_archive_sha256']) is not None,
+            'freeze the qualified private checker archive')
     return value
 
 
@@ -177,10 +195,21 @@ def controls(binary, output, native):
     original = output / 'original'
     prepared = prepare(binary, original, output / 'inputs/euclid')
     declarations_digest = qualify_declarations(output)
+    qualify_reserved_reference(output)
+    profiles_path = ROOT / 'tests/agent-eval/proof-writing/profiles.json'
+    require(native['profiles'] == json.loads(profiles_path.read_text()) and
+            native['profiles_sha256'] == common.digest(profiles_path), 'native controls checked different model settings')
     require(native['passed'] is True and native['live_model_calls'] == 0 and
             len(native['exchanges']) == 6 and all(row['status'] == 'passed' for row in native['exchanges'].values()),
             'qualify all three native clients before the algorithm comparisons')
     image = grading.build(output / 'private-image')
+    image_archive = output / 'grader-image.tar.gz'
+    subprocess.run(grading.DOCKER + ['save', '--output', str(output / 'grader-image.tar'), image], check=True, timeout=60)
+    import gzip
+    import shutil
+    with (output / 'grader-image.tar').open('rb') as source, gzip.open(image_archive, 'wb') as destination:
+        shutil.copyfileobj(source, destination)
+    (output / 'grader-image.tar').unlink()
     rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True).strip())
     solved = (original / SPEC).read_text()
     for name in OBLIGATIONS:
@@ -248,6 +277,7 @@ def controls(binary, output, native):
               'bindings': local.implementation_bindings('M3-algorithm-facts'),
               'core_checker_sha256': public.core_digest('M3-algorithm-facts'),
               'declarations_sha256': declarations_digest, 'private_image': image,
+              'private_image_archive_sha256': common.digest(image_archive),
               'native': {'passed': True, 'live_model_calls': 0, 'exchanges': 6}}
     for study in ALGORITHM_STUDIES:
         validate_controls(result, study)

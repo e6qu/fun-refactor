@@ -39,7 +39,9 @@ jobs:
           python-version: '3.14.8'
       - uses: ./.github/actions/lean-toolchain
       - name: Check evaluator boundaries and axiom accounting
-        run: python3 -B -m unittest agent_eval.test_proof_algorithms agent_eval.test_algorithm_guidance
+        run: >-
+          python3 -B -m unittest agent_eval.test_proof_algorithms agent_eval.test_algorithm_guidance
+          agent_eval.test_algorithm_results agent_eval.test_selected_public
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2
         with:
@@ -75,5 +77,20 @@ jobs:
             ${{ runner.temp }}/algorithm-controls/grade-*/result.json
             ${{ runner.temp }}/algorithm-controls/grade-*/grader.stdout
             ${{ runner.temp }}/algorithm-controls/grade-*/grader.stderr
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: success()
+        with:
+          name: algorithm-private-checker
+          path: ${{ runner.temp }}/algorithm-controls/grader-image.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: success()
+        with:
+          name: algorithm-linux-tool
+          path: target/debug/fr
           if-no-files-found: error
           retention-days: 30
