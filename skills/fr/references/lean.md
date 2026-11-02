@@ -65,8 +65,8 @@ Only `passed: true` supplies a checked receipt. Then save:
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-`status: written` saved a checked proof; `already-present` needs no repeated save.
-Preserve `.fr/checks.json`.
+`status: written` saved a checked proof. Keep its `transaction` (saved edit ID).
+`already-present` needs no repeated save. Preserve `.fr/checks.json`.
 Run the package check, review the diff, then from the project root write
 `git diff --binary HEAD > change.patch` and finish. Keep failed diagnostics.
 

@@ -98,21 +98,31 @@ fixing Go's checkout timeout within its existing five-minute deadline.
 The missing Mac runner check passed on a targeted retry, on the same platform.
 Reviewed summaries and patches are public; raw transcripts remain private.
 
-**Next PR: make checked proofs straightforward to save and deliver together.**
+**PR #593: save checked proofs and deliver their edits together.**
 
-1. Make `spec prove` distinguish a written proof from an already-present checked
-   proof. A repeated save must preserve the source and history without suggesting
-   another write is needed.
-2. Let `history patch` combine explicitly selected saved edits. Two proof saves
-   must produce one patch accepted by the independent GCD checker. Reject repeated
-   IDs, incompatible file states, missing snapshots and an empty combined result.
-   Check the complete patch, its reverse and conflicts in a receiving checkout.
-3. Teach this workflow with executable examples and clear metadata. Correct the
-   generic report explanation without changing original study records or scores.
-4. Refresh affected measurements on GitHub and pass the complete CI gate on the
-   final PR commit. Do not claim an agent success gain from scripted controls.
+The implementation and scripted controls now pass:
 
-After those controls pass, choose one testable agent prediction from the failures.
+- `spec prove` distinguishes `written` from `already-present`. A repeated save
+  preserves source and history and needs no further write.
+- `history patch` combines explicitly selected saved edits. Both GCD proofs reach
+  one independently accepted patch. Conflicting file states, repeated IDs, missing
+  snapshots and an empty combined result refuse. Git checks the patch and reverse.
+- Guides explain the commands. The report correction preserves every original
+  study outcome. The metadata comparison retains its earlier measurement and
+  records the extra 265 response bytes on the same one-edit fixture.
+
+All thirteen affected collection groups passed. This PR retains their current records.
+The PR includes refreshed tracking pages and must pass every required check on
+its final commit. The scripted checks establish tool behavior. No new model
+attempts have run, and we have measured no agent success gain.
+
+After this PR, define one delivery-only diagnostic from the observed Kimi failures.
+Start with already checked GCD proofs and ask agents to save both and deliver the
+requested patch. Check correct delivery, incomplete delivery, wrong paths and
+late completion. Fix the inputs and decision rule before paid attempts.
+This tests finishing existing work with assistance; it does not measure unaided
+proof construction.
+
 Do not repeat the full M3 comparison to seek a passing result. A successful
 control or a familiar algorithm cannot replace the missing page-count proofs.
 The [team pilot](tests/agent-eval/team-solve/README.md) and unrun
