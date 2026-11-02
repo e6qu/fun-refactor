@@ -417,6 +417,7 @@ A symbolic link points to another file or folder. These links are refused inside
 The result collectors use that same list, so changing a grammar or a helper file cannot escape their source checks.
 Changing just a release number, such as `0.86.1` to `0.87.0`, keeps these source identities.
 The checker ignores the marked Python `VERSION` string along with Cargo release labels.
+The Python label must still match Cargo's native package version.
 Changes to other Python code still expire the report, and malformed version metadata fails.
 
 The focused runner changes source, grammar, query and dependency inputs in temporary projects.

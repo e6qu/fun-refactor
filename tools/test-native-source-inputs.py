@@ -32,17 +32,31 @@ class NativeInputs(unittest.TestCase):
             client.mkdir(parents=True)
             (root / 'sdk/python/pyproject.toml').write_text('[project]\nname="client"\n')
             version = client / '_version.py'
-            original = '"""Distribution version."""\n\nVERSION = "0.86.1"  # x-release-please-version\n'
+            original = '"""Distribution version."""\n\nVERSION = "1.0.0"  # x-release-please-version\n'
             version.write_text(original)
             declared = ['sdk/python/src/fr_ir/_version.py']
             checker = checker_bindings(root, [])
             native = native_bindings(root, declared)
-            version.write_text(original.replace('0.86.1', '0.87.0'))
+            for name in ('Cargo.toml', 'Cargo.lock'):
+                path = root / name
+                path.write_text(path.read_text().replace('1.0.0', '1.1.0'))
+            updated = original.replace('1.0.0', '1.1.0')
+            version.write_text(updated)
             self.assertEqual(checker, checker_bindings(root, []))
             self.assertEqual(native, native_bindings(root, declared))
-            version.write_text(original + 'raise RuntimeError("changed module")\n')
+            version.write_text(updated + 'raise RuntimeError("changed module")\n')
             self.assertNotEqual(checker, checker_bindings(root, []))
             self.assertNotEqual(native, native_bindings(root, declared))
+
+    def test_a_python_only_release_change_cannot_hide_an_incompatible_client(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root)
+            version = root / 'sdk/python/src/fr_ir/_version.py'
+            version.parent.mkdir(parents=True)
+            version.write_text('VERSION = "2.0.0"  # x-release-please-version\n')
+            with self.assertRaisesRegex(ValueError, 'Python and native release versions must match'):
+                file_digest(version)
 
     def test_unrecognized_or_duplicate_python_version_assignments_refuse(self):
         with tempfile.TemporaryDirectory() as directory:

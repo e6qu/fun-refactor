@@ -43,11 +43,14 @@ def file_digest(path):
     path = Path(path)
     data = path.read_bytes()
     if path.parts[-5:] == ('sdk', 'python', 'src', 'fr_ir', '_version.py'):
-        data, count = re.subn(
-            rb'(?m)^(VERSION = ")\d+\.\d+\.\d+("  # x-release-please-version)$',
-            rb'\g<1><workspace>\g<2>', data)
-        if count != 1:
+        pattern = rb'(?m)^(VERSION = ")(\d+\.\d+\.\d+)("  # x-release-please-version)$'
+        matches = list(re.finditer(pattern, data))
+        if len(matches) != 1:
             raise ValueError('Python release metadata needs one marked literal VERSION assignment.')
+        manifest = tomllib.loads((path.parents[4] / 'Cargo.toml').read_text())
+        if matches[0][2].decode() != manifest['package']['version']:
+            raise ValueError('Python and native release versions must match.')
+        data = re.sub(pattern, rb'\g<1><workspace>\g<3>', data)
     return digest(cargo_lock_basis(data) if path.name == "Cargo.lock" else data)
 
 
