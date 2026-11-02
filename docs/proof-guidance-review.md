@@ -25,8 +25,9 @@ Fixing the assumption grouping exposed arithmetic goals. Normalizing a Boolean c
 The unchanged complete claim passed only after the control supplied suitable division facts as well.
 These are manual controls, not agent successes or measured speedups. Fewer errors alone did not establish progress.
 
-The merged interactive command has passed real Lean tests. No complete new comparison isolates its effect yet.
-The first baseline must use that command and the current skills. Earlier results describe older tools and instructions.
+The twenty-session study used the interactive command and shared skills. It compares
+guidance methods, so it cannot isolate the command's effect. Earlier results describe
+older tools and instructions.
 
 Research gives useful mechanisms, with important limits:
 

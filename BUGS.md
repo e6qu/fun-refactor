@@ -47,7 +47,8 @@ The additional reader comparison exposed a partial-checkout error. Its worktree
 inherited CI exclusions and omitted archived sources. The
 [probe review](tests/agent-eval/index-consumers/lambda-audit-preparation-review.json)
 preserves each failure. The checker now requires every tracked source before indexing.
-Use the two declared benchmark corpora; partial inventories cannot qualify a complete-source claim.
+Both [complete fixed-corpus audits](tests/agent-eval/index-consumers/lambda-reader-control-summary.json)
+pass and preserve the recorded source facts. Partial inventories cannot qualify a complete-source claim.
 
 The earlier repairs below belong to merged M3 work, including PR #591.
 The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit

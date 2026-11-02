@@ -67,7 +67,8 @@ and no useful fr step; it does not close M3. Preserve all original report hashes
 The full evidence family has fresh successful collections. Retain it on GitHub,
 with one publisher at a time on the PR branch. Verify both complete pinned benchmark
 corpora: worktrees must disable inherited sparse exclusions and retain every tracked
-source. Invalid additional modern-corpus probes supply no complete-source result.
+source. Both complete audits now pass; see the reader control summary in the
+index-consumer records. Invalid additional modern-corpus probes supply no complete-source result.
 Use the reviewed probe record; do not raise any timeout. Then publish one source change at a time,
 then pass the full final-head PR gate. Keep [PLAN.md](../PLAN.md#next-work) current.
 Do not merge PR #592. Only reviewed summaries and original patches may be uploaded;
