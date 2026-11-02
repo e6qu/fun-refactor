@@ -86,7 +86,15 @@ fn recursive_algorithms_keep_their_termination_proofs_and_next_theorem() {
     let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
     assert!(!parsed.has_errors(), "{:?}", parsed.error_spans());
     let (_tmp, index) = workspace(&[("Algorithms.lean", source)]);
-    for name in ["euclid", "afterEuclid", "reverseInto", "afterReverse"] {
+    for name in [
+        "euclid",
+        "afterEuclid",
+        "reverseInto",
+        "afterReverse",
+        "sumDown",
+        "localDouble",
+        "afterHelpers",
+    ] {
         assert_eq!(
             index.symbols.iter().filter(|row| row.name == name).count(),
             1
@@ -97,6 +105,26 @@ fn recursive_algorithms_keep_their_termination_proofs_and_next_theorem() {
         2
     );
     assert_eq!(parsed.root().to_sexp().matches("(decreasing_by").count(), 1);
+}
+
+#[test]
+fn a_lean_local_helper_rename_stays_inside_its_own_function() {
+    let source = include_str!("fixtures/lean-recursive-algorithms.lean");
+    let (tmp, index) = workspace(&[("Algorithms.lean", source)]);
+    let outer = symbol(&index, "sumDown");
+    let helper = index
+        .symbols
+        .iter()
+        .find(|row| row.name == "go" && row.container == Some(outer))
+        .unwrap();
+    assert_eq!(helper.kind, SymbolKind::Function);
+    let plan = rename::plan(&index, helper.id, "step").unwrap();
+    let out = applied(tmp.path(), "Algorithms.lean", &plan.edits);
+    assert!(out.contains("def sumDown (n : Nat) : Nat := step n 0"));
+    assert!(out.contains("  step : Nat → Nat → Nat"));
+    assert!(out.contains("| n + 1, total => step n (total + n + 1)"));
+    assert!(out.contains("def localDouble (n : Nat) : Nat := go n"));
+    assert!(out.contains("  go (x : Nat) : Nat := x + x"));
 }
 
 #[test]

@@ -28,7 +28,8 @@ def check(binary, diagnostics, integer_library):
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
         if fixture == 'lean-recursive-algorithms.lean':
             expected = {'euclid': (1, 1), 'afterEuclid': (0, 0),
-                        'reverseInto': (1, 0), 'afterReverse': (0, 0)}
+                        'reverseInto': (1, 0), 'afterReverse': (0, 0),
+                        'sumDown': (0, 0), 'localDouble': (0, 0), 'afterHelpers': (0, 0)}
             found = {}
             for definition in tree.iter('definition'):
                 name = definition.find('qualified_name')
@@ -37,6 +38,8 @@ def check(binary, diagnostics, integer_library):
                         len(list(definition.iter('termination_by'))), len(list(definition.iter('decreasing_by'))))
             if found != expected:
                 failures.append(fixture + ': termination proof or following theorem moved: ' + str(found))
+            if len(list(tree.iter('where_helpers'))) != 2:
+                failures.append(fixture + ': keep each local helper block inside its function')
         if fixture == 'lean-nested-assumptions.lean':
             def tuple_depth(node):
                 return (node.tag == 'rcases_tuple_pattern') + max(map(tuple_depth, node), default=0)
@@ -265,6 +268,7 @@ def check(binary, diagnostics, integer_library):
         ('suffices-alternatives', 'theorem bad (h : True) : True := by suffices hp | hq := h'),
         ('termination-measure', 'def bad (n : Nat) := n\ntermination_by'),
         ('decreasing-proof', 'def bad (n : Nat) := n\ndecreasing_by'),
+        ('local-helper-value', 'def bad : Nat := go\nwhere\n  go : Nat :='),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

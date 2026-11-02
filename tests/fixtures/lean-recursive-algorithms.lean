@@ -18,3 +18,16 @@ termination_by structural xs
 
 theorem afterReverse : reverseInto [1, 2, 3] [9] = [3, 2, 1, 9] := by
   rfl
+
+def sumDown (n : Nat) : Nat := go n 0
+where
+  go : Nat → Nat → Nat
+    | 0, total => total
+    | n + 1, total => go n (total + n + 1)
+
+def localDouble (n : Nat) : Nat := go n
+where
+  go (x : Nat) : Nat := x + x
+
+theorem afterHelpers : sumDown 4 = 10 ∧ localDouble 3 = 6 := by
+  constructor <;> rfl
