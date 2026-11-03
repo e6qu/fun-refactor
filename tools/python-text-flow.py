@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from evidence_basis import native_source_bindings
+from evidence_basis import native_source_bindings, file_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/agent-eval/python-text-flow'
@@ -31,7 +31,7 @@ def bindings():
     paths = [ROOT / name for name in names] + list(FIXTURE.iterdir())
     paths += list((ROOT / 'sdk/python/src').rglob('*.py'))
     require(all(path.is_file() for path in paths), 'required text-flow input missing')
-    return native_source_bindings(ROOT) | {str(path.relative_to(ROOT)): digest(path)
+    return native_source_bindings(ROOT) | {str(path.relative_to(ROOT)): file_digest(path)
         for path in paths}
 
 
