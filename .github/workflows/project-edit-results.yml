@@ -82,6 +82,10 @@ jobs:
           # language, authoring and complete-delivery regression jobs.
           ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: ./.github/actions/project-edit-checkers
       - name: Validate the requested control run
         env:
@@ -166,6 +170,10 @@ jobs:
         with:
           ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
