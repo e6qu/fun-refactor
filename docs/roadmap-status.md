@@ -154,7 +154,7 @@ User example: Move a helper or add a previously missing module and check the con
 
 **State: demonstrated.** Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-11-03-release-088-proof-delivery-project-changes-recheck/result.json).
 
 Earlier requirement still needs: Keep the original project checks, undo and patch replay passing.
 
@@ -184,7 +184,7 @@ User example: Rename Boltons' `clamp` function to `clamp_value` and update its c
 
 **State: demonstrated.** Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-11-03-release-088-proof-delivery-project-changes-recheck/result.json).
 
 Earlier requirement still needs: Keep the original project checks, undo and patch replay passing.
 
@@ -254,7 +254,7 @@ The entries below identify the stored test results. “Current” means their re
 | [checked-translation](../tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-checked-translation/result.json) / scripted behavior checks | checked | current | Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof. Audit: `python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-checked-translation` |
 | [python-effects](../tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-effects/result.json) / scripted behavior checks | checked | current | Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks. Audit: `python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-effects` |
 | [python-text-flow](../tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-text-flow/result.json) / scripted behavior checks | checked | stale (1 changed inputs) | Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim. Audit: `python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-text-flow` |
-| [current-project-changes](../tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
+| [current-project-changes](../tests/agent-eval/results/2026-11-03-release-088-proof-delivery-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-03-release-088-proof-delivery-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
 
