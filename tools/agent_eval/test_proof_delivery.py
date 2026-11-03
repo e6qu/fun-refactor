@@ -128,11 +128,11 @@ class DeliveryChecks(unittest.TestCase):
             self.assertFalse(delivery.completion(changed, 149, True), key)
         for key in ('elapsed_seconds', 'sampled_aggregate_rss_bytes', 'sampled_cpu_seconds',
                     'sampled_disk_growth_bytes', 'transcript_bytes'):
-            for value in (None, True, -1, float('nan'), float('inf'), '1'):
+            for value in (None, True, -1, 10**500, float('nan'), float('inf'), '1'):
                 self.assertFalse(delivery.completion({**record, key: value}, 149, True), (key, value))
 
     def test_patch_observation_must_be_real_and_within_the_completed_attempt(self):
-        for value in (None, True, -1, 151, float('nan'), float('inf'), '149'):
+        for value in (None, True, -1, 151, 10**500, float('nan'), float('inf'), '149'):
             self.assertFalse(delivery.completion(self.resources(), value, True), value)
         self.assertFalse(delivery.completion(self.resources(), 149, 1))
         for field in ('stop_reason', 'monitor_error', 'launch_error'):

@@ -123,10 +123,11 @@ def completion(resources, patch_observed_seconds, accounting_complete):
                 'transcript_bytes': LIMITS['transcript_bytes']}
     for name, ceiling in ceilings.items():
         value = resources.get(name)
-        if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= ceiling:
+        if type(value) not in (int, float) or not 0 <= value <= ceiling or not math.isfinite(value):
             return False
-    return (type(patch_observed_seconds) in (int, float) and math.isfinite(patch_observed_seconds) and
-            0 <= patch_observed_seconds <= resources['elapsed_seconds'] <= LIMITS['wall_seconds'])
+    return (type(patch_observed_seconds) in (int, float) and
+            0 <= patch_observed_seconds <= resources['elapsed_seconds'] <= LIMITS['wall_seconds'] and
+            math.isfinite(patch_observed_seconds))
 
 
 def timing_controls():
