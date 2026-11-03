@@ -129,6 +129,15 @@ jobs:
             ${{ runner.temp }}/algorithm-controls/grade-*/check/*.json
             ${{ runner.temp }}/algorithm-controls/verdict-*.json
             ${{ runner.temp }}/algorithm-native/summary.json
+            ${{ runner.temp }}/algorithm-native/*/result.json
+            ${{ runner.temp }}/algorithm-native/*/native/result.json
+            ${{ runner.temp }}/algorithm-native/*/native/native.stdout
+            ${{ runner.temp }}/algorithm-native/*/native/native.stderr
+            ${{ runner.temp }}/algorithm-native/*/native/export.stdout
+            ${{ runner.temp }}/algorithm-native/*/native/export.stderr
+            ${{ runner.temp }}/algorithm-native/*/native/provider.json
+            ${{ runner.temp }}/algorithm-native/*/native/api/server.stdout
+            ${{ runner.temp }}/algorithm-native/*/native/api/server.stderr
             ${{ runner.temp }}/algorithm-controls/grade-*/result.json
             ${{ runner.temp }}/algorithm-controls/grade-*/grader.stdout
             ${{ runner.temp }}/algorithm-controls/grade-*/grader.stderr

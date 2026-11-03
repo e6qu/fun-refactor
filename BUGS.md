@@ -22,6 +22,13 @@ passed. It used unsupported `fr history --limit` commands instead of exporting t
 saved IDs. Fr correctly rejected that flag. The failure does not justify a longer
 deadline or adding an unused option to fr.
 
+The 0.88 release changed executable hashes while a current project-change replay
+still recorded the exact 0.87 binaries. The branch now includes the release, and
+the [hosted replay](https://github.com/e6qu/fun-refactor/actions/runs/41651284593)
+passed all 21 saved-findings changes and both deliveries again.
+New retained records match the released build; original records and exact hash
+checks remain intact.
+
 These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
