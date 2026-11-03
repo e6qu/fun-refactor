@@ -29,8 +29,10 @@ passed all 21 saved-findings changes and both deliveries again.
 New retained records match the released build; original records and exact hash
 checks remain intact.
 
-The Python text-flow checker also hashed the SDK release literal as behavior input.
-It now uses the shared release identity rule. Matching release updates preserve
+The Python text-flow, structural-change and consumer-scope checkers also hashed
+the SDK release literal as behavior input. They now use the shared release identity rule.
+Structural and scope checks bind the complete SDK tree and packaging metadata too.
+Matching release updates preserve
 input identity; real SDK changes and mismatched SDK/native versions still invalidate it.
 A regression covers all three cases. The
 [fresh language checks](https://github.com/e6qu/fun-refactor/actions/runs/41659946220)

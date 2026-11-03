@@ -22,11 +22,11 @@ from fr_ir.investigation_delivery import DeliveryReceipt, run_delivery
 from fr_ir.ir import TaskChange, TaskDelivery
 from fr_ir.runtime import FrClient, FrRuntimeError
 from fr_ir.structural_change import RefactorRequest
-from evidence_basis import native_source_bindings
+from evidence_basis import checker_bindings
 
 FIXTURE = ROOT/"tests/agent-eval/structural-change"
 FILES = ("pricing.rs", "api.rs", "main.rs")
-BINDINGS = ("tools/structural-change-acceptance.py", "src/project/structural_change.rs",
+BINDINGS = ("tools/structural-change-acceptance.py", "tools/evidence_basis.py", "src/project/structural_change.rs",
     "src/project/author.rs", "src/project/task.rs", "src/project/task_change.rs",
     "src/project/change_scope.rs", "src/refactor/rename.rs", "src/refactor/signature.rs",
     "src/project.rs", "src/parse.rs", "src/index.rs", "src/model.rs",
@@ -45,8 +45,7 @@ def sha(path):
 
 
 def bindings():
-    return {**native_source_bindings(ROOT), **{name: sha(ROOT/name) for name in BINDINGS},
-        **{str(path.relative_to(ROOT)): sha(path) for path in (ROOT/'sdk/python/src').rglob('*.py')}}
+    return checker_bindings(ROOT, BINDINGS)
 
 
 def run(args, root):

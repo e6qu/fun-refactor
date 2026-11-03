@@ -23,11 +23,11 @@ from fr_ir.investigation import Dependency, DependencyKind, Evidence, EvidenceKi
 from fr_ir.investigation_delivery import DeliveryReceipt, attach_delivery, run_delivery
 from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrClient, FrRuntimeError
-from evidence_basis import native_source_bindings
+from evidence_basis import checker_bindings
 
 FIXTURE = ROOT/"tests/agent-eval/change-scope"
 FILES = ("pricing.py", "api.py", "batch.py", "test_api.py")
-BINDINGS = ("tools/change-scope-acceptance.py", "src/project/change_scope.rs", "src/project.rs",
+BINDINGS = ("tools/change-scope-acceptance.py", "tools/evidence_basis.py", "src/project/change_scope.rs", "src/project.rs",
             "src/project/task_change.rs", "src/project/investigation.rs", "src/workflow.rs",
             "src/index.rs", "src/index/references.rs", "src/project/occurrence.rs",
             "src/parse.rs", "src/cache.rs", "src/model.rs", "build.rs",
@@ -41,8 +41,7 @@ def sha(path):
 
 
 def bindings():
-    return {**native_source_bindings(ROOT), **{name: sha(ROOT/name) for name in BINDINGS},
-        **{str(path.relative_to(ROOT)): sha(path) for path in (ROOT/'sdk/python/src').rglob('*.py')}}
+    return checker_bindings(ROOT, BINDINGS)
 
 
 def save(path, value):
