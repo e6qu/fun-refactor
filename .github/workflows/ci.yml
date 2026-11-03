@@ -782,15 +782,13 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/*
-      - name: Fetch current reports and evidence linked by the guides
+      - name: Fetch the resolution workload and guide-linked evidence
         run: |
           python3 -B - <<'PY'
           import json, runpy, subprocess
           from pathlib import Path
-          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
           scalar = json.loads(Path('tests/agent-eval/current-scalar-reports.json').read_text())
-          paths = [Path(row['path']) for row in catalog['evidence']]
-          paths += [Path(row['path']) for row in scalar['reports'].values()]
+          paths = [Path(scalar['reports']['index-resolution']['path'])]
           assert all(path.resolve().is_relative_to(Path.cwd()) for path in paths)
           docs = runpy.run_path('tools/review-docs.py')
           patterns = {'/' + path.parent.as_posix() + '/' for path in paths}
