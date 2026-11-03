@@ -1,0 +1,25 @@
+{
+  "applied": false,
+  "carried_verbatim": 0,
+  "changes": [
+    {
+      "diff": "--- a/translated.py\n+++ b/translated.py\n@@ -1,0 +1,23 @@\n+# Translated from rust (/home/runner/work/_temp/language-behavior/translation/rust-to-python-original/calculation.rs) by fun-refactor.\n+# 1 function(s), 0 record(s), 0 constant(s).\n+# Every signature carried across with its types intact.\n+\n+def fr_trunc_rem(dividend: int, divisor: int) -> int:\n+    \"\"\"The remainder that goes with division truncating toward zero.\n+\n+    Python's own `%` rounds with `//`, toward negative infinity, and the\n+    two answer differently whenever the operands have different signs.\n+    \"\"\"\n+    remainder = dividend % divisor\n+    if remainder != 0 and (remainder < 0) != (dividend < 0):\n+        return remainder - divisor\n+    return remainder\n+\n+def page_count(items: int, size: int) -> int:\n+    if items < 0 or size <= 0:\n+        return -1\n+    quotient = (lambda dividend, divisor: dividend // divisor + (1 if (dividend < 0) != (divisor < 0) and dividend % divisor != 0 else 0))(items, size)\n+    if fr_trunc_rem(items, size) == 0:\n+        return quotient\n+    return quotient + 1\n+\n",
+      "file": "/home/runner/work/_temp/language-behavior/translation/rust-to-python-original/translated.py",
+      "path": "/home/runner/work/_temp/language-behavior/translation/rust-to-python-original/translated.py"
+    }
+  ],
+  "constants": 0,
+  "files_changed": 1,
+  "functions": 1,
+  "newtypes": 0,
+  "notes": [],
+  "records": 0,
+  "signatures_complete": 1,
+  "signatures_with_foreign_types": 0,
+  "summary": "/home/runner/work/_temp/language-behavior/translation/rust-to-python-original/calculation.rs translated to /home/runner/work/_temp/language-behavior/translation/rust-to-python-original/translated.py (rust -> python)",
+  "sums": 0,
+  "target": "python",
+  "translated": [
+    "/home/runner/work/_temp/language-behavior/translation/rust-to-python-original/calculation.rs"
+  ]
+}
