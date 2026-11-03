@@ -166,6 +166,7 @@ def export(plan_path, review, destination):
             counts = [event['part']['tokens'] for event in events if event.get('type') == 'step_finish']
             observed = record['usage']['exported'] if record['usage'] is not None else None
             complete = (observed is not None and observed['outcome'] == 'succeeded' and
+                        observed['usage_complete'] and
                         observed['unfinished_assistant_responses'] == 0 and len(counts) > 0 and
                         len(counts) == observed['exported_assistant_responses'] == observed['stream_finished_responses'] and
                         all(isinstance(value, dict) for value in counts))

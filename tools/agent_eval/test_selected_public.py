@@ -113,6 +113,12 @@ class SelectedPublicTests(unittest.TestCase):
                 (directory / 'result.json').write_text(json.dumps(record))
                 (directory / 'prompt.txt').write_text(canary)
                 (directory / 'native.stdout').write_text('incomplete-json-' + canary)
+                if milestone == 'M3-delivery' and row['profile'] == 'opencode2-glm-flash':
+                    (directory / 'native.stdout').write_text(json.dumps({'type': 'step_finish',
+                        'part': {'tokens': {'input': 2, 'output': 1}}}))
+                    record['usage'] = {'exported': {'outcome': 'succeeded', 'usage_complete': False,
+                        'unfinished_assistant_responses': 0, 'exported_assistant_responses': 1,
+                        'stream_finished_responses': 1, 'model_observed': True}}
                 if milestone == 'M3-feedback':
                     record.update(initial_check_seconds=0.2, initial_check_bytes=100,
                                   initial_check_sha256='a' * 64, initial_feedback_supplied=row['setup'] == 'supplied-feedback',
@@ -170,6 +176,7 @@ class SelectedPublicTests(unittest.TestCase):
             self.assertNotIn(canary, (destination / 'summary.json').read_text())
             if milestone == 'M3-delivery':
                 self.assertTrue(all(row['delivery_capture_bound_seconds'] is None for row in result['attempts']))
+                self.assertTrue(all(row['reported_usage_complete'] is False for row in result['attempts']))
                 checks = {'passed': True, 'all_12_checked': True, 'checked_attempts': 12,
                           'core_checker_sha256': result['core_checker_sha256'], 'control_policy': 'frozen',
                           'image': 'qualified-image', 'attempts': {row['id']: {
