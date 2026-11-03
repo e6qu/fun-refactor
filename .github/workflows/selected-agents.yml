@@ -18,17 +18,23 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .github/actions/native-tools/python-wheels.txt
+            .github/actions/lean-toolchain
+            .github/workflows
             tools
             sdk/python/src
             skills/fr
             tests/agent-eval/selected-agents
             tests/agent-eval/project-edits
+            tests/agent-eval/project-changes/oracle.py
+            tests/agent-eval/project-changes/tasks.json
+            tests/agent-eval/unknown-target/task.json
             tests/agent-eval/proof-writing
             tests/agent-eval/proof-feedback
             tests/agent-eval/proof-construction
             tests/agent-eval/proof-page-count
             tests/agent-eval/proof-division-facts
             tests/agent-eval/proof-algorithms
+            tests/agent-eval/proof-delivery
             tests/agent-eval/team-solve
       - uses: actions/setup-python@v7
         with:
