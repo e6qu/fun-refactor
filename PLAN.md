@@ -132,13 +132,14 @@ incomplete accounting prevents a reliable GLM/Kimi comparison. Do not adopt the
 card as a measured improvement or start a transfer test. Both setups received
 correct proofs; this comparison cannot close M3 or measure proof discovery.
 
+The explicit OpenCode2 2.2.5 pin passes both local no-model reproductions and
+[hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41654594443).
+All six scripted native exchanges, proof controls, Mac build and retained-patch
+replay pass. The runner rejects missing or duplicate response records.
+
 **Next work, in order:**
 
-1. Finish qualification of the explicit OpenCode2 2.2.5 pin on GitHub.
-   Version 2.0.32 loses the final usage event after the session becomes idle.
-   Both local no-model reproductions fail with 2.0.32 and pass with 2.2.5.
-   The runner rejects missing or duplicate response records.
-   Before a new study, freeze fresh complete native admission for the selected client.
+1. Before a new study, freeze fresh complete native admission for its selected client.
    Keep these twelve outcomes under their original client and never reopen their slots.
 2. Review the original page-count failure against the unchanged complete claim.
    Use no-model controls to distinguish choosing a division fact from applying it

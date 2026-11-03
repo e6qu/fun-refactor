@@ -54,7 +54,10 @@ The project now pins that exact release and checksum. The M1 native check uses t
 current client with its current protocol helpers, then restores the original manifest
 for historical grading. No original study record changes client or outcome.
 
-Finish the final-head CI and mark this PR ready while leaving it unmerged.
+All four [current qualification jobs](https://github.com/e6qu/fun-refactor/actions/runs/41654594443)
+pass, including the six native exchanges and retained-patch replay.
+The release-matched project-change replay also passes. The PR checks own its
+final-head CI status. Require the full gate before marking it ready; leave it unmerged.
 Any later comparison needs fresh complete admission for its selected client.
 Then return to the original page-count proof obstacle under the unchanged
 150-second limit. The roadmap owns the remaining M3 completion conditions.

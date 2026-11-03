@@ -34,12 +34,13 @@ A resource limit stops the run for inspection. There is no model substitution,
 automatic retry or second repair round.
 
 Codex is pinned to 0.164.0 with `gpt-6-luna`, high reasoning and Fast service.
-OpenCode2 is pinned to 2.0.32 with `zai-coding-plan/glm-5.3-flash#low`
+OpenCode2 is pinned to 2.2.5 with `zai-coding-plan/glm-5.3-flash#low`
 and `kimi-code-plan-global/k3#low`. Assign every role explicitly using these
 pinned profiles. A profile names a model and its CLI settings. The example uses
 all three; a comparison can assign Luna to every role. Each call uses the existing native-client checks;
 OpenCode2's exported session must confirm its actual model selection and outcome.
 Codex's usage report does not independently confirm which model served a response.
+The retained pilot used 2.0.32. Its original inputs and outcomes remain unchanged.
 
 ## Run the small Python repair
 

@@ -29,6 +29,13 @@ passed all 21 saved-findings changes and both deliveries again.
 New retained records match the released build; original records and exact hash
 checks remain intact.
 
+An earlier [scripted native check](https://github.com/e6qu/fun-refactor/actions/runs/41651295817)
+failed four OpenCode exchanges but retained only a generic outer error.
+Its precise inner cause remains unknown. CI now retains bounded stderr and all
+scripted exchange diagnostics. The subsequent
+[complete qualification](https://github.com/e6qu/fun-refactor/actions/runs/41654594443)
+passes; the earlier failure remains recorded and cannot count as a successful check.
+
 These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
