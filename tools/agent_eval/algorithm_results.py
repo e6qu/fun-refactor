@@ -38,9 +38,10 @@ def complete(row, patch_accepted, study):
     resources = row['complete_attempt_resources']
     if study == DELIVERY_STUDY:
         from .proof_delivery import completion
-        if not completion(resources, observation['patch_delivery_seconds'], row['reported_usage_complete']):
+        bound = row['delivery_capture_bound_seconds']
+        if not completion(resources, bound, row['reported_usage_complete']):
             return False
-        if resources['elapsed_seconds'] != row['total_seconds']:
+        if bound != resources['elapsed_seconds'] or resources['elapsed_seconds'] != row['total_seconds']:
             return False
     return (patch_accepted and row['native_status'] == 'completed' and row['stop_reason'] is None and
             resources['stop_reason'] is None and resources['exit_code'] == 0 and

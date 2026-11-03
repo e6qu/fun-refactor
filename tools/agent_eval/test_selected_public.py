@@ -125,7 +125,7 @@ class SelectedPublicTests(unittest.TestCase):
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     resources = {'limits': {'wall_seconds': 150, 'rss_bytes': 805306368, 'cpu_seconds': 75,
                                  'disk_bytes': 536870912, 'transcript_bytes': 1048576},
-                                 'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100}
+                                 'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100, 'elapsed_seconds': 3}
                     monitor = root / 'attempt-monitors' / row['id']
                     monitor.mkdir(parents=True)
                     (monitor / 'resources.json').write_text(json.dumps(resources))
@@ -168,6 +168,8 @@ class SelectedPublicTests(unittest.TestCase):
             self.assertTrue(all(row['native_status'] == 'failed' and row['collection_error_recorded']
                                 for row in result['attempts']))
             self.assertNotIn(canary, (destination / 'summary.json').read_text())
+            if milestone == 'M3-delivery':
+                self.assertTrue(all(row['delivery_capture_bound_seconds'] is None for row in result['attempts']))
             self.assertEqual([path.name for path in destination.rglob('*') if path.is_file()], ['summary.json'])
             if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                 self.assertIsNone(result['attempts'][0]['proof_observations']['first_passing_proof_seconds'])

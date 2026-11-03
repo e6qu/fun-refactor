@@ -237,6 +237,8 @@ def export(plan_path, review, destination):
                     json.loads(receipt.read_text()) == resources, 'complete-attempt resource receipt changed')
             rows[-1]['complete_attempt_resources'] = resources
             rows[-1]['complete_attempt_resources_sha256'] = record['complete_attempt_resources_sha256']
+            if milestone == DELIVERY_STUDY:
+                rows[-1]['delivery_capture_bound_seconds'] = resources['elapsed_seconds'] if record['patch_delivered'] else None
             rows[-1]['stop_reason'] = resources['stop_reason'] or rows[-1]['stop_reason']
             rows[-1]['sampled_rss_bytes'] = resources['sampled_aggregate_rss_bytes']
             rows[-1]['algorithm_observations'] = validate_observations(

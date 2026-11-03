@@ -31,9 +31,10 @@ class AlgorithmResultsChecks(unittest.TestCase):
                        {'checking_input_changes': ['.fr/declarations.txt']}, {'collection_error_recorded': True}):
             self.assertFalse(results.complete({**self.row(), **change}, True, 'M3-algorithm-facts'))
 
-    def test_supplied_proofs_still_need_accounting_delivery_time_and_complete_resources(self):
+    def test_supplied_proofs_still_need_accounting_capture_bound_and_complete_resources(self):
         row = self.row()
         row['reported_usage_complete'] = True
+        row['delivery_capture_bound_seconds'] = 140
         row['algorithm_observations']['patch_delivery_seconds'] = 90
         row['complete_attempt_resources'].update(elapsed_seconds=140, monitor_error=None, launch_error=None,
             sampled_disk_growth_bytes=1000, transcript_bytes=1000)
@@ -46,6 +47,8 @@ class AlgorithmResultsChecks(unittest.TestCase):
             changed['complete_attempt_resources'][field] = value
             self.assertFalse(results.complete(changed, True, 'M3-delivery'))
         row['algorithm_observations']['patch_delivery_seconds'] = None
+        self.assertTrue(results.complete(row, True, 'M3-delivery'))
+        row['delivery_capture_bound_seconds'] = None
         self.assertFalse(results.complete(row, True, 'M3-delivery'))
 
     def test_delivery_decision_and_report_do_not_claim_proof_discovery_or_list_transfer(self):
@@ -55,6 +58,7 @@ class AlgorithmResultsChecks(unittest.TestCase):
         for entry in plan['attempts']:
             accepted = entry['setup'] == 'finish-card'
             row = {**entry, **self.row(), 'reported_usage_complete': True,
+                   'delivery_capture_bound_seconds': 140,
                    'independent_outcome': 'passed' if accepted else 'failed',
                    'independent_check': {'patch_accepted': accepted},
                    'failure_summary': None if accepted else 'Patch omitted the earlier proof.',

@@ -165,3 +165,7 @@ Review the actions and actual timings before exporting patches and summaries
 with `selected_public export-algorithm --study M3-delivery`. The
 `grade-algorithms.yml` workflow accepts that study and independently checks every
 patch before applying the fixed decision rule. A valid late patch stays failed.
+The collector copies the patch before its guarded process exits. Its completed
+attempt time therefore gives an upper bound on patch capture. Scoring uses that
+bound and the completed accounting receipt. The exact first patch-creation time
+can remain unknown; a guessed stage time cannot turn a failed attempt into success.

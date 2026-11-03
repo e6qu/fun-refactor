@@ -182,8 +182,7 @@ def prompt(task, setup, checkers, milestone):
            '<FIRST_ID> <SECOND_ID> --output change.patch, then report the passed checks. '
            if milestone == DELIVERY_STUDY else
            'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. ')
-        +
-        'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
+        + 'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
 
 
 def execution_prompt(frozen_prompt, started_at, wall_seconds, finish_seconds):
