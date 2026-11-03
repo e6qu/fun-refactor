@@ -1,0 +1,246 @@
+{
+  "requirements": {
+    "question": "Can the selected agents save and deliver two supplied, correct GCD proofs within the complete attempt limit?",
+    "profiles_file": "tests/agent-eval/proof-writing/profiles.json",
+    "clients_file": "tests/agent-eval/selected-agents/clients.json",
+    "conditions": [
+      "shared-skill",
+      "finish-card"
+    ],
+    "repetitions": 2,
+    "limits": {
+      "wall_seconds": 150,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 75,
+      "disk_bytes": 536870912,
+      "transcript_bytes": 1048576,
+      "parallel_attempts": 1
+    },
+    "request": "The two correct proof drafts are supplied in .fr/euclid_decreases.tactics and .fr/euclid_correct.tactics. Check and save BOTH into specs/FrSpecs/Euclid.lean using fr. Keep the program, claims, imports, settings and supplied drafts unchanged. Run the supplied package check. Export both saved edit IDs together to change.patch in the project root, then finish. A proof that passes but is not delivered does not complete this task. Read the shared fr skill. This task tests delivery of supplied proofs, not finding a proof.",
+    "finish_card": [
+      "CHECK AND SAVE: For each named draft, require proof-check passed:true, then use prove --write. Record the transaction ID when status is written. An already-present result needs no repeat save.",
+      "CHECK THE PACKAGE: After both proofs are saved, run the unchanged check from .fr/checks.json once. A passing target check does not establish that the whole package passes. Fix a failed check before continuing.",
+      "DELIVER: Export both returned IDs in save order: fr history patch <FIRST_ID> <SECOND_ID> --output change.patch. Confirm the nonempty file is in the project root. Finish the native session and its accounting before the deadline. Do not keep proving after the checks pass."
+    ],
+    "decision": "For each profile, finish-card 2/2 versus shared-skill 0/2 warrants a different delivery task before adoption. The reverse warrants inspecting harm. Every other result is inconclusive about a success advantage. Never replace or rerun failed slots to seek success.",
+    "cost_comparison": "Compare the same agent with the shared skill alone against the shared skill plus the finish card. Both receive identical correct drafts, source, tools and checks. Include setup, instructions, tool use, package checks, patch delivery, accounting and failed attempts. This comparison does not measure fr overhead against ordinary Lean.",
+    "publication": "Submitted patches and reviewed summaries only. Local prompts, transcripts, drafts and account data remain private.",
+    "live_calls_enabled": false,
+    "live_admission": "Not admitted by these hosted controls. Before any paid call, bind the exact local clients, binary, task archive, observer and complete native accounting; qualify the whole workflow within the unchanged resource limits. Preserve all planned slots and freeze the resulting identities before the first call."
+  },
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "low"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "low"
+      }
+    }
+  },
+  "clients": {
+    "codex": {
+      "version": "0.164.0",
+      "executable": "codex",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.164.0/codex-x86_64-unknown-linux-musl.tar.gz",
+      "digest": {
+        "algorithm": "sha256",
+        "encoding": "hex",
+        "value": "90dd0b03b28afcb7fa733a4f73b413db2916a47347efd43fb669cc1c774ee8e4"
+      },
+      "member": "codex-x86_64-unknown-linux-musl",
+      "unpacked_bytes": 308139304,
+      "companions": {
+        "codex-code-mode-host": {
+          "version": "0.164.0",
+          "executable": "codex-code-mode-host",
+          "url": "https://github.com/openai/codex/releases/download/rust-v0.164.0/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz",
+          "digest": {
+            "algorithm": "sha256",
+            "encoding": "hex",
+            "value": "feade7026436baa4e82e898050c7ef82a8adbd98163dc504771275b5ef224f2f"
+          },
+          "member": "codex-code-mode-host-x86_64-unknown-linux-musl",
+          "unpacked_bytes": 76997904,
+          "companions": {}
+        }
+      }
+    },
+    "opencode2": {
+      "version": "2.0.32",
+      "executable": "opencode",
+      "url": "https://registry.npmjs.org/@opencode/cli-linux-x64/-/cli-linux-x64-2.0.32.tgz",
+      "digest": {
+        "algorithm": "sha512",
+        "encoding": "base64",
+        "value": "Q50ofBQ3gdwjD6ZQhrVR8fVlm8D2xPMshy4dynY6l6b+qLdKgBSJ9WpoaDyrQX1YWmf2s7IN4RbXmoXXdJitDA=="
+      },
+      "member": "package/bin/opencode",
+      "unpacked_bytes": 211842764,
+      "companions": {}
+    }
+  },
+  "attempts": [
+    {
+      "id": "codex-luna-fast-delivery-shared-skill-1",
+      "profile": "codex-luna-fast",
+      "setup": "shared-skill",
+      "repetition": 1,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "codex-luna-fast-delivery-finish-card-1",
+      "profile": "codex-luna-fast",
+      "setup": "finish-card",
+      "repetition": 1,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-glm-flash-delivery-finish-card-1",
+      "profile": "opencode2-glm-flash",
+      "setup": "finish-card",
+      "repetition": 1,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-glm-flash-delivery-shared-skill-1",
+      "profile": "opencode2-glm-flash",
+      "setup": "shared-skill",
+      "repetition": 1,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-kimi-k3-delivery-shared-skill-1",
+      "profile": "opencode2-kimi-k3",
+      "setup": "shared-skill",
+      "repetition": 1,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-kimi-k3-delivery-finish-card-1",
+      "profile": "opencode2-kimi-k3",
+      "setup": "finish-card",
+      "repetition": 1,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "codex-luna-fast-delivery-finish-card-2",
+      "profile": "codex-luna-fast",
+      "setup": "finish-card",
+      "repetition": 2,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "codex-luna-fast-delivery-shared-skill-2",
+      "profile": "codex-luna-fast",
+      "setup": "shared-skill",
+      "repetition": 2,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-glm-flash-delivery-shared-skill-2",
+      "profile": "opencode2-glm-flash",
+      "setup": "shared-skill",
+      "repetition": 2,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-glm-flash-delivery-finish-card-2",
+      "profile": "opencode2-glm-flash",
+      "setup": "finish-card",
+      "repetition": 2,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-kimi-k3-delivery-finish-card-2",
+      "profile": "opencode2-kimi-k3",
+      "setup": "finish-card",
+      "repetition": 2,
+      "status": "unstarted",
+      "outcome": null
+    },
+    {
+      "id": "opencode2-kimi-k3-delivery-shared-skill-2",
+      "profile": "opencode2-kimi-k3",
+      "setup": "shared-skill",
+      "repetition": 2,
+      "status": "unstarted",
+      "outcome": null
+    }
+  ],
+  "bindings": {
+    ".github/workflows/proof-algorithms.yml": "d366e12379c7712dba18176a4c11be35058b209077370e3e9ce22cffaa279ed3",
+    "skills/fr/SKILL.md": "99f3b474171668ededbfa1af00a4326c51e66ba747ff157840148abc6d5b5f65",
+    "skills/fr/references/application.md": "94ee5ddc0e0b588a5179afc36e68f5fd6703d931c43b593e2ad364ca49eb4f5a",
+    "skills/fr/references/author.md": "2410315103b7157880e5d0e0c73990de9b051db1569612c1549cc39942a15bc1",
+    "skills/fr/references/batch.md": "1e936dd3ec34a848930f61915dd05cb8c5d9002750226222f87dec89f56b9cbd",
+    "skills/fr/references/change.md": "49552967ce8c93b633335eab927242a48baa041a65a7de581ec6f8ba5dc417da",
+    "skills/fr/references/checks.md": "d8603b544ea0ab01f76c331fd5f8b77f098ca0340e2b7dbf5e8226bef3f885ea",
+    "skills/fr/references/compiler.md": "957cc6190e1b29257fff6f248a32edbd9efa48c0720ce880753caba7c048f6d8",
+    "skills/fr/references/disclosure.md": "28dc956c9684ba5cfcdfa9ace6c4a73fe3b3bfbebc2270d3a204c82729d1caa4",
+    "skills/fr/references/explore.md": "2962c275d571cbf58054089b91b4b6ca2874d373eb073077e9baacddbec7b521",
+    "skills/fr/references/first-change.md": "16efaa8e62f9587e60ee4c1c7eab12da9f7dbf1ea74ce291a2db9fefe443c253",
+    "skills/fr/references/git-admin.md": "dd27974d70c440573d8faa1cd7b70b9bd2e2fe3f1cb40cce7918631488f2d156",
+    "skills/fr/references/git.md": "3dcd80e15cb60e457166230056e59ca6280eb31e72f073d004760e5a130e0ff2",
+    "skills/fr/references/guide.md": "b1b025ca42167281c4fdecc5fd5c7d8bf3e137c3b784ccea0b6133046cb8f006",
+    "skills/fr/references/history.md": "e9eaa6eb61b79082972f42b75c3d04ab5b34f0346ddbbc52affdfa9ec87ab294",
+    "skills/fr/references/intents.md": "9d972ab6a200e81f90eba0a2158cdb152befd6e4f2ab0385ccbbfe2647e64f55",
+    "skills/fr/references/investigations.md": "da9e7eb01df05325867bbbb3bf07abb5a51113aaeaf89f9a2ad9968798d74984",
+    "skills/fr/references/lean-algorithms.md": "d23f26e0784d61c2a751dba77087943aef2b7e327ea22b57e666e5a36b880a1a",
+    "skills/fr/references/lean-arithmetic.md": "3d842f0202fb063a86798a923898f5165de1b79af02941882dbbbdb6154de3e9",
+    "skills/fr/references/lean-claims.md": "9b46b151e0d28781f6e679f3789ad689285caf7e1cc07108d0b9168bcd503e1e",
+    "skills/fr/references/lean.md": "9bbc8113986d78eae835665b2e127c23aca1fe6d8335903a8b4e661fc3877167",
+    "skills/fr/references/recipes.md": "f20a38279377f50e828a189412816f8ca74d8a995b4184f132c6d023bf6d80e8",
+    "skills/fr/references/recovery.md": "c37b6cd4a186c4d0edd279fb7715a29eda1eaf0cd1748c0ab70f4d8cb41d0abf",
+    "skills/fr/references/runtime.md": "4741be4f2321b9cd764e7fdedd6140f452bbb65f0b7965e63e4e0223c972dffa",
+    "skills/fr/references/semantic-change.md": "9dae3af5a3a746e77e1b411cb6ec71e7d28e27597542fdd024d8faefd832e4ab",
+    "skills/fr/references/semantic-intent.md": "b5707f37b407c228f6c12659391966a96bbf93a6afe1d62c897d99d5b03aee26",
+    "skills/fr/references/semantic.md": "825814a4608a232b7be33dfd86c343a7eb16e02508ceb224dc7676c51a7eb649",
+    "skills/fr/references/surfaces.md": "8fd70c7d65ba36707229ac3c4eac712fe0eb324dfd99a3a2687d6afa5652a970",
+    "skills/fr/references/task.md": "71eb1b9790fe46c2eaf141b7b9fb9e6d9908f674cb452e805e8ce26b5cc24d5c",
+    "skills/fr/references/workflow.md": "862ea241c35fb918678c5bf2eabc74251ce6cc59b05473761fbe530fdef470a1",
+    "tests/agent-eval/proof-algorithms/controls/euclid-correct.lean": "90444b49c5d231d5a4cac1808c2582216a105b5be00ef0f29aed7f861b8f461f",
+    "tests/agent-eval/proof-algorithms/controls/euclid-decreases.lean": "ef21c417b24795c1f449ce177ca294ae7388d84d79c3d262597038fab1aae457",
+    "tests/agent-eval/proof-algorithms/fixtures/Euclid.lean": "066b4e89df09a3cfe4b68aa0ac67241568b543755ac89fbf5e05c749f723f749",
+    "tests/agent-eval/proof-algorithms/fixtures/FrSpecs.lean": "16d9320855856c7ca4a338bdc845b7d9d1bd6901798e5ce973da91d550d8657c",
+    "tests/agent-eval/proof-delivery/requirements.json": "4d9066842cd694a1a4d820e127eb07a2064059db5ff1b2bdeb3a8bd9d9641536",
+    "tests/agent-eval/proof-writing/profiles.json": "78df8eece2af03cc4c358546dceb431f4b2fd4f9ce3d56483e0455945f87d691",
+    "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+    "tools/agent_eval/proof_delivery.py": "dd7bed99a61ebeadf34d48c6501717ca478220735b19505beaa2a22a7088dfec",
+    "tools/agent_eval/test_proof_delivery.py": "6a6aa2a57bdcefd243db3714c1dcad9f6c0b95ff8f70c98166bf04757cd64aae"
+  },
+  "algorithm_checker_sha256": "229cb762025adc97afc7f2c33916f050fb643cc61934ca02204dc2e8ba5ca35a",
+  "requests": {
+    "shared-skill": "The two correct proof drafts are supplied in .fr/euclid_decreases.tactics and .fr/euclid_correct.tactics. Check and save BOTH into specs/FrSpecs/Euclid.lean using fr. Keep the program, claims, imports, settings and supplied drafts unchanged. Run the supplied package check. Export both saved edit IDs together to change.patch in the project root, then finish. A proof that passes but is not delivered does not complete this task. Read the shared fr skill. This task tests delivery of supplied proofs, not finding a proof.",
+    "finish-card": "The two correct proof drafts are supplied in .fr/euclid_decreases.tactics and .fr/euclid_correct.tactics. Check and save BOTH into specs/FrSpecs/Euclid.lean using fr. Keep the program, claims, imports, settings and supplied drafts unchanged. Run the supplied package check. Export both saved edit IDs together to change.patch in the project root, then finish. A proof that passes but is not delivered does not complete this task. Read the shared fr skill. This task tests delivery of supplied proofs, not finding a proof. Read .fr/finish-card.txt before acting."
+  },
+  "live_calls_enabled": false,
+  "scope": "Prepared delivery-only comparison; no proof-discovery or live-agent result.",
+  "sha256": "c9938a8217e2925d193e04e050d0e7eb4d40feee9bf5f1c139d141f54f5e3b24"
+}

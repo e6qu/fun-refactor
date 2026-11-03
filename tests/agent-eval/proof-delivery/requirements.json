@@ -1,0 +1,26 @@
+{
+  "question": "Can the selected agents save and deliver two supplied, correct GCD proofs within the complete attempt limit?",
+  "profiles_file": "tests/agent-eval/proof-writing/profiles.json",
+  "clients_file": "tests/agent-eval/selected-agents/clients.json",
+  "conditions": ["shared-skill", "finish-card"],
+  "repetitions": 2,
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "cpu_limit_seconds": 75,
+    "disk_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "request": "The two correct proof drafts are supplied in .fr/euclid_decreases.tactics and .fr/euclid_correct.tactics. Check and save BOTH into specs/FrSpecs/Euclid.lean using fr. Keep the program, claims, imports, settings and supplied drafts unchanged. Run the supplied package check. Export both saved edit IDs together to change.patch in the project root, then finish. A proof that passes but is not delivered does not complete this task. Read the shared fr skill. This task tests delivery of supplied proofs, not finding a proof.",
+  "finish_card": [
+    "CHECK AND SAVE: For each named draft, require proof-check passed:true, then use prove --write. Record the transaction ID when status is written. An already-present result needs no repeat save.",
+    "CHECK THE PACKAGE: After both proofs are saved, run the unchanged check from .fr/checks.json once. A passing target check does not establish that the whole package passes. Fix a failed check before continuing.",
+    "DELIVER: Export both returned IDs in save order: fr history patch <FIRST_ID> <SECOND_ID> --output change.patch. Confirm the nonempty file is in the project root. Finish the native session and its accounting before the deadline. Do not keep proving after the checks pass."
+  ],
+  "decision": "For each profile, finish-card 2/2 versus shared-skill 0/2 warrants a different delivery task before adoption. The reverse warrants inspecting harm. Every other result is inconclusive about a success advantage. Never replace or rerun failed slots to seek success.",
+  "cost_comparison": "Compare the same agent with the shared skill alone against the shared skill plus the finish card. Both receive identical correct drafts, source, tools and checks. Include setup, instructions, tool use, package checks, patch delivery, accounting and failed attempts. This comparison does not measure fr overhead against ordinary Lean.",
+  "publication": "Submitted patches and reviewed summaries only. Local prompts, transcripts, drafts and account data remain private.",
+  "live_calls_enabled": false,
+  "live_admission": "Not admitted by these hosted controls. Before any paid call, bind the exact local clients, binary, task archive, observer and complete native accounting; qualify the whole workflow within the unchanged resource limits. Preserve all planned slots and freeze the resulting identities before the first call."
+}
