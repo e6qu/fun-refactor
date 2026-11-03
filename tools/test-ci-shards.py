@@ -16,6 +16,50 @@ spec.loader.exec_module(shards)
 
 
 class ShardTests(unittest.TestCase):
+    def test_sparse_checkout_restores_catalog_and_joined_inputs_without_unreferenced_archives(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*args, **kwargs):
+                return subprocess.run(['git', *args], cwd=root, check=True, capture_output=True, **kwargs)
+            files = {
+                'tests/agent-eval/roadmap.json': '{"path":"tests/agent-eval/results/current/result.json"}',
+                'tests/example.rs': 'root.join("tests/agent-eval/results").join("2026-09-17-joined")',
+                'tests/agent-eval/results/current/result.json': 'current record',
+                'tests/agent-eval/results/2026-09-17-joined/result.json': 'joined record',
+                'tests/agent-eval/results/unreferenced/result.json': 'unused old record',
+            }
+            for name, content in files.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            git('init', '-q')
+            git('add', '.')
+            git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                'commit', '-qm', 'Record checkout fixtures')
+            git('sparse-checkout', 'set', '--no-cone', '--stdin',
+                input='/*\n!/tests/agent-eval/results/*\n', text=True)
+            self.assertFalse((root / 'tests/agent-eval/results/current/result.json').exists())
+            with patch.object(shards, 'ROOT', root):
+                shards.checkout_inputs()
+            for name in ('current', '2026-09-17-joined'):
+                path = 'tests/agent-eval/results/' + name + '/result.json'
+                self.assertEqual((root / path).read_text(), files[path])
+            self.assertFalse((root / 'tests/agent-eval/results/unreferenced').exists())
+
+    def test_checkout_includes_paths_and_joined_names_without_historical_prefix_matches(self):
+        names = ['2026-09-07', '2026-09-07-context', '2026-09-17-completion-acceptance',
+                 'current-flow', 'unused-history']
+        sources = ['"tests/agent-eval/results/2026-09-07-context/result.json"',
+                   'root.join("tests/agent-eval/results").join("2026-09-17-completion-acceptance")',
+                   '{"path":"tests/agent-eval/results/current-flow/result.json"}']
+        self.assertEqual(shards.result_inputs(names, sources),
+                         ['2026-09-07-context', '2026-09-17-completion-acceptance', 'current-flow'])
+        self.assertEqual(shards.result_inputs(list(reversed(names)), sources),
+                         shards.result_inputs(names, sources))
+        for name in ['../escape', 'nested/name', '-option', 'bad\nname']:
+            with self.assertRaises(ValueError):
+                shards.result_inputs([name], sources)
+
     def test_weighted_partition_is_complete_stable_and_balanced(self):
         items = ["heavy", "medium", "new", "small", "other"]
         weights = {"heavy": 40, "medium": 25, "small": 5, "other": 5}

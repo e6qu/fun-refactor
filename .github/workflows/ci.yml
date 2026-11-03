@@ -127,6 +127,14 @@ jobs:
       RAYON_NUM_THREADS: '1'
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - name: Fetch the retained inputs named by current checks
+        run: python3 tools/ci-shards.py checkout
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -206,10 +214,12 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            !/tests/agent-eval/results/*
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Check retained input selection in a real sparse repository
+        run: python3 -B tools/test-ci-shards.py
       - name: Audit the original results and reject false completion records
         run: >-
           python3 -B tools/audit-historical-package-questions.py
@@ -708,6 +718,14 @@ jobs:
       CARGO_INCREMENTAL: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - name: Fetch the retained inputs named by the test inventory
+        run: python3 tools/ci-shards.py checkout
       - run: rustup toolchain install stable --profile minimal
       - uses: ./.github/actions/native-tools
       - uses: Swatinem/rust-cache@v2
@@ -731,6 +749,14 @@ jobs:
       CARGO_INCREMENTAL: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - name: Fetch the retained inputs named by static checks
+        run: python3 tools/ci-shards.py checkout
       - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
       - uses: ./.github/actions/native-tools
       - uses: Swatinem/rust-cache@v2
@@ -783,6 +809,12 @@ jobs:
           test "$CURRENT_PROJECT_CHANGES" = success &&
           test "$CURRENT_SESSION_COST" = success
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: actions/download-artifact@v8
         with:
           pattern: ci-*
@@ -800,6 +832,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown

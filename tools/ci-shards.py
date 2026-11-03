@@ -4,12 +4,51 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 COUNTS = {"native": 8, "sdk": 4}
 SDK_WRAPPER = "python_sdk_tests_pass_with_the_declared_test_extra"
+
+
+def result_inputs(names, sources):
+    tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
+    selected = []
+    for name in names:
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', name):
+            raise ValueError('invalid retained result directory')
+        if name in tokens:
+            selected.append(name)
+    return sorted(selected)
+
+
+def checkout_inputs():
+    entries = subprocess.check_output([
+        'git', 'ls-tree', '--format=%(objecttype) %(path)',
+        'HEAD:tests/agent-eval/results',
+    ], text=True, cwd=ROOT)
+    names = [line.removeprefix('tree ') for line in entries.splitlines() if line.startswith('tree ')]
+    sources = set(ROOT.glob('tests/*.rs'))
+    for directory in ('tools', 'sdk/python/tests', 'docs', 'skills'):
+        sources.update(path for path in (ROOT / directory).rglob('*')
+                       if path.suffix in {'.py', '.rs', '.md', '.json', '.txt', '.yml'})
+    sources.update((ROOT / 'tests/agent-eval').glob('*.json'))
+    sources.update((ROOT / 'tests/agent-eval').glob('*/record.json'))
+    selected = result_inputs(names, [path.read_text() for path in sorted(sources) if path.is_file()])
+    if not selected:
+        raise ValueError('no retained result inputs selected')
+    subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                   input=''.join('/tests/agent-eval/results/' + name + '/\n' for name in selected),
+                   text=True, check=True, timeout=60, cwd=ROOT)
+    files = subprocess.check_output([
+        'git', 'ls-tree', '-r', '--name-only', 'HEAD', 'tests/agent-eval/results',
+    ], text=True, cwd=ROOT).splitlines()
+    chosen = set(selected)
+    included = sum(path.split('/')[3] in chosen for path in files)
+    print(f'Retained inputs: {len(selected)}/{len(names)} directories; {included}/{len(files)} result files.',
+          flush=True)
 
 
 def partition(items, count, weights, *, default_weight=10):
@@ -129,11 +168,14 @@ def verify(directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("kind", choices=[*COUNTS, "verify"])
+    parser.add_argument("kind", choices=[*COUNTS, "verify", "checkout"])
     parser.add_argument("index", type=int, nargs="?", default=0)
     parser.add_argument("--output", type=Path, default=Path("target/ci-results"))
     args = parser.parse_args()
     os.chdir(ROOT)
+    if args.kind == 'checkout':
+        checkout_inputs()
+        return
     directory = args.output.resolve()
     if args.kind == "verify":
         verify(directory)

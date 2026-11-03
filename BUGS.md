@@ -57,6 +57,13 @@ actions and retained fixtures they use. Focused tests and archived-result checks
 pass in actual sparse checkouts. Hosted streaming and native-protocol jobs pass;
 every five-minute limit stays unchanged.
 
+Five native groups also exhausted their fifteen-minute limits after long full
+checkouts. Native checks now fetch the retained records named by tests, tools,
+guides and current catalogs. A real sparse-repository regression checks that
+required records return unchanged while an unreferenced archive stays excluded.
+The complete test inventory and all deadlines remain unchanged.
+CI monitoring must inspect cancelled jobs too: GitHub labels these timeouts cancelled.
+
 Earlier repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
