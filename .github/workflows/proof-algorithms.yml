@@ -28,6 +28,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - run: |
           rustup toolchain install 1.98.1 --profile minimal
           rustup target add --toolchain 1.98.1 aarch64-apple-darwin
