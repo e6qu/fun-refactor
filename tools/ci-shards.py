@@ -141,7 +141,14 @@ def checkout_inputs(plan):
         patterns.update(result_pattern(path.as_posix()) for path in docs['evidence_links'](docs['guides']()))
     if plan['catalog']:
         catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
-        patterns.update(result_pattern(row['path']) for row in catalog['evidence'])
+        for row in catalog['evidence']:
+            name = row['path']
+            path = Path(name)
+            if (path.as_posix() != name or path.is_absolute() or '..' in path.parts
+                    or not (ROOT / path).resolve().is_relative_to(ROOT.resolve())):
+                raise ValueError('invalid catalog input path: ' + name)
+            if name.startswith('tests/agent-eval/results/'):
+                patterns.add(result_pattern(name))
     print(f'Fetching {len(selected)}/{len(names)} retained directories.', flush=True)
     if patterns:
         subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],

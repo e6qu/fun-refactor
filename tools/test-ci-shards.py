@@ -64,10 +64,17 @@ class ShardTests(unittest.TestCase):
             record = json.dumps({'schema': 'fr-checkout-fixture', 'files': {
                 'artifact.bin': hashlib.sha256(artifact.encode()).hexdigest()},
                 'source_bindings': {'tests/agent-eval/results/binding/receipt.json': 'checked by the auditor'}})
+            cohort = json.dumps({'schema': 'fr-unknown-target-cohort-1', 'trials': [{
+                'path': 'tests/agent-eval/results/cohort-trial'}]})
             files = {
                 'tests/agent-eval/roadmap.json': json.dumps({'evidence': [{
                     'id': 'catalog-only', 'path': 'tests/agent-eval/results/catalog-only/result.json',
-                    'sha256': hashlib.sha256(record.encode()).hexdigest()}]}),
+                    'sha256': hashlib.sha256(record.encode()).hexdigest()}, {
+                    'id': 'cohort', 'path': 'tests/agent-eval/unknown-target/cohort.json',
+                    'sha256': hashlib.sha256(cohort.encode()).hexdigest()}]}),
+                'tests/agent-eval/unknown-target/cohort.json': cohort,
+                'tests/agent-eval/results/cohort-trial/manifest.json': 'declared trial',
+                'tests/agent-eval/results/cohort-trial/unreferenced.bin': 'unused trial payload',
                 'tests/example.rs': 'root.join("tests/agent-eval/results").join("2026-09-17-joined")',
                 'tests/agent-eval/results/current/result.json': 'current record',
                 'tests/agent-eval/results/2026-09-17-joined/result.json': 'joined record',
@@ -100,10 +107,11 @@ class ShardTests(unittest.TestCase):
                 path = 'tests/agent-eval/results/' + name + '/result.json'
                 self.assertEqual((root / path).read_text(), files[path])
             self.assertFalse((root / 'tests/agent-eval/results/unreferenced').exists())
-            for name in ('catalog-only/artifact.bin', 'binding/receipt.json', 'documented/README.md'):
+            for name in ('catalog-only/artifact.bin', 'binding/receipt.json', 'documented/README.md',
+                         'cohort-trial/manifest.json'):
                 path = 'tests/agent-eval/results/' + name
                 self.assertEqual((root / path).read_text(), files[path])
-            for directory in ('catalog-only', 'binding', 'documented'):
+            for directory in ('catalog-only', 'binding', 'documented', 'cohort-trial'):
                 self.assertFalse((root / 'tests/agent-eval/results' / directory / 'unreferenced.bin').exists())
 
     def test_two_noncone_checkouts_preserve_shared_task_inputs(self):
