@@ -65,6 +65,12 @@ required records return unchanged while an unreferenced archive stays excluded.
 The complete test inventory and all deadlines remain unchanged.
 CI monitoring must inspect cancelled jobs too: GitHub labels these timeouts cancelled.
 
+Repeated native checks failed before any client ran because GitHub returned HTTP
+500 for the pinned Codex companion download. The installer now retries that same
+URL at most three times within its original thirty-second request deadline.
+Authentication errors, missing files and hash mismatches still stop immediately.
+Scripted admission uses the current installer; historical grading restores its original source.
+
 Earlier repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).

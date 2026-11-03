@@ -87,6 +87,7 @@ jobs:
           cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
             tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py "$RUNNER_TEMP/m1-native-tools/"
           cp tests/agent-eval/selected-agents/clients.json "$RUNNER_TEMP/m1-native-tools/clients.json"
+          cp tools/selected-agent-probe.py "$RUNNER_TEMP/m1-native-tools/selected-agent-probe.py"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -140,11 +141,12 @@ jobs:
           done
       - name: Exercise real native tool results with scripted replies and no external network
         run: |
-          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py tests/agent-eval/selected-agents/clients.json' EXIT
+          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py tools/selected-agent-probe.py tests/agent-eval/selected-agents/clients.json' EXIT
           for helper in opencode2_client.py selected_native_probe.py selected_cli.py selected_native.py; do
             cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
           done
           cp "$RUNNER_TEMP/m1-native-tools/clients.json" tests/agent-eval/selected-agents/clients.json
+          cp "$RUNNER_TEMP/m1-native-tools/selected-agent-probe.py" tools/selected-agent-probe.py
           python3 -B -m agent_eval.selected_native --fr target/debug/fr \
           --profiles tests/agent-eval/selected-agents/profiles.json \
           --output "$RUNNER_TEMP/m1-native"

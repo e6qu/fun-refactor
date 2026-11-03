@@ -9,7 +9,10 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
+import time
+import urllib.error
 import urllib.request
 
 from agent_eval.opencode2_client import OpenCode2Server, scripted_configuration
@@ -24,7 +27,25 @@ OUTPUT_BYTES = 1024**2
 def install(entry, destination):
     destination.mkdir(parents=True, exist_ok=False)
     archive = destination / 'client.tar.gz'
-    with urllib.request.urlopen(entry['url'], timeout=30) as source, archive.open('xb') as output:
+    deadline = time.monotonic() + 30
+    for attempt in range(3):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('pinned client request exceeded its 30-second deadline')
+        try:
+            source = urllib.request.urlopen(entry['url'], timeout=remaining)
+            break
+        except urllib.error.HTTPError as error:
+            if error.code not in {500, 502, 503, 504} or attempt == 2:
+                raise
+            pause = attempt + 1
+            if deadline - time.monotonic() <= pause:
+                raise
+            print(f'Pinned client returned HTTP {error.code}; retry {attempt + 2}/3 within the same deadline.',
+                  file=sys.stderr, flush=True)
+            error.close()
+            time.sleep(pause)
+    with source, archive.open('xb') as output:
         size = 0
         while block := source.read(1024**2):
             size += len(block)
