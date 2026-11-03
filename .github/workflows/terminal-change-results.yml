@@ -27,6 +27,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/grading-registry
+            tools
+            tests/agent-eval/opencode
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
