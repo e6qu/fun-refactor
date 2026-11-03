@@ -29,6 +29,14 @@ passed all 21 saved-findings changes and both deliveries again.
 New retained records match the released build; original records and exact hash
 checks remain intact.
 
+The Python text-flow checker also hashed the SDK release literal as behavior input.
+It now uses the shared release identity rule. Matching release updates preserve
+input identity; real SDK changes and mismatched SDK/native versions still invalidate it.
+A regression covers all three cases. The
+[fresh language checks](https://github.com/e6qu/fun-refactor/actions/runs/41659946220)
+and [authenticated retention](https://github.com/e6qu/fun-refactor/actions/runs/41661372321)
+pass. New records replace the stale current entries without changing original results.
+
 An earlier [scripted native check](https://github.com/e6qu/fun-refactor/actions/runs/41651295817)
 failed four OpenCode exchanges but retained only a generic outer error.
 Its precise inner cause remains unknown. CI now retains bounded stderr and all
