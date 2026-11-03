@@ -258,6 +258,7 @@ class ProofFeedbackTests(unittest.TestCase):
                 checkers = {name: dict(binary) for name in ('python', 'rustc', 'cargo', 'rustdoc', 'lean', 'lake', 'leanc')}
                 checkers['lean']['source_root'] = str(library)
                 packet = {'source': {'native_inputs': {}}, 'schedule': schedule, 'implementation': {},
+                          'live_calls_enabled': True,
                           'limits': dict(local.LIMITS), 'client_finish_seconds': local.CLIENT_FINISH_SECONDS,
                           'public_check_environment': dict(local.PUBLIC_CHECK_ENVIRONMENT),
                           'binaries': {'fr': dict(binary), 'opencode2': dict(binary)}, 'components': {},
