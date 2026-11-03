@@ -117,6 +117,14 @@ its session accounting. Check Luna, GLM and Kimi under both setups: six checks.
 Each check keeps 60 seconds and 768 MiB, with 128 MiB left for live client state.
 An initial-goal check alone cannot satisfy admission.
 
+Use a private Python 3.14.6 environment and install the existing hash-locked
+`tests/agent-eval/selected-agents/native-requirements.txt` with
+`python -m pip install --no-deps --require-hashes --requirement FILE`.
+It pins WebSockets, the library used by the scripted Codex server. The preflight
+rejects a missing or different package before starting a control. Receipts bind
+that dependency and the Python executable too. Use that environment's Python
+for the control and the frozen runtime.
+
 First download the successful current algorithm workflow's `algorithm-qualification`,
 `proof-delivery-controls` and `algorithm-macos-tool` artifacts. An artifact is a
 file bundle saved by GitHub. Use the exact Mac executable, its source record and

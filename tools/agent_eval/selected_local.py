@@ -408,10 +408,17 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
     if milestone in ALGORITHM_TASKS:
         from .selected_guarded import contract
-        from .algorithm_admission import validate_receipts
+        from .algorithm_admission import server_packages, validate_receipts
         value['resource_monitor'] = contract()
         value['admission'] = validate_receipts(json.loads(runtime['admission'].read_text()), paths,
             seeds['euclid']['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
+        if milestone == DELIVERY_STUDY:
+            packages = subprocess.run([checkers['python']['path'], '-c',
+                'import importlib.metadata,json; print(json.dumps({"websockets":importlib.metadata.version("websockets")}))'],
+                capture_output=True, text=True, timeout=10)
+            require(packages.returncode == 0 and json.loads(packages.stdout) == server_packages(),
+                    'the selected Python must retain its admitted scripted server packages')
+            value['python_packages'] = json.loads(packages.stdout)
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value

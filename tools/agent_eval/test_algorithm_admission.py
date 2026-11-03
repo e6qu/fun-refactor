@@ -25,12 +25,15 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
     def test_admission_rejects_spot_checks_stale_inputs_and_inadequate_margin(self):
         profiles = json.loads((admission.ROOT / 'tests/agent-eval/proof-writing/profiles.json').read_text())
         binaries = {'fr': {'sha256': 'f' * 64}, 'opencode2': {'sha256': 'a' * 64}, 'codex': {'sha256': 'b' * 64}}
-        checkers = {name: {'sha256': name + '-hash'} for name in ('lean', 'lake', 'leanc')}
+        checkers = {name: {'sha256': name + '-hash'} for name in ('python', 'lean', 'lake', 'leanc')}
         with tempfile.TemporaryDirectory() as temporary:
             guard = Path(temporary) / 'guard.py'
             guard.write_text('guard')
             rows = {name: {'passed': True, 'profile': name, 'study': 'M3-algorithm-facts', 'setup': 'workflow',
-                'checker_sha256': {key: value['sha256'] for key, value in checkers.items()},
+                'checker_sha256': {key: checkers[key]['sha256'] for key in ('lean', 'lake', 'leanc')},
+                'python_runtime': {'executable_sha256': checkers['python']['sha256'],
+                    'requirements_sha256': admission.common.digest(admission.NATIVE_REQUIREMENTS),
+                    'packages': admission.server_packages()},
                 'live_model_calls': 0, 'upstream_forwarding': False,
                 'scripted_requests': 2, 'scripted_errors': 0, 'complete_workflow': True, 'recursive_loop_rejected': True,
                 'session_accounting': True, 'fr_sha256': 'f' * 64, 'client_sha256': binaries[profile['client']]['sha256'],
@@ -48,7 +51,7 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
                 self.assertNotIn('implementation', result['profiles']['codex-luna-fast'])
                 for field, value in [('complete_workflow', False), ('recursive_loop_rejected', False),
                                      ('session_accounting', False), ('archive_sha256', 'changed'),
-                                     ('client_context_reserve_bytes', 0), ('implementation', {})]:
+                                     ('client_context_reserve_bytes', 0), ('implementation', {}), ('python_runtime', {})]:
                     changed = copy.deepcopy(rows)
                     changed['opencode2-glm-flash'][field] = value
                     with self.subTest(field=field), self.assertRaises(ValueError):
@@ -86,6 +89,17 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
             self.assertIn('"history","patch"', script)
             self.assertNotIn('git diff', script)
             self.assertEqual('.fr/finish-card.txt' in script, setup == 'finish-card')
+
+    def test_scripted_server_dependency_is_explicit_and_checked_before_admission(self):
+        self.assertEqual(admission.server_packages(), {'websockets': '15.0.1'})
+        with patch.object(admission.metadata, 'version', side_effect=admission.metadata.PackageNotFoundError('websockets')):
+            with self.assertRaisesRegex(ValueError, 'Selected Python lacks'):
+                admission.native_python()
+        with patch.object(admission.metadata, 'version', return_value='16.0'):
+            with self.assertRaisesRegex(ValueError, 'hash-locked requirement'):
+                admission.native_python()
+        with patch.object(admission.metadata, 'version', return_value='15.0.1'):
+            self.assertEqual(admission.native_python()['packages'], admission.server_packages())
 
 
 if __name__ == '__main__':

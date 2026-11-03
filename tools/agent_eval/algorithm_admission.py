@@ -1,10 +1,12 @@
 """Check the complete local algorithm workflow with scripted replies, before paid sessions."""
 import argparse
 import hashlib
+from importlib import metadata
 import json
 import math
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import sys
@@ -20,6 +22,25 @@ CONTROL_LIMITS = {'wall_seconds': 60, 'rss_bytes': 805306368, 'cpu_limit_seconds
                   'disk_bytes': 67108864, 'transcript_bytes': 131072}
 RESERVE_BYTES = 128 * 1024**2
 MARKER = 'COMPLETE_ALGORITHM_WORKFLOW'
+NATIVE_REQUIREMENTS = ROOT / 'tests/agent-eval/selected-agents/native-requirements.txt'
+
+
+def server_packages():
+    text = NATIVE_REQUIREMENTS.read_text()
+    versions = re.findall(r'/websockets-([0-9.]+)-py3-none-any\.whl --hash=sha256:[0-9a-f]{64}', text)
+    require(len(versions) == 1 and len(text.splitlines()) == 1, 'use the explicit hash-locked scripted server requirement')
+    return {'websockets': versions[0]}
+
+
+def native_python():
+    required = server_packages()
+    try:
+        packages = {name: metadata.version(name) for name in required}
+    except metadata.PackageNotFoundError as error:
+        raise ValueError('Selected Python lacks the scripted server package; install ' + str(NATIVE_REQUIREMENTS)) from error
+    require(packages == required, 'scripted server packages differ from the hash-locked requirement')
+    return {'executable_sha256': common.digest(Path(sys.executable)),
+            'requirements_sha256': common.digest(NATIVE_REQUIREMENTS), 'packages': packages}
 
 
 def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, checkers):
@@ -56,6 +77,9 @@ def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, 
         require(row['client_sha256'] == binaries[profile['client']]['sha256'] and
                 row['checker_sha256'] == {key: checkers[key]['sha256'] for key in ('lean', 'lake', 'leanc')},
                 'admitted native client or Lean toolchain changed')
+        require(row['python_runtime'] == {'executable_sha256': checkers['python']['sha256'],
+                'requirements_sha256': common.digest(NATIVE_REQUIREMENTS), 'packages': server_packages()},
+                'admitted Python or scripted server packages changed')
         resources = row['resources']
         require(resources['limits'] == {'wall_seconds': 60, 'rss_bytes': 805306368, 'cpu_seconds': 25,
                 'disk_bytes': 67108864, 'transcript_bytes': 131072} and resources['stop_reason'] is None and
@@ -67,7 +91,7 @@ def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, 
             value = resources[field]
             require(type(value) in (int, float) and 0 <= value <= ceiling and math.isfinite(value),
                     'admission lacks its declared resource margin: ' + name + '/' + field)
-        compact[identity] = {field: row[field] for field in ('profile', 'study', 'setup', 'fr_sha256', 'client_sha256',
+        compact[identity] = {field: row[field] for field in ('profile', 'study', 'setup', 'fr_sha256', 'client_sha256', 'python_runtime',
                          'checker_sha256', 'guard_sha256', 'archive_sha256', 'qualified_run', 'client_context_reserve_bytes')}
         compact[identity].update(passed=True, complete_workflow=True, **{field: True for field in features},
                              session_accounting=True, resources={field: resources[field] for field in ceilings})
@@ -231,6 +255,7 @@ def observe(args):
     require(all(path.is_file() for path in (args.fr, args.client, args.controls, args.lean_root / 'bin/lake',
                 args.inputs / 'seed.json', args.inputs / 'original.tar.gz')),
             'admission requires existing pinned tools and qualified task inputs')
+    python_runtime = native_python()
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     os.nice(15)
     command = ['python3', str(args.guard), sys.executable, '-B', '-m', 'agent_eval.algorithm_admission', 'guarded']
@@ -252,6 +277,7 @@ def observe(args):
               and resources['sampled_aggregate_rss_bytes'] <= CONTROL_LIMITS['rss_bytes'] - RESERVE_BYTES)
     summary = {**detail, 'passed': passed, 'profile': args.profile, 'live_model_calls': 0,
         'study': args.study, 'setup': args.setup,
+        'python_runtime': python_runtime,
         'upstream_forwarding': False, 'fr_sha256': common.digest(args.fr), 'client_sha256': common.digest(args.client),
         'guard_sha256': common.digest(args.guard), 'archive_sha256': common.digest(args.inputs / 'original.tar.gz'),
         'qualified_run': json.loads(args.controls.read_text())['run'],
