@@ -113,7 +113,7 @@ The implementation and scripted controls now pass:
   study outcome. The metadata comparison retains its earlier measurement and
   records the extra 265 response bytes on the same one-edit fixture.
 
-All thirteen affected collection groups passed. This PR retains their current records.
+All nineteen affected collection groups passed. This PR retains their current records.
 The PR includes refreshed tracking pages and must pass every required check on
 its final commit. The scripted checks establish tool behavior. No new model
 attempts have run, and we have measured no agent success gain.
