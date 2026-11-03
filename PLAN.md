@@ -107,6 +107,8 @@ The implementation and scripted controls now pass:
 - `history patch` combines explicitly selected saved edits. Both GCD proofs reach
   one independently accepted patch. Conflicting file states, repeated IDs, missing
   snapshots and an empty combined result refuse. Git checks the patch and reverse.
+- Changing a release number alone keeps existing measurements valid.
+  Python and native versions must still agree.
 - Guides explain the commands. The report correction preserves every original
   study outcome. The metadata comparison retains its earlier measurement and
   records the extra 265 response bytes on the same one-edit fixture.
