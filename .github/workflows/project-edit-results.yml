@@ -71,7 +71,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /tests/agent-eval/project-edits/${{ inputs.comparison }}/
       - name: Preserve the approved submissions before selecting their auditor
         run: |
           cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
@@ -161,7 +162,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /tests/agent-eval/project-edits/${{ inputs.comparison }}/
       - name: Preserve the approved report before selecting its auditor
         run: |
           cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"

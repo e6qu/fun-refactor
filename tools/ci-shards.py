@@ -2,10 +2,12 @@
 
 import argparse
 import ast
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import runpy
 import subprocess
 import sys
 
@@ -25,29 +27,38 @@ def result_inputs(names, sources):
     return sorted(selected)
 
 
-def checkout_sources(kind, index):
+def checkout_plan(kind, index):
+    selected = set()
     if kind == 'sdk':
-        return [path.read_text() for path in (ROOT / 'sdk/python/tests').rglob('*.py')]
-    selected = set(native_selection(native_inventory(), index))
-    metadata = json.loads(subprocess.check_output([
-        'cargo', 'metadata', '--no-deps', '--format-version', '1', '--locked',
-    ], cwd=ROOT))
-    package = next(row for row in metadata['packages']
-                   if Path(row['manifest_path']) == ROOT / 'Cargo.toml')
-    paths = set()
-    for target in package['targets']:
-        kinds = target['kind']
-        target_kind = 'lib' if 'lib' in kinds or 'rlib' in kinds else kinds[0]
-        if target_kind + ':' + target['name'] in selected:
-            source = Path(target['src_path']).resolve()
-            if not source.is_relative_to(ROOT.resolve()):
-                raise ValueError('test source is outside the checkout')
-            paths.add(source)
-            if target_kind == 'lib':
-                paths.update((ROOT / 'src').rglob('*.rs'))
+        paths = set((ROOT / 'sdk/python/tests').rglob('*.py'))
+        catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
+        contract, = [row for row in catalog['evidence'] if row['id'] == 'python-contract']
+        sources = [path.read_text() for path in sorted(paths)]
+        sources.append(json.dumps(contract))
+        return {'sources': sources, 'guides': False, 'catalog': False}
+    else:
+        selected = set(native_selection(native_inventory(), index))
+        metadata = json.loads(subprocess.check_output([
+            'cargo', 'metadata', '--no-deps', '--format-version', '1', '--locked',
+        ], cwd=ROOT))
+        package = next(row for row in metadata['packages']
+                       if Path(row['manifest_path']) == ROOT / 'Cargo.toml')
+        paths = set()
+        for target in package['targets']:
+            kinds = target['kind']
+            target_kind = 'lib' if 'lib' in kinds or 'rlib' in kinds else kinds[0]
+            if target_kind + ':' + target['name'] in selected:
+                source = Path(target['src_path']).resolve()
+                if not source.is_relative_to(ROOT.resolve()):
+                    raise ValueError('test source is outside the checkout')
+                paths.add(source)
+                if target_kind == 'lib':
+                    paths.update((ROOT / 'src').rglob('*.rs'))
     if not paths:
-        raise ValueError('assigned native targets have no source files')
+        raise ValueError('assigned tests have no source files')
     sources = [path.read_text() for path in sorted(paths)]
+    guides = 'test:docs_links' in selected
+    catalog_audit = 'test:roadmap_outcomes' in selected
     candidates = set((ROOT / 'tools').glob('*.py')) | set((ROOT / 'tools/agent_eval').glob('*.py'))
     tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
     pending = {path for path in candidates if path.name in tokens or path.stem in tokens}
@@ -58,52 +69,112 @@ def checkout_sources(kind, index):
             continue
         visited.add(path)
         text = path.read_text()
-        sources.append(text)
+        if path.name == 'roadmap-status.py':
+            catalog_audit = True
+        else:
+            sources.append(text)
+        if path.name == 'review-docs.py':
+            guides = True
         dependencies = set()
         for node in ast.walk(ast.parse(text)):
             if isinstance(node, ast.Import):
                 dependencies.update(alias.name.rsplit('.', 1)[-1] for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
                 dependencies.add((node.module or '').rsplit('.', 1)[-1])
-                if node.module == 'agent_eval':
+                if node.module in {'agent_eval', None}:
                     dependencies.update(alias.name for alias in node.names)
             elif isinstance(node, ast.Call):
                 dependencies.update(Path(child.value).name for child in ast.walk(node)
                                     if isinstance(child, ast.Constant) and isinstance(child.value, str)
-                                    and child.value.endswith('.py'))
+                                    and (child.value.endswith('.py')
+                                         or any(candidate.stem == child.value for candidate in candidates)))
         pending.update(candidate for candidate in candidates - visited
                        if candidate.name in dependencies or candidate.stem in dependencies)
-    tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
-    for pattern in ('*/record.json', '*/freeze.json'):
-        sources.extend(path.read_text() for path in (ROOT / 'tests/agent-eval').glob(pattern)
-                       if path.parent.name in tokens)
+    data = set((ROOT / 'tests/agent-eval').glob('*.json'))
+    data.update((ROOT / 'tests/agent-eval').glob('*/*.json'))
+    data -= {ROOT / 'tests/agent-eval/roadmap.json', ROOT / 'tests/agent-eval/current-scalar-reports.json'}
+    while True:
+        text = '\n'.join(sources)
+        tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', text))
+        required = {path for path in data
+                    if path.relative_to(ROOT).as_posix() in text
+                    or (path.parent != ROOT / 'tests/agent-eval' and path.parent.name in tokens)
+                    or (path.parent == ROOT / 'tests/agent-eval' and path.name in tokens)}
+        if not required:
+            break
+        sources.extend(path.read_text() for path in sorted(required))
+        data -= required
     tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
     catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
     scalar = json.loads((ROOT / 'tests/agent-eval/current-scalar-reports.json').read_text())
     sources.extend(json.dumps(row) for row in catalog['evidence'] if row['id'] in tokens)
     sources.extend(json.dumps(row) for group, row in scalar['reports'].items() if group in tokens)
-    print('Assigned native targets:', sorted(selected), flush=True)
-    return sources
+    if 'compiler-profile' in tokens and 'compiler-profile' in scalar['reports']:
+        directory = Path(scalar['reports']['compiler-profile']['path']).parent
+        family = directory.with_name(directory.name.removesuffix('-compiler-profile') + '-scalar-collection')
+        sources.append(family.as_posix())
+    print(f'Checkout inputs for {kind}-{index}: {len(paths)} test source files.', flush=True)
+    if selected:
+        print('Assigned native targets:', sorted(selected), flush=True)
+    return {'sources': sources, 'guides': guides, 'catalog': catalog_audit}
 
 
-def checkout_inputs(sources):
+def result_pattern(name):
+    path = Path(name)
+    if (path.as_posix() != name or path.parts[:3] != ('tests', 'agent-eval', 'results')
+            or len(path.parts) < 4 or '..' in path.parts
+            or any(char in name for char in '\\!*?[]\n\r')):
+        raise ValueError('invalid retained input path: ' + name)
+    return '/' + name
+
+
+def checkout_inputs(plan):
     entries = subprocess.check_output([
         'git', 'ls-tree', '--format=%(objecttype) %(path)',
         'HEAD:tests/agent-eval/results',
     ], text=True, cwd=ROOT)
     names = [line.removeprefix('tree ') for line in entries.splitlines() if line.startswith('tree ')]
-    selected = result_inputs(names, sources)
+    selected = result_inputs(names, plan['sources'])
+    patterns = {'/tests/agent-eval/results/' + name + '/' for name in selected}
+    if plan['guides']:
+        docs = runpy.run_path(str(ROOT / 'tools/review-docs.py'))
+        patterns.update(result_pattern(path.as_posix()) for path in docs['evidence_links'](docs['guides']()))
+    if plan['catalog']:
+        catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
+        patterns.update(result_pattern(row['path']) for row in catalog['evidence'])
     print(f'Fetching {len(selected)}/{len(names)} retained directories.', flush=True)
-    if selected:
+    if patterns:
         subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
-                       input=''.join('/tests/agent-eval/results/' + name + '/\n' for name in selected),
+                       input=''.join(path + '\n' for path in sorted(patterns)),
                        text=True, check=True, timeout=60, cwd=ROOT)
-    files = subprocess.check_output([
-        'git', 'ls-tree', '-r', '--name-only', 'HEAD', 'tests/agent-eval/results',
-    ], text=True, cwd=ROOT).splitlines()
-    chosen = set(selected)
-    included = sum(path.split('/')[3] in chosen for path in files)
-    print(f'Retained inputs: {len(selected)}/{len(names)} directories; {included}/{len(files)} result files.',
+    if plan['catalog']:
+        artifacts = set()
+        for row in catalog['evidence']:
+            path = ROOT / row['path']
+            raw = path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != row['sha256']:
+                raise ValueError('catalog input identity differs: ' + row['path'])
+            value = json.loads(raw)
+            files = value['artifacts'] if 'artifacts' in value else value.get('files', {})
+            for name in files:
+                artifacts.add(result_pattern((path.parent / name).relative_to(ROOT).as_posix()))
+            if value['schema'] == 'fr-original-package-questions':
+                artifacts.add(result_pattern(path.with_name('receipt.json').relative_to(ROOT).as_posix()))
+            if value['schema'] == 'fr-unknown-target-cohort-1':
+                for trial in value['trials']:
+                    artifacts.add(result_pattern(trial['path'] + '/manifest.json'))
+            binding_field = 'bindings' if value['schema'] == 'fr-index-resolution-result-1' else 'source_bindings'
+            bindings = value.get(binding_field, {})
+            artifacts.update(result_pattern(name) for name in bindings
+                             if name.startswith('tests/agent-eval/results/'))
+        if artifacts:
+            subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                input=''.join(path + '\n' for path in sorted(artifacts)),
+                text=True, check=True, timeout=60, cwd=ROOT)
+    files = subprocess.check_output(['git', 'ls-files', '-t', 'tests/agent-eval/results'],
+                                    text=True, cwd=ROOT).splitlines()
+    included = sum(not path.startswith('S ') for path in files)
+    print(f'Materialized retained inputs: {included}/{len(files)} result files.',
           flush=True)
 
 
@@ -238,7 +309,7 @@ def main():
         kind = args.kind.removeprefix('checkout-')
         if args.index is None or not 0 <= args.index < COUNTS[kind]:
             parser.error('declare an explicit valid shard index')
-        checkout_inputs(checkout_sources(kind, args.index))
+        checkout_inputs(checkout_plan(kind, args.index))
         return
     directory = args.output.resolve()
     if args.kind == "verify":

@@ -57,13 +57,22 @@ actions and retained fixtures they use. Focused tests and archived-result checks
 pass in actual sparse checkouts. Hosted streaming and native-protocol jobs pass;
 every five-minute limit stays unchanged.
 
-Five native groups also exhausted their fifteen-minute limits after long full
-checkouts. Each native group now fetches records named by its assigned tests,
-their Python tools and their current catalog entries. SDK checks need no result archive.
-A real sparse-repository regression checks that
-required records return unchanged while an unreferenced archive stays excluded.
+Five Rust and Python test groups exhausted their fifteen-minute limits after long
+full checkouts. Each group now fetches records named by its assigned tests,
+their Python tools and their current catalog entries. SDK checks also retain the
+records used by their Python tool checks.
+A regression fetches required records into a test repository and verifies their bytes.
+It also checks that Git leaves out unrelated archives.
 The complete test inventory and all deadlines remain unchanged.
 CI monitoring must inspect cancelled jobs too: GitHub labels these timeouts cancelled.
+
+The narrow checkouts initially missed JSON file lists, documentation links and
+records that SDK tools read. The checkout now includes these files and the artifacts
+named in catalogue records. A second checkout restores shared task files correctly,
+so patch replay can read its tasks after loading the recorded source revision.
+CI checks old indexing measurements with their original checker in a temporary
+Git checkout. Git fetches the required files together.
+The regression tests build small Git repositories, switch revisions and check the original files.
 
 Repeated native checks failed before any client ran because GitHub returned HTTP
 500 for the pinned Codex companion download. The installer now retries that same
