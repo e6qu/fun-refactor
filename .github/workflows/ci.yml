@@ -227,7 +227,6 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/*
-            /tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -247,9 +246,18 @@ jobs:
               entry, = [row for row in catalog['evidence'] if row['id'] == name]
               path = Path(entry['path'])
               assert path.resolve().is_relative_to(Path.cwd())
-              subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/'],
-                             check=True, timeout=60)
-              assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+              record = subprocess.check_output(['git', 'show', 'HEAD:' + path.as_posix()], timeout=30)
+              assert hashlib.sha256(record).hexdigest() == entry['sha256']
+              inputs = {'/' + path.parent.as_posix() + '/'}
+              for relative in json.loads(record)['source_bindings']:
+                  if not relative.startswith('tests/agent-eval/results/'):
+                      continue
+                  assert not any(part in {'', '.', '..'} for part in relative.split('/'))
+                  assert not any(char in relative for char in '\\!*?[]\n')
+                  assert Path(relative).resolve().is_relative_to(Path.cwd())
+                  inputs.add('/' + relative)
+              subprocess.run(['git', 'sparse-checkout', 'add', *sorted(inputs)], check=True, timeout=60)
+              assert path.read_bytes() == record
               subprocess.run(['python3', '-B', 'tools/' + script + '.py', 'audit', '--directory', str(path.parent)], check=True)
           PY
 
