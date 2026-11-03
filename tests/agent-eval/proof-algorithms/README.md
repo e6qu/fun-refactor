@@ -130,6 +130,8 @@ contacting a model provider.
 Use `python3 -B -m agent_eval.algorithm_admission --help` for the complete check's
 required binary, pinned Lean, task archive, hosted-control and guard paths.
 Run it in `observe` mode for each profile with a new private output directory.
+Select the original study with `--study M3-algorithm-facts` or
+`--study M3-algorithm-presentation` and pass `--setup workflow` explicitly.
 Collect the three `summary.json` objects into a JSON map keyed by profile name.
 Pass that file as the explicit `admission` runtime input when freezing both studies.
 Run each frozen algorithm slot through the independent observer:

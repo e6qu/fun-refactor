@@ -99,12 +99,69 @@ delivered the identical independently accepted patch. The retained
 live slots remain unstarted. Recheck the recorded input fingerprints before using
 this qualification to admit a local attempt.
 
-**Live calls remain disabled.** These hosted checks do not admit a local native
-agent run. Before any paid attempt, qualify the exact local CLI, fr binary, Lean,
-assisted task archive, external observer and native accounting together within
-the existing limits. Freeze those identities and the control run before the
-first call. The existing model runner does not yet recognize this diagnostic;
-do not relabel an old algorithm slot or reuse a closed slot to run it.
+These retained records describe the earlier preparation code. The native runner
+now recognizes **`M3-delivery`** as a separate study. A prepared protocol keeps
+live calls disabled. Only an execution plan frozen after fresh hosted checks and
+all six complete local checks enables a call. Do not relabel an old algorithm
+slot or reuse a closed slot to run it.
 Public uploads remain submitted patches and reviewed summaries only. Raw local
 records and account data stay private. The twenty original algorithm outcomes
 and every M3 outcome remain unchanged.
+
+## Check the complete local workflow before a live call
+
+Admission means checking that the actual client, tools and complete workflow fit
+the declared budget. A scripted local server supplies replies; it forwards no
+request to a model provider. The real CLI must execute the commands and finish
+its session accounting. Check Luna, GLM and Kimi under both setups: six checks.
+Each check keeps 60 seconds and 768 MiB, with 128 MiB left for live client state.
+An initial-goal check alone cannot satisfy admission.
+
+First download the successful current algorithm workflow's `algorithm-qualification`,
+`proof-delivery-controls` and `algorithm-macos-tool` artifacts. An artifact is a
+file bundle saved by GitHub. Use the exact Mac executable, its source record and
+the pinned local client and Lean installations. The qualified task inputs are
+inside `algorithm-controls/inputs/euclid`; the delivery receipt is
+`proof-delivery-controls/summary.json`. The earlier retained receipt above cannot
+replace fresh checks after changing the runner.
+
+For example, run the shared-skill check for Luna from the repository root.
+Replace each `/absolute/...` path with the verified tool or downloaded input it names:
+
+```sh
+PYTHONPATH=tools:sdk/python/src python3 -B -m agent_eval.algorithm_admission observe \
+  --study M3-delivery --setup shared-skill --profile codex-luna-fast \
+  --fr /absolute/algorithm-macos-tool/fr \
+  --client /absolute/pinned-codex/codex \
+  --lean-root /absolute/lean-4.28.0 \
+  --inputs /absolute/algorithm-controls/inputs/euclid \
+  --controls /absolute/proof-delivery-controls/summary.json \
+  --output /private/tmp/new-luna-shared-skill-control \
+  --guard /Users/zardoz/.codex/tools/fr-local-guard.py
+```
+
+The observer measures outside the CPU throttle; it launches actual work through
+the required guard. Keep the checks serial and use a new private output directory
+each time. Run `finish-card` too, then repeat both setups for `opencode2-glm-flash`
+and `opencode2-kimi-k3` with the pinned OpenCode2 executable. Each summary binds the
+study, setup, client, fr, Lean executables, task archive, checking code and guard.
+It must show both saved proofs, package success, saved-edit export, patch replay
+in a clean checkout, and finished accounting. Stop and diagnose any failed check;
+keep its receipt and the unchanged limits.
+
+Combine the six successful `summary.json` objects in one private JSON object.
+Its keys are `PROFILE/SETUP`, for example `codex-luna-fast/shared-skill`.
+Pass this file as the explicit `admission` path to `selected_local freeze`.
+The other runtime paths are `python`, `rust_root`, `lean_root`, `fr_build` and
+`controls`. The binaries file names exactly `fr`, `codex` and `opencode2`.
+`fr_build` is the verified Mac-tool directory; `controls` is the fresh delivery
+receipt. Freeze with `--milestone M3-delivery` and the qualified `inputs` parent
+directory. The freezer refuses a missing setup, changed executable, incomplete
+workflow, or inadequate memory reserve before writing an enabled execution plan.
+
+Run each of that plan's twelve IDs once through `agent_eval.selected_guarded`.
+Use a fresh conversation and project for each. Keep every failure and timeout.
+Review the actions and actual timings before exporting patches and summaries
+with `selected_public export-algorithm --study M3-delivery`. The
+`grade-algorithms.yml` workflow accepts that study and independently checks every
+patch before applying the fixed decision rule. A valid late patch stays failed.

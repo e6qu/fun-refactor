@@ -9,7 +9,7 @@ import shutil
 import subprocess
 
 from . import proof_algorithms as algorithms, selected_tasks as common
-from .selected_plan import ROOT, encoded, require
+from .selected_plan import DELIVERY_STUDY, ROOT, encoded, require
 
 DIRECTORY = Path('tests/agent-eval/proof-delivery')
 SETUPS = ('shared-skill', 'finish-card')
@@ -31,11 +31,14 @@ def protocol():
     for repetition in range(2):
         for index, profile in enumerate(profiles):
             order = SETUPS if (repetition + index) % 2 == 0 else SETUPS[::-1]
-            for setup in order:
+            for position, setup in enumerate(order):
                 attempts.append({'id': f'{profile}-delivery-{setup}-{repetition + 1}',
-                                 'profile': profile, 'setup': setup, 'repetition': repetition + 1,
-                                 'status': 'unstarted', 'outcome': None})
-    paths = [ROOT / DIRECTORY / 'requirements.json', ROOT / requirements['profiles_file'],
+                                 'profile': profile, 'task': 'euclid', 'setup': setup,
+                                 'repetition': repetition + 1, 'position': position + 1,
+                                 'status': 'unstarted', 'outcome': None,
+                                 'usage': None, 'cost': None, 'fr_contribution': None})
+    paths = [ROOT / DIRECTORY / 'requirements.json', ROOT / DIRECTORY / 'checkers.json',
+             ROOT / requirements['profiles_file'],
              ROOT / requirements['clients_file'],
              ROOT / 'tools/agent_eval/proof_delivery.py', ROOT / 'tools/agent_eval/test_proof_delivery.py']
     paths += [path for path in (ROOT / 'skills/fr').rglob('*') if path.is_file()]
@@ -43,11 +46,17 @@ def protocol():
               for name in algorithms.OBLIGATIONS]
     paths += [ROOT / algorithms.DIRECTORY / 'fixtures' / name for name in ('Euclid.lean', 'FrSpecs.lean')]
     paths.append(ROOT / '.github/workflows/proof-algorithms.yml')
-    value = {'requirements': requirements, 'profiles': profiles, 'clients': clients, 'attempts': attempts,
+    decisions = {key: requirements['decision'] for key in ('2,0', '0,2', '2,2', '0,0', 'mixed')}
+    value = {'milestone': DELIVERY_STUDY,
+             'requirements': {**requirements, 'setups': list(SETUPS),
+                              'tasks': {'euclid': {'request': requirements['request']}},
+                              'attempts': len(attempts), 'decisions': decisions},
+             'profiles': profiles, 'clients': clients, 'attempts': attempts,
              'bindings': {str(path.relative_to(ROOT)): common.digest(path) for path in sorted(paths)},
              'algorithm_checker_sha256': core_digest('M3-algorithm-facts'),
              'requests': {setup: request(setup, requirements) for setup in SETUPS},
              'live_calls_enabled': False,
+             'billing': {'actual': None, 'estimated': None, 'authorization': None},
              'scope': 'Prepared delivery-only comparison; no proof-discovery or live-agent result.'}
     return {**value, 'sha256': hashlib.sha256(encoded(value)).hexdigest()}
 
@@ -89,15 +98,22 @@ def install(project, setup, lake):
             'mode': path.stat().st_mode & 0o777} for path in protected}
 
 
-def submission(project, protected):
-    """Only the requested root patch is delivered; never search for a misplaced copy."""
+def input_changes(project, protected):
+    changed = []
     for name, entry in protected.items():
         path = project / name
-        if any((project / parent).is_symlink() for parent in Path(name).parents):
-            return None, 'protected input is reached through a symlink'
-        if (path.is_symlink() or not path.is_file() or common.digest(path) != entry['sha256'] or
+        if (any((project / parent).is_symlink() for parent in Path(name).parents) or
+                path.is_symlink() or not path.is_file() or common.digest(path) != entry['sha256'] or
                 path.stat().st_mode & 0o777 != entry['mode']):
-            return None, 'protected input changed: ' + name
+            changed.append(name)
+    return sorted(changed)
+
+
+def submission(project, protected):
+    """Only the requested root patch is delivered; never search for a misplaced copy."""
+    changed = input_changes(project, protected)
+    if changed:
+        return None, 'protected input changed: ' + ', '.join(changed)
     patch = project / 'change.patch'
     if patch.is_symlink() or not patch.is_file():
         return None, 'missing regular change.patch in the project root'
@@ -148,8 +164,41 @@ def timing_controls():
     return result
 
 
+def validate_controls(value, study):
+    from . import selected_local as local, selected_local_grade as public
+    require(study == DELIVERY_STUDY and value['passed'] is True and value['live_model_calls'] == 0,
+            'require successful supplied-proof delivery controls without model calls')
+    original = algorithms.validate_controls(value['algorithm_controls'], 'M3-algorithm-facts')
+    require(value['bindings'] == local.implementation_bindings(study) and
+            value['core_checker_sha256'] == public.core_digest(study) and
+            value['protocol_sha256'] == protocol()['sha256'] and
+            value['timing_controls'] == timing_controls() and
+            value['fr_sha256'] == original['fr_sha256'] and value['run'] == original['run'] and
+            value['private_image'] == original['private_image'] and
+            value['private_image_archive_sha256'] == original['private_image_archive_sha256'] and
+            value['source_commit'] == original['source_commit'],
+            'freeze the exact delivery protocol, source, native tool and independent checker')
+    controls = value['controls']
+    require(set(controls) == set(SETUPS) | {'last-edit-only', 'termination-only', 'correctness-only',
+            'failed-package', 'changed-program', 'invalid-patch', 'wrong-path', 'changed-settings'},
+            'retain every positive and negative delivery control')
+    for setup in SETUPS:
+        require(controls[setup]['patch_accepted'] is True and controls[setup]['package_passed'] is True and
+                len(controls[setup]['transactions']) == 2 and len(set(controls[setup]['transactions'])) == 2,
+                'check and deliver both saved proofs under each setup')
+    require(controls[SETUPS[0]]['patch_sha256'] == controls[SETUPS[1]]['patch_sha256'],
+            'the two scripted setups must deliver the identical checked patch')
+    require(all(controls[name]['patch_accepted'] is False for name in
+                ('last-edit-only', 'termination-only', 'correctness-only', 'failed-package', 'changed-program', 'invalid-patch'))
+            and controls['wrong-path']['submission_accepted'] is False and
+            controls['changed-settings']['submission_accepted'] is False,
+            'incomplete delivery and changed settings cannot qualify')
+    return value
+
+
 def qualify(binary, qualification, output):
     from . import selected_grading as grading
+    from . import selected_local as local, selected_local_grade as public
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run full delivery checks on GitHub')
     controls = json.loads((qualification / 'controls.json').read_text())
     algorithms.validate_controls(controls, 'M3-algorithm-facts')
@@ -240,7 +289,14 @@ def qualify(binary, qualification, output):
     result = {'passed': True, 'live_model_calls': 0, 'live_calls_enabled': False,
               'protocol_sha256': plan['sha256'], 'fr_sha256': common.digest(binary),
               'qualification_run': controls['run'], 'controls': results, 'timing_controls': timing_controls(),
+              'run': controls['run'], 'source_commit': controls['source_commit'],
+              'bindings': local.implementation_bindings(DELIVERY_STUDY),
+              'core_checker_sha256': public.core_digest(DELIVERY_STUDY),
+              'private_image': controls['private_image'],
+              'private_image_archive_sha256': controls['private_image_archive_sha256'],
+              'algorithm_controls': controls,
               'scope': 'Scripted delivery controls, not agent successes. Live workflow admission is still required.'}
+    validate_controls(result, DELIVERY_STUDY)
     common.save(output / 'summary.json', result)
     return result
 

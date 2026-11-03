@@ -22,5 +22,22 @@
   "cost_comparison": "Compare the same agent with the shared skill alone against the shared skill plus the finish card. Both receive identical correct drafts, source, tools and checks. Include setup, instructions, tool use, package checks, patch delivery, accounting and failed attempts. This comparison does not measure fr overhead against ordinary Lean.",
   "publication": "Submitted patches and reviewed summaries only. Local prompts, transcripts, drafts and account data remain private.",
   "live_calls_enabled": false,
+  "client_finish_seconds": 10,
+  "native_admission": {
+    "complete_workflow_required": true,
+    "supplied_proofs_required": true,
+    "saved_edit_export_required": true,
+    "independent_patch_replay_required": true,
+    "session_accounting_required": true,
+    "conditions": ["shared-skill", "finish-card"],
+    "client_context_reserve_bytes": 134217728,
+    "control_limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    }
+  },
   "live_admission": "Not admitted by these hosted controls. Before any paid call, bind the exact local clients, binary, task archive, observer and complete native accounting; qualify the whole workflow within the unchanged resource limits. Preserve all planned slots and freeze the resulting identities before the first call."
 }

@@ -74,6 +74,7 @@ jobs:
         run: >-
           python3 -B -m unittest agent_eval.test_proof_algorithms agent_eval.test_algorithm_guidance
           agent_eval.test_algorithm_results agent_eval.test_selected_public
+          agent_eval.test_selected_local agent_eval.test_selected_grading
           agent_eval.test_selected_guarded
           agent_eval.test_algorithm_admission
           agent_eval.test_proof_delivery

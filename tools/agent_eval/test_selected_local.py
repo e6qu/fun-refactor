@@ -19,6 +19,14 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_delivery_prompt_keeps_both_saved_edits_and_supplied_answers_explicit(self):
+        for setup in ('shared-skill', 'finish-card'):
+            prompt = local.prompt('euclid', setup, {'lake': {'path': '/pinned/lake'}}, 'M3-delivery')
+            self.assertIn('two correct proof drafts are supplied', prompt)
+            self.assertIn('BOTH returned edit IDs', prompt)
+            self.assertIn('150-second deadline', prompt)
+            self.assertNotIn('git diff --binary HEAD', prompt)
+            self.assertEqual('Read .fr/finish-card.txt' in prompt, setup == 'finish-card')
     def test_frozen_clients_survive_removal_of_application_release_storage(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

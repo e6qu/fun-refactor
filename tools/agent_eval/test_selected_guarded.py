@@ -10,6 +10,13 @@ from agent_eval import selected_guarded as guarded
 
 
 class GuardedAttemptChecks(unittest.TestCase):
+    def test_unadmitted_plan_cannot_start_a_native_client(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = Path(temporary) / 'plan.json'
+            plan.write_text(json.dumps({'schedule': {'milestone': 'M3-delivery'}, 'live_calls_enabled': False}))
+            with patch.object(guarded.sys, 'platform', 'darwin'), self.assertRaisesRegex(ValueError, 'admitted'):
+                guarded.attempt(plan, 'unstarted')
+            self.assertEqual(sorted(path.name for path in Path(temporary).iterdir()), ['plan.json'])
     def test_sampler_counts_detached_workers_and_keeps_compact_samples(self):
         raw = '10 1 10 20 00:01 Python\n11 10 11 100 00:02 opencode\n12 11 12 500 00:03 lean\n90 1 90 9999 00:01 other\n'
         with tempfile.TemporaryDirectory() as temporary:

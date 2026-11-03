@@ -16,6 +16,10 @@ the GCD controls and agent skill checks before merge. There is no remaining work
 on their old branches. M1 and M2 have their complete comparisons. M3 remains open:
 GLM and Kimi still lack accepted page-count proofs within the original 150 seconds.
 
+[PR #595](https://github.com/e6qu/fun-refactor/pull/595) also merged after all 92
+project CI jobs passed. It added and qualified the supplied-proof delivery
+controls and fixed the comparison before native admission or new model calls.
+
 The next concrete question is [delivery of two supplied proofs](../tests/agent-eval/proof-delivery/README.md).
 Both setups receive the same correct GCD drafts, shared skill, source and checks.
 One also receives a short finish card. Test saving both proofs, checking the package
@@ -31,6 +35,13 @@ records zero model calls. Next, qualify the exact local native clients, assisted
 archive, resource observer and session accounting. Freeze those identities before
 any paid call. Do not run a delivery attempt under an old proof-writing study ID.
 This is assisted delivery, not proof discovery, and cannot close M3.
+
+Continue on `improve/native-proof-delivery`. The shared runner now distinguishes
+`M3-delivery`. Require six complete local checks, one per profile and setup, with
+128 MiB client-state headroom. Freeze all tools and inputs before the twelve
+fixed slots; then independently grade every patch on GitHub and retain every
+outcome. Keep the complete diagnostic together in this PR. Prepared protocols
+cannot launch a client; only an admitted execution plan enables calls.
 
 ## What the merged proof work established
 

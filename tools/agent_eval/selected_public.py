@@ -11,7 +11,7 @@ from . import selected_local as local
 from . import selected_local_grade as grading
 from . import selected_tasks as common
 from .project_edits_results import encoded_summary, DETAILS
-from .selected_plan import ALGORITHM_STUDIES, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, encoded, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, encoded, require
 
 
 def command_tokens(command):
@@ -133,7 +133,7 @@ def export(plan_path, review, destination):
             fields.add('feedback_observations')
         elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
             fields.add('proof_observations')
-        elif milestone in ALGORITHM_STUDIES:
+        elif milestone in ALGORITHM_TASKS:
             fields.add('algorithm_observations')
         require(set(review[identity]) == fields,
                 'review the fr contribution and failure summary explicitly')
@@ -145,11 +145,11 @@ def export(plan_path, review, destination):
         require(isinstance(actions, list) and len(actions) <= 8 and
                 all(isinstance(action, str) and 0 < len(action) <= 240 and '\n' not in action for action in actions),
                 'publish concise reviewed contributions, not native transcript excerpts')
-        require(planned['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES or not actions,
+        require(planned['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS or not actions,
                 'ordinary-tool attempts cannot claim fr contributions')
         events = []
         stream = directory / 'native.stdout'
-        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES and stream.exists():
+        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS and stream.exists():
             require(common.digest(stream) == record['native_stdout_sha256'], 'diagnostic native stream changed after collection')
         if stream.exists():
             for line in stream.read_bytes().splitlines():
@@ -226,7 +226,7 @@ def export(plan_path, review, destination):
             require(observation['execution_validity'] in {'valid', 'service-failed', 'collection-failed', 'unknown'},
                     'review construction execution explicitly')
             rows[-1]['proof_observations'] = observation
-        elif milestone in ALGORITHM_STUDIES:
+        elif milestone in ALGORITHM_TASKS:
             from .algorithm_results import validate_observations
             resources = record['complete_attempt_resources']
             require(resources['limits'] == {'wall_seconds': 150, 'rss_bytes': 805306368,
@@ -247,8 +247,9 @@ def export(plan_path, review, destination):
                    'M3-page-count': 'Four page-count attempts with fr and the unchanged M3 claim; no timing baseline.'}[milestone]
                   if milestone in PROOF_DIAGNOSTICS else
                   'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.')
-    if milestone in ALGORITHM_STUDIES:
-        comparison = ('The same executable Euclid algorithm, fr and shared skills. Compare selecting library facts '
+    if milestone in ALGORITHM_TASKS:
+        comparison = (plan['schedule']['requirements']['cost_comparison'] if milestone == DELIVERY_STUDY else
+                      'The same executable Euclid algorithm, fr and shared skills. Compare selecting library facts '
                       'with supplied declarations.' if milestone == 'M3-algorithm-facts' else
                       'The same executable Euclid algorithm, fr, shared skills, declarations, plan nodes and dependencies. '
                       'Compare checklist and graph rendering only; no automatic search controller.')
@@ -289,13 +290,16 @@ def export(plan_path, review, destination):
     elif milestone == 'M3-facts':
         summary['scope'] = 'Eight development-example attempts on selecting and applying division facts. No ordinary-tool timing baseline or full M3 claim.'
         summary['provider_request_count'] = None
-    elif milestone in ALGORITHM_STUDIES:
+    elif milestone in ALGORITHM_TASKS:
         summary['native_admission'] = plan['admission']
         summary['resource_scope'] = ('Independent sampled limits cover the guard, controller, native CLI and workers, '
             'including preparation and accounting. The observer stays outside the CPU throttle. '
             'Short peaks and children reparented before discovery can still be missed.')
         summary['scope'] = ('Controlled development comparison on executable Lean Euclid, including termination and correctness. '
                             'No ordinary-tool overhead baseline, Rust/Python translation proof or M3 completion claim.')
+        if milestone == DELIVERY_STUDY:
+            summary['scope'] = ('Delivery of two supplied correct proofs. This does not measure proof discovery, '
+                                'fr overhead against ordinary Lean, or completion of M3.')
         summary['guidance_bytes'] = {}
         from .algorithm_guidance import install
         import tempfile
@@ -303,7 +307,11 @@ def export(plan_path, review, destination):
             for condition in plan['schedule']['requirements']['setups']:
                 project = Path(temporary) / condition
                 project.mkdir()
-                files = install(project, condition, milestone)
+                if milestone == DELIVERY_STUDY:
+                    from .proof_delivery import install as install_delivery
+                    files = install_delivery(project, condition, Path(plan['checkers']['lake']['path']))
+                else:
+                    files = install(project, condition, milestone)
                 summary['guidance_bytes'][condition] = {name: (project / name).stat().st_size for name in files}
     (destination / 'summary.json').write_bytes(encoded_summary(summary))
     return summary
@@ -321,7 +329,7 @@ def accept_checks(data, checked_path, run):
     require(checked['passed'] is True and checked[f'all_{count}_checked'] is True and checked['checked_attempts'] == count and
             checked['core_checker_sha256'] == summary['core_checker_sha256'] and
             set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'check every original submission')
-    image = (summary['controls']['private_image'] if milestone in ALGORITHM_STUDIES else summary['controls']['private']['image'])
+    image = (summary['controls']['private_image'] if milestone in ALGORITHM_TASKS else summary['controls']['private']['image'])
     require(checked['control_policy'] == 'frozen' and checked['image'] == image,
             'use the independent checker frozen before model calls')
     for row in summary['attempts']:
@@ -357,7 +365,7 @@ if __name__ == '__main__':
     exporting_algorithm = commands.add_parser('export-algorithm')
     for name in ('plan', 'review', 'output'):
         exporting_algorithm.add_argument('--' + name, type=Path, required=True)
-    exporting_algorithm.add_argument('--study', choices=tuple(sorted(ALGORITHM_STUDIES)), required=True)
+    exporting_algorithm.add_argument('--study', choices=tuple(sorted(ALGORITHM_TASKS)), required=True)
     checking = commands.add_parser('accept-checks')
     for name in ('data', 'checks'):
         checking.add_argument('--' + name, type=Path, required=True)

@@ -13,19 +13,22 @@ CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits'
                     'M3-page-count': Path('tests/agent-eval/proof-page-count'),
                     'M3-facts': Path('tests/agent-eval/proof-division-facts')}
 ALGORITHM_STUDIES = frozenset({'M3-algorithm-facts', 'M3-algorithm-presentation'})
+DELIVERY_STUDY = 'M3-delivery'
+ALGORITHM_TASKS = ALGORITHM_STUDIES | {DELIVERY_STUDY}
 CASE_DIRECTORIES.update({name: Path('tests/agent-eval/proof-algorithms') for name in ALGORITHM_STUDIES})
+CASE_DIRECTORIES[DELIVERY_STUDY] = Path('tests/agent-eval/proof-delivery')
 PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts'})
-PROOF_STUDIES = PROOF_DIAGNOSTICS | ALGORITHM_STUDIES | {'M3'}
+PROOF_STUDIES = PROOF_DIAGNOSTICS | ALGORITHM_TASKS | {'M3'}
 PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.json',
                  'M3': CASE_DIRECTORIES['M3'] / 'profiles.json',
                  'M3-feedback': CASE_DIRECTORIES['M3-feedback'] / 'profiles.json',
                  'M3-construction': CASE_DIRECTORIES['M3'] / 'profiles.json',
                  'M3-page-count': CASE_DIRECTORIES['M3'] / 'profiles.json',
                  'M3-facts': CASE_DIRECTORIES['M3'] / 'profiles.json'}
-PROFILE_PATHS.update({name: CASE_DIRECTORIES['M3'] / 'profiles.json' for name in ALGORITHM_STUDIES})
+PROFILE_PATHS.update({name: CASE_DIRECTORIES['M3'] / 'profiles.json' for name in ALGORITHM_TASKS})
 TASK_PATHS = {name: path / ('requirements.json' if name in {'M3-construction', 'M3-page-count', 'M3-facts'} else 'tasks.json')
               for name, path in CASE_DIRECTORIES.items()}
-TASK_PATHS.update({name: CASE_DIRECTORIES[name] / 'requirements.json' for name in ALGORITHM_STUDIES})
+TASK_PATHS.update({name: CASE_DIRECTORIES[name] / 'requirements.json' for name in ALGORITHM_TASKS})
 
 
 def encoded(value):
@@ -38,6 +41,10 @@ def require(condition, message):
 
 
 def prepare(root, milestone):
+    if milestone == DELIVERY_STUDY:
+        from .proof_delivery import protocol
+        require(root == ROOT, 'prepare delivery from the current committed checkout')
+        return protocol()
     if milestone in ALGORITHM_STUDIES:
         from .algorithm_guidance import prepare as algorithm_plan
         return algorithm_plan(root, milestone)

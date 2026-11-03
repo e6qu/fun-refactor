@@ -9,7 +9,7 @@ import tempfile
 
 from . import selected_grading as grading
 from . import selected_local as local
-from .selected_plan import ALGORITHM_STUDIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 CORE_FILES = (
     'tools/agent_eval/selected_tasks.py', 'tools/agent_eval/comparison_grade.py',
@@ -57,8 +57,8 @@ def core_digest(milestone):
             paths += [ROOT / TASK_PATHS[milestone], feedback / 'checkers.json', ROOT / PROFILE_PATHS[milestone]]
             paths += [path for path in (feedback / 'fixtures').rglob('*') if path.is_file()]
             paths += list((feedback / 'controls').glob('*.lean'))
-        elif milestone in ALGORITHM_STUDIES:
-            directory = ROOT / CASE_DIRECTORIES[milestone]
+        elif milestone in ALGORITHM_TASKS:
+            directory = ROOT / CASE_DIRECTORIES['M3-algorithm-facts']
             paths += [ROOT / 'tools/agent_eval/proof_algorithms.py', ROOT / 'tools/agent_eval/algorithm_guidance.py',
                       ROOT / 'tools/agent_eval/selected_guarded.py', ROOT / 'tools/agent_eval/client_memory_profile.py',
                       ROOT / 'tools/agent_eval/algorithm_admission.py',
@@ -71,6 +71,10 @@ def core_digest(milestone):
             paths += [directory / 'interrupted-results/summary.json']
             paths += list((directory / 'interrupted-results').glob('*.lean'))
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
+    if milestone == DELIVERY_STUDY:
+        directory = ROOT / CASE_DIRECTORIES[milestone]
+        paths += [directory / 'requirements.json', directory / 'checkers.json',
+                  ROOT / 'tools/agent_eval/proof_delivery.py', ROOT / 'tools/agent_eval/test_proof_delivery.py']
     bindings = {str(path.relative_to(ROOT)): local.hash_file(path) for path in sorted(paths)}
     return hashlib.sha256(encoded(bindings)).hexdigest()
 

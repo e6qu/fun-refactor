@@ -10,7 +10,7 @@ import subprocess
 import time
 
 from . import selected_tasks as tasks
-from .selected_plan import ALGORITHM_STUDIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, require
+from .selected_plan import ALGORITHM_TASKS, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, require
 
 
 def restore_dependency_cache(source, destination):
@@ -51,7 +51,7 @@ def run(task, milestone):
     if milestone == 'M2':
         from . import project_edits_tasks as cases
         require(task in cases.TASKS and prepared['requirement'] == cases.TASKS[task], 'private M2 task requirements differ')
-    elif milestone in ALGORITHM_STUDIES:
+    elif milestone in ALGORITHM_TASKS:
         from . import proof_algorithms as cases
         fixture = prepared['fixture']
         require(fixture in {'fixtures/Euclid.lean', 'interrupted-results/Euclid.lean'},

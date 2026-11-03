@@ -129,8 +129,11 @@ This tests finishing supplied work, not finding a proof. It cannot close M3.
 
 The [hosted delivery controls](tests/agent-eval/proof-delivery/qualification/summary.json)
 passed both setups and rejected incomplete and invalid delivery. Timing controls
-use synthetic observations. Next, qualify the complete local native workflow;
-those hosted results do not yet admit paid attempts.
+use synthetic observations. The native runner now has a separate `M3-delivery`
+study. Require all six complete local checks: three profiles under both setups.
+Bind the exact clients, fr and Lean before enabling the twelve fixed slots.
+Keep qualification, attempts, independent grades and tracking in this PR.
+The earlier hosted results alone cannot admit paid attempts.
 
 After a complete, independently graded delivery diagnostic, use its fixed decision
 rule to choose the next task. Do not add graph search or rerun the full study

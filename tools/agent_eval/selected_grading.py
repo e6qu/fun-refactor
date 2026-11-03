@@ -14,7 +14,7 @@ from . import selected_tasks as tasks
 from .container_resources import ContainerResources, audit, limits
 from .isolated_grade import DOCKER, invoke
 from .selected_native import boundary
-from .selected_plan import ALGORITHM_STUDIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, require
 
 SOURCE_LIMIT = 32 * 1024**2
 
@@ -117,8 +117,11 @@ def grade(image, task, original, prepared, binary, rust, patch, output, *, miles
             mounts += [(binary, '/opt/tool/bin/fr'), (Path('/opt/lean'), '/opt/lean')]
             if milestone in PROOF_STUDIES:
                 mounts += [(ROOT / 'tests/agent-eval/proof-writing', '/review/tests/agent-eval/proof-writing')]
-            if milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES:
+            if milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS:
                 directory = CASE_DIRECTORIES[milestone]
+                mounts += [(ROOT / directory, '/review/' + str(directory))]
+            if milestone == DELIVERY_STUDY:
+                directory = CASE_DIRECTORIES['M3-algorithm-facts']
                 mounts += [(ROOT / directory, '/review/' + str(directory))]
         else:
             require(milestone == 'M2' and binary is None and set(tools) == {'node', 'typescript_root', 'registry', 'target_cache'},

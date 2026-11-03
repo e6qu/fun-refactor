@@ -79,7 +79,7 @@ class SelectedPublicTests(unittest.TestCase):
         self.assert_private_export('M3-facts', 8)
 
     def test_algorithm_exports_keep_all_records_private_and_all_failures_visible(self):
-        for study, count in [('M3-algorithm-facts', 8), ('M3-algorithm-presentation', 12)]:
+        for study, count in [('M3-algorithm-facts', 8), ('M3-algorithm-presentation', 12), ('M3-delivery', 12)]:
             self.assert_private_export(study, count)
 
     def assert_private_export(self, milestone, count):
@@ -89,9 +89,10 @@ class SelectedPublicTests(unittest.TestCase):
             plan = {'schedule': schedule, 'implementation': {}, 'source': {'native_inputs': {}, 'commit': 'source'},
                     'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {},
                     'binaries': {}, 'components': {}, 'client_finish_seconds': 10, 'formal_inputs': {},
+                    'checkers': {'lake': {'path': '/pinned/lake'}}, 'live_calls_enabled': True,
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
-            if milestone in public.ALGORITHM_STUDIES:
+            if milestone in public.ALGORITHM_TASKS:
                 plan['admission'] = {'profiles': {}, 'receipts_sha256': 'a' * 64}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
@@ -120,7 +121,7 @@ class SelectedPublicTests(unittest.TestCase):
                 elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     (directory / 'result.json').write_text(json.dumps(record))
-                elif milestone in public.ALGORITHM_STUDIES:
+                elif milestone in public.ALGORITHM_TASKS:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     resources = {'limits': {'wall_seconds': 150, 'rss_bytes': 805306368, 'cpu_seconds': 75,
                                  'disk_bytes': 536870912, 'transcript_bytes': 1048576},
@@ -147,7 +148,7 @@ class SelectedPublicTests(unittest.TestCase):
                         review[row['id']]['proof_observations']['first_proof_check_seconds'] = None
                     if milestone == 'M3-facts':
                         review[row['id']]['proof_observations']['proof_write_seconds'] = None
-                elif milestone in public.ALGORITHM_STUDIES:
+                elif milestone in public.ALGORITHM_TASKS:
                     from agent_eval.algorithm_results import CHECKS, TIMINGS
                     review[row['id']]['algorithm_observations'] = {
                         **{name: None for name in CHECKS | TIMINGS}, 'execution_validity': 'collection-failed'}
