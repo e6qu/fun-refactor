@@ -133,8 +133,6 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/*
-      - name: Fetch the retained inputs named by current checks
-        run: python3 tools/ci-shards.py checkout
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -146,6 +144,19 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1'
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Fetch the explicit current replay and its original receipt
+        run: |
+          python3 -B - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
+          path = Path(entry['path'])
+          assert path.resolve().is_relative_to(Path.cwd())
+          subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/',
+              '/tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json'],
+              check=True, timeout=60)
+          PY
       - name: Build both current checker implementations
         run: |
           cargo build --locked --bin fr
@@ -215,6 +226,7 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/*
+            /tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -724,9 +736,9 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/*
-      - name: Fetch the retained inputs named by the test inventory
-        run: python3 tools/ci-shards.py checkout
       - run: rustup toolchain install stable --profile minimal
+      - name: Fetch the retained inputs named by the assigned test group
+        run: python3 tools/ci-shards.py checkout-${{ matrix.kind }} ${{ matrix.index }}
       - uses: ./.github/actions/native-tools
       - uses: Swatinem/rust-cache@v2
         with:
@@ -751,12 +763,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /*
-            !/tests/agent-eval/results/*
-      - name: Fetch the retained inputs named by static checks
-        run: python3 tools/ci-shards.py checkout
       - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
       - uses: ./.github/actions/native-tools
       - uses: Swatinem/rust-cache@v2

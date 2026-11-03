@@ -58,8 +58,9 @@ pass in actual sparse checkouts. Hosted streaming and native-protocol jobs pass;
 every five-minute limit stays unchanged.
 
 Five native groups also exhausted their fifteen-minute limits after long full
-checkouts. Native checks now fetch the retained records named by tests, tools,
-guides and current catalogs. A real sparse-repository regression checks that
+checkouts. Each native group now fetches records named by its assigned tests,
+their Python tools and their current catalog entries. SDK checks need no result archive.
+A real sparse-repository regression checks that
 required records return unchanged while an unreferenced archive stays excluded.
 The complete test inventory and all deadlines remain unchanged.
 CI monitoring must inspect cancelled jobs too: GitHub labels these timeouts cancelled.

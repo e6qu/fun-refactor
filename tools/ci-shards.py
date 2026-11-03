@@ -1,6 +1,7 @@
 """Partition the complete Cargo/pytest inventories and verify their collected evidence."""
 
 import argparse
+import ast
 import json
 import os
 from pathlib import Path
@@ -24,24 +25,79 @@ def result_inputs(names, sources):
     return sorted(selected)
 
 
-def checkout_inputs():
+def checkout_sources(kind, index):
+    if kind == 'sdk':
+        return [path.read_text() for path in (ROOT / 'sdk/python/tests').rglob('*.py')]
+    selected = set(native_selection(native_inventory(), index))
+    metadata = json.loads(subprocess.check_output([
+        'cargo', 'metadata', '--no-deps', '--format-version', '1', '--locked',
+    ], cwd=ROOT))
+    package = next(row for row in metadata['packages']
+                   if Path(row['manifest_path']) == ROOT / 'Cargo.toml')
+    paths = set()
+    for target in package['targets']:
+        kinds = target['kind']
+        target_kind = 'lib' if 'lib' in kinds or 'rlib' in kinds else kinds[0]
+        if target_kind + ':' + target['name'] in selected:
+            source = Path(target['src_path']).resolve()
+            if not source.is_relative_to(ROOT.resolve()):
+                raise ValueError('test source is outside the checkout')
+            paths.add(source)
+            if target_kind == 'lib':
+                paths.update((ROOT / 'src').rglob('*.rs'))
+    if not paths:
+        raise ValueError('assigned native targets have no source files')
+    sources = [path.read_text() for path in sorted(paths)]
+    candidates = set((ROOT / 'tools').glob('*.py')) | set((ROOT / 'tools/agent_eval').glob('*.py'))
+    tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
+    pending = {path for path in candidates if path.name in tokens or path.stem in tokens}
+    visited = set()
+    while pending:
+        path = pending.pop()
+        if path in visited:
+            continue
+        visited.add(path)
+        text = path.read_text()
+        sources.append(text)
+        dependencies = set()
+        for node in ast.walk(ast.parse(text)):
+            if isinstance(node, ast.Import):
+                dependencies.update(alias.name.rsplit('.', 1)[-1] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                dependencies.add((node.module or '').rsplit('.', 1)[-1])
+                if node.module == 'agent_eval':
+                    dependencies.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.Call):
+                dependencies.update(Path(child.value).name for child in ast.walk(node)
+                                    if isinstance(child, ast.Constant) and isinstance(child.value, str)
+                                    and child.value.endswith('.py'))
+        pending.update(candidate for candidate in candidates - visited
+                       if candidate.name in dependencies or candidate.stem in dependencies)
+    tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
+    for pattern in ('*/record.json', '*/freeze.json'):
+        sources.extend(path.read_text() for path in (ROOT / 'tests/agent-eval').glob(pattern)
+                       if path.parent.name in tokens)
+    tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
+    catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
+    scalar = json.loads((ROOT / 'tests/agent-eval/current-scalar-reports.json').read_text())
+    sources.extend(json.dumps(row) for row in catalog['evidence'] if row['id'] in tokens)
+    sources.extend(json.dumps(row) for group, row in scalar['reports'].items() if group in tokens)
+    print('Assigned native targets:', sorted(selected), flush=True)
+    return sources
+
+
+def checkout_inputs(sources):
     entries = subprocess.check_output([
         'git', 'ls-tree', '--format=%(objecttype) %(path)',
         'HEAD:tests/agent-eval/results',
     ], text=True, cwd=ROOT)
     names = [line.removeprefix('tree ') for line in entries.splitlines() if line.startswith('tree ')]
-    sources = set(ROOT.glob('tests/*.rs'))
-    for directory in ('tools', 'sdk/python/tests', 'docs', 'skills'):
-        sources.update(path for path in (ROOT / directory).rglob('*')
-                       if path.suffix in {'.py', '.rs', '.md', '.json', '.txt', '.yml'})
-    sources.update((ROOT / 'tests/agent-eval').glob('*.json'))
-    sources.update((ROOT / 'tests/agent-eval').glob('*/record.json'))
-    selected = result_inputs(names, [path.read_text() for path in sorted(sources) if path.is_file()])
-    if not selected:
-        raise ValueError('no retained result inputs selected')
-    subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
-                   input=''.join('/tests/agent-eval/results/' + name + '/\n' for name in selected),
-                   text=True, check=True, timeout=60, cwd=ROOT)
+    selected = result_inputs(names, sources)
+    print(f'Fetching {len(selected)}/{len(names)} retained directories.', flush=True)
+    if selected:
+        subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                       input=''.join('/tests/agent-eval/results/' + name + '/\n' for name in selected),
+                       text=True, check=True, timeout=60, cwd=ROOT)
     files = subprocess.check_output([
         'git', 'ls-tree', '-r', '--name-only', 'HEAD', 'tests/agent-eval/results',
     ], text=True, cwd=ROOT).splitlines()
@@ -93,8 +149,7 @@ def native_inventory():
     return result
 
 
-def run_native(index, directory):
-    inventory = native_inventory()
+def native_selection(inventory, index):
     timing = json.loads((ROOT / "tools/ci-test-durations.json").read_text())
     isolated = timing["native_isolated_targets"]
     if (not isinstance(isolated, list) or len(isolated) != len(set(isolated))
@@ -105,6 +160,12 @@ def run_native(index, directory):
     selected = assignments[index]
     if not selected:
         raise ValueError("empty native shard")
+    return selected
+
+
+def run_native(index, directory):
+    inventory = native_inventory()
+    selected = native_selection(inventory, index)
     command = ["cargo", "test", "--locked", "--no-fail-fast"]
     for target in selected:
         command.extend(inventory[target])
@@ -168,19 +229,22 @@ def verify(directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("kind", choices=[*COUNTS, "verify", "checkout"])
-    parser.add_argument("index", type=int, nargs="?", default=0)
+    parser.add_argument("kind", choices=[*COUNTS, "verify", "checkout-native", "checkout-sdk"])
+    parser.add_argument("index", type=int, nargs="?")
     parser.add_argument("--output", type=Path, default=Path("target/ci-results"))
     args = parser.parse_args()
     os.chdir(ROOT)
-    if args.kind == 'checkout':
-        checkout_inputs()
+    if args.kind.startswith('checkout-'):
+        kind = args.kind.removeprefix('checkout-')
+        if args.index is None or not 0 <= args.index < COUNTS[kind]:
+            parser.error('declare an explicit valid shard index')
+        checkout_inputs(checkout_sources(kind, args.index))
         return
     directory = args.output.resolve()
     if args.kind == "verify":
         verify(directory)
         return
-    if not 0 <= args.index < COUNTS[args.kind]:
+    if args.index is None or not 0 <= args.index < COUNTS[args.kind]:
         parser.error("shard index out of range")
     directory.mkdir(parents=True, exist_ok=True)
     log = directory / f"{args.kind}-{args.index}.log"

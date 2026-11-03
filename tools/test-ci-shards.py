@@ -16,6 +16,37 @@ spec.loader.exec_module(shards)
 
 
 class ShardTests(unittest.TestCase):
+    def test_input_selection_follows_only_assigned_sources_and_their_current_reports(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            files = {
+                'tests/one.rs': '"tools/needed.py"; retained::report("flow-facts")',
+                'tests/two.rs': '"tests/agent-eval/results/unused-history"',
+                'tools/needed.py': 'import utility\nFIXTURE = "tests/agent-eval/fixture"',
+                'tools/utility.py': 'RECORD = "tests/agent-eval/results/needed-history"',
+                'tools/unrelated.py': 'RECORD = "tests/agent-eval/results/unused-history"',
+                'sdk/python/tests/test_one.py': 'def test_example(): pass',
+                'tests/agent-eval/fixture/record.json': '{"directory":"tests/agent-eval/results/fixture-history"}',
+                'tests/agent-eval/roadmap.json': '{"evidence":[{"id":"flow-facts","path":"tests/agent-eval/results/current-flow/result.json"}]}',
+                'tests/agent-eval/current-scalar-reports.json': '{"reports":{"flow-facts":{"path":"tests/agent-eval/results/current-flow/result.json"}}}',
+            }
+            for name, content in files.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            metadata = {'packages': [{'manifest_path': str(root / 'Cargo.toml'), 'targets': [
+                {'kind': ['test'], 'name': name, 'src_path': str(root / ('tests/' + name + '.rs'))}
+                for name in ('one', 'two')]}]}
+            with patch.object(shards, 'ROOT', root), \
+                 patch.object(shards, 'native_inventory', return_value={}), \
+                 patch.object(shards, 'native_selection', return_value=['test:one']), \
+                 patch.object(shards.subprocess, 'check_output', return_value=json.dumps(metadata)):
+                sources = shards.checkout_sources('native', 0)
+                self.assertEqual(shards.result_inputs(
+                    ['needed-history', 'fixture-history', 'current-flow', 'unused-history'], sources),
+                    ['current-flow', 'fixture-history', 'needed-history'])
+                self.assertEqual(shards.result_inputs(['unused-history'], shards.checkout_sources('sdk', 0)), [])
+
     def test_sparse_checkout_restores_catalog_and_joined_inputs_without_unreferenced_archives(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -40,7 +71,7 @@ class ShardTests(unittest.TestCase):
                 input='/*\n!/tests/agent-eval/results/*\n', text=True)
             self.assertFalse((root / 'tests/agent-eval/results/current/result.json').exists())
             with patch.object(shards, 'ROOT', root):
-                shards.checkout_inputs()
+                shards.checkout_inputs([files['tests/example.rs'], files['tests/agent-eval/roadmap.json']])
             for name in ('current', '2026-09-17-joined'):
                 path = 'tests/agent-eval/results/' + name + '/result.json'
                 self.assertEqual((root / path).read_text(), files[path])
