@@ -65,6 +65,13 @@ edit in each. The current measurement uses the
 CI repeats the fixture with its current checker. These counts measure neither
 program runtime nor agent success.
 
+The [four-route comparison](../tests/agent-eval/semantic-intent-delivery.json) also
+records 265 more response bytes per route. Each route changes `value + 1` to
+`value + 7`, using a full function body, an expression edit, a direct request or
+a Python-generated request. Their source and behavior checks still agree.
+The [earlier counts](../tests/agent-eval/semantic-intent.json) stay intact.
+The extra bytes all come from the same patch metadata report.
+
 ## Deliver several saved edits together
 
 Suppose edit 4 saved an algorithm's termination proof and edit 7 saved its correctness

@@ -1141,7 +1141,7 @@ fn checked_semantic_intent_evaluation_is_reproducible() {
     );
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
-        &fs::read(root().join("tests/agent-eval/semantic-intent.json")).unwrap(),
+        &fs::read(root().join("tests/agent-eval/semantic-intent-delivery.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(actual, expected);
