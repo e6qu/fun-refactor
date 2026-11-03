@@ -88,7 +88,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$PREFIX-project-changes-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git add --sparse "tests/agent-eval/results/$PREFIX-project-changes-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: recheck familiar project changes after release integration'
           git push origin "HEAD:refs/heads/$BRANCH"
       - uses: actions/upload-artifact@v7

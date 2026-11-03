@@ -140,6 +140,13 @@ class ShardTests(unittest.TestCase):
             git('checkout', '--force', 'HEAD')
             self.assertEqual(task.read_text(), 'required shared tasks')
             self.assertFalse((root / 'tests/agent-eval/results/unneeded').exists())
+            record = root / 'tests/agent-eval/results/new-measurement/result.json'
+            record.parent.mkdir(parents=True)
+            record.write_text('checked hosted output')
+            git('add', '--sparse', '--force', record.relative_to(root).as_posix())
+            self.assertEqual(git('diff', '--cached', '--name-only', text=True).stdout.splitlines(),
+                             [record.relative_to(root).as_posix()])
+            self.assertFalse((root / 'tests/agent-eval/results/unneeded').exists())
 
     def test_historical_audit_uses_original_checker_from_a_partial_clone_and_cleans_up(self):
         spec = importlib.util.spec_from_file_location('historical_index_audit',
