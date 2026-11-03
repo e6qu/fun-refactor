@@ -144,18 +144,19 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1'
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
-      - name: Fetch the explicit current replay and its original receipt
+      - name: Fetch the current replay, its original result and declared receipt
         run: |
           python3 -B - <<'PY'
           import json, subprocess
           from pathlib import Path
           catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
-          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
-          path = Path(entry['path'])
-          assert path.resolve().is_relative_to(Path.cwd())
-          subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/',
-              '/tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json'],
-              check=True, timeout=60)
+          paths = {'/tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json'}
+          for name in ('current-project-changes', 'project-changes'):
+              entry, = [row for row in catalog['evidence'] if row['id'] == name]
+              path = Path(entry['path'])
+              assert path.resolve().is_relative_to(Path.cwd())
+              paths.add('/' + path.parent.as_posix() + '/')
+          subprocess.run(['git', 'sparse-checkout', 'add', *sorted(paths)], check=True, timeout=60)
           PY
       - name: Build both current checker implementations
         run: |
