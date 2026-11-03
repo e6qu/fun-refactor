@@ -141,15 +141,13 @@
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-index-resolution/result.json",
-      "changed_sources": [
-        "tools/audit-historical-index-resolution.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-03-bounded-index-audit-index-resolution/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-bounded-index-audit-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source."
     },
     {
@@ -216,9 +214,9 @@
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-03-bounded-proof-delivery-text-package-recheck",
       "changed_sources": [],
-      "freshness": "unknown",
+      "freshness": "current",
       "id": "original-package-questions",
-      "integrity": "missing",
+      "integrity": "checked",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-11-03-bounded-proof-delivery-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
@@ -439,15 +437,13 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 3,
+      "demonstrated": 4,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [
-        "B.repository-flow"
-      ],
+      "remaining": [],
       "state": "open",
       "total": 4
     },
@@ -657,9 +653,7 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: missing evidence"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -703,7 +697,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
