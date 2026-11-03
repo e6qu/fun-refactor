@@ -450,8 +450,8 @@ def record_opencode_accounting(report, binary, session, project, env, output, pr
     observed = verify_export(saved, profile, session, events)
     tasks.save(output / 'session-export.json', saved)
     report['usage']['exported'] = observed
-    report['session_accounting'] = {'status': 'completed', 'exported': True}
-    if observed['outcome'] != 'succeeded':
+    report['session_accounting'] = {'status': 'completed' if observed['usage_complete'] else 'incomplete', 'exported': True}
+    if observed['outcome'] != 'succeeded' or not observed['usage_complete']:
         report['status'] = 'failed'
 
 

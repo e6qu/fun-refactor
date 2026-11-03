@@ -26,22 +26,28 @@ One also receives a short finish card. Test saving both proofs, checking the pac
 and delivering both saved edits in one root `change.patch`. The clean receiving
 project must accept that patch; a correct working file is insufficient.
 
-Keep this diagnostic in one PR with its implementation, independent controls,
-examples and tracking. The fixed plan has twelve unstarted slots and keeps the
-existing 150-second complete attempt limit. Live calls remain disabled. Hosted
-controls now pass for both setups, including incomplete delivery and timing
-rejections. The [retained summary](../tests/agent-eval/proof-delivery/qualification/summary.json)
-records zero model calls. Next, qualify the exact local native clients, assisted task
-archive, resource observer and session accounting. Freeze those identities before
-any paid call. Do not run a delivery attempt under an old proof-writing study ID.
-This is assisted delivery, not proof discovery, and cannot close M3.
+Continue on `improve/native-proof-delivery`, [PR #597](https://github.com/e6qu/fun-refactor/pull/597).
+All twelve `M3-delivery` slots ran once after
+[fresh hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41636379313)
+and six complete local checks. The tools and inputs stayed fixed during the calls.
+[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41645916940)
+accepted eleven patches. The [complete results](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
+retain five complete successes, six incomplete-accounting failures and one Kimi
+timeout without a patch. Do not rerun a slot. Both proofs were supplied; M3 stays open.
 
-Continue on `improve/native-proof-delivery`. The shared runner now distinguishes
-`M3-delivery`. Require six complete local checks, one per profile and setup, with
-128 MiB client-state headroom. Freeze all tools and inputs before the twelve
-fixed slots; then independently grade every patch on GitHub and retain every
-outcome. Keep the complete diagnostic together in this PR. Prepared protocols
-cannot launch a client; only an admitted execution plan enables calls.
+The six affected OpenCode sessions have a finished final reply in the saved
+session but no matching final usage event in the JSON stream. The exporter already
+refuses complete usage for them. The runner and native admission now reject this
+mismatch immediately, including duplicate events that could conceal a missing one.
+The original native statuses remain unchanged. No missing tokens were inferred.
+Luna completed both setups twice; the GLM/Kimi guidance comparison is unusable.
+The finish card has no established success advantage. Keep list reversal reserved.
+
+Finish the final-head CI and mark this PR ready while leaving it unmerged.
+Before another OpenCode comparison, reproduce and resolve the final-event omission
+with no model access and qualify the exact client. Then return to the original
+page-count proof obstacle under the unchanged 150-second limit. The roadmap owns
+the remaining M3 completion conditions. Prepared protocols still cannot launch calls.
 
 ## What the merged proof work established
 

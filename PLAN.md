@@ -115,29 +115,37 @@ The implementation and scripted controls now pass:
 
 All nineteen affected collection groups passed and their current records are retained.
 The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760)
-passed all 92 jobs before merge. The scripted checks establish tool behavior. No new model
-attempts have run, and we have measured no agent success gain.
+passed all 92 jobs before merge. Those scripted checks establish tool behavior.
 
-**Current work: [deliver two supplied GCD proofs](tests/agent-eval/proof-delivery/README.md).**
-Give both setups the same correct drafts. Compare the shared skill alone with
-the shared skill plus a short finish card. The fixed plan has twelve unstarted
-slots: three agents, two setups, two repetitions. Keep the complete 150-second
-limit. Admit the exact local clients
-and complete accounting before freezing live identities. Live calls stay disabled
-until those checks pass. No original slot may be reopened.
-This tests finishing supplied work, not finding a proof. It cannot close M3.
+**Current result: [delivery of supplied GCD proofs](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md).**
+All twelve fixed slots ran once after fresh hosted qualification and six local
+scripted checks. Independent GitHub checking accepted all eleven delivered patches.
+Five attempts met every completion requirement. Six completed OpenCode sessions
+omitted their final response's token record from the JSON stream; one Kimi attempt
+timed out without exporting a patch. Both proofs and the package had passed in
+that timeout. Preserve all seven failures and the original 150-second limit.
 
-The [hosted delivery controls](tests/agent-eval/proof-delivery/qualification/summary.json)
-passed both setups and rejected incomplete and invalid delivery. Timing controls
-use synthetic observations. The native runner now has a separate `M3-delivery`
-study. Require all six complete local checks: three profiles under both setups.
-Bind the exact clients, fr and Lean before enabling the twelve fixed slots.
-Keep qualification, attempts, independent grades and tracking in this PR.
-The earlier hosted results alone cannot admit paid attempts.
+Luna completed both repetitions with and without the finish card. OpenCode's
+incomplete accounting prevents a reliable GLM/Kimi comparison. Do not adopt the
+card as a measured improvement or start a transfer test. Both setups received
+correct proofs; this comparison cannot close M3 or measure proof discovery.
 
-After a complete, independently graded delivery diagnostic, use its fixed decision
-rule to choose the next task. Do not add graph search or rerun the full study
-without a demonstrated obstacle that the proposed change addresses.
+**Next work, in order:**
+
+1. Require one matching native usage record per completed OpenCode response,
+   including the final reply. Missing or duplicate records must fail immediately.
+   Reproduce the missing final record without a model call.
+   Before a new OpenCode study, qualify an exact client whose JSON stream and saved session agree.
+   Do not reconstruct missing usage or reopen these twelve slots.
+2. Review the original page-count failure against the unchanged complete claim.
+   Use no-model controls to distinguish choosing a division fact from applying it
+   with the wrong types. The next proposed change must name that obstacle and a
+   fixed prediction before requesting another comparison.
+3. Finish M3's existing language examples, numeric proofs and source/model checks
+   together in its milestone PR. A familiar GCD delivery cannot replace them.
+
+Do not add graph search or repeat the full study without a demonstrated obstacle
+that the proposed change addresses.
 
 Do not repeat the full M3 comparison to seek a passing result. A successful
 control or a familiar algorithm cannot replace the missing page-count proofs.

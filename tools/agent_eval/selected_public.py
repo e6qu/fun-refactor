@@ -326,8 +326,7 @@ def accept_checks(data, checked_path, run):
     checked = json.loads(checked_path.read_text())
     milestone = summary['study']
     require(milestone in PROOF_STUDIES | {'M2'}, 'choose the explicit public study')
-    count = {'M2': 48, 'M3': 36, 'M3-feedback': 8, 'M3-construction': 4, 'M3-page-count': 4, 'M3-facts': 8,
-             'M3-algorithm-facts': 8, 'M3-algorithm-presentation': 12}[milestone]
+    count = len(local.prepare(local.ROOT, milestone)['attempts'])
     require(checked['passed'] is True and checked[f'all_{count}_checked'] is True and checked['checked_attempts'] == count and
             checked['core_checker_sha256'] == summary['core_checker_sha256'] and
             set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'check every original submission')

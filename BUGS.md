@@ -5,6 +5,20 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Merged repairs and remaining limits
 
+The [supplied-proof delivery review](tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
+found six OpenCode2 2.0.32 sessions whose saved final response has token counts but
+whose JSON stream omits that final usage event. Correct patches from those sessions
+remain accepted patches; their complete attempts remain failed. The exporter already
+rejects incomplete usage. The local runner and native admission now reject missing
+or duplicate response accounting immediately, rather than initially reporting native
+completion. Resolving the client's omitted final event requires a no-model reproducer
+and qualification before new OpenCode comparisons. No missing usage is reconstructed.
+
+The same review retains one Kimi timeout after both saved proofs and the package
+passed. It used unsupported `fr history --limit` commands instead of exporting the
+saved IDs. Fr correctly rejected that flag. The failure does not justify a longer
+deadline or adding an unused option to fr.
+
 These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).

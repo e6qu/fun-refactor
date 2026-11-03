@@ -229,7 +229,8 @@ def child(args):
         if profile['client'] == 'opencode2':
             session = argv[argv.index('--session') + 1]
             saved = export_session(args.client, session, project, env, args.output, timeout_seconds=10)
-            require(verify_export(saved, profile, session, events)['outcome'] == 'succeeded', 'native accounting failed')
+            observed = verify_export(saved, profile, session, events)
+            require(observed['outcome'] == 'succeeded' and observed['usage_complete'], 'native accounting failed')
         else:
             require(profile['client'] == 'codex' and local.usage('codex', events)['complete_turns'] == 1,
                     'Codex admission requires a completed native turn')

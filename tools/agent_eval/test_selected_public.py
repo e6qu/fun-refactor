@@ -170,6 +170,25 @@ class SelectedPublicTests(unittest.TestCase):
             self.assertNotIn(canary, (destination / 'summary.json').read_text())
             if milestone == 'M3-delivery':
                 self.assertTrue(all(row['delivery_capture_bound_seconds'] is None for row in result['attempts']))
+                checks = {'passed': True, 'all_12_checked': True, 'checked_attempts': 12,
+                          'core_checker_sha256': result['core_checker_sha256'], 'control_policy': 'frozen',
+                          'image': 'qualified-image', 'attempts': {row['id']: {
+                              'status': 'checked', 'native_status': 'failed', 'patch_sha256': None,
+                              'outcome': 'failed', 'patch_accepted': False, 'check_stage': 'missing-patch',
+                              'undo_exact': False, 'redo_exact': False} for row in result['attempts']}}
+                result['controls']['private_image'] = 'qualified-image'
+                (destination / 'summary.json').write_text(json.dumps(result))
+                checked_path = root / 'checked.json'
+                checked_path.write_text(json.dumps(checks))
+                run = 'https://github.com/e6qu/fun-refactor/actions/runs/123'
+                public.accept_checks(destination, checked_path, run)
+                accepted = json.loads((destination / 'summary.json').read_text())
+                self.assertTrue(all(row['independent_outcome'] == 'failed' and
+                                    row['independent_check_run'] == run for row in accepted['attempts']))
+                del checks['attempts'][result['attempts'][-1]['id']]
+                checked_path.write_text(json.dumps(checks))
+                with self.assertRaisesRegex(ValueError, 'every original submission'):
+                    public.accept_checks(destination, checked_path, run)
             self.assertEqual([path.name for path in destination.rglob('*') if path.is_file()], ['summary.json'])
             if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                 self.assertIsNone(result['attempts'][0]['proof_observations']['first_passing_proof_seconds'])

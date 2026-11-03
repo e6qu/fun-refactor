@@ -46,7 +46,7 @@ Checking the agent's working file alone cannot establish correct delivery.
 
 ## The fixed comparison
 
-The [requirements](requirements.json) declare twelve unstarted slots: Luna Fast,
+The [requirements](requirements.json) fixed twelve slots before the calls: Luna Fast,
 GLM Flash and Kimi K3, two repetitions with each of two setups. The exact profiles
 come from the existing [model settings](../proof-writing/profiles.json).
 
@@ -96,8 +96,8 @@ passed both supplied-proof setups and every rejection control. Both setups
 delivered the identical independently accepted patch. The retained
 [summary](qualification/summary.json), [protocol](qualification/protocol.json) and
 [GitHub source](qualification/source.json) preserve those observations. All twelve
-live slots remain unstarted. Recheck the recorded input fingerprints before using
-this qualification to admit a local attempt.
+live slots were unstarted at that qualification. Those records remain historical;
+the later complete results below use a fresh qualification and native admission.
 
 These retained records describe the earlier preparation code. The native runner
 now recognizes **`M3-delivery`** as a separate study. A prepared protocol keeps
@@ -181,3 +181,28 @@ The collector copies the patch before its guarded process exits. Its completed
 attempt time therefore gives an upper bound on patch capture. Scoring uses that
 bound and the completed accounting receipt. The exact first patch-creation time
 can remain unknown; a guessed stage time cannot turn a failed attempt into success.
+
+## Complete results
+
+All twelve fixed attempts ran once. The
+[independent GitHub grader](https://github.com/e6qu/fun-refactor/actions/runs/41645916940)
+accepted all eleven delivered patches. The
+[report](../proof-algorithms/local-results/M3-delivery/README.md) retains every outcome.
+
+| Agent | Accepted patches | Complete attempts: shared skill / finish card |
+| --- | ---: | --- |
+| Luna Fast | 4 / 4 | 2 / 2 and 2 / 2 |
+| GLM Flash | 4 / 4 | 1 / 2 and 0 / 2 |
+| Kimi K3 | 3 / 4 | 0 / 2 and 0 / 2 |
+
+Six OpenCode sessions finished and delivered correct patches, but their JSON
+streams omitted the final response's usage record. The saved sessions contain it.
+Complete usage therefore remains unknown under the frozen rule; these six attempts
+stay failed. One Kimi shared-skill attempt saved both proofs and passed the package
+check, then spent its remaining time on an unsupported history flag and delivered
+no patch. The deadline was not extended.
+
+The [review](../proof-algorithms/local-results/M3-delivery/review.md) explains the
+accounting failure, runner repair and next checks. Luna's result is a tie; the
+GLM/Kimi comparison cannot support a guidance conclusion. No profile qualifies for
+a delivery transfer test. Both proofs were supplied, and M3 remains open.

@@ -1,0 +1,27 @@
+{
+  "measured_source_commit": "3ab24118120ed70605ee782a5bdcf2b83e20e651",
+  "qualification_run": "https://github.com/e6qu/fun-refactor/actions/runs/41636379313",
+  "qualification_source_commit": "cfe6f33b8d989fb185ab147605e93b2f970dcaf1",
+  "grading_source_commit": "0a48eece93c42d2cdc67700ad5296fbabc262104",
+  "independent_grade_run": "https://github.com/e6qu/fun-refactor/actions/runs/41645916940",
+  "execution_plan_sha256": "7172f572a48c9c3d6c57d53e95e7344d3a98813ed6bbc221151c65ef76198168",
+  "original_slots": 12,
+  "live_attempts_started": 12,
+  "repeated_slots": 0,
+  "native_admission": {
+    "passed_checks": 6,
+    "provider_calls": 0,
+    "details": "summary.json native_admission"
+  },
+  "independent_checks_sha256": "3ebcc71d61fa7fd993c7afae9a58eacb5c3e5cf4460de92071d14d18b96bf3dc",
+  "calibration_failures": [
+    {
+      "profile": "codex-luna-fast",
+      "setup": "shared-skill",
+      "elapsed_seconds": 0.4434235839999019,
+      "live_model_calls": 0,
+      "cause": "The selected Python lacked the already locked scripted-server package; preflight now rejects this before native startup."
+    }
+  ],
+  "publication": "Reviewed summaries and submitted patches only. Raw execution records stay private."
+}
