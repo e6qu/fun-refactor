@@ -76,6 +76,7 @@ jobs:
           agent_eval.test_algorithm_results agent_eval.test_selected_public
           agent_eval.test_selected_guarded
           agent_eval.test_algorithm_admission
+          agent_eval.test_proof_delivery
           agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2
@@ -101,6 +102,19 @@ jobs:
         run: >-
           python3 -B -m agent_eval.proof_algorithms --fr target/debug/fr
           --output "$RUNNER_TEMP/algorithm-controls" --native "$RUNNER_TEMP/algorithm-native/summary.json"
+      - name: Save and deliver supplied proofs and reject incomplete delivery
+        run: >-
+          python3 -B -m agent_eval.proof_delivery --fr target/debug/fr
+          --qualification "$RUNNER_TEMP/algorithm-controls" --output "$RUNNER_TEMP/proof-delivery"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: proof-delivery-controls
+          path: |
+            ${{ runner.temp }}/proof-delivery/summary.json
+            ${{ runner.temp }}/proof-delivery/protocol.json
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@v7
         if: always()
         with:

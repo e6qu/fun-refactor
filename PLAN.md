@@ -98,7 +98,7 @@ fixing Go's checkout timeout within its existing five-minute deadline.
 The missing Mac runner check passed on a targeted retry, on the same platform.
 Reviewed summaries and patches are public; raw transcripts remain private.
 
-**PR #593: save checked proofs and deliver their edits together.**
+**Merged in PR #593: save checked proofs and deliver their edits together.**
 
 The implementation and scripted controls now pass:
 
@@ -113,17 +113,24 @@ The implementation and scripted controls now pass:
   study outcome. The metadata comparison retains its earlier measurement and
   records the extra 265 response bytes on the same one-edit fixture.
 
-All nineteen affected collection groups passed. This PR retains their current records.
-The PR includes refreshed tracking pages and must pass every required check on
-its final commit. The scripted checks establish tool behavior. No new model
+All nineteen affected collection groups passed and their current records are retained.
+The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760)
+passed all 92 jobs before merge. The scripted checks establish tool behavior. No new model
 attempts have run, and we have measured no agent success gain.
 
-After this PR, define one delivery-only diagnostic from the observed Kimi failures.
-Start with already checked GCD proofs and ask agents to save both and deliver the
-requested patch. Check correct delivery, incomplete delivery, wrong paths and
-late completion. Fix the inputs and decision rule before paid attempts.
-This tests finishing existing work with assistance; it does not measure unaided
-proof construction.
+**Current work: [deliver two supplied GCD proofs](tests/agent-eval/proof-delivery/README.md).**
+Give both setups the same correct drafts and compare the shared skill alone with
+the shared skill plus a short finish card. The fixed plan has twelve unstarted
+slots: three agents, two setups, two repetitions. Keep the complete 150-second
+limit. First qualify both complete scripted paths, incomplete patches, wrong
+paths, changed settings and late completion. Then admit the exact local clients
+and complete accounting before freezing live identities. Live calls stay disabled
+until those checks pass. No original slot may be reopened.
+This tests finishing supplied work, not finding a proof. It cannot close M3.
+
+After a complete, independently graded delivery diagnostic, use its fixed decision
+rule to choose the next task. Do not add graph search or rerun the full study
+without a demonstrated obstacle that the proposed change addresses.
 
 Do not repeat the full M3 comparison to seek a passing result. A successful
 control or a familiar algorithm cannot replace the missing page-count proofs.

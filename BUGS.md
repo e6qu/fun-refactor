@@ -3,10 +3,13 @@
 Use this page when fr refuses a command, gives a wrong answer, or cannot finish your task.
 The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and an incorrect answer need different reports.
 
-## Repairs under review
+## Merged repairs and remaining limits
 
-The current work is in [draft PR #592](https://github.com/e6qu/fun-refactor/pull/592),
-on `research/proof-guidance`. The interrupted algorithm batch exposed these defects:
+The repairs from [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
+[PR #593](https://github.com/e6qu/fun-refactor/pull/593) are merged.
+PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
+The interrupted algorithm batch exposed these defects; their original failed
+attempts remain failed after a repair:
 
 | Problem | Repair and remaining check |
 | --- | --- |

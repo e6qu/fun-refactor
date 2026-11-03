@@ -90,6 +90,11 @@ opening a file alone is not a successful proof step.
 Keep guides small and available at the relevant goal. Do not load every guide or guess an unmatched case.
 
 A workflow graph could track delivery separately from mathematical reasoning.
+The [supplied-proof delivery diagnostic](../tests/agent-eval/proof-delivery/README.md)
+now defines that narrower comparison. Both setups get correct drafts; one adds a
+short finish card. It uses the existing 150-second complete limit and keeps live
+calls disabled pending full native admission. Scripted controls cannot establish
+an agent success gain or a benefit from graph presentation.
 The earlier repair diagnostic recorded a GLM proof passing at 66 seconds and its package check at 86 seconds.
 Repeated work then consumed the remaining time. A clear “proof accepted, now deliver” phase is worth testing.
 Those older instructions had a known defect, so that record does not establish that the current skill still fails.
