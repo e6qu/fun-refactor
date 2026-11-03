@@ -142,7 +142,11 @@ PYTHONPATH=tools:sdk/python/src python3 -B -m agent_eval.algorithm_admission obs
 
 The observer measures outside the CPU throttle; it launches actual work through
 the required guard. Keep the checks serial and use a new private output directory
-each time. Run `finish-card` too, then repeat both setups for `opencode2-glm-flash`
+each time. Keep long-lived tools, receipts and execution plans under the ignored
+`.local-agent-runs/` directory in this workspace. Create it with owner-only access.
+Temporary system directories may disappear between sessions. Delivery projects
+stay beside their explicit execution plan, so both the observer and controller
+measure the same persistent project directory. Run `finish-card` too, then repeat both setups for `opencode2-glm-flash`
 and `opencode2-kimi-k3` with the pinned OpenCode2 executable. Each summary binds the
 study, setup, client, fr, Lean executables, task archive, checking code and guard.
 It must show both saved proofs, package success, saved-edit export, patch replay

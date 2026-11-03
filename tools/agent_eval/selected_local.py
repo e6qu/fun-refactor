@@ -481,6 +481,12 @@ def retain_result(project, output, report):
             report['status'] = 'failed'
 
 
+def project_parent(plan_path, milestone, plan_sha256, attempt_id):
+    if milestone == DELIVERY_STUDY:
+        return plan_path.parent / 'projects' / attempt_id
+    return Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + plan_sha256[:12]) / attempt_id
+
+
 def attempt(plan_path, attempt_id):
     entered, entered_at, awake_started = elapsed_time(), time.time(), time.monotonic()
     require(sys.platform == 'darwin', 'run the requested local CLI attempts on macOS')
@@ -525,7 +531,7 @@ def attempt(plan_path, attempt_id):
     checking_inputs = {}
     delivery_inputs = {}
     try:
-        project = Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + value['sha256'][:12]) / attempt_id / 'project'
+        project = project_parent(plan_path, milestone, value['sha256'], attempt_id) / 'project'
         seed = value['seeds'][row['task']]
         unpack(Path(seed['archive']), seed['receipt'], project)
         tasks.comparison_grade.BASE.initialize(project)

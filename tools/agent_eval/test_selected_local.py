@@ -19,6 +19,13 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_delivery_projects_and_private_records_share_the_explicit_persistent_root(self):
+        plan = Path('/project/.local-agent-runs/delivery/plan.json')
+        parent = local.project_parent(plan, 'M3-delivery', 'a' * 64, 'fixed-slot')
+        self.assertEqual(parent, plan.parent / 'projects/fixed-slot')
+        self.assertTrue(parent.is_relative_to(plan.parent))
+        self.assertEqual(local.project_parent(plan, 'M3-algorithm-facts', 'a' * 64, 'old-slot'),
+                         Path('/private/tmp/fr-m3-algorithm-facts-aaaaaaaaaaaa/old-slot'))
     def test_delivery_prompt_keeps_both_saved_edits_and_supplied_answers_explicit(self):
         for setup in ('shared-skill', 'finish-card'):
             prompt = local.prompt('euclid', setup, {'lake': {'path': '/pinned/lake'}}, 'M3-delivery')

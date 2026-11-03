@@ -70,7 +70,7 @@ def attempt(plan_path, attempt_id):
     require(attempt_id in {row['id'] for row in plan['schedule']['attempts']}, 'unknown frozen attempt')
     monitor = plan_path.parent / 'attempt-monitors' / attempt_id
     monitor.mkdir(parents=True, exist_ok=False)
-    project_parent = Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + plan['sha256'][:12]) / attempt_id
+    project_parent = local.project_parent(plan_path, milestone, plan['sha256'], attempt_id)
     project_parent.mkdir(parents=True, exist_ok=False)
     command = ['python3', str(GUARD), sys.executable, '-B', '-m', 'agent_eval.selected_local',
                'attempt', '--plan', str(plan_path), '--id', attempt_id]
