@@ -59,7 +59,8 @@ def checkout_plan(kind, index):
     sources = [path.read_text() for path in sorted(paths)]
     guides = 'test:docs_links' in selected
     catalog_audit = 'test:roadmap_outcomes' in selected
-    candidates = set((ROOT / 'tools').glob('*.py')) | set((ROOT / 'tools/agent_eval').glob('*.py'))
+    candidates = {path for directory in ('tools', 'tools/agent_eval', 'tests/agent-eval')
+                  for path in (ROOT / directory).glob('*.py')}
     tokens = set(re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]*', '\n'.join(sources)))
     pending = {path for path in candidates if path.name in tokens or path.stem in tokens}
     visited = set()

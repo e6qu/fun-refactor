@@ -21,7 +21,8 @@ class ShardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             files = {
-                'tests/one.rs': '"tools/needed.py"; retained::report("flow-facts")',
+                'tests/one.rs': '"tools/needed.py"; "tests/agent-eval/test_roadmap_status.py"; retained::report("flow-facts")',
+                'tests/agent-eval/test_roadmap_status.py': 'RECORD = "tests/agent-eval/results/roadmap-test-history"',
                 'tests/two.rs': '"tests/agent-eval/results/unused-history"',
                 'tools/needed.py': 'import utility\nFIXTURE = "tests/agent-eval/fixture"\nREGISTRY = "tests/agent-eval/registry.json"',
                 'tools/utility.py': 'RECORD = "tests/agent-eval/results/needed-history"',
@@ -46,8 +47,8 @@ class ShardTests(unittest.TestCase):
                  patch.object(shards.subprocess, 'check_output', return_value=json.dumps(metadata)):
                 plan = shards.checkout_plan('native', 0)
                 self.assertEqual(shards.result_inputs(
-                    ['needed-history', 'fixture-history', 'registry-history', 'current-flow', 'unused-history'], plan['sources']),
-                    ['current-flow', 'fixture-history', 'needed-history', 'registry-history'])
+                    ['needed-history', 'fixture-history', 'registry-history', 'current-flow', 'unused-history', 'roadmap-test-history'], plan['sources']),
+                    ['current-flow', 'fixture-history', 'needed-history', 'registry-history', 'roadmap-test-history'])
                 sdk = shards.checkout_plan('sdk', 0)
                 self.assertEqual(shards.result_inputs(
                     ['needed-history', 'fixture-history', 'registry-history', 'unused-history', 'current-contract'], sdk['sources']),
