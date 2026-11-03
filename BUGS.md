@@ -73,6 +73,9 @@ so patch replay can read its tasks after loading the recorded source revision.
 CI checks old indexing measurements with their original checker in a temporary
 Git checkout. Git fetches the required files together.
 The regression tests build small Git repositories, switch revisions and check the original files.
+The indexing collector also spent eleven minutes fetching all Git history before
+its checks timed out. It now fetches the current checkout and one fixed source snapshot.
+The collector, retention and package replay jobs keep their original time limits.
 
 Repeated native checks failed before any client ran because GitHub returned HTTP
 500 for the pinned Codex companion download. The installer now retries that same

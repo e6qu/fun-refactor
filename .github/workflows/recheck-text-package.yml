@@ -30,6 +30,18 @@ jobs:
       PREFIX: ${{ inputs.prefix }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Fetch the original package records and roadmap inputs
+        run: |
+          python3 -B - <<'PY'
+          import runpy
+          runpy.run_path('tools/ci-shards.py')['checkout_inputs'](
+              {'sources': [], 'guides': False, 'catalog': True})
+          PY
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
