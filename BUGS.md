@@ -39,10 +39,14 @@ pass. New records replace the stale current entries without changing original re
 
 An earlier [scripted native check](https://github.com/e6qu/fun-refactor/actions/runs/41651295817)
 failed four OpenCode exchanges but retained only a generic outer error.
-Its precise inner cause remains unknown. CI now retains bounded stderr and all
-scripted exchange diagnostics. The subsequent
-[complete qualification](https://github.com/e6qu/fun-refactor/actions/runs/41654594443)
-passes; the earlier failure remains recorded and cannot count as a successful check.
+CI now retains bounded stderr and all scripted exchange diagnostics.
+A [later failure](https://github.com/e6qu/fun-refactor/actions/runs/41661802399)
+shows that the server can listen before its local plugin service exposes agents.
+It returns a specific 503 response before any model or Lean call.
+The agent-readiness loop now waits for that state within its original deadline.
+It rejects authentication errors, unrelated 503 responses and malformed replies immediately.
+A persistent startup failure still expires; no timeout increased.
+The earlier lost inner error remains unknown, and every failed check stays recorded.
 
 These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
