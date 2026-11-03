@@ -119,7 +119,7 @@ passed all 92 jobs before merge. The scripted checks establish tool behavior. No
 attempts have run, and we have measured no agent success gain.
 
 **Current work: [deliver two supplied GCD proofs](tests/agent-eval/proof-delivery/README.md).**
-Give both setups the same correct drafts and compare the shared skill alone with
+Give both setups the same correct drafts. Compare the shared skill alone with
 the shared skill plus a short finish card. The fixed plan has twelve unstarted
 slots: three agents, two setups, two repetitions. Keep the complete 150-second
 limit. First qualify both complete scripted paths, incomplete patches, wrong

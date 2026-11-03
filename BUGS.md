@@ -5,8 +5,8 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Merged repairs and remaining limits
 
-The repairs from [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
-[PR #593](https://github.com/e6qu/fun-refactor/pull/593) are merged.
+These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
+[PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
 The interrupted algorithm batch exposed these defects; their original failed
 attempts remain failed after a repair:
