@@ -1,0 +1,4269 @@
+{
+  "assignment_control": {
+    "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+    "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+    "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+    "implicit_exceptions": false,
+    "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+    "schema": "fr-scalar-assignment"
+  },
+  "assumptions": [
+    "scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.",
+    "branch feasibility unchecked",
+    "external rules are caller-supplied contracts.",
+    "Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.",
+    "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.",
+    "Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."
+  ],
+  "budget": {
+    "call_depth": 8,
+    "response_bytes": 1048576,
+    "steps": 4096,
+    "used": 77
+  },
+  "call_binding": {
+    "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+    "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+    "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+    "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+    "evaluation": "Evaluate explicit values once in source order before binding.",
+    "implicit_exceptions": false,
+    "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+    "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+    "schema": "fr-call-binding",
+    "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+  },
+  "claim": "possible-value-propagation",
+  "complete": true,
+  "completion": {
+    "may_raise": true,
+    "normal_return": true
+  },
+  "context": "html",
+  "context_basis": "frcb1:7cf2af98acb882c0c5e1809e518b5293caa492ecd334ddf3710d10f88bf2004c",
+  "control_flow": {
+    "boltons/mathutils.py::clamp": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "raise",
+          "to": 1
+        },
+        {
+          "from": 4,
+          "rule": "true",
+          "to": 3
+        },
+        {
+          "from": 4,
+          "rule": "false",
+          "to": 2
+        },
+        {
+          "from": 5,
+          "rule": "next",
+          "to": 4
+        },
+        {
+          "from": 6,
+          "rule": "entry",
+          "to": 5
+        }
+      ],
+      "entry": 6,
+      "exceptional_exit": 1,
+      "function": "boltons/mathutils.py::clamp",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+              "id": "fro1:691cf16a7b2013f1b8a7c767d71a0dd0586e8b205efa2abac5c1be7ef288be89",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 37,
+                    "line": 69
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 69
+                  }
+                },
+                "span": {
+                  "end": 2536,
+                  "start": 2504
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "raise",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+              "id": "fro1:459d5c8bdeac80a8110dc180030397714ad23c67e338a432ea946ff393ab5862",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 43,
+                    "line": 68
+                  },
+                  "start": {
+                    "col": 9,
+                    "line": 67
+                  }
+                },
+                "span": {
+                  "end": 2499,
+                  "start": 2392
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 4,
+          "operation": "condition",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+              "id": "fro1:a4529f2ca058d72aaaf046af5b697cfdc820322a72ca33847168c7e3bf077e92",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 21,
+                    "line": 66
+                  },
+                  "start": {
+                    "col": 8,
+                    "line": 66
+                  }
+                },
+                "span": {
+                  "end": 2382,
+                  "start": 2369
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 5,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+              "id": "fro1:3fd03966645e4bf86606622862c3c391252168636884e442e117fd0e5928840d",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 8,
+                    "line": 65
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 41
+                  }
+                },
+                "span": {
+                  "end": 2361,
+                  "start": 1751
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 6,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+              "id": "fro1:2f005ef5946b4f17d1ea2b4eb4e66feed36547ff4757aae0cb535c5848e47cba",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 37,
+                    "line": 69
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 40
+                  }
+                },
+                "span": {
+                  "end": 2536,
+                  "start": 1692
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    },
+    "moved_question/adapter.py::renamed_entry": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "next",
+          "to": 2
+        },
+        {
+          "from": 4,
+          "rule": "next",
+          "to": 3
+        },
+        {
+          "from": 5,
+          "rule": "entry",
+          "to": 4
+        }
+      ],
+      "entry": 5,
+      "exceptional_exit": 1,
+      "function": "moved_question/adapter.py::renamed_entry",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+              "id": "fro1:cecd85f527300ebefcfd1ea0b64624f495184c7d8d4391717089133d41482c74",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 45,
+                    "line": 6
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 6
+                  }
+                },
+                "span": {
+                  "end": 150,
+                  "start": 110
+                }
+              },
+              "path": "moved_question/adapter.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+              "id": "fro1:a9132ff14cde3b91318afc7b774e239ee6649eafc7c5374f2323c266aec30d0b",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 14,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 5
+                  }
+                },
+                "span": {
+                  "end": 105,
+                  "start": 96
+                }
+              },
+              "path": "moved_question/adapter.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 4,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+              "id": "fro1:91cc244506d785314eaab34eb75dddb940c422faf0663748c9d5797c5fdd9033",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 25,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 91,
+                  "start": 71
+                }
+              },
+              "path": "moved_question/adapter.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 5,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+              "id": "fro1:51ba3e79d208a236d709f58096925d1f0968d632ce93b36886ab22d1682d46e0",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 45,
+                    "line": 6
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 3
+                  }
+                },
+                "span": {
+                  "end": 150,
+                  "start": 46
+                }
+              },
+              "path": "moved_question/adapter.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    }
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 71,
+    "manifests": {
+      "discovered": 1,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 1,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 7644,
+    "unsupported_files": 38
+  },
+  "cutoffs": [],
+  "effect_limits": [
+    {
+      "kind": "implicit-exception",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:803bf2926047eb45b34885daa08754ccc82a11c877f4a699be0bbd8b2d820210",
+        "location": {
+          "range": {
+            "end": {
+              "col": 42,
+              "line": 68
+            },
+            "start": {
+              "col": 26,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2498,
+            "start": 2409
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "unchecked-effect"
+      },
+      "reason": "The scalar model follows values through this operation; it does not establish that arithmetic finishes without an exception."
+    }
+  ],
+  "events": [
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:b9e62b6d08880d287e97bae1f0a4ea5141b87cbcb222ceaa1b123c10814d5cc2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 46
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:306c26a1f8f7130326b6dba0b381878841e5745cf4804ad493390eba599ff5a1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 25,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 71
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:d93d73d31e21170abce91a7d0944db65517c65365fe10fd156595f3304bd275b",
+        "location": {
+          "range": {
+            "end": {
+              "col": 25,
+              "line": 4
+            },
+            "start": {
+              "col": 13,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 79
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:ca1af2e8c68882cb449267d09eca6c57a29ad4f46fe369040895cb38adec9943",
+        "location": {
+          "range": {
+            "end": {
+              "col": 10,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 76,
+            "start": 71
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:ec7e3613ecf0d2b5001a3cc3f940482f826a7a718077a333224cd1b5e4f03ae4",
+        "location": {
+          "range": {
+            "end": {
+              "col": 14,
+              "line": 5
+            },
+            "start": {
+              "col": 5,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 96
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:be0d7ff7131df90de4efd492033adf00d622291f6c3b2449b921032e5e6c485e",
+        "location": {
+          "range": {
+            "end": {
+              "col": 14,
+              "line": 5
+            },
+            "start": {
+              "col": 13,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 104
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:fdcaadc18fd077bedd5865916444c6ae31ec965e361664568a88a8e935973c35",
+        "location": {
+          "range": {
+            "end": {
+              "col": 10,
+              "line": 5
+            },
+            "start": {
+              "col": 5,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 101,
+            "start": 96
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:a465a4fbbf538dc09d3242f74b24bd332d389e75971a392077a06b4aabb4ea97",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 5,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 110
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:9a061adc1782db32a39ca94400225b5344633575d0c7df89d8a34b0a9248fca1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 12,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 117
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:d8fc79961a976bafcc3563922a220b2538fcdf9b30c949c7f8d330ad26e9d221",
+        "location": {
+          "range": {
+            "end": {
+              "col": 44,
+              "line": 6
+            },
+            "start": {
+              "col": 25,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 149,
+            "start": 130
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:7ae066d0b968f4b548456b73cb49936d55931f05b129092684edf7a22fae270d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 36,
+              "line": 6
+            },
+            "start": {
+              "col": 31,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 141,
+            "start": 136
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:d1e3ace7adbe7e3f193d0a5f3b1487413776cbb9fcfc2c5baf572f228fca7ad5",
+        "location": {
+          "range": {
+            "end": {
+              "col": 39,
+              "line": 6
+            },
+            "start": {
+              "col": 38,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 144,
+            "start": 143
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:5af5ed5399918a6af9cf15291d0a172ecdf258fce0e88e34f7c438fa2ce83383",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 6
+            },
+            "start": {
+              "col": 41,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 148,
+            "start": 146
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        6
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:6a92acd1d166620707b30ed33fbb9e62b2516f0e07e52fb135d09b08ddef2bb6",
+        "location": {
+          "range": {
+            "end": {
+              "col": 37,
+              "line": 69
+            },
+            "start": {
+              "col": 1,
+              "line": 40
+            }
+          },
+          "span": {
+            "end": 2536,
+            "start": 1692
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:0e6f3a555226aa3827babcd58ae7798956205d274d44909c3b7cea56b4fdef74",
+        "location": {
+          "range": {
+            "end": {
+              "col": 8,
+              "line": 65
+            },
+            "start": {
+              "col": 5,
+              "line": 41
+            }
+          },
+          "span": {
+            "end": 2361,
+            "start": 1751
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:8b2a997929208b90b0dca2cecdc7e8231da07b9f2aef15cf241d94175512c76c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 8,
+              "line": 65
+            },
+            "start": {
+              "col": 5,
+              "line": 41
+            }
+          },
+          "span": {
+            "end": 2361,
+            "start": 1751
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:94621cdf50efc152e2d4c98f78b4ea38483e025bfb514fac4d987acdee32514f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 66
+            },
+            "start": {
+              "col": 8,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2382,
+            "start": 2369
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:611cbf2b95d7bf58cee660ccda1aa3d6a5f70f66c9f07b13f5804f6298c402bd",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 66
+            },
+            "start": {
+              "col": 8,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2382,
+            "start": 2369
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:e930218ad2f3e6536de7f8266fce916e1cd8994300a78ba9023edba5aa991818",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 66
+            },
+            "start": {
+              "col": 8,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2374,
+            "start": 2369
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:d693484ddc17cc45732397043433e5cd0c0f1ebb683624775c613765a80326f8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 66
+            },
+            "start": {
+              "col": 16,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2382,
+            "start": 2377
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:16ab0967ce541ea7683b8c86bf4f4b629c916f9c0cee40d91cff495b4a22559f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 68
+            },
+            "start": {
+              "col": 9,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2499,
+            "start": 2392
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:f56f96752c2e0c149ae05c1e8ee7c3d9f2ac19b468d063c4d7f0f142071e2fd7",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 68
+            },
+            "start": {
+              "col": 15,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2499,
+            "start": 2398
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:b943677a53f63b29b1426b7992ca56bbcbaa905095f224813c9d44ea6cb19e6d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 42,
+              "line": 68
+            },
+            "start": {
+              "col": 26,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2498,
+            "start": 2409
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:e10518024f53bcd703014fe015a77f3bade31c9274deaf47c2acd5b77bc2a1b6",
+        "location": {
+          "range": {
+            "end": {
+              "col": 73,
+              "line": 67
+            },
+            "start": {
+              "col": 26,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2456,
+            "start": 2409
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:96813e3e4d5a1f7df72f5dde075d91155dd94823aae3e0eb1464ca0417e3a6c7",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 68
+            },
+            "start": {
+              "col": 29,
+              "line": 68
+            }
+          },
+          "span": {
+            "end": 2490,
+            "start": 2485
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:2a869ee00dd1639c4b058e08df5bb6bec17ee3439664e650aec9d282a906e3d9",
+        "location": {
+          "range": {
+            "end": {
+              "col": 41,
+              "line": 68
+            },
+            "start": {
+              "col": 36,
+              "line": 68
+            }
+          },
+          "span": {
+            "end": 2497,
+            "start": 2492
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:46fa8b5a56c2ea7addac8271f6c9d44fff890eb235b5f1e4f73b7ebe0992930d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 37,
+              "line": 69
+            },
+            "start": {
+              "col": 5,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2536,
+            "start": 2504
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:19424e8301fa536e279e8fa60cbcac9f5fc52fccf616fc3f5b46edf4cf5ab28c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 37,
+              "line": 69
+            },
+            "start": {
+              "col": 12,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2536,
+            "start": 2511
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:629785e1239329d4a119d3838d7d5c6d4a5c7379252ca51f08ac2c58a7c96ca3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 29,
+              "line": 69
+            },
+            "start": {
+              "col": 16,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2528,
+            "start": 2515
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:c6476e84ea0a3eb07084527340c76986621d3bbb6c6313ae48a0d0c8d918ec69",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 69
+            },
+            "start": {
+              "col": 20,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2520,
+            "start": 2519
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:b2962173d238e304b1b8a33d298836566bde44ed28a6cfd9adf98e07f921b19a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 28,
+              "line": 69
+            },
+            "start": {
+              "col": 23,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2527,
+            "start": 2522
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:0ff66d0b6958caf28e52918a98622c079da5f4bc8d47d92ccd31cadc690843ec",
+        "location": {
+          "range": {
+            "end": {
+              "col": 36,
+              "line": 69
+            },
+            "start": {
+              "col": 31,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2535,
+            "start": 2530
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:b9e62b6d08880d287e97bae1f0a4ea5141b87cbcb222ceaa1b123c10814d5cc2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 46
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:306c26a1f8f7130326b6dba0b381878841e5745cf4804ad493390eba599ff5a1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 25,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 71
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:d93d73d31e21170abce91a7d0944db65517c65365fe10fd156595f3304bd275b",
+        "location": {
+          "range": {
+            "end": {
+              "col": 25,
+              "line": 4
+            },
+            "start": {
+              "col": 13,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 79
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:ca1af2e8c68882cb449267d09eca6c57a29ad4f46fe369040895cb38adec9943",
+        "location": {
+          "range": {
+            "end": {
+              "col": 10,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 76,
+            "start": 71
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:ec7e3613ecf0d2b5001a3cc3f940482f826a7a718077a333224cd1b5e4f03ae4",
+        "location": {
+          "range": {
+            "end": {
+              "col": 14,
+              "line": 5
+            },
+            "start": {
+              "col": 5,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 96
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:be0d7ff7131df90de4efd492033adf00d622291f6c3b2449b921032e5e6c485e",
+        "location": {
+          "range": {
+            "end": {
+              "col": 14,
+              "line": 5
+            },
+            "start": {
+              "col": 13,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 104
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:fdcaadc18fd077bedd5865916444c6ae31ec965e361664568a88a8e935973c35",
+        "location": {
+          "range": {
+            "end": {
+              "col": 10,
+              "line": 5
+            },
+            "start": {
+              "col": 5,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 101,
+            "start": 96
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:a465a4fbbf538dc09d3242f74b24bd332d389e75971a392077a06b4aabb4ea97",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 5,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 110
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:9a061adc1782db32a39ca94400225b5344633575d0c7df89d8a34b0a9248fca1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 12,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 117
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:d8fc79961a976bafcc3563922a220b2538fcdf9b30c949c7f8d330ad26e9d221",
+        "location": {
+          "range": {
+            "end": {
+              "col": 44,
+              "line": 6
+            },
+            "start": {
+              "col": 25,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 149,
+            "start": 130
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:7ae066d0b968f4b548456b73cb49936d55931f05b129092684edf7a22fae270d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 36,
+              "line": 6
+            },
+            "start": {
+              "col": 31,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 141,
+            "start": 136
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:d1e3ace7adbe7e3f193d0a5f3b1487413776cbb9fcfc2c5baf572f228fca7ad5",
+        "location": {
+          "range": {
+            "end": {
+              "col": 39,
+              "line": 6
+            },
+            "start": {
+              "col": 38,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 144,
+            "start": 143
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:5af5ed5399918a6af9cf15291d0a172ecdf258fce0e88e34f7c438fa2ce83383",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 6
+            },
+            "start": {
+              "col": 41,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 148,
+            "start": 146
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        6
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:6a92acd1d166620707b30ed33fbb9e62b2516f0e07e52fb135d09b08ddef2bb6",
+        "location": {
+          "range": {
+            "end": {
+              "col": 37,
+              "line": 69
+            },
+            "start": {
+              "col": 1,
+              "line": 40
+            }
+          },
+          "span": {
+            "end": 2536,
+            "start": 1692
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:0e6f3a555226aa3827babcd58ae7798956205d274d44909c3b7cea56b4fdef74",
+        "location": {
+          "range": {
+            "end": {
+              "col": 8,
+              "line": 65
+            },
+            "start": {
+              "col": 5,
+              "line": 41
+            }
+          },
+          "span": {
+            "end": 2361,
+            "start": 1751
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:8b2a997929208b90b0dca2cecdc7e8231da07b9f2aef15cf241d94175512c76c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 8,
+              "line": 65
+            },
+            "start": {
+              "col": 5,
+              "line": 41
+            }
+          },
+          "span": {
+            "end": 2361,
+            "start": 1751
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:94621cdf50efc152e2d4c98f78b4ea38483e025bfb514fac4d987acdee32514f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 66
+            },
+            "start": {
+              "col": 8,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2382,
+            "start": 2369
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:611cbf2b95d7bf58cee660ccda1aa3d6a5f70f66c9f07b13f5804f6298c402bd",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 66
+            },
+            "start": {
+              "col": 8,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2382,
+            "start": 2369
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:e930218ad2f3e6536de7f8266fce916e1cd8994300a78ba9023edba5aa991818",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 66
+            },
+            "start": {
+              "col": 8,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2374,
+            "start": 2369
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:d693484ddc17cc45732397043433e5cd0c0f1ebb683624775c613765a80326f8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 66
+            },
+            "start": {
+              "col": 16,
+              "line": 66
+            }
+          },
+          "span": {
+            "end": 2382,
+            "start": 2377
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:16ab0967ce541ea7683b8c86bf4f4b629c916f9c0cee40d91cff495b4a22559f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 68
+            },
+            "start": {
+              "col": 9,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2499,
+            "start": 2392
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:f56f96752c2e0c149ae05c1e8ee7c3d9f2ac19b468d063c4d7f0f142071e2fd7",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 68
+            },
+            "start": {
+              "col": 15,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2499,
+            "start": 2398
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:b943677a53f63b29b1426b7992ca56bbcbaa905095f224813c9d44ea6cb19e6d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 42,
+              "line": 68
+            },
+            "start": {
+              "col": 26,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2498,
+            "start": 2409
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:e10518024f53bcd703014fe015a77f3bade31c9274deaf47c2acd5b77bc2a1b6",
+        "location": {
+          "range": {
+            "end": {
+              "col": 73,
+              "line": 67
+            },
+            "start": {
+              "col": 26,
+              "line": 67
+            }
+          },
+          "span": {
+            "end": 2456,
+            "start": 2409
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:96813e3e4d5a1f7df72f5dde075d91155dd94823aae3e0eb1464ca0417e3a6c7",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 68
+            },
+            "start": {
+              "col": 29,
+              "line": 68
+            }
+          },
+          "span": {
+            "end": 2490,
+            "start": 2485
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:2a869ee00dd1639c4b058e08df5bb6bec17ee3439664e650aec9d282a906e3d9",
+        "location": {
+          "range": {
+            "end": {
+              "col": 41,
+              "line": 68
+            },
+            "start": {
+              "col": 36,
+              "line": 68
+            }
+          },
+          "span": {
+            "end": 2497,
+            "start": 2492
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:46fa8b5a56c2ea7addac8271f6c9d44fff890eb235b5f1e4f73b7ebe0992930d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 37,
+              "line": 69
+            },
+            "start": {
+              "col": 5,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2536,
+            "start": 2504
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:19424e8301fa536e279e8fa60cbcac9f5fc52fccf616fc3f5b46edf4cf5ab28c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 37,
+              "line": 69
+            },
+            "start": {
+              "col": 12,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2536,
+            "start": 2511
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:629785e1239329d4a119d3838d7d5c6d4a5c7379252ca51f08ac2c58a7c96ca3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 29,
+              "line": 69
+            },
+            "start": {
+              "col": 16,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2528,
+            "start": 2515
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:c6476e84ea0a3eb07084527340c76986621d3bbb6c6313ae48a0d0c8d918ec69",
+        "location": {
+          "range": {
+            "end": {
+              "col": 21,
+              "line": 69
+            },
+            "start": {
+              "col": 20,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2520,
+            "start": 2519
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:b2962173d238e304b1b8a33d298836566bde44ed28a6cfd9adf98e07f921b19a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 28,
+              "line": 69
+            },
+            "start": {
+              "col": 23,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2527,
+            "start": 2522
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "boltons/mathutils.py::clamp",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+        "id": "fro1:0ff66d0b6958caf28e52918a98622c079da5f4bc8d47d92ccd31cadc690843ec",
+        "location": {
+          "range": {
+            "end": {
+              "col": 36,
+              "line": 69
+            },
+            "start": {
+              "col": 31,
+              "line": 69
+            }
+          },
+          "span": {
+            "end": 2535,
+            "start": 2530
+          }
+        },
+        "path": "boltons/mathutils.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:b9e62b6d08880d287e97bae1f0a4ea5141b87cbcb222ceaa1b123c10814d5cc2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 46
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:306c26a1f8f7130326b6dba0b381878841e5745cf4804ad493390eba599ff5a1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 25,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 71
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:d93d73d31e21170abce91a7d0944db65517c65365fe10fd156595f3304bd275b",
+        "location": {
+          "range": {
+            "end": {
+              "col": 25,
+              "line": 4
+            },
+            "start": {
+              "col": 13,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 79
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        4
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+        "id": "fro1:ca1af2e8c68882cb449267d09eca6c57a29ad4f46fe369040895cb38adec9943",
+        "location": {
+          "range": {
+            "end": {
+              "col": 10,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 76,
+            "start": 71
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:ec7e3613ecf0d2b5001a3cc3f940482f826a7a718077a333224cd1b5e4f03ae4",
+        "location": {
+          "range": {
+            "end": {
+              "col": 14,
+              "line": 5
+            },
+            "start": {
+              "col": 5,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 96
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:be0d7ff7131df90de4efd492033adf00d622291f6c3b2449b921032e5e6c485e",
+        "location": {
+          "range": {
+            "end": {
+              "col": 14,
+              "line": 5
+            },
+            "start": {
+              "col": 13,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 104
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        3
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e1",
+        "id": "fro1:fdcaadc18fd077bedd5865916444c6ae31ec965e361664568a88a8e935973c35",
+        "location": {
+          "range": {
+            "end": {
+              "col": 10,
+              "line": 5
+            },
+            "start": {
+              "col": 5,
+              "line": 5
+            }
+          },
+          "span": {
+            "end": 101,
+            "start": 96
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:a465a4fbbf538dc09d3242f74b24bd332d389e75971a392077a06b4aabb4ea97",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 5,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 110
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:9a061adc1782db32a39ca94400225b5344633575d0c7df89d8a34b0a9248fca1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 6
+            },
+            "start": {
+              "col": 12,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 150,
+            "start": 117
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:d8fc79961a976bafcc3563922a220b2538fcdf9b30c949c7f8d330ad26e9d221",
+        "location": {
+          "range": {
+            "end": {
+              "col": 44,
+              "line": 6
+            },
+            "start": {
+              "col": 25,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 149,
+            "start": 130
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:7ae066d0b968f4b548456b73cb49936d55931f05b129092684edf7a22fae270d",
+        "location": {
+          "range": {
+            "end": {
+              "col": 36,
+              "line": 6
+            },
+            "start": {
+              "col": 31,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 141,
+            "start": 136
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:d1e3ace7adbe7e3f193d0a5f3b1487413776cbb9fcfc2c5baf572f228fca7ad5",
+        "location": {
+          "range": {
+            "end": {
+              "col": 39,
+              "line": 6
+            },
+            "start": {
+              "col": 38,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 144,
+            "start": 143
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "moved_question/adapter.py::renamed_entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+        "id": "fro1:5af5ed5399918a6af9cf15291d0a172ecdf258fce0e88e34f7c438fa2ce83383",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 6
+            },
+            "start": {
+              "col": 41,
+              "line": 6
+            }
+          },
+          "span": {
+            "end": 148,
+            "start": 146
+          }
+        },
+        "path": "moved_question/adapter.py",
+        "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+        "role": "use"
+      }
+    }
+  ],
+  "exceptional_returns": {
+    "ValueError": {}
+  },
+  "execution": {
+    "analysis_steps": 77,
+    "kind": "analyzed",
+    "reason": "no-retained-result"
+  },
+  "expression_control": {
+    "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+    "comparisons": "ordered operands; each comparison result may be true or false.",
+    "effects": "join normal, sink and explicit-raise alternatives.",
+    "evaluation": "left-to-right; each operand once per expression transfer.",
+    "path_feasibility": false,
+    "schema": "fr-expression-control",
+    "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+    "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+  },
+  "function_summaries": {
+    "claim": "may-value derivations in the declared model; neither feasible paths nor runtime termination.",
+    "context": "symbolic explicit parameters; bind each call independently and fill omitted immutable scalar defaults.",
+    "converged": true,
+    "effects": "explicit scalar returns, sink contracts and explicit raises; no heap effects.",
+    "enabled": true,
+    "function_limit": 64,
+    "functions": {
+      "boltons/mathutils.py::clamp": {
+        "callees": [],
+        "evaluations": 2,
+        "exceptional_returns": {
+          "ValueError": {
+            "argument:boltons/mathutils.py::clamp:1": {
+              "occurrences": [
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b31",
+                  "id": "fro1:c279cc28b0e1d2a5553fb603f70e45ab96ccce6697b5eeb529db72f7d46c4d66",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 19,
+                        "line": 40
+                      },
+                      "start": {
+                        "col": 14,
+                        "line": 40
+                      }
+                    },
+                    "span": {
+                      "end": 1710,
+                      "start": 1705
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "summary-parameter"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b31",
+                  "id": "fro1:1619daa0e20eab03f36dacc66c98c02f4933805dbdb8a2829198147e6e83cfe7",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 19,
+                        "line": 40
+                      },
+                      "start": {
+                        "col": 14,
+                        "line": 40
+                      }
+                    },
+                    "span": {
+                      "end": 1710,
+                      "start": 1705
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "parameter"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:2a869ee00dd1639c4b058e08df5bb6bec17ee3439664e650aec9d282a906e3d9",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 41,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 36,
+                        "line": 68
+                      }
+                    },
+                    "span": {
+                      "end": 2497,
+                      "start": 2492
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "use"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:aae381fc5d796293b89a1000fe80b5914edbc9ea1298a749f3b6bf183742afed",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 42,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 26,
+                        "line": 67
+                      }
+                    },
+                    "span": {
+                      "end": 2498,
+                      "start": 2409
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "standard-format-result"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:a15caf8c7a88f96d0493b8ea529111337a2990738dea3394461a3580b1eb5c92",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 43,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 15,
+                        "line": 67
+                      }
+                    },
+                    "span": {
+                      "end": 2499,
+                      "start": 2398
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "standard-call-result"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:3bcc7a97061cd62372458e26aa8e14b3cf61805c6ee865cbc8f951d42ae1b901",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 43,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 9,
+                        "line": 67
+                      }
+                    },
+                    "span": {
+                      "end": 2499,
+                      "start": 2392
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "raise"
+                }
+              ],
+              "origin": "argument:boltons/mathutils.py::clamp:1"
+            },
+            "argument:boltons/mathutils.py::clamp:2": {
+              "occurrences": [
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b32",
+                  "id": "fro1:8a6102cc9d343791919c82958f1e8c32fe756e7a529f5aa98e7bd6d808bfccbb",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 40,
+                        "line": 40
+                      },
+                      "start": {
+                        "col": 35,
+                        "line": 40
+                      }
+                    },
+                    "span": {
+                      "end": 1731,
+                      "start": 1726
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "summary-parameter"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b32",
+                  "id": "fro1:4bab47d646065f906ff38082117e757c97d29d637a5fe7d0fe76d8b732a10d88",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 40,
+                        "line": 40
+                      },
+                      "start": {
+                        "col": 35,
+                        "line": 40
+                      }
+                    },
+                    "span": {
+                      "end": 1731,
+                      "start": 1726
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "parameter"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:96813e3e4d5a1f7df72f5dde075d91155dd94823aae3e0eb1464ca0417e3a6c7",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 34,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 29,
+                        "line": 68
+                      }
+                    },
+                    "span": {
+                      "end": 2490,
+                      "start": 2485
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "use"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:aae381fc5d796293b89a1000fe80b5914edbc9ea1298a749f3b6bf183742afed",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 42,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 26,
+                        "line": 67
+                      }
+                    },
+                    "span": {
+                      "end": 2498,
+                      "start": 2409
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "standard-format-result"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:a15caf8c7a88f96d0493b8ea529111337a2990738dea3394461a3580b1eb5c92",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 43,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 15,
+                        "line": 67
+                      }
+                    },
+                    "span": {
+                      "end": 2499,
+                      "start": 2398
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "standard-call-result"
+                },
+                {
+                  "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                  "id": "fro1:3bcc7a97061cd62372458e26aa8e14b3cf61805c6ee865cbc8f951d42ae1b901",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 43,
+                        "line": 68
+                      },
+                      "start": {
+                        "col": 9,
+                        "line": 67
+                      }
+                    },
+                    "span": {
+                      "end": 2499,
+                      "start": 2392
+                    }
+                  },
+                  "path": "boltons/mathutils.py",
+                  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                  "role": "raise"
+                }
+              ],
+              "origin": "argument:boltons/mathutils.py::clamp:2"
+            }
+          }
+        },
+        "may_raise": true,
+        "normal_return": true,
+        "parameters": [
+          "argument:boltons/mathutils.py::clamp:0",
+          "argument:boltons/mathutils.py::clamp:1",
+          "argument:boltons/mathutils.py::clamp:2"
+        ],
+        "returns": {
+          "argument:boltons/mathutils.py::clamp:0": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b30",
+                "id": "fro1:6472e8af61c31f4b54ef17513fec029ea0a2d5bab414f603b762d8d9659625ba",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 12,
+                      "line": 40
+                    },
+                    "start": {
+                      "col": 11,
+                      "line": 40
+                    }
+                  },
+                  "span": {
+                    "end": 1703,
+                    "start": 1702
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "summary-parameter"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b30",
+                "id": "fro1:854ab678b54c7b4d9de70c22f2a845ef3c3dea0db9ee9da5e247df9063898c3a",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 12,
+                      "line": 40
+                    },
+                    "start": {
+                      "col": 11,
+                      "line": 40
+                    }
+                  },
+                  "span": {
+                    "end": 1703,
+                    "start": 1702
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "parameter"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:c6476e84ea0a3eb07084527340c76986621d3bbb6c6313ae48a0d0c8d918ec69",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 20,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2520,
+                    "start": 2519
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:7434cf7e803af89285bcaca63fb91cea4afee5595a63c92795c856956299333e",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 29,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 16,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2528,
+                    "start": 2515
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:16c682b028a472459df39661517aadc2b8e5c10a904bb69b846e204444b780e8",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 37,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2536,
+                    "start": 2511
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:364ab6a7fcb0359152ea09d5ebabc69771584276a63c7a2abf4f063521dba925",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 37,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2536,
+                    "start": 2504
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "return"
+              }
+            ],
+            "origin": "argument:boltons/mathutils.py::clamp:0"
+          },
+          "argument:boltons/mathutils.py::clamp:1": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b31",
+                "id": "fro1:c279cc28b0e1d2a5553fb603f70e45ab96ccce6697b5eeb529db72f7d46c4d66",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 19,
+                      "line": 40
+                    },
+                    "start": {
+                      "col": 14,
+                      "line": 40
+                    }
+                  },
+                  "span": {
+                    "end": 1710,
+                    "start": 1705
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "summary-parameter"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b31",
+                "id": "fro1:1619daa0e20eab03f36dacc66c98c02f4933805dbdb8a2829198147e6e83cfe7",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 19,
+                      "line": 40
+                    },
+                    "start": {
+                      "col": 14,
+                      "line": 40
+                    }
+                  },
+                  "span": {
+                    "end": 1710,
+                    "start": 1705
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "parameter"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:b2962173d238e304b1b8a33d298836566bde44ed28a6cfd9adf98e07f921b19a",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 28,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 23,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2527,
+                    "start": 2522
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:7434cf7e803af89285bcaca63fb91cea4afee5595a63c92795c856956299333e",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 29,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 16,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2528,
+                    "start": 2515
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:16c682b028a472459df39661517aadc2b8e5c10a904bb69b846e204444b780e8",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 37,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2536,
+                    "start": 2511
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:364ab6a7fcb0359152ea09d5ebabc69771584276a63c7a2abf4f063521dba925",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 37,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2536,
+                    "start": 2504
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "return"
+              }
+            ],
+            "origin": "argument:boltons/mathutils.py::clamp:1"
+          },
+          "argument:boltons/mathutils.py::clamp:2": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b32",
+                "id": "fro1:8a6102cc9d343791919c82958f1e8c32fe756e7a529f5aa98e7bd6d808bfccbb",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 40,
+                      "line": 40
+                    },
+                    "start": {
+                      "col": 35,
+                      "line": 40
+                    }
+                  },
+                  "span": {
+                    "end": 1731,
+                    "start": 1726
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "summary-parameter"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b32",
+                "id": "fro1:4bab47d646065f906ff38082117e757c97d29d637a5fe7d0fe76d8b732a10d88",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 40,
+                      "line": 40
+                    },
+                    "start": {
+                      "col": 35,
+                      "line": 40
+                    }
+                  },
+                  "span": {
+                    "end": 1731,
+                    "start": 1726
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "parameter"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:0ff66d0b6958caf28e52918a98622c079da5f4bc8d47d92ccd31cadc690843ec",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 36,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 31,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2535,
+                    "start": 2530
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:16c682b028a472459df39661517aadc2b8e5c10a904bb69b846e204444b780e8",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 37,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2536,
+                    "start": 2511
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b2f",
+                "id": "fro1:364ab6a7fcb0359152ea09d5ebabc69771584276a63c7a2abf4f063521dba925",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 37,
+                      "line": 69
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 69
+                    }
+                  },
+                  "span": {
+                    "end": 2536,
+                    "start": 2504
+                  }
+                },
+                "path": "boltons/mathutils.py",
+                "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+                "role": "return"
+              }
+            ],
+            "origin": "argument:boltons/mathutils.py::clamp:2"
+          }
+        },
+        "signature": [
+          {
+            "default": null,
+            "kind": "positional-or-keyword",
+            "name": "x",
+            "site": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b30",
+              "id": "fro1:6472e8af61c31f4b54ef17513fec029ea0a2d5bab414f603b762d8d9659625ba",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 12,
+                    "line": 40
+                  },
+                  "start": {
+                    "col": 11,
+                    "line": 40
+                  }
+                },
+                "span": {
+                  "end": 1703,
+                  "start": 1702
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "summary-parameter"
+            }
+          },
+          {
+            "default": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b31",
+              "id": "fro1:f3c0e09d5adbdcb9877c4585a573df78ff1c01ed3304d02ba3f8ed791786f895",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 33,
+                    "line": 40
+                  },
+                  "start": {
+                    "col": 20,
+                    "line": 40
+                  }
+                },
+                "span": {
+                  "end": 1724,
+                  "start": 1711
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "parameter-default"
+            },
+            "kind": "positional-or-keyword",
+            "name": "lower",
+            "site": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b31",
+              "id": "fro1:c279cc28b0e1d2a5553fb603f70e45ab96ccce6697b5eeb529db72f7d46c4d66",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 19,
+                    "line": 40
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 40
+                  }
+                },
+                "span": {
+                  "end": 1710,
+                  "start": 1705
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "summary-parameter"
+            }
+          },
+          {
+            "default": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b32",
+              "id": "fro1:589b45f6e1dd8d04cbd622bdb373a84ff01f4fb3d69a97e96fde669b01421135",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 53,
+                    "line": 40
+                  },
+                  "start": {
+                    "col": 41,
+                    "line": 40
+                  }
+                },
+                "span": {
+                  "end": 1744,
+                  "start": 1732
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "parameter-default"
+            },
+            "kind": "positional-or-keyword",
+            "name": "upper",
+            "site": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:b32",
+              "id": "fro1:8a6102cc9d343791919c82958f1e8c32fe756e7a529f5aa98e7bd6d808bfccbb",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 40,
+                    "line": 40
+                  },
+                  "start": {
+                    "col": 35,
+                    "line": 40
+                  }
+                },
+                "span": {
+                  "end": 1731,
+                  "start": 1726
+                }
+              },
+              "path": "boltons/mathutils.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "summary-parameter"
+            }
+          }
+        ],
+        "sinks": {}
+      },
+      "moved_question/adapter.py::renamed_entry": {
+        "callees": [
+          "boltons/mathutils.py::clamp"
+        ],
+        "evaluations": 3,
+        "exceptional_returns": {
+          "ValueError": {}
+        },
+        "may_raise": true,
+        "normal_return": true,
+        "parameters": [],
+        "returns": {},
+        "signature": [],
+        "sinks": {
+          "fro1:74b8b3c19d709822304a4887f6229c7fb663eb1a493c9b94445c080fd5692683": {
+            "flow": {},
+            "sink": "record_value",
+            "site": {
+              "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+              "id": "fro1:74b8b3c19d709822304a4887f6229c7fb663eb1a493c9b94445c080fd5692683",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 45,
+                    "line": 6
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 6
+                  }
+                },
+                "span": {
+                  "end": 150,
+                  "start": 117
+                }
+              },
+              "path": "moved_question/adapter.py",
+              "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+              "role": "sink"
+            }
+          }
+        }
+      }
+    },
+    "mutation_authority": false,
+    "recursion": "monotone least fixed point over finite origin and effect sets.",
+    "rounds": 3,
+    "schema": "fr-function-summaries"
+  },
+  "handle_prefix": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:",
+  "initialization": {
+    "by_file": {},
+    "omitted": 0,
+    "sites": []
+  },
+  "input_digest": "bfb0221eb7456b543040f54ec50900ad315d0897542d13b0686245db3502e09c",
+  "inputs": {
+    "analyzer": "0baf52741d64dc1b7f29cb410b8c503aeb8c5df0042bcf457f26a3a7229a0ffe",
+    "assignment_control": {
+      "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+      "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+      "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+      "implicit_exceptions": false,
+      "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+      "schema": "fr-scalar-assignment"
+    },
+    "budget": {
+      "bytes": 1048576,
+      "depth": 8,
+      "steps": 4096
+    },
+    "call_binding": {
+      "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+      "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+      "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+      "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+      "evaluation": "Evaluate explicit values once in source order before binding.",
+      "implicit_exceptions": false,
+      "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+      "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+      "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+      "schema": "fr-call-binding",
+      "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+    },
+    "completion_control": {
+      "block_limit": 512,
+      "classes": [
+        "ValueError",
+        "TypeError",
+        "Exception",
+        "BaseException"
+      ],
+      "except": "Ordered unbound builtin handlers; explicit raises only.",
+      "finally": "Capture values before cleanup; cleanup may replace exits; nest separately.",
+      "handler_nodes": 128,
+      "implicit_exceptions": false,
+      "local_call_raises": true,
+      "reraise": "Lexically active known error.",
+      "schema": "fr-scalar-completion"
+    },
+    "configuration": "a690feab3c5a0fa4d3ad35571f4e5c9a04c3a681087a694af4e010f29a46f07a",
+    "context": "html",
+    "dependency_scope": "static module closure, import candidates including missing paths, configuration, rules and analyzer.",
+    "expression_control": {
+      "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+      "comparisons": "ordered operands; each comparison result may be true or false.",
+      "effects": "join normal, sink and explicit-raise alternatives.",
+      "evaluation": "left-to-right; each operand once per expression transfer.",
+      "path_feasibility": false,
+      "schema": "fr-expression-control",
+      "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+      "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+    },
+    "modules": {
+      "complete": true,
+      "cutoffs": [],
+      "entry": {
+        "admitted": true,
+        "candidates": {
+          "moved_question": {
+            "status": "directory"
+          },
+          "moved_question.py": {
+            "status": "missing"
+          },
+          "moved_question.pyi": {
+            "status": "missing"
+          },
+          "moved_question/__init__.py": {
+            "digest": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+            "status": "source"
+          },
+          "moved_question/__init__.pyi": {
+            "status": "missing"
+          },
+          "moved_question/adapter": {
+            "status": "missing"
+          },
+          "moved_question/adapter.py": {
+            "digest": "da05fa266eb6da4381a797c4e24a397ace669dd639855fc177138850c91afb66",
+            "status": "source"
+          },
+          "moved_question/adapter.pyi": {
+            "status": "missing"
+          },
+          "moved_question/adapter/__init__.py": {
+            "status": "missing"
+          },
+          "moved_question/adapter/__init__.pyi": {
+            "status": "missing"
+          }
+        },
+        "module": "moved_question.adapter",
+        "namespaces": [],
+        "opaque_candidates": [],
+        "packages": [
+          "moved_question/__init__.py"
+        ],
+        "target": "moved_question/adapter.py"
+      },
+      "files": {
+        "boltons/__init__.py": "b3359cf163d1827acf22e02afbf3895694dff700e2225205bc8fb0771bf7001d",
+        "boltons/mathutils.py": "04cd106d8f1a6b51a66bf1278ead2c4e817703e50b32a5c41d80b420eb5c3376",
+        "moved_question/__init__.py": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+        "moved_question/adapter.py": "da05fa266eb6da4381a797c4e24a397ace669dd639855fc177138850c91afb66"
+      },
+      "function_aliases": [],
+      "limits": {
+        "binding_chain": 16,
+        "imports": 128,
+        "module_components": 16,
+        "modules": 16,
+        "names_per_import": 128,
+        "source_bytes": 262144
+      },
+      "lookups": [
+        {
+          "admitted": true,
+          "alias": "relay",
+          "binding_chain": [
+            {
+              "name": "clamp",
+              "path": "boltons/mathutils.py"
+            }
+          ],
+          "candidates": {
+            "boltons": {
+              "status": "directory"
+            },
+            "boltons.py": {
+              "status": "missing"
+            },
+            "boltons.pyi": {
+              "status": "missing"
+            },
+            "boltons/__init__.py": {
+              "digest": "b3359cf163d1827acf22e02afbf3895694dff700e2225205bc8fb0771bf7001d",
+              "status": "source"
+            },
+            "boltons/__init__.pyi": {
+              "status": "missing"
+            },
+            "boltons/mathutils": {
+              "status": "missing"
+            },
+            "boltons/mathutils.py": {
+              "digest": "04cd106d8f1a6b51a66bf1278ead2c4e817703e50b32a5c41d80b420eb5c3376",
+              "status": "source"
+            },
+            "boltons/mathutils.pyi": {
+              "status": "missing"
+            },
+            "boltons/mathutils/__init__.py": {
+              "status": "missing"
+            },
+            "boltons/mathutils/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "exports": null,
+          "future": false,
+          "importer": "moved_question/adapter.py",
+          "member": "clamp",
+          "members": [],
+          "module": "boltons.mathutils",
+          "names": [
+            [
+              "relay",
+              "clamp"
+            ]
+          ],
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [
+            "boltons/__init__.py"
+          ],
+          "prefix": "relay",
+          "resolution": "function",
+          "submodule": null,
+          "target": "boltons/mathutils.py",
+          "terminal_module": null
+        }
+      ],
+      "metadata_imports": [],
+      "namespaces": [],
+      "policy": "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Supported future directives need absent local __future__ candidates. Imported non-entry modules may omit one exact main guard without other __name__ uses or alternatives. Dynamic imports, merged namespaces and search paths stay unchecked.",
+      "schema": "fr-flow-modules",
+      "standard_imports": [
+        {
+          "admitted": false,
+          "alias": "_ceil",
+          "candidates": {
+            "math": {
+              "status": "missing"
+            },
+            "math.py": {
+              "status": "missing"
+            },
+            "math.pyi": {
+              "status": "missing"
+            },
+            "math/__init__.py": {
+              "status": "missing"
+            },
+            "math/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "boltons/mathutils.py",
+          "member": "ceil",
+          "module": "math",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "_ceil",
+          "target": null
+        },
+        {
+          "admitted": false,
+          "alias": "_floor",
+          "candidates": {
+            "math": {
+              "status": "missing"
+            },
+            "math.py": {
+              "status": "missing"
+            },
+            "math.pyi": {
+              "status": "missing"
+            },
+            "math/__init__.py": {
+              "status": "missing"
+            },
+            "math/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "boltons/mathutils.py",
+          "member": "floor",
+          "module": "math",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "_floor",
+          "target": null
+        },
+        {
+          "admitted": false,
+          "alias": "bisect",
+          "candidates": {
+            "bisect": {
+              "status": "missing"
+            },
+            "bisect.py": {
+              "status": "missing"
+            },
+            "bisect.pyi": {
+              "status": "missing"
+            },
+            "bisect/__init__.py": {
+              "status": "missing"
+            },
+            "bisect/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "boltons/mathutils.py",
+          "member": null,
+          "module": "bisect",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "bisect",
+          "target": null
+        },
+        {
+          "admitted": false,
+          "alias": "binascii",
+          "candidates": {
+            "binascii": {
+              "status": "missing"
+            },
+            "binascii.py": {
+              "status": "missing"
+            },
+            "binascii.pyi": {
+              "status": "missing"
+            },
+            "binascii/__init__.py": {
+              "status": "missing"
+            },
+            "binascii/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "boltons/mathutils.py",
+          "member": null,
+          "module": "binascii",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "binascii",
+          "target": null
+        }
+      ],
+      "standard_library": {
+        "boundary": "Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching, overloaded protocols or implicit exception model.",
+        "calls": "Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
+        "imports": "Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.",
+        "modules": {
+          "binascii": [
+            "Error",
+            "Incomplete",
+            "hexlify",
+            "unhexlify",
+            "b2a_hex",
+            "a2b_hex",
+            "b2a_base64",
+            "a2b_base64",
+            "crc32",
+            "crc_hqx"
+          ],
+          "bisect": [
+            "bisect",
+            "bisect_left",
+            "bisect_right",
+            "insort",
+            "insort_left",
+            "insort_right"
+          ],
+          "builtins": [
+            "abs",
+            "int",
+            "float",
+            "str",
+            "bool",
+            "round",
+            "min",
+            "max",
+            "ValueError",
+            "TypeError",
+            "Exception",
+            "BaseException"
+          ],
+          "math": [
+            "ceil",
+            "floor",
+            "trunc",
+            "sqrt",
+            "fabs",
+            "isfinite",
+            "isinf",
+            "isnan",
+            "inf",
+            "nan",
+            "pi",
+            "e",
+            "tau",
+            "modf"
+          ]
+        },
+        "namespace_digest": "d566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7",
+        "runtime": "CPython 3.14.8",
+        "schema": "fr-python-standard-library",
+        "string_methods": {
+          "arguments": "Positional text arguments only; stripping also accepts None, and replacement counts require literal integers.",
+          "boundary": "Unknown receivers, expanded arguments and unsupported signatures remain incomplete. These calls do not establish runtime exception safety.",
+          "evaluation": "Receiver once, then arguments left-to-right; preserve all possible origins without mutating the receiver.",
+          "methods": [
+            [
+              "lower",
+              0,
+              0
+            ],
+            [
+              "upper",
+              0,
+              0
+            ],
+            [
+              "casefold",
+              0,
+              0
+            ],
+            [
+              "capitalize",
+              0,
+              0
+            ],
+            [
+              "swapcase",
+              0,
+              0
+            ],
+            [
+              "title",
+              0,
+              0
+            ],
+            [
+              "strip",
+              0,
+              1
+            ],
+            [
+              "lstrip",
+              0,
+              1
+            ],
+            [
+              "rstrip",
+              0,
+              1
+            ],
+            [
+              "removeprefix",
+              1,
+              1
+            ],
+            [
+              "removesuffix",
+              1,
+              1
+            ],
+            [
+              "replace",
+              2,
+              3
+            ]
+          ],
+          "receiver": "Plain str from literals, checked str conversions, local bindings and normal helper summaries; annotations do not establish runtime types.",
+          "receiver_nodes": 128
+        }
+      },
+      "standard_shadowing": [],
+      "value_aliases": [],
+      "value_bindings": []
+    },
+    "rule_file": "rules.json",
+    "rules": "d97fd5a879ecad56845158dd93e551c5ded209e1c357f0dae766054e5e663659",
+    "selection": {
+      "name": "renamed_entry",
+      "span": {
+        "end": 150,
+        "start": 46
+      }
+    },
+    "source": {
+      "digest": "da05fa266eb6da4381a797c4e24a397ace669dd639855fc177138850c91afb66",
+      "path": "moved_question/adapter.py"
+    },
+    "summary_mode": true
+  },
+  "origins": {
+    "package-question:emit_value:fro1:867478f6bcf460f3cd2897ec42ee8d3d25a0c756dc8748686d4ad5ba71759698": {
+      "enclosing": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15e0",
+      "id": "fro1:867478f6bcf460f3cd2897ec42ee8d3d25a0c756dc8748686d4ad5ba71759698",
+      "location": {
+        "range": {
+          "end": {
+            "col": 25,
+            "line": 4
+          },
+          "start": {
+            "col": 13,
+            "line": 4
+          }
+        },
+        "span": {
+          "end": 91,
+          "start": 79
+        }
+      },
+      "path": "moved_question/adapter.py",
+      "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+      "role": "source"
+    }
+  },
+  "returns": {},
+  "revision": "1ea09f5e72e4fe1e090bc2b7c15439bdc22949ec86f8ed690c9bbb2dd837ccbc",
+  "rules_digest": "d97fd5a879ecad56845158dd93e551c5ded209e1c357f0dae766054e5e663659",
+  "runtime_effects": {
+    "complete_means": "The scalar model finished; it does not check runtime exception safety or shared mutable objects.",
+    "exception_safety_established": false,
+    "shared_mutable_values_supported": false
+  },
+  "schema": "fr-dataflow-1",
+  "scope": "selected function and static workspace-local module/package closure.",
+  "semantics": "python-scalar-summaries",
+  "summaries": [
+    {
+      "block_visits": 4,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "moved_question/adapter.py::renamed_entry",
+      "inputs": [],
+      "return_origins": []
+    },
+    {
+      "block_visits": 7,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "boltons/mathutils.py::clamp",
+      "inputs": [
+        [
+          "argument:boltons/mathutils.py::clamp:0"
+        ],
+        [
+          "argument:boltons/mathutils.py::clamp:1"
+        ],
+        [
+          "argument:boltons/mathutils.py::clamp:2"
+        ]
+      ],
+      "return_origins": [
+        "argument:boltons/mathutils.py::clamp:0",
+        "argument:boltons/mathutils.py::clamp:1",
+        "argument:boltons/mathutils.py::clamp:2"
+      ]
+    },
+    {
+      "block_visits": 6,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "moved_question/adapter.py::renamed_entry",
+      "inputs": [],
+      "return_origins": []
+    },
+    {
+      "block_visits": 7,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "boltons/mathutils.py::clamp",
+      "inputs": [
+        [
+          "argument:boltons/mathutils.py::clamp:0"
+        ],
+        [
+          "argument:boltons/mathutils.py::clamp:1"
+        ],
+        [
+          "argument:boltons/mathutils.py::clamp:2"
+        ]
+      ],
+      "return_origins": [
+        "argument:boltons/mathutils.py::clamp:0",
+        "argument:boltons/mathutils.py::clamp:1",
+        "argument:boltons/mathutils.py::clamp:2"
+      ]
+    },
+    {
+      "block_visits": 6,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "moved_question/adapter.py::renamed_entry",
+      "inputs": [],
+      "return_origins": []
+    }
+  ],
+  "target": "frp1:1ea09f5e72e4fe1e090bc2b7c15439bd:15df",
+  "witnesses": []
+}
