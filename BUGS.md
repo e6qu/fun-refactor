@@ -50,7 +50,12 @@ It rejects authentication errors, unrelated 503 responses and malformed replies 
 A persistent startup failure still expires; no timeout increased.
 The earlier lost inner error remains unknown, and every failed check stays recorded.
 
-These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
+The streaming replay exhausted its five-minute job limit while checking out about
+81,000 repository files. Its checkout now fetches only the replay scripts and
+their retained measurement fixtures. The same tests and archived-result checks
+pass in an actual sparse checkout; the five-minute limit stays unchanged.
+
+Earlier repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
 The interrupted algorithm batch exposed these defects; their original failed
