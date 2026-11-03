@@ -25,7 +25,9 @@ project must accept that patch; a correct working file is insufficient.
 Keep this diagnostic in one PR with its implementation, independent controls,
 examples and tracking. The fixed plan has twelve unstarted slots and keeps the
 existing 150-second complete attempt limit. Live calls remain disabled. Hosted
-controls must pass before qualifying the exact local native clients, assisted task
+controls now pass for both setups, including incomplete delivery and timing
+rejections. The [retained summary](../tests/agent-eval/proof-delivery/qualification/summary.json)
+records zero model calls. Next, qualify the exact local native clients, assisted task
 archive, resource observer and session accounting. Freeze those identities before
 any paid call. Do not run a delivery attempt under an old proof-writing study ID.
 This is assisted delivery, not proof discovery, and cannot close M3.

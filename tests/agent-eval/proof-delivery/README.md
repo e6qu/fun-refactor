@@ -91,6 +91,14 @@ requests, order and decision rule. A fingerprint identifies contents; it does no
 prove correctness. The summary records scripted controls with zero model calls.
 Neither file reports a new agent success.
 
+The first [hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41612735437)
+passed both supplied-proof setups and every rejection control. Both setups
+delivered the identical independently accepted patch. The retained
+[summary](qualification/summary.json), [protocol](qualification/protocol.json) and
+[GitHub source](qualification/source.json) preserve those observations. All twelve
+live slots remain unstarted. Recheck the recorded input fingerprints before using
+this qualification to admit a local attempt.
+
 **Live calls remain disabled.** These hosted checks do not admit a local native
 agent run. Before any paid attempt, qualify the exact local CLI, fr binary, Lean,
 assisted task archive, external observer and native accounting together within

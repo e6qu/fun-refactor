@@ -122,11 +122,15 @@ attempts have run, and we have measured no agent success gain.
 Give both setups the same correct drafts. Compare the shared skill alone with
 the shared skill plus a short finish card. The fixed plan has twelve unstarted
 slots: three agents, two setups, two repetitions. Keep the complete 150-second
-limit. First qualify both complete scripted paths, incomplete patches, wrong
-paths, changed settings and late completion. Then admit the exact local clients
+limit. Admit the exact local clients
 and complete accounting before freezing live identities. Live calls stay disabled
 until those checks pass. No original slot may be reopened.
 This tests finishing supplied work, not finding a proof. It cannot close M3.
+
+The [hosted delivery controls](tests/agent-eval/proof-delivery/qualification/summary.json)
+passed both setups and rejected incomplete and invalid delivery. Timing controls
+use synthetic observations. Next, qualify the complete local native workflow;
+those hosted results do not yet admit paid attempts.
 
 After a complete, independently graded delivery diagnostic, use its fixed decision
 rule to choose the next task. Do not add graph search or rerun the full study

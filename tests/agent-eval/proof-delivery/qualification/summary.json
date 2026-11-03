@@ -1,0 +1,77 @@
+{
+  "passed": true,
+  "live_model_calls": 0,
+  "live_calls_enabled": false,
+  "protocol_sha256": "c9938a8217e2925d193e04e050d0e7eb4d40feee9bf5f1c139d141f54f5e3b24",
+  "fr_sha256": "b05af6c2571412575ed4228047f1c75c953b7c39e9ae905e57e24c22eb3727a1",
+  "qualification_run": "41612735437",
+  "controls": {
+    "shared-skill": {
+      "patch_accepted": true,
+      "patch_sha256": "c8b4fed98f694b6718e000949ef72bffc1984987e5cffe884d2868ef28f5f032",
+      "transactions": [
+        "1",
+        "2"
+      ],
+      "package_passed": true
+    },
+    "last-edit-only": {
+      "patch_accepted": false
+    },
+    "termination-only": {
+      "patch_accepted": false
+    },
+    "correctness-only": {
+      "patch_accepted": false
+    },
+    "failed-package": {
+      "patch_accepted": false
+    },
+    "changed-program": {
+      "patch_accepted": false
+    },
+    "invalid-patch": {
+      "patch_accepted": false
+    },
+    "wrong-path": {
+      "submission_accepted": false,
+      "stage": "patch location"
+    },
+    "changed-settings": {
+      "submission_accepted": false,
+      "stage": "protected settings"
+    },
+    "finish-card": {
+      "patch_accepted": true,
+      "patch_sha256": "c8b4fed98f694b6718e000949ef72bffc1984987e5cffe884d2868ef28f5f032",
+      "transactions": [
+        "1",
+        "2"
+      ],
+      "package_passed": true
+    }
+  },
+  "timing_controls": {
+    "on-time": {
+      "completion_accepted": true,
+      "synthetic_observation": true
+    },
+    "late-patch": {
+      "completion_accepted": false,
+      "synthetic_observation": true
+    },
+    "late-accounting": {
+      "completion_accepted": false,
+      "synthetic_observation": true
+    },
+    "unfinished-accounting": {
+      "completion_accepted": false,
+      "synthetic_observation": true
+    },
+    "stopped": {
+      "completion_accepted": false,
+      "synthetic_observation": true
+    }
+  },
+  "scope": "Scripted delivery controls, not agent successes. Live workflow admission is still required."
+}
