@@ -239,7 +239,7 @@ def qualify(binary, qualification, output):
         patch, error = submission(project, protected)
         require(error is None, 'correct delivery was rejected')
         verdict = grading.grade(controls['private_image'], 'euclid', original, prepared, binary, rust,
-                                patch, output / ('grade-' + setup), milestone='M3-algorithm-facts', tools={})
+                                patch, output / ('grade-' + setup), milestone=DELIVERY_STUDY, tools={})
         require(verdict['passed'] is True, 'independently check both delivered proofs')
         results[setup] = {'patch_accepted': True, 'patch_sha256': common.digest(patch),
                           'transactions': transactions, 'package_passed': True}
@@ -249,7 +249,7 @@ def qualify(binary, qualification, output):
                       output / 'last-edit-only-export.json')
             latest_verdict = grading.grade(controls['private_image'], 'euclid', original, prepared, binary, rust,
                                           latest, output / 'grade-last-edit-only',
-                                          milestone='M3-algorithm-facts', tools={})
+                                          milestone=DELIVERY_STUDY, tools={})
             require(latest_verdict['passed'] is False, 'the last edit alone cannot deliver the earlier proof')
             results['last-edit-only'] = {'patch_accepted': False}
             solved = (project / algorithms.SPEC).read_text()
@@ -275,7 +275,7 @@ def qualify(binary, qualification, output):
                     bad_patch.write_text('not a patch\n')
                 rejected = grading.grade(controls['private_image'], 'euclid', original, prepared, binary, rust,
                                          bad_patch, output / ('grade-' + variant),
-                                         milestone='M3-algorithm-facts', tools={})
+                                         milestone=DELIVERY_STUDY, tools={})
                 require(rejected['passed'] is False, 'incomplete or invalid delivery was accepted: ' + variant)
                 results[variant] = {'patch_accepted': False}
             patch.rename(project / '.fr/change.patch')
