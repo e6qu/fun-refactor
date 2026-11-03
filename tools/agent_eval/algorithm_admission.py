@@ -201,11 +201,14 @@ def child(args):
         require(result['exit_code'] == 0 and result['stop_reason'] is None and not errors and len(requests) == 2
                 and provider.COMPLETE.encode() in (args.output / 'native.stdout').read_bytes(),
                 'complete native admission failed; inspect private records without raising limits')
+        events = [json.loads(line) for line in (args.output / 'native.stdout').read_text().splitlines()]
         if profile['client'] == 'opencode2':
             session = argv[argv.index('--session') + 1]
             saved = export_session(args.client, session, project, env, args.output, timeout_seconds=10)
-            events = [json.loads(line) for line in (args.output / 'native.stdout').read_text().splitlines()]
             require(verify_export(saved, profile, session, events)['outcome'] == 'succeeded', 'native accounting failed')
+        else:
+            require(profile['client'] == 'codex' and local.usage('codex', events)['complete_turns'] == 1,
+                    'Codex admission requires a completed native turn')
         require(not errors and len(requests) == 2, 'accounting caused an extra scripted provider request')
         require(common.digest(directory / 'checks.json') == check_digest, 'admission changed check settings')
         if args.study == DELIVERY_STUDY:
@@ -245,6 +248,7 @@ def observe(args):
     common.save(args.output / 'peak.json', sampler.peak)
     detail = json.loads((args.output / 'child.json').read_text()) if (args.output / 'child.json').is_file() else {'passed': False}
     passed = (detail['passed'] and resources['exit_code'] == 0 and resources['stop_reason'] is None
+              and resources['monitor_error'] is None and resources['launch_error'] is None
               and resources['sampled_aggregate_rss_bytes'] <= CONTROL_LIMITS['rss_bytes'] - RESERVE_BYTES)
     summary = {**detail, 'passed': passed, 'profile': args.profile, 'live_model_calls': 0,
         'study': args.study, 'setup': args.setup,

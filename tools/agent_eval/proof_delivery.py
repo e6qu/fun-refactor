@@ -95,7 +95,7 @@ def install(project, setup, lake):
         card.write_text('\n\n'.join(protocol()['requirements']['finish_card']) + '\n')
         protected.append(card)
     return {str(path.relative_to(project)): {'sha256': common.digest(path),
-            'mode': path.stat().st_mode & 0o777} for path in protected}
+            'mode': path.stat().st_mode & 0o7777} for path in protected}
 
 
 def input_changes(project, protected):
@@ -104,7 +104,7 @@ def input_changes(project, protected):
         path = project / name
         if (any((project / parent).is_symlink() for parent in Path(name).parents) or
                 path.is_symlink() or not path.is_file() or common.digest(path) != entry['sha256'] or
-                path.stat().st_mode & 0o777 != entry['mode']):
+                path.stat().st_mode & 0o7777 != entry['mode']):
             changed.append(name)
     return sorted(changed)
 
