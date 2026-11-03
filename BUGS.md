@@ -11,8 +11,11 @@ whose JSON stream omits that final usage event. Correct patches from those sessi
 remain accepted patches; their complete attempts remain failed. The exporter already
 rejects incomplete usage. The local runner and native admission now reject missing
 or duplicate response accounting immediately, rather than initially reporting native
-completion. Resolving the client's omitted final event requires a no-model reproducer
-and qualification before new OpenCode comparisons. No missing usage is reconstructed.
+completion. A no-model reproducer confirms that the client stops reading ordinary
+events after session completion and restores text and tools without final usage.
+Both stream shapes fail with 2.0.32 and pass with the official 2.2.5 fix.
+The project pins 2.2.5 and requires complete native accounting.
+The evaluator reconstructs no missing usage, and original outcomes remain unchanged.
 
 The same review retains one Kimi timeout after both saved proofs and the package
 passed. It used unsupported `fr history --limit` commands instead of exporting the

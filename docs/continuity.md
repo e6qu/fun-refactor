@@ -29,7 +29,7 @@ project must accept that patch; a correct working file is insufficient.
 Continue on `improve/native-proof-delivery`, [PR #597](https://github.com/e6qu/fun-refactor/pull/597).
 All twelve `M3-delivery` slots ran once after
 [fresh hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41636379313)
-and six complete local checks. The tools and inputs stayed fixed during the calls.
+and six reported passing local checks. The tools and inputs stayed fixed during the calls.
 [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41645916940)
 accepted eleven patches. The [complete results](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
 retain five complete successes, six incomplete-accounting failures and one Kimi
@@ -39,15 +39,26 @@ The six affected OpenCode sessions have a finished final reply in the saved
 session but no matching final usage event in the JSON stream. The exporter already
 refuses complete usage for them. The runner and native admission now reject this
 mismatch immediately, including duplicate events that could conceal a missing one.
+Rechecking the original four OpenCode admission records found the same missing
+final usage. Their old receipts checked session success, not complete event coverage.
+Keep those original receipts and their recorded defect; they cannot admit new calls.
 The original native statuses remain unchanged. No missing tokens were inferred.
 Luna completed both setups twice; the GLM/Kimi guidance comparison is unusable.
 The finish card has no established success advantage. Keep list reversal reserved.
 
+The no-model reproducer now confirms the cause: OpenCode2 2.0.32 stops ordinary
+event consumption when the session becomes idle, then reconciles text and tools
+without final usage. Both combined and separate usage chunks reproduce it.
+The official 2.2.5 release reconciles completed steps too; both reproductions pass.
+The project now pins that exact release and checksum. The M1 native check uses the
+current client with its current protocol helpers, then restores the original manifest
+for historical grading. No original study record changes client or outcome.
+
 Finish the final-head CI and mark this PR ready while leaving it unmerged.
-Before another OpenCode comparison, reproduce and resolve the final-event omission
-with no model access and qualify the exact client. Then return to the original
-page-count proof obstacle under the unchanged 150-second limit. The roadmap owns
-the remaining M3 completion conditions. Prepared protocols still cannot launch calls.
+Any later comparison needs fresh complete admission for its selected client.
+Then return to the original page-count proof obstacle under the unchanged
+150-second limit. The roadmap owns the remaining M3 completion conditions.
+Prepared protocols still cannot launch calls.
 
 ## What the merged proof work established
 

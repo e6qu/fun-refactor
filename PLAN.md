@@ -118,8 +118,10 @@ The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/4159562976
 passed all 92 jobs before merge. Those scripted checks establish tool behavior.
 
 **Current result: [delivery of supplied GCD proofs](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md).**
-All twelve fixed slots ran once after fresh hosted qualification and six local
-scripted checks. Independent GitHub checking accepted all eleven delivered patches.
+All twelve fixed slots ran once after fresh hosted qualification and six reported
+passing local checks. Review found that the four OpenCode admission checks also
+missed incomplete final usage. The stricter admission now rejects that gap.
+Independent GitHub checking accepted all eleven delivered patches.
 Five attempts met every completion requirement. Six completed OpenCode sessions
 omitted their final response's token record from the JSON stream; one Kimi attempt
 timed out without exporting a patch. Both proofs and the package had passed in
@@ -132,11 +134,12 @@ correct proofs; this comparison cannot close M3 or measure proof discovery.
 
 **Next work, in order:**
 
-1. Require one matching native usage record per completed OpenCode response,
-   including the final reply. Missing or duplicate records must fail immediately.
-   Reproduce the missing final record without a model call.
-   Before a new OpenCode study, qualify an exact client whose JSON stream and saved session agree.
-   Do not reconstruct missing usage or reopen these twelve slots.
+1. Finish qualification of the explicit OpenCode2 2.2.5 pin on GitHub.
+   Version 2.0.32 loses the final usage event after the session becomes idle.
+   Both local no-model reproductions fail with 2.0.32 and pass with 2.2.5.
+   The runner rejects missing or duplicate response records.
+   Before a new study, freeze fresh complete native admission for the selected client.
+   Keep these twelve outcomes under their original client and never reopen their slots.
 2. Review the original page-count failure against the unchanged complete claim.
    Use no-model controls to distinguish choosing a division fact from applying it
    with the wrong types. The next proposed change must name that obstacle and a

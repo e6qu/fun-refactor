@@ -261,9 +261,11 @@ Keep the original records and failures. Luna tied across setups; GLM/Kimi cannot
 support a guidance conclusion. Correct patch delivery alone cannot validate a
 comparison whose required accounting is incomplete.
 
-Reproduce the final-event omission without model access and qualify an exact client
-before any new OpenCode study. Then review the original page-count obstacle under
-its unchanged claim. Do not repeat this delivery comparison to seek a better score.
+The no-model reproducer now fails with OpenCode2 2.0.32 and passes with the explicit
+2.2.5 pin. Its official fix retains completed-step usage after the session becomes idle.
+Require fresh complete native admission before a new study. Then review the original
+page-count obstacle under its unchanged claim. Do not repeat this delivery comparison
+to seek a better score.
 
 The original presentation report's generic invalid-execution sentence mentions
 service, collection and sleep disruptions. That sentence does not describe the

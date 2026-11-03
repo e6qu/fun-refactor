@@ -188,6 +188,9 @@ All twelve fixed attempts ran once. The
 [independent GitHub grader](https://github.com/e6qu/fun-refactor/actions/runs/41645916940)
 accepted all eleven delivered patches. The
 [report](../proof-algorithms/local-results/M3-delivery/README.md) retains every outcome.
+The original local checks reported passing, but review found incomplete final
+usage in all four OpenCode admission records too. Native admission now requires
+complete response coverage. Those old receipts cannot admit new calls.
 
 | Agent | Accepted patches | Complete attempts: shared skill / finish card |
 | --- | ---: | --- |

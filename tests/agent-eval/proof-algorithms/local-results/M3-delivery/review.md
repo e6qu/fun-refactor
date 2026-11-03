@@ -39,9 +39,36 @@ reported a completed native session because it checked the saved outcome without
 requiring a usage event for every response. The repair requires exact response
 coverage and rejects duplicates as well as omissions. Local execution marks
 accounting incomplete immediately. Native admission requires the same condition.
+A recheck found the same missing final event in all four original OpenCode admission
+records. Those receipts reported success after checking the saved session outcome;
+their accounting admission was insufficient. The original records stay unchanged,
+and the stricter rule and changed client pin prevent their reuse for new calls.
 A regression supplies a successful saved session with a missing final stream
 event, then two copies of the earlier event: both must fail and preserve the export.
-This repairs failure detection; it does not claim to repair OpenCode's event emission.
+This repairs failure detection. A separate client repair below addresses event emission.
+
+## Client root cause and repair
+
+The stricter native check reproduced the omission in GitHub's scripted M1 exchange.
+A local reproduction then used the exact measured CLI against a credential-free
+loopback server. It failed with usage in the final chunk and with a separate usage
+chunk. Each session retained two completed replies but emitted only one usage event.
+No model was called.
+
+The official [2.0.32 implementation](https://github.com/anomalyco/opencode/blob/v2.0.32/packages/cli/src/run/noninteractive.ts)
+sets `finalizing` after the session wait completes and skips later ordinary events.
+Its reconciliation restores text and tools, but no completed-step usage.
+The [2.2.5 implementation](https://github.com/anomalyco/opencode/blob/v2.2.5/packages/cli/src/run/noninteractive.ts)
+tracks completed steps and emits missing native step records during reconciliation.
+Both local stream reproductions pass with that release: two completed replies and
+two matching usage events. The [repair summary](client-repair.json) records the
+versions, verified download identity and aggregate outcomes.
+
+The project now pins the official 2.2.5 archive with its exact checksum and expanded
+size. No local wrapper fills missing records, and strict rejection stays enabled.
+The historical M1 job pairs the current native helpers with this current client
+manifest for its scripted exchange, then restores the original inputs for grading.
+All original live outcomes, measured client identities and token totals remain unchanged.
 
 ## Why the remaining Kimi attempt timed out
 
@@ -62,10 +89,9 @@ comparison of their instructions. No profile meets the fixed two-versus-zero rul
 for testing the card on a different delivery task. Do not adopt the card as a
 measured improvement, add graph search, or reopen these slots.
 
-Before a new OpenCode comparison, reproduce the missing final event with no model
-access, resolve it in an explicitly selected client, and qualify both tool replies
-and final text replies against saved session accounting. A scripted control that
-passes once cannot establish reliability of live-provider event completion.
+Before a new OpenCode comparison, qualify fresh complete admission for the selected
+client, including tool replies and final text replies against saved session accounting.
+The client repair does not upgrade or reopen this comparison's failed slots.
 Then return to the original page-count proof obstacle with a specific prediction.
 
 These are supplied proofs, not proof discovery. There is no ordinary-Lean baseline

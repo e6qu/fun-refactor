@@ -278,7 +278,9 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require(result.returncode == 0, 'selected CLI version probe failed')
         versions[name] = result.stdout.strip()
     source_version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
-    expected_versions = {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32', 'fr': 'fr ' + source_version}
+    expected_versions = {'codex': 'codex-cli ' + proposed['clients']['codex']['version'],
+                         'opencode2': 'opencode v' + proposed['clients']['opencode2']['version'],
+                         'fr': 'fr ' + source_version}
     require(versions == {name: expected_versions[name] for name in paths},
             'installed CLI releases differ from the reviewed local setup: ' + json.dumps(versions))
     checker_paths = {'python': runtime['python'],

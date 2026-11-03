@@ -1,0 +1,98 @@
+{
+  "scope": "Credential-free loopback native-CLI reproductions. Not new agent attempts or rescored original outcomes.",
+  "original_measured_client": "2.0.32",
+  "explicit_repaired_client": "2.2.5",
+  "live_model_calls": 0,
+  "local_reconstruction_of_missing_usage": false,
+  "macos_client_download": {
+    "version": "2.2.5",
+    "url": "https://registry.npmjs.org/@opencode/cli-darwin-arm64/-/cli-darwin-arm64-2.2.5.tgz",
+    "integrity": "sha512-UwGb2MIJqLSh4wfrkvqNiAohG1Wf5t96Nx7113QvmtCn5LGimmXYN0Tb1chD0mMRRdPvnUguevKRdwM0txZY1Q==",
+    "member": "package/bin/opencode",
+    "unpacked_bytes": 226703249
+  },
+  "reproductions": [
+    {
+      "client_version": "2.0.32",
+      "stream_shape": "combined-usage",
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 1,
+      "usage_complete": false,
+      "elapsed_seconds": 2.5504142089994275,
+      "sampled_aggregate_rss_bytes": 333103104,
+      "sampled_cpu_seconds": 1.2728235416666667,
+      "stop_reason": null,
+      "live_model_calls": 0
+    },
+    {
+      "client_version": "2.0.32",
+      "stream_shape": "separate-usage",
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 1,
+      "usage_complete": false,
+      "elapsed_seconds": 2.2388720420003665,
+      "sampled_aggregate_rss_bytes": 338804736,
+      "sampled_cpu_seconds": 1.2299256666666667,
+      "stop_reason": null,
+      "live_model_calls": 0
+    },
+    {
+      "client_version": "2.2.5",
+      "stream_shape": "combined-usage",
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 2,
+      "usage_complete": true,
+      "elapsed_seconds": 3.2777219999998124,
+      "sampled_aggregate_rss_bytes": 284622848,
+      "sampled_cpu_seconds": 1.6679337916666666,
+      "stop_reason": null,
+      "live_model_calls": 0
+    },
+    {
+      "client_version": "2.2.5",
+      "stream_shape": "separate-usage",
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 2,
+      "usage_complete": true,
+      "elapsed_seconds": 3.5322864580002715,
+      "sampled_aggregate_rss_bytes": 280461312,
+      "sampled_cpu_seconds": 1.8185589583333335,
+      "stop_reason": null,
+      "live_model_calls": 0
+    }
+  ],
+  "original_admission_recheck": [
+    {
+      "profile": "opencode2-glm-flash",
+      "setup": "shared-skill",
+      "original_receipt_passed": true,
+      "strict_usage_complete": false,
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 1
+    },
+    {
+      "profile": "opencode2-glm-flash",
+      "setup": "finish-card",
+      "original_receipt_passed": true,
+      "strict_usage_complete": false,
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 1
+    },
+    {
+      "profile": "opencode2-kimi-k3",
+      "setup": "shared-skill",
+      "original_receipt_passed": true,
+      "strict_usage_complete": false,
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 1
+    },
+    {
+      "profile": "opencode2-kimi-k3",
+      "setup": "finish-card",
+      "original_receipt_passed": true,
+      "strict_usage_complete": false,
+      "exported_assistant_responses": 2,
+      "stream_finished_responses": 1
+    }
+  ]
+}
