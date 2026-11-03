@@ -62,7 +62,17 @@ class AlgorithmResultsChecks(unittest.TestCase):
         rows[0]['algorithm_observations']['execution_validity'] = 'service-failed'
         decisions = results.decisions(summary)
         self.assertFalse(decisions[rows[0]['profile']]['transfer_candidate'])
-        self.assertEqual(decisions[rows[0]['profile']]['decision'], plan['requirements']['invalid_execution'])
+        self.assertIn('Execution is invalid or unverified', decisions[rows[0]['profile']]['decision'])
+        rows[0]['algorithm_observations']['execution_validity'] = 'unknown'
+        rows[0]['failure_summary'] = 'Confirmed fr reader rejection; no provider error observed.'
+        summary['comparison'] = 'A fixed comparison'
+        summary['guidance_bytes'] = {}
+        for row in rows:
+            row.setdefault('failure_summary', '')
+            row['patch_file'] = None
+        report = results.markdown(summary)
+        self.assertIn('Confirmed fr reader rejection; no provider error observed.', report)
+        self.assertNotIn('when service failures', report)
         summary['attempts'] = rows[:-1]
         with self.assertRaises(ValueError):
             results.decisions(summary)

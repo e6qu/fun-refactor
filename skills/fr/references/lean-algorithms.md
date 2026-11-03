@@ -25,6 +25,9 @@ an invalid neighboring proof can reject a valid draft. A null `draft_location`
 and a `checked_location` elsewhere mean inspect that source. Keep drafts separate;
 do not erase failed work. A target check can pass while another claim is unfinished.
 Finish both claims and the package check before delivering the patch.
+For recorded edits, export their returned IDs together:
+`fr history patch <FIRST_TX> <SECOND_TX> --output change.patch`.
+This uses saved snapshots; include every requested edit and review the result.
 
 Tactics depend on the imports. With only the GCD library, `by_cases` may be
 unavailable. `cases b` separates zero from successor; unfolding an `if` and using

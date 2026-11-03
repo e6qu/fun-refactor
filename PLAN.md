@@ -75,7 +75,7 @@ advantage. No agent met the planned two-versus-zero rule for a transfer test;
 accumulator list reversal stays reserved. The results do not yet justify an
 automatic controller that tries alternative proof paths.
 
-**Implemented in draft PR #592:** the reader accepts multiline GCD proofs and
+**Merged in PR #592:** the reader accepts multiline GCD proofs and
 keeps their following tactic and declaration separate. Both valid references pass;
 all twelve deliberately broken controls fail. The original checker independently
 grades all twenty sessions. Repaired fr accepts the eight delivered patches and
@@ -92,13 +92,39 @@ and tracking pages are retained. The earlier
 and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
 remain separate; no closed model slot was rerun.
 
-**Finish before the draft is ready:** pass every required check on its final
-commit. CI exposed a Go checkout timeout before installation; the toolchain jobs
-now fetch only their installer inputs, keeping the five-minute deadline.
-Publish reviewed summaries and patches; keep raw transcripts private.
-Keep M3 open and do not merge this draft.
+The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41466033975)
+passed on the reviewed commit. Toolchain checks fetch only their installer inputs,
+fixing Go's checkout timeout within its existing five-minute deadline.
+The missing Mac runner check passed on a targeted retry, on the same platform.
+Reviewed summaries and patches are public; raw transcripts remain private.
 
-After this PR, choose one new testable explanation from the actual failures.
+**PR #593: save checked proofs and deliver their edits together.**
+
+The implementation and scripted controls now pass:
+
+- `spec prove` distinguishes `written` from `already-present`. A repeated save
+  preserves source and history and needs no further write.
+- `history patch` combines explicitly selected saved edits. Both GCD proofs reach
+  one independently accepted patch. Conflicting file states, repeated IDs, missing
+  snapshots and an empty combined result refuse. Git checks the patch and reverse.
+- Changing a release number alone keeps existing measurements valid.
+  Python and native versions must still agree.
+- Guides explain the commands. The report correction preserves every original
+  study outcome. The metadata comparison retains its earlier measurement and
+  records the extra 265 response bytes on the same one-edit fixture.
+
+All nineteen affected collection groups passed. This PR retains their current records.
+The PR includes refreshed tracking pages and must pass every required check on
+its final commit. The scripted checks establish tool behavior. No new model
+attempts have run, and we have measured no agent success gain.
+
+After this PR, define one delivery-only diagnostic from the observed Kimi failures.
+Start with already checked GCD proofs and ask agents to save both and deliver the
+requested patch. Check correct delivery, incomplete delivery, wrong paths and
+late completion. Fix the inputs and decision rule before paid attempts.
+This tests finishing existing work with assistance; it does not measure unaided
+proof construction.
+
 Do not repeat the full M3 comparison to seek a passing result. A successful
 control or a familiar algorithm cannot replace the missing page-count proofs.
 The [team pilot](tests/agent-eval/team-solve/README.md) and unrun

@@ -1,4 +1,4 @@
-use super::{render, History, Status};
+use super::{render, select, History, PatchTransaction};
 use crate::git::process::{diagnostic, repository_root, require_no_filters, run};
 use crate::history::{snapshot, target};
 use anyhow::{bail, Context, Result};
@@ -8,8 +8,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize)]
 pub struct GitPatchCheck {
-    pub id: u64,
-    pub status: Status,
+    pub transactions: Vec<PatchTransaction>,
     pub record_basis: String,
     pub reverse: bool,
     pub receiving_root: PathBuf,
@@ -26,14 +25,14 @@ pub struct GitPatchCheck {
 
 pub fn check_git_patch(
     root: &Path,
-    id: u64,
+    ids: &[u64],
     reverse: bool,
     against: Option<&Path>,
     index: bool,
 ) -> Result<GitPatchCheck> {
     let history = History::read(root)?;
-    let record = history.record(id)?;
-    let patch = render(record, reverse)?;
+    let selection = select(&history, ids)?;
+    let patch = render(&selection.changes, reverse)?;
     let receiving_root = against
         .unwrap_or(&history.root)
         .canonicalize()
@@ -41,7 +40,7 @@ pub fn check_git_patch(
     if !receiving_root.is_dir() {
         bail!("Git patch checks require a receiving directory.");
     }
-    for change in &record.changes {
+    for change in &selection.changes {
         snapshot(&target(&receiving_root, &change.path)?)?;
     }
     let repository_root = repository_root(&receiving_root)?;
@@ -49,7 +48,7 @@ pub fn check_git_patch(
         .strip_prefix(&repository_root)
         .context("Git resolved a working tree outside the receiving directory.")?;
     let mut paths = Vec::new();
-    for change in &record.changes {
+    for change in &selection.changes {
         let path = prefix.join(&change.path);
         paths.extend_from_slice(
             path.to_str()
@@ -71,9 +70,8 @@ pub fn check_git_patch(
     args.push("-".into());
     let output = run(&repository_root, &args, Some(patch.as_bytes()))?;
     Ok(GitPatchCheck {
-        id,
-        status: record.status,
-        record_basis: record.basis.clone(),
+        transactions: selection.transactions,
+        record_basis: selection.record_basis,
         reverse,
         receiving_root,
         repository_root,
@@ -83,7 +81,7 @@ pub fn check_git_patch(
             "worktree"
         },
         configuration: "repository-only-without-content-filters",
-        checked_files: record.changes.len(),
+        checked_files: selection.changes.len(),
         applicable: output.status.success(),
         git_exit_code: output.status.code(),
         stdout: diagnostic(&output.stdout),

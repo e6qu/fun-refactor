@@ -82,7 +82,8 @@ assert rechecked['source_revision'] == result['workflow']['stages'][1]['result']
 delivered = client.call('history', 'show', str(result['transaction'])).to_data()
 assert delivered['records'][0]['required_checks'] == required
 parts = [client.call('history', 'patch', str(current)).to_data() for current in chain]
-assert all(part['id'] == current and part['status'] == 'applied' and not part['reverse']
+assert all(len(part['transactions']) == 1 and part['transactions'][0]['id'] == current
+    and part['transactions'][0]['status'] == 'applied' and not part['reverse']
     for current, part in zip(chain, parts))
 patch = ''.join(part['patch'] for part in parts).encode()
 assert 0 < len(patch) <= 65536
@@ -323,8 +324,9 @@ def audit(value):
         require(len(row['parts']) == len(chain) and len(events) == position + len(chain), 'patch chain length changed')
         for index, (current, part) in enumerate(zip(chain, row['parts'])):
             require(events[position + index]['request']['arguments'] == ['history', 'patch', str(current)]
-                    and response(events[position + index], part) and part['id'] == current
-                    and part['status'] == 'applied' and part['reverse'] is False,
+                    and response(events[position + index], part) and len(part['transactions']) == 1
+                    and part['transactions'][0]['id'] == current
+                    and part['transactions'][0]['status'] == 'applied' and part['reverse'] is False,
                     'exported transaction order or patch receipt changed')
         patch = ''.join(p['patch'] for p in row['parts'])
         require(row['patch'] == patch and 0 < len(patch.encode()) <= 65536

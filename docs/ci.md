@@ -143,6 +143,21 @@ Retention compares the analyzer's source folders, local dependencies, parsing qu
 Each capture keeps its actual collection commit. Every recorded input still receives its existing report audit.
 The retained Python report uses compact JSON to avoid storing indentation across hundreds of examples.
 Its `artifact.zip` keeps the exact downloaded archive, including the original report bytes.
+
+Route and repair measurements form one report family. They compare preparing edits,
+correcting mistakes and delivering patches. Collect both from the same saved
+repository revision (commit), before changing the branch:
+
+```sh
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=workflow-routes -f prefix=YOUR_NEW_NAME
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=source-repair -f prefix=YOUR_NEW_NAME
+```
+
+After fixing the repair collector, refresh both collections together. Pairing new
+repair results with earlier route results fails before downloads or audits.
+This family requires the exact commit as well as matching analyzer source.
 The reader verifies both files, the original report's fingerprint and the compact copy's exact agreement with the captured values.
 A missing archive, changed value or obsolete receipt stops the check; the current reader accepts one receipt format.
 This changes storage only. The source identity, cases and recorded measurements keep their original values.
@@ -400,7 +415,10 @@ The build hashes every declared source file, including generated grammar tables,
 A missing or unreadable input stops the build.
 A symbolic link points to another file or folder. These links are refused inside the declared source roots.
 The result collectors use that same list, so changing a grammar or a helper file cannot escape their source checks.
-Release labels retain the existing normalization used by these recorded behavior comparisons; dependency and code changes remain bound.
+Changing just a release number, such as `0.86.1` to `0.87.0`, keeps these source identities.
+The checker ignores the marked Python `VERSION` string along with Cargo release labels.
+The Python label must still match Cargo's native package version.
+Changes to other Python code still expire the report, and malformed version metadata fails.
 
 The focused runner changes source, grammar, query and dependency inputs in temporary projects.
 It also checks file additions, deletions, renames, build-setting changes and ignored build outputs.

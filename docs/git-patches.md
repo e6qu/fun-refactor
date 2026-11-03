@@ -1,12 +1,13 @@
 # Give another checkout a saved change
 
-Suppose you need to apply a reviewed repair in a clean checkout. Export its saved patch, then check that Git can apply it there.
-Test the receiving checkout as well. Successful patch application establishes that the text fits, not that the repair behaves correctly.
+Suppose you saved a repair so `invoice_total(5, 2)` returns `7` and want to
+apply it in another checkout. A patch is a file containing proposed changes.
+The receiving checkout is where you apply it.
 
-A patch is a file containing proposed changes. The receiver is the checkout where you want to apply it.
-A dry run checks application without writing files. A conflict means the receiver no longer matches the patch's assumptions.
-For a checkout repair, verify the patch against the receiving source, apply it, then run that project's rounding test.
-Successful application establishes that the text changes fit, not that the repair is correct.
+Export the saved change and run a dry run, which checks application without
+writing files. A conflict means the receiver no longer matches the patch's
+assumptions. After applying the patch, run the receiving project's invoice tests.
+Successful application establishes that the text fits; the tests check behavior.
 
 ## Commands, results and limits
 
@@ -48,10 +49,49 @@ fr history patch 1 --output ../artifacts/change.patch
 ```
 
 This mode returns JSON metadata with `patch_bytes`, `patch_sha256` and the requested `output` path, omits the patch string, and refuses to replace an existing path.
-Fields include transaction identity, status, validation label, direction, file count and format.
-`record_basis` always identifies the original transaction's before snapshots, even in a reverse export.
+The `transactions` array lists each selected edit's ID, status, `record_basis`,
+`source_revision` and `validation` label. Direction, file count and format describe the complete patch.
+The outer `record_basis` identifies the combined starting snapshots, even in a reverse export.
 It is a history digest, not a Git object ID or a claim about the receiving files.
-`source_revision` and `validation` describe the recorded transaction; export does not rerun validation.
+The per-edit revision and validation describe past checks; export does not rerun them.
+This information has a context cost. A basis report compares receiving files with
+saved snapshots. On the fixed six-statement Rust example, that one-edit report grows
+from 689 to 954 UTF-8 bytes. It lists each edit alongside the combined starting files. The [earlier measurement](../tests/agent-eval/semantic-delta.json)
+stays intact beside the [current measurement](../tests/agent-eval/semantic-delta-delivery.json).
+Both editing methods still produce the same source and pass behavior, undo and redo
+checks. This compares metadata responses from the earlier and current fr, with one
+edit in each. The current measurement uses the
+[qualified CI-built executable](https://github.com/e6qu/fun-refactor/actions/runs/41516510047).
+CI repeats the fixture with its current checker. These counts measure neither
+program runtime nor agent success.
+
+The [four-route comparison](../tests/agent-eval/semantic-intent-delivery.json) also
+records 265 more response bytes per route. Each route changes `value + 1` to
+`value + 7`, using a full function body, an expression edit, a direct request or
+a Python-generated request. Their source and behavior checks still agree.
+The [earlier counts](../tests/agent-eval/semantic-intent.json) stay intact.
+The extra bytes all come from the same patch metadata report.
+
+## Deliver several saved edits together
+
+Suppose edit 4 saved an algorithm's termination proof and edit 7 saved its correctness
+proof in the same file. Both belong in the delivered patch:
+
+```sh
+fr history patch 4 7 --output change.patch
+fr history patch 4 7 --check --against /path/to/receiver
+fr history patch 4 7 --reverse --git-check --against /path/to/completed/receiver
+```
+
+These IDs select exactly two edits. They do not include edits 5 and 6 implicitly.
+For each shared file, the second input must exactly match the first result,
+including its kind and permissions. If edit 5 changed that file, omitting it
+refuses when edit 7 expects its result. Unrelated files need no intervening edit.
+Each file appears once in the patch, from its first selected input to its final result.
+A temporary file created and then removed contributes no final change.
+Repeated IDs, conflicting order, unavailable snapshots and an entirely cancelled
+selection refuse. Current working files are never used to fill a gap.
+Run the requested project checks on the combined result before delivering it.
 
 ## Check a receiving workspace
 

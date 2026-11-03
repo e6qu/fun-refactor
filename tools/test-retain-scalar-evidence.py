@@ -4,8 +4,10 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -21,6 +23,25 @@ profile_spec.loader.exec_module(profile_controls)
 
 
 class ScalarRetention(unittest.TestCase):
+    def test_mixed_workflow_commits_refuse_before_download_or_mutation(self):
+        runs = dict(zip(('flow', 'compiler', 'index', 'repositories', 'python',
+                         'routes', 'repair', 'probes'), range(1, 9)))
+        replies = [{'status': 'completed', 'conclusion': 'success', 'head_sha': revision * 40}
+                   for revision in ('a', 'a', 'b')]
+        with patch.dict(os.environ, GITHUB_ACTIONS='true', GITHUB_REF='refs/heads/test',
+                        GITHUB_REPOSITORY='example/project'), \
+                patch.object(sys, 'argv', ['retain-scalar-evidence', '--runs', json.dumps(runs),
+                                          '--prefix', 'never-written']), \
+                patch.object(scalar.retain, 'api', side_effect=replies), \
+                patch.object(scalar, 'collect') as download, \
+                patch.object(scalar.retain, 'command') as command, \
+                patch.object(scalar, 'keep') as keep:
+            with self.assertRaisesRegex(ValueError, 'workflow family from one source commit'):
+                scalar.main()
+        download.assert_not_called()
+        command.assert_not_called()
+        keep.assert_not_called()
+
     def test_capture_names_do_not_choose_the_destination_collection(self):
         paths = {'facts': 'refinement-evidence/original-facts/result.json',
                  'calls': 'refinement-evidence/original-calls/result.json'}

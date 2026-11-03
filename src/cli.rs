@@ -553,9 +553,10 @@ enum HistoryCommand {
         #[arg(long, requires = "basis")]
         write: bool,
     },
-    #[command(about = "Export stored transaction snapshots as a Git text patch.")]
+    #[command(about = "Combine explicitly selected saved edits into one Git text patch.")]
     Patch {
-        id: u64,
+        #[arg(required = true, num_args = 1.., value_name = "ID")]
+        ids: Vec<u64>,
         #[arg(
             long,
             help = "Export the change from the recorded result back to its basis."
@@ -1708,12 +1709,24 @@ fn cmd_spec_prove(cli: &Cli, target: &str, from: &Path, write: bool) -> Result<(
     let transaction = persist_changes(cli, &[change], write, "lean-proof-v1")?;
     let shown = shown_path(&root, &plan.spec);
     let diff = crate::edit::unified_diff(&plan.original, &plan.updated, &shown);
+    let status = if plan.original == plan.updated {
+        "already-present"
+    } else if write {
+        "written"
+    } else if cli.save_plan {
+        "planned"
+    } else {
+        "preview"
+    };
     if cli.json {
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "schema": 1,
                 "operation": "spec_prove",
+                "status": status,
+                "proof_checked": true,
+                "scope": "Lean accepted this target proof. Check the complete package before delivery.",
                 "spec": shown,
                 "obligation": plan.obligation,
                 "goal_id": plan.goal_id,
@@ -1732,17 +1745,19 @@ fn cmd_spec_prove(cli: &Cli, target: &str, from: &Path, write: bool) -> Result<(
         }
         println!(
             "{} proof {} in {}.",
-            if write {
-                "Applied"
+            if status == "already-present" {
+                "Lean accepted the already-present"
+            } else if write {
+                "Wrote the Lean-checked"
             } else if cli.save_plan {
-                "Saved"
+                "Saved a plan for the Lean-checked"
             } else {
-                "Would apply"
+                "Would write the Lean-checked"
             },
             plan.obligation,
             shown
         );
-        if !write && !cli.save_plan {
+        if status == "preview" {
             println!("Nothing written. Re-run with --write to apply.");
         }
     }
@@ -3615,7 +3630,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         anyhow::bail!("--context-basis requires an apply, undo, redo or recover history command.");
     }
     if let Some(HistoryCommand::Patch {
-        id,
+        ids,
         reverse,
         check,
         git_check,
@@ -3627,7 +3642,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         if *git_check {
             let report = crate::history::check_git_patch(
                 &cli.root,
-                *id,
+                ids,
                 *reverse,
                 against.as_deref(),
                 *index,
@@ -3640,14 +3655,14 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         }
         if *check {
             let report =
-                crate::history::check_patch_basis(&cli.root, *id, *reverse, against.as_deref())?;
+                crate::history::check_patch_basis(&cli.root, ids, *reverse, against.as_deref())?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             if !report.matches_patch_basis {
                 std::process::exit(1);
             }
             return Ok(());
         }
-        let report = crate::history::export_patch(&cli.root, *id, *reverse)?;
+        let report = crate::history::export_patch(&cli.root, ids, *reverse)?;
         if let Some(requested) = output {
             write_patch_artifact(&cli.root, requested, &report.patch)?;
             let mut value = serde_json::to_value(&report)?;

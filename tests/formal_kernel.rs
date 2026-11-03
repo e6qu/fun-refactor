@@ -313,9 +313,25 @@ fn each_typed_language_completes_agent_proofs_regeneration_drift_and_reversal() 
                 &["spec", "prove", &goal, "--from", "proof.lean", "--write"],
             );
             assert_eq!(attempt["receipt"], applied["receipt"]);
+            assert_eq!(applied["status"], "written");
+            assert_eq!(applied["proof_checked"], true);
             let transaction = applied["transaction"].as_u64().unwrap().to_string();
             let after = std::fs::read(workspace.path().join(&model)).unwrap();
             assert_ne!(before, after);
+            if path == "keep.lean" && property.kind == "ir-model" {
+                let journal = workspace.path().join(".fr-history/state.json");
+                let history = std::fs::read(&journal).unwrap();
+                let repeated = run(
+                    workspace.path(),
+                    &["spec", "prove", &goal, "--from", "proof.lean", "--write"],
+                );
+                assert_eq!(repeated["status"], "already-present");
+                assert_eq!(repeated["proof_checked"], true);
+                assert_eq!(repeated["applied"], false);
+                assert!(repeated["transaction"].is_null());
+                assert_eq!(std::fs::read(&journal).unwrap(), history);
+                assert_eq!(std::fs::read(workspace.path().join(&model)).unwrap(), after);
+            }
             run(
                 workspace.path(),
                 &["history", "undo", &transaction, "--write"],

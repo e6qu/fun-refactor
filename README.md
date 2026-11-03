@@ -97,6 +97,9 @@ fr history patch '<TX>' --output change.patch
 
 Replace `<TX>`, including its brackets, with the returned transaction ID. Continue with the [tutorial](TUTORIAL.md), or use the
 [CLI reference](CLI.md) for the complete command surface.
+For several saved edits, list their IDs explicitly:
+`fr history patch 1 2 --output change.patch` combines their recorded changes.
+Check and deliver the complete result; see [patch delivery](docs/git-patches.md#deliver-several-saved-edits-together).
 
 ## Give `fr` to an agent
 

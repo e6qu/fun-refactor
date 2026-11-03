@@ -1,6 +1,6 @@
-# Apply or reverse source history
+# Saved edits
 
-Inspect edit `<TX>` and its before/after files. Preview undo first.
+Inspect `<TX>` (a saved edit's ID) and preview undo.
 
 ```sh
 fr history show '<TX>'
@@ -9,13 +9,14 @@ fr history undo '<TX>' --write --no-diff
 fr history redo '<TX>'
 fr history redo '<TX>' --write --no-diff
 ```
-`--no-diff` keeps outcomes and metadata. An author plan's `transaction_context_basis` becomes history's `context_basis`.
-Apply/redo can reuse it to omit reviewed diffs; undo needs full review.
+`--no-diff` keeps metadata. An author's `transaction_context_basis` becomes history's
+`context_basis`. Reuse it for apply/redo; review undo in full.
+Undo the latest edit; redo the next. New edits abandon redo. Conflicts refuse.
+Undo/redo preserve unrelated files and the Git index.
 
-Check content, links, kinds, existence and modes; keep unrelated files and the Git index.
-Undo the latest edit; redo the next. A new applied edit abandons redo. Keep conflicting edits.
-
-Record checks with `fr checks --run NAME --basis '<CHECK_BASIS>' --record-for '<TX>'`.
-Pending writes and locks: [Recovery](recovery.md).
-History omits timestamps, ownership, extended attributes and empty directories. Multi-file writes are not atomic.
-Git has [its own journal](git.md).
+Record validation with [Checks](checks.md).
+Combine explicit IDs in application order:
+`fr history patch <FIRST_TX> <SECOND_TX> --output change.patch`.
+Match file states between edits; review the combined patch.
+Multi-file writes are not atomic. History omits timestamps, ownership, extended attributes and empty directories.
+Pending writes: [Recovery](recovery.md). Patch checks and Git: [Git](git.md).

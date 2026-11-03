@@ -38,60 +38,60 @@
       "sha256": "c90d904d97147dde2e087dde674de69c724a22ace18dce4253a4ef07b228f3c3"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "d8ed8d2ce6a0e2e1bf82fcc3bc6b2fc74ec6a1b0927009f62cb96c4afd124982"
+      "sha256": "ff211b1b2b27b25a487f3f62e09cb7f7b694ba958728a05e5016bbd24335932f"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "2ad10b2e89a40386adc183c0ec2695f671ff4b780b568966a3c9b17c747f0d9e"
+      "sha256": "acc4c379c6a99ef7a04d33dcedb438dbd4a63967232aff8c07cbcf4fd3d5d130"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "5317a10aa451406098d185521eaeaf3d48a7bc21b1b9849f1d03ebef95113a0b"
+      "sha256": "da3d3f4b537c08eab9af5bc421e1c39aac3342d88f838bb7449ac626f2e76806"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "524fa04f4dcd5cee3a78a02003e3dd8d8bb6b3d167e87fb93c225975505abb8a"
+      "sha256": "433a44e042af1f1505f8108b8ce1da6abf50c978743301dc200eadd5e19dc17a"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-ci-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-03-proof-delivery-remaining-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-ci-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-proof-delivery-remaining-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "cf4914f2b9a849baee9a84fe0bf4b4a695ce0a89896ab767883bdf9ec3b6cad5"
+      "sha256": "0c788fd3e8372885df75f83268290203bbba585b6136d39dfd434b60a1be8eea"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-02-lambda-current-delivery-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-current-delivery-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "264fff6566ef8c3c3aca0bf19fa616c76100b7665709a62e3c7b30e7a72d70c8"
+      "sha256": "d6eed81d8ed9e97780570a8cf864fb482a9467d84e4c7e2a5fb8cfb05b6cd79a"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-01-interactive-deadline-ci-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-03-proof-delivery-remaining-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-01-interactive-deadline-ci-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-03-proof-delivery-remaining-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "c7f536c2f54da6a9fbb0bd876faae8b1888cf9c0ba2e02fcbb5c345372bac053"
+      "sha256": "87d1587391ce9dffccca98beb10a0dfc2d37d81af260ca44f1d8a442b5a11adf"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "5766e1a8ac8c100c3289b5cda6b0959a16d5dbca14299eb66d7aabe1e0b25bca"
+      "sha256": "3a6c315a79d33a551d32e1424187a235499bdbfc253c418d0d79ee4125c6eb02"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-02-lambda-qualified-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "ccc830bbe0ace64fb884e8252cc250471415db56a6404f024df979ee482c54ae"
+      "sha256": "c27310188470d8a50b4b23366f5574f72501258fa42ad5ba47d6b963918dfbf0"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-02-lambda-qualified-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-qualified-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "a1726fc32426d4d04793a7bc59042a09a53cff519fdf7189bf5ac64f1787ba7d"
+      "sha256": "d54017d312d384419703a24f372591c4196c0a7ac7f50d56a319a61779ed8c76"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-02-lambda-reader-packages-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-text-package-recheck",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-reader-packages-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.",
-      "sha256": "7090cb4dcb182e377b588cecb6b6cce10fc08efa972976b71f396712139be92e"
+      "sha256": "e3d8b1d25ef8591f53a67e9362e1ea82b57e6e7c0e04d9248b731abc6a0cc571"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -158,44 +158,44 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41435570426",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41554016040",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-41435570426/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-41554016040/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "cc91dcb0d9d8b28544485ac02109f5807b311e20e76aaa8e38f07223168e726a"
+      "sha256": "d821f4ba54d35051c6d9142794e0f1c7089cde4deae1d31a64d46ea9d7f22309"
     },
     {
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-current-languages-checked-translation/result.json",
-      "sha256": "d779fd8ac40f6096dbbc8a314a976b39616af1be3072bf4a88c9974c1837aa1c",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-checked-translation/result.json",
+      "sha256": "7d3ea8429f8d58e7e74d19a67124c9916011063b68838e80825e1f63f9a791ab",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-02-lambda-current-languages-checked-translation"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-checked-translation"
     },
     {
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-current-languages-python-effects/result.json",
-      "sha256": "757d2b2dc620f20b740ea42e6ad812cc7995ec0a12cf87860ec89be1a1589933",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-effects/result.json",
+      "sha256": "7a748fdb84ce3b439fc2643c175bd7b519da85ac5be63e33f83ae4389533f0b9",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-02-lambda-current-languages-python-effects"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-effects"
     },
     {
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-current-languages-python-text-flow/result.json",
-      "sha256": "99db23130a562fee865705a598ecac5b35643a000dfd8ff0e86a599f6db76154",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-text-flow/result.json",
+      "sha256": "7b17241f704c5f8ca7bbf3fb389eb62a4cf5a1027cc43273d4f927d383719c57",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-02-lambda-current-languages-python-text-flow"
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-python-text-flow"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-02-lambda-reader-projects-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-02-lambda-reader-projects-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "b7439d46d9b1e0c570d1b21acd14b938d2f1749483e1aaef5cf33845ccdaa909"
+      "sha256": "c5a5911c7c600e5b97991021f50ae70f7733ecdee30b6756c5a497ffe21347cc"
     }
   ],
   "obligations": [
