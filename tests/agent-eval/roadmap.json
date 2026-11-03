@@ -78,12 +78,12 @@
       "sha256": "0c788fd3e8372885df75f83268290203bbba585b6136d39dfd434b60a1be8eea"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-03-release-088-structural-inputs-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-03-release-088-structural-inputs-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "d6eed81d8ed9e97780570a8cf864fb482a9467d84e4c7e2a5fb8cfb05b6cd79a"
+      "sha256": "f460478d6fea9b2ee937e821ec5c6a7d332304b700f2de4e7141e1c12f68ae9c"
     },
     {
       "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-03-proof-delivery-remaining-model-comparisons",

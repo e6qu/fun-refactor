@@ -15,7 +15,7 @@ fn retained_structural_migration_preserves_compiled_results_and_exact_reversal()
         .args([
             "tools/structural-change-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-11-03-matched-release-proof-delivery-structural-change",
+            "tests/agent-eval/results/2026-11-03-release-088-structural-inputs-structural-change",
         ])
         .output()
         .unwrap();
