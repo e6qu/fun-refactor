@@ -102,3 +102,10 @@ import and with explicit integer-division imports, sampling about 364 MiB and
 it does not establish full-client admission or a general performance result.
 Fresh complete qualification must demonstrate the unchanged reserve before calls.
 Raw records stay private; no passing component probe replaces failed admission.
+
+All four complete local controls now pass with fr's generated imports. They
+inspect the open goal, reject the mapped type error, check and save the corrected
+proof, build the package, replay the patch and finish accounting. Sampled peaks
+are 500 to 535 MiB, below the same 640 MiB admission ceiling. These are scripted
+setup checks with zero model calls. Finish the measurement-record updates before
+freezing matching qualification and the eight paid slots.

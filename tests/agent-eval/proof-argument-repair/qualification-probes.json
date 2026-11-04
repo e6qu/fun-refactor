@@ -1,5 +1,5 @@
 {
-  "purpose": "Root-cause package compiler memory before any model call; this does not measure the instruction effect or establish complete client admission",
+  "purpose": "Diagnose complete proof-workflow memory and require passing interactive controls before model calls. These checks make no model calls.",
   "live_model_calls": 0,
   "qualified_task_run": "41822381659",
   "lean": "4.28.0",
@@ -60,7 +60,7 @@
       }
     ]
   },
-  "next_gate": "Fresh hosted and complete native qualification with explicit integer-division imports in the proof module, prelude in the package entry, one compiler worker, the original client settings and unchanged full memory reserve. The claim is unchanged; earlier attempts retain their original import context and timings. No component probe admits paid calls.",
+  "next_gate": "Finish source-bound measurement publication, then freeze matching hosted and complete native qualification on that checking source before eight fresh model slots. Keep the complete claim, explicit imports, 150-second deadline and all resource limits.",
   "publication": "Reviewed summaries only; raw scripted client and resource traces stay private.",
   "one_worker_complete_workflow": {
     "qualified_task_run": "41841646349",
@@ -183,5 +183,75 @@
         "resource_record_sha256": "11c0a06816f5fd3dcdd8ad388956a22cc67258926bc2cf8dc7260ce818f46735"
       }
     ]
+  },
+  "focused_import_complete_workflows": {
+    "qualified_task_run": "41874415588",
+    "run_attempt": 1,
+    "qualified_source_commit": "f00942310c283900d169496c86b910a20f19fc66",
+    "fr_build_run": "41871522493",
+    "fr_source_commit": "98fb33256c92ed30100083a6ca7717844caa0b13",
+    "client": "OpenCode2 2.2.5",
+    "live_model_calls": 0,
+    "admission_ceiling_bytes": 671088640,
+    "required_client_reserve_bytes": 134217728,
+    "attempts": [
+      {
+        "profile": "opencode2-glm-flash",
+        "condition": "argument-repair",
+        "passed": true,
+        "complete_workflow": true,
+        "interactive_goal": true,
+        "argument_type_rejection": true,
+        "independent_patch_replay": true,
+        "session_accounting": true,
+        "sampled_aggregate_rss_bytes": 524288000,
+        "complete_seconds": 6.196826416999102,
+        "sampled_cpu_seconds": 2.88,
+        "receipt_sha256": "17125617b898ac8c07b81805321d93a312e9a96d9c53145868e287c7b0d58da8"
+      },
+      {
+        "profile": "opencode2-glm-flash",
+        "condition": "shared-skill",
+        "passed": true,
+        "complete_workflow": true,
+        "interactive_goal": true,
+        "argument_type_rejection": true,
+        "independent_patch_replay": true,
+        "session_accounting": true,
+        "sampled_aggregate_rss_bytes": 558383104,
+        "complete_seconds": 7.124953084003209,
+        "sampled_cpu_seconds": 3.21,
+        "receipt_sha256": "47db5359b04141f3db8b4fc58c4e3229bd2bdfb930f034f953e80165816046d9"
+      },
+      {
+        "profile": "opencode2-kimi-k3",
+        "condition": "argument-repair",
+        "passed": true,
+        "complete_workflow": true,
+        "interactive_goal": true,
+        "argument_type_rejection": true,
+        "independent_patch_replay": true,
+        "session_accounting": true,
+        "sampled_aggregate_rss_bytes": 555679744,
+        "complete_seconds": 6.220157916999597,
+        "sampled_cpu_seconds": 2.88,
+        "receipt_sha256": "41265074699427469b623c80359895173711c20685a57ae205129cb368e9d32f"
+      },
+      {
+        "profile": "opencode2-kimi-k3",
+        "condition": "shared-skill",
+        "passed": true,
+        "complete_workflow": true,
+        "interactive_goal": true,
+        "argument_type_rejection": true,
+        "independent_patch_replay": true,
+        "session_accounting": true,
+        "sampled_aggregate_rss_bytes": 561053696,
+        "complete_seconds": 6.1934380829989095,
+        "sampled_cpu_seconds": 2.9,
+        "receipt_sha256": "56951bbb7b427bacd5300374d4fac7c46e62fb943757aa4fe0156c68f754b93b"
+      }
+    ],
+    "interpretation": "All four complete native workflows fit the unchanged reserve with generated imports. This qualifies tool execution on the recorded checking source. It is not an agent result or a general performance comparison. Keep earlier failures unchanged."
   }
 }
