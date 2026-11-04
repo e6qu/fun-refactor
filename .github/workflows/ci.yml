@@ -119,7 +119,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CARGO_HOME: ${{ github.workspace }}/target/project-change-cargo
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -159,10 +158,10 @@ jobs:
               paths.add('/' + path.parent.as_posix() + '/')
           subprocess.run(['git', 'sparse-checkout', 'add', *sorted(paths)], check=True, timeout=60)
           PY
-      - run: python3 -B tools/test-project-change-compiler.py
       - name: Build both current checker implementations
         run: |
-          python3 -B tools/project_change_checkers.py checkers --output "$RUNNER_TEMP/project-change-checkers"
+          cargo build --locked --bin fr
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-checkers"
       - name: Replay the current result and reject altered completion records
         run: |
           python3 -B - <<'PY'

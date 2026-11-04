@@ -1,7 +1,6 @@
 """Build a recorded implementation control before any unread project is opened."""
 import argparse
 import difflib
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,40 +18,6 @@ from fr_ir.context import MemoryObjectStore
 from project_change_findings import satisfy
 from project_change_sources import digest, save, bindings
 from evidence_basis import native_source_bindings
-
-COMPILER_IMAGE = 'gcc:15.2.0@sha256:c101370f78e4a30be178c11dd18aeee64c65d617908a98157db2392ca73ab04f'
-
-
-def compiler_command(root, toolchain, registry, target):
-    return ['docker', 'run', '--rm', '--network=none', '--pull=never',
-        '--platform=linux/amd64', '--user', f'{os.getuid()}:{os.getgid()}',
-        '--mount', f'type=bind,src={root},dst=/work',
-        '--mount', f'type=bind,src={toolchain},dst=/rust,readonly',
-        '--mount', f'type=bind,src={registry},dst=/cargo',
-        '--mount', f'type=bind,src={target},dst=/build', '--workdir', '/work',
-        '--env', 'PATH=/rust/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-        '--env', 'RUSTC=/rust/bin/rustc', '--env', 'CARGO_HOME=/cargo',
-        '--env', 'CARGO_TARGET_DIR=/build', '--env', 'CARGO_NET_OFFLINE=true',
-        '--env', 'CARGO_BUILD_JOBS=2', '--env', 'CARGO_INCREMENTAL=0',
-        '--env', 'CARGO_PROFILE_DEV_DEBUG=0', '--env', 'CARGO_PROFILE_TEST_DEBUG=0',
-        '--env', 'RUSTFLAGS=-D warnings', COMPILER_IMAGE,
-        '/rust/bin/cargo', 'build', '--locked', '--bin', 'fr']
-
-
-def compile_binary(destination):
-    assert os.environ.get('GITHUB_ACTIONS') == 'true', 'compile checkers on GitHub runners'
-    toolchain = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True).strip())
-    assert '1.99.1' in subprocess.check_output(['rustc', '--version'], text=True)
-    registry = Path(os.environ['CARGO_HOME']).resolve()
-    subprocess.run(['cargo', 'fetch', '--locked'], cwd=ROOT, check=True, timeout=120)
-    subprocess.run(['docker', 'pull', '--platform=linux/amd64', COMPILER_IMAGE], check=True, timeout=120)
-    target = ROOT / 'target/project-change-pinned'
-    target.mkdir(parents=True, exist_ok=True)
-    subprocess.run(compiler_command(ROOT, toolchain, registry, target),
-                   cwd=ROOT, check=True, timeout=180)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(target / 'debug/fr', destination)
-    destination.chmod(0o755)
 
 
 def verify(binary, root, accepted):
@@ -72,7 +37,7 @@ def verify(binary, root, accepted):
     return {'accepted': True, 'report': report}
 
 
-def build(output):
+def build(output, binary):
     output.mkdir(parents=True, exist_ok=False)
     source = ROOT / 'src/project/structural_change.rs'
     original = source.read_text()
@@ -83,13 +48,20 @@ def build(output):
     (output / 'implementation.patch').write_text(''.join(difflib.unified_diff(
         original.splitlines(keepends=True), changed.splitlines(keepends=True),
         fromfile='a/src/project/structural_change.rs', tofile='b/src/project/structural_change.rs')))
-    compile_binary(output / 'production-fr')
+    shutil.copyfile(binary, output / 'production-fr')
+    (output / 'production-fr').chmod(0o755)
     production = native_source_bindings(ROOT)
     investigation = digest(ROOT / 'src/project/investigation.rs')
     try:
         source.write_text(changed)
         alternate = native_source_bindings(ROOT)
-        compile_binary(output / 'alternate-fr')
+        completed = subprocess.run(['cargo', 'build', '--locked', '--bin', 'fr'], cwd=ROOT,
+            capture_output=True, text=True, timeout=180)
+        save(output / 'build.json', {'returncode': completed.returncode,
+            'stdout': completed.stdout, 'stderr': completed.stderr})
+        assert completed.returncode == 0
+        shutil.copyfile(binary, output / 'alternate-fr')
+        (output / 'alternate-fr').chmod(0o755)
     finally:
         source.write_text(original)
     assert digest(ROOT / 'src/project/investigation.rs') == investigation
@@ -128,7 +100,6 @@ def build(output):
     save(output / 'checkers.json', {'production': {'sha256': digest(output / 'production-fr'),
         'source_bindings': production}, 'alternate': {'sha256': digest(output / 'alternate-fr'),
         'source_bindings': alternate}, 'unchanged_investigation_sha256': investigation,
-        'compiler_image': COMPILER_IMAGE,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(ROOT),
         'invalidation_control': invalidation,
@@ -137,10 +108,7 @@ def build(output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['compile', 'checkers'])
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--fr', type=Path, required=True)
     args = parser.parse_args()
-    if args.action == 'compile':
-        compile_binary(args.output.resolve())
-    else:
-        build(args.output.resolve())
+    build(args.output.resolve(), args.fr.resolve())

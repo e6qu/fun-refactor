@@ -26,7 +26,6 @@ def bindings(root):
         'tests/agent-eval/package-questions/freeze.json',
         'tests/agent-eval/python-repositories/boltons.tar.gz',
         'tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json',
-        'tools/test-project-change-compiler.py',
         'tools/test-project-change-audit.py',
         'tools/test-project-change-gate.py',
         'kernels/FrKernels/Project.lean',

@@ -198,7 +198,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CARGO_HOME: ${{ github.workspace }}/target/project-change-cargo
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -242,7 +241,7 @@ jobs:
         run: |
           cargo fmt --all
           git diff -- src tests > "$RUNNER_TEMP/project-change-rustfmt.patch"
-      - run: python3 -B tools/project_change_checkers.py compile --output target/debug/fr
+      - run: cargo build --locked --bin fr
       - name: Synchronize the reviewed admission rule through fr
         if: inputs.group == 'project-change-development'
         run: |
@@ -293,7 +292,7 @@ jobs:
         id: checkers
         if: contains(fromJSON('["project-change-findings", "project-change-freeze", "project-change-held-out", "project-change-retain"]'), inputs.group)
         run: >-
-          python3 -B tools/project_change_checkers.py checkers
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr
           --output "$RUNNER_TEMP/project-change-checkers"
       - name: Reopen findings after changes to original familiar projects
         id: findings
