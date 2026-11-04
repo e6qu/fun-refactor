@@ -117,7 +117,7 @@ All nineteen affected collection groups passed and their current records are ret
 The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760)
 passed all 92 jobs before merge. Those scripted checks establish tool behavior.
 
-**Current result: [delivery of supplied GCD proofs](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md).**
+**Earlier result: [delivery of supplied GCD proofs](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md).**
 All twelve fixed slots ran once after fresh hosted qualification and six reported
 passing local checks. Review found that the four OpenCode admission checks also
 missed incomplete final usage. The stricter admission now rejects that gap.
@@ -137,39 +137,44 @@ The explicit OpenCode2 2.2.5 pin passes both local no-model reproductions and
 All six scripted native exchanges, proof controls, Mac build and retained-patch
 replay pass. The runner rejects missing or duplicate response records.
 
-**Next work, in order:**
+**Current result: [complete page-count comparison](tests/agent-eval/proof-argument-repair/README.md).**
 
-1. Before a new study, freeze fresh complete native admission for its selected client.
-   Keep these twelve outcomes under their original client and never reopen their slots.
-   The import fix now passes all four complete local controls, including interactive
-   goal inspection. Peaks are 500 to 535 MiB against the unchanged 640 MiB
-   admission ceiling. Freezing caught a Python version mismatch caused by a
-   moving installation link. Repeat qualification with the copied, versioned
-   runtime. Those controls passed, but the first baseline attempt exposed a
-   missing enforced finishing reserve. Preserve its interrupted collection and
-   seven unstarted slots. Qualify the repaired collector before eight new slots.
-2. Review the original page-count failure against the unchanged complete claim.
-   Use the algorithm workflow’s `page-count-diagnosis` job to check the complete
-   claim with one changed proof step per control. Distinguish choosing a division
-   fact from applying it with the wrong types. These controls make no model calls. The [typed-division review](tests/agent-eval/proof-page-count/typed-division-review.md)
-   records the seven rejected steps and fixes the next instruction proposal and
-   prediction. The [next eight-slot comparison](tests/agent-eval/proof-argument-repair/README.md)
-   tests the post-error instruction against the shared skill alone on that same
-   complete claim. Qualify all four client/condition pairs and freeze fresh
-   complete native admission before calls. Record the first typed-argument error,
-   next action and next check separately; no error means the mechanism was
-   unobserved. Neither preparation nor this small comparison closes M3.
-3. Finish M3's existing language examples, numeric proofs and source/model checks
-   together in its milestone PR. A familiar GCD delivery cannot replace them.
+All eight fresh GLM/Kimi attempts ran once after matching hosted and local
+qualification. None submitted a patch. One Kimi draft passed fr checking near
+135 seconds but was not saved or delivered. No mapped argument error was
+observed, so the proposed repair mechanism remains unobserved.
+[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41918858328)
+confirmed all eight failures. Keep the broader 36-attempt study paused.
 
-Do not add graph search or repeat the full study without a demonstrated obstacle
-that the proposed change addresses.
+The generator now uses explicit arithmetic imports and one compiler worker.
+The collector enforces its existing ten-second finishing reserve inside the
+150-second total. All eight complete attempts finished within that total.
+The earlier interrupted collection and seven unstarted slots remain recorded
+separately. Unknown usage and account charges remain unknown.
 
-Do not repeat the full M3 comparison to seek a passing result. A successful
-control or a familiar algorithm cannot replace the missing page-count proofs.
-The [team pilot](tests/agent-eval/team-solve/README.md) and unrun
+**Next work, together in the M3 milestone PR:**
+
+1. Give each proof attempt its exact target, a valid initial cursor and current
+   goal. Cover the recorded wrong-target, cursor and JSON-shape errors with
+   runnable examples and regression checks. Use explicit settings and existing
+   fr actions where they already supply the needed information.
+2. Explain assumption structure and goal changes with checked Lean examples.
+   For example, distinguish a pair of facts from a proof that implies another
+   fact. Show how one closed branch differs from an accepted complete proof.
+3. Check the complete save, package-build and patch-delivery workflow. Include
+   a client that ignores its finishing deadline; its failed receipt and session
+   export must still fit within 150 seconds and the existing resource caps.
+4. Declare the next comparison before model calls. Measure the first useful
+   proof check, observed repairs and independently accepted delivered patches.
+   Compare any graph proposal with the same explicit command workflow. Require
+   it to address a recorded error. Finish the named language cases,
+   numeric proofs and source/model checks together; a familiar GCD delivery
+   cannot replace them.
+
+Do not repeat the full M3 study to seek a passing result. The
+[team pilot](tests/agent-eval/team-solve/README.md) and unrun
 [division-fact plan](tests/agent-eval/proof-division-facts/README.md) retain their
-separate scope; neither closes the solo proof-writing milestone.
+separate scope. Neither closes the solo proof-writing milestone.
 
 ### M1. Run the selected agents on three complete tasks
 

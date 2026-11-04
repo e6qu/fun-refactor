@@ -1,129 +1,116 @@
-# Can a type-error repair instruction help GLM and Kimi finish page count?
+# Page-count proof comparison
 
-The task is still the complete page-count proof. Eleven items at five per page
-need three pages. Invalid inputs return `-1`; valid signed-64 inputs must satisfy
-the fixed result bounds. The original Rust source, Lean model, claim and
-assumptions stay unchanged. The proof starts empty.
+None of the eight attempts submitted a patch. Adding the repair instruction
+produced no complete delivered proof in this comparison. One instructed Kimi
+draft passed fr checking near 135 seconds, but the agent did not save it, check
+the package or deliver a patch before its deadline. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41918858328)
+checked all eight outcomes and confirmed zero successful submissions.
 
-A theorem can require a proof about a number as an argument. The number itself
-does not meet that requirement. For example, `n` is an integer, whereas a named
-assumption `hn : 0 ≤ n` proves that it is nonnegative. Lean's error context tells
-the agent which type it supplied and which type was required.
+| Agent | Shared skill: delivered / 2 | Added instruction: delivered / 2 |
+| --- | ---: | ---: |
+| GLM Flash | 0 | 0 |
+| Kimi K3 | 0 | 0 |
 
-This comparison tests one instruction: after that error, read the context,
-match required proof arguments to available assumptions, and check the repaired
-step before searching for another theorem. An assumption can imply a needed
-inequality without having exactly the same wording; the instruction permits
-deriving and naming that proof. Neither condition receives a finished proof,
-extra theorem names or stronger assumptions.
+No mapped argument-type error was observed in the eight recorded attempts.
+Some output was shortened by the agents or the diagnostic budget. This does not
+establish that no such error occurred. The proposed repair mechanism remains
+unobserved. Neither agent met the predeclared complete-proof prediction.
+Do not adopt this instruction as an improvement or resume the 36-attempt study.
+M3 remains open.
 
-## Fixed comparison
+## What the agents had to do
 
-The [requirements](requirements.json) own eight fresh slots: GLM Flash and
-non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
-OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
-The local controller uses Python 3.14.10 from an explicitly versioned installation.
-Admission checks that version before starting native work.
-Fr's direct proof checks and newly generated packages explicitly use one Lean
-compiler worker. Both comparison settings use that same `-j1` setting.
-Fr generates `prelude` and explicitly imports `Init.Data.Int.DivMod.Lemmas` in
-the proof module. New package entries also use `prelude`. This disables Lean's
-automatic import of the whole `Init` library while retaining the integer-division
-facts and tactics used by the complete reference proof. Both conditions receive
-this same library context and preserve its imports. Setup checks these generated
-headers; it does not rewrite them. Earlier attempts keep their
-original context and timings; this preparation change is not an agent improvement.
-The order reverses between repetitions. All complete attempts retain the
-150-second deadline and existing CPU, memory, disk and output limits.
+Eleven items at five per page need three pages. The complete claim also says
+that invalid inputs return `-1` and that valid results stay within the fixed
+bounds. Each attempt started with the same Rust source, Lean definitions,
+assumptions and unfinished theorem. Only the marked proof region could change.
+An accepted proof would establish the mathematical model. Its connection to
+Rust execution remains unproved.
 
-The baseline is the same agent with the shared skill alone. The other setting
-adds the [repair instruction](fixtures/argument-repair.txt). Both read the same
-handout path; its content is the only different supplied input. The collector
-rejects changes to that file. Costs include preparation, instructions, tool use,
-package checking, patch delivery, accounting and failed attempts. This comparison
-does **not** measure fr overhead against ordinary Lean tools.
+Tactics are the proof steps given to Lean. A theorem can require another proof
+as an argument. For example, `n : Int` is a number, while `hn : 0 ≤ n` proves
+that the number is nonnegative. Supplying `n` where Lean requires `hn` is a
+type error. The added instruction says to read that error, find or derive the
+required proof, and check the repair before searching for another theorem.
+It supplies no finished proof, extra theorem names or stronger assumptions.
 
-Before any model call, GitHub must qualify the complete claim, accepting the
-reference and rejecting unfinished, invalid and altered patches. Each local
-client and instruction setting must then pass a fresh complete scripted session:
-read the supplied instructions, inspect the open goal of a `skip` draft with
-`proof-state`, expose the mapped type error, check a corrected
-reference, save it, build the package, deliver a replayable patch and finish
-with complete native accounting. Those scripts receive reference drafts solely
-to test the setup. Live attempts receive none. Freeze the exact clients, tool,
-task archive, admission receipts, checking code and all eight slots afterwards.
-Pin workflow attempt 1 and its exact source when freezing qualification.
+The baseline is the same agent using the shared fr skill alone. Both settings
+read the same handout path; only its contents differ. There are two repetitions
+per agent and setting, in a fixed order that reverses between repetitions.
+The [requirements](requirements.json) preserve the prediction and decision rules.
+This comparison does not measure fr overhead against ordinary Lean tools.
 
-The reusable `proof-feedback.yml` workflow can be dispatched with explicit
-`study=M3-argument-repair`, `operation=prepare` and the successful algorithm build
-run. Independent grading uses `operation=grade` and the successful preparation
-run. Local admission uses `agent_eval.algorithm_admission observe`; live slots
-use `agent_eval.selected_guarded`. Both enforce the workstation guard and
-independently sampled complete-workflow limits. Never bypass a refusal.
+Both agents used the local OpenCode2 2.2.5 application, low reasoning, fr 0.89.1,
+Lean 4.28.0 and a copied Python 3.14.10 installation. Fresh conversations,
+projects and fr caches were used. Operating-system and provider caches were
+uncontrolled.
 
-## Decide from observed actions
+## What happened
 
-Record the first mapped argument-type error, the next actual action and the
-next proof check separately. Keep private report hashes with concise reviewed
-summaries. The mechanism prediction is met only when that next check repairs
-the argument mismatch before another theorem search. A different remaining
-goal can still make the complete proof fail. If no argument-type error occurs,
-the mechanism is **unobserved**, including when a proof succeeds. First-check
-timing is an observation, not a prediction about this post-error instruction.
+GLM struggled with tactic structure, missing names and unpacking assumptions.
+Its first whole-proof checks arrived about 67 to 139 seconds into the attempts.
+Kimi used interactive goal inspection in three attempts. One complete draft
+passed fr checking; other attempts stopped with unfinished goals or warnings.
+The final instructed Kimi attempt spent its budget reading and searching,
+without an observed draft or whole-proof check.
 
-Each agent must also finish at least one independently accepted complete proof
-in its two instructed attempts. Incomplete accounting cannot count as success.
-For each agent, two instructed successes versus zero baseline successes supports
-a different transfer task before adoption. The reverse requires inspecting
-possible harm. Ties and mixed results are inconclusive. Two repetitions cannot
-establish a general success rate. A failed prediction keeps the broader
-36-attempt study paused.
+All eight agent processes reached their allotted deadline. Each complete
+attempt, including preparation and session export, finished in about 140.4 to
+140.5 seconds within the unchanged 150-second limit. The launcher reserves ten
+seconds for collection by stopping model responses and tools earlier. The
+largest sampled complete-attempt memory peak was about 556 MiB, below the
+unchanged 768 MiB cap. Short sampling intervals can still miss brief peaks.
 
-No old slot is reopened. M3 remains open. An accepted proof establishes only a mathematical
-model; its connection to Rust execution remains unproved. Publish submitted patches
-and reviewed summaries only. Raw prompts, transcripts, drafts, source archives,
-session exports and account data stay private.
+The eight complete attempts total 1,123.536 seconds. An earlier interrupted
+attempt adds 150.066 seconds; keep that failure in the overall cost account.
+Session exports and observed token categories were retained. Interrupted
+response usage and actual account charges remain unknown. A reported zero
+catalog price does not establish a free request.
 
-Current state: collector repair after one interrupted baseline attempt. The
-[reviewed probe summary](qualification-probes.json) preserves failed complete
-controls and the isolated compiler checks. The first control exposed an input-format
-bug in patch validation. The next completed checking, saving, package build,
-patch replay and native accounting, but peaked at about 751 MiB against the
-unchanged 640 MiB admission ceiling. A receipt incorrectly reported its completed
-patch replay as false; that flag is fixed.
+See the [reviewed attempt summaries](local-results/summary.json) and
+[interrupted collection](interrupted-collection.json). Only reviewed summaries
+and submitted patches are public. Raw prompts, transcripts, drafts, task
+archives, session exports and account data remain private.
 
-The single-worker package probe sampled about 87 MiB less memory. That isolated
-sample did not predict enough reserve in the complete workflow. The next control
-tested the smaller-heap settings from an older client investigation and hit the
-768 MiB cap. Its client footprint was nearly unchanged, so those extra settings
-were removed. No other condition or paid attempt started after that failure.
+## Preparation fixes and checks
 
-The same complete proof then passed isolated checks with the automatic `Init`
-import and with explicit integer-division imports, sampling about 364 MiB and
-148 MiB respectively. This identifies a smaller library context to qualify;
-it does not establish full-client admission or a general performance result.
-Fresh complete qualification must demonstrate the unchanged reserve before calls.
-Raw records stay private; no passing component probe replaces failed admission.
+Fr now gives arithmetic proof modules an explicit integer-division import.
+The leading `prelude` header disables Lean's automatic full `Init` import.
+New package entries preserve that header. Generated packages and direct proof
+checks use one compiler worker. Both instruction settings had the same context;
+the claim and resource limits stayed fixed.
 
-All four complete local controls passed with fr's generated imports. They
-inspect the open goal, reject the mapped type error, check and save the corrected
-proof, build the package, replay the patch and finish accounting. Sampled peaks
-are 500 to 535 MiB, below the same 640 MiB admission ceiling. These are scripted
-setup checks with zero model calls. Freezing then refused because a Homebrew
-link had moved Python from the declared 3.14.6 to 3.14.10. Those controls do not
-qualify paid calls. Use the copied, explicitly versioned runtime and repeat
-hosted and local qualification before freezing the eight paid slots.
+The [probe summary](qualification-probes.json) preserves the earlier failures:
+an input-format bug in patch validation, a completed workflow without enough
+memory reserve, and rejected client tuning. Isolated import checks motivated
+the generator change; they do not establish a general performance improvement.
+Four fresh complete client checks then passed with the generated imports.
 
-The copied Python runtime and all four fresh controls passed. The first baseline
-attempt then exposed a different bug: the launcher allowed the CLI to use the
-entire attempt budget. The outer guard stopped collection before process results
-and session accounting were saved. The ten-second finishing reserve had been
-stated in the prompt but was not enforced. The launcher now subtracts that
-existing reserve from native work; the total deadline stays 150 seconds.
+Freezing caught a moving Homebrew Python link. The controller now checks its
+explicit Python version before native work. The first paid baseline attempt
+then exposed a missing enforced finishing reserve. Its collector was stopped
+at 150 seconds before process results and accounting were saved. That packet
+was stopped permanently, including seven unstarted slots. The repaired
+comparison used distinct `argument-repair-` identifiers and never reopened the
+interrupted slot.
 
-The [interrupted collection](interrupted-collection.json) retains that failure
-and the seven unstarted slots. No accepted proof or patch was delivered, and
-complete usage is unknown. This is not an instruction comparison. Stop that
-packet permanently, qualify the repaired collector, and freeze eight new slots
-with distinct `argument-repair-` identifiers. Preserve the interrupted attempt
-when reporting total cost; never count it as a successful or repeated slot.
+[Hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41914871055)
+accepted the complete reference and rejected invalid drafts and altered patches.
+All four fresh local client/settings combinations passed a complete scripted
+workflow before the new slots were frozen. It covered goal inspection, the
+mapped type error, corrected proof, save, package build, patch replay and
+accounting. Those controls received reference drafts solely to test the setup.
+Live attempts received none. No timeout or resource limit was increased.
+
+## Next work
+
+Give each attempt its exact theorem target, a valid starting cursor and the
+current goal. Teach the observed JSON shapes and assumption patterns with
+small, checked examples. Exercise saving, package checking and patch delivery
+as one complete workflow. Require scripted controls to cover an agent that
+ignores its finishing deadline before another paid comparison.
+
+A graph proposal must address a recorded navigation or goal error and be
+compared against the same explicit command workflow. These attempts provide
+no measurement of graph-guided proving. Keep the next prediction and success
+rule fixed before calls; do not repeat attempts until one happens to pass.
