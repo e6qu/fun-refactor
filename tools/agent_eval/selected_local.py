@@ -191,8 +191,8 @@ def execution_prompt(frozen_prompt, started_at, wall_seconds, finish_seconds):
     require(0 < finish_seconds < wall_seconds, 'reserve explicit client finishing time within the attempt deadline')
     deadline = started_at + wall_seconds
     return (f'Attempt clock (Unix seconds): start {started_at:.3f}; '
-        f'finish tools by {deadline - finish_seconds:.3f}; '
-        f'finish the response and session accounting by {deadline:.3f}.\n'
+        f'finish the model response and tools by {deadline - finish_seconds:.3f}; '
+        f'the collector saves session accounting by {deadline:.3f}.\n'
         'Use date +%s alongside necessary shell commands to check remaining time. '
         'Keep the final response concise.\n\n' +
         frozen_prompt.replace(TOOL_DEADLINE_MARKER, f'{deadline - finish_seconds:.3f}'))

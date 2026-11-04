@@ -318,8 +318,8 @@ class SelectedLocalTests(unittest.TestCase):
     def test_execution_clock_keeps_preparation_inside_the_original_deadline(self):
         prompt = local.execution_prompt('Frozen request.', started_at=1000.125,
                                         wall_seconds=150, finish_seconds=10)
-        self.assertIn('start 1000.125; finish tools by 1140.125', prompt)
-        self.assertIn('response and session accounting by 1150.125', prompt)
+        self.assertIn('start 1000.125; finish the model response and tools by 1140.125', prompt)
+        self.assertIn('collector saves session accounting by 1150.125', prompt)
         self.assertTrue(prompt.endswith('Frozen request.'))
         for finishing in (0, 150, 180):
             with self.assertRaisesRegex(ValueError, 'within the attempt deadline'):
