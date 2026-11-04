@@ -44,7 +44,8 @@ does **not** measure fr overhead against ordinary Lean tools.
 Before any model call, GitHub must qualify the complete claim, accepting the
 reference and rejecting unfinished, invalid and altered patches. Each local
 client and instruction setting must then pass a fresh complete scripted session:
-read the supplied instructions, expose the mapped type error, check a corrected
+read the supplied instructions, inspect the open goal of a `skip` draft with
+`proof-state`, expose the mapped type error, check a corrected
 reference, save it, build the package, deliver a replayable patch and finish
 with complete native accounting. Those scripts receive reference drafts solely
 to test the setup. Live attempts receive none. Freeze the exact clients, tool,

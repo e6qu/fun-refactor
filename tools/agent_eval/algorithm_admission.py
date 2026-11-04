@@ -56,7 +56,7 @@ def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, 
     expected = {(name + '/' + setup if study in {DELIVERY_STUDY, REPAIR_STUDY} else name): (name, setup)
                 for name in profiles for setup in setups}
     require(set(receipts) == set(expected), 'qualify every profile and required setup before calls')
-    features = (('argument_type_rejection', 'independent_patch_replay') if study == REPAIR_STUDY else
+    features = (('interactive_goal', 'argument_type_rejection', 'independent_patch_replay') if study == REPAIR_STUDY else
                 ('supplied_proofs', 'saved_edit_export', 'independent_patch_replay') if study == DELIVERY_STUDY else ('recursive_loop_rejected',))
     if study == REPAIR_STUDY:
         require(requirements['conditions'] == ['shared-skill', 'argument-repair'] and
@@ -268,6 +268,7 @@ def child(args):
             'scripted_errors': len(errors), 'complete_workflow': True,
             'recursive_loop_rejected': args.study in ALGORITHM_STUDIES,
             'argument_type_rejection': args.study == REPAIR_STUDY,
+            'interactive_goal': args.study == REPAIR_STUDY,
             'supplied_proofs': args.study == DELIVERY_STUDY, 'saved_edit_export': args.study == DELIVERY_STUDY,
             'independent_patch_replay': args.study in {DELIVERY_STUDY, REPAIR_STUDY},
             'session_accounting': True, 'warmups': len(warmups)})

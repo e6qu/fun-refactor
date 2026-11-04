@@ -36,6 +36,7 @@
   "cost_comparison": "The same agent, complete claim, fr, shared skill, source, models, checks and limits; only the argument-repair handout differs. Measure complete attempts including failures and accounting. This does not measure fr overhead against ordinary Lean.",
   "native_admission": {
     "complete_workflow_required": true,
+    "interactive_goal_required": true,
     "argument_type_rejection_required": true,
     "independent_patch_replay_required": true,
     "session_accounting_required": true,

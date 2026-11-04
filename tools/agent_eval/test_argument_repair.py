@@ -111,6 +111,7 @@ class ArgumentRepairTests(unittest.TestCase):
         for condition in ('shared-skill', 'argument-repair'):
             commands = script(Path('/lean'), '/tools:/usr/bin:/bin', STUDY, condition)
             for required in ('draft_location', 'context', '.fr/argument-repair.txt', ' spec proof-check ',
+                             ' spec proof-state ', '"acceptance"',
                              ' spec prove ', '/lean/bin/lake -d specs build --wfail', 'git diff --binary HEAD'):
                 self.assertIn(required, commands)
             self.assertEqual(commands.count(' spec proof-check '), 2)
@@ -123,6 +124,7 @@ class ArgumentRepairTests(unittest.TestCase):
             self.assertIn('.agents/skills/fr/SKILL.md', protected)
             self.assertIn('.fr/argument-repair.txt', protected)
             self.assertIn('.fr/checks.json', protected)
+            self.assertEqual((project / '.fr/admission-start.lean').read_text(), 'skip\n')
             from agent_eval.proof_delivery import input_changes
             self.assertEqual(input_changes(project, protected), [])
             (project / 'change.patch').write_bytes(b'nonempty submitted patch\n')

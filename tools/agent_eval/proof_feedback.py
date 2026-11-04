@@ -165,6 +165,7 @@ def install_repair_admission(project, condition, lean_root, prepared):
     handout = install_repair_instruction(project, condition)
     directory = project / '.fr'
     (directory / 'admission-target.txt').write_text(prepared['target'])
+    (directory / 'admission-start.lean').write_text('skip\n')
     (directory / 'admission-reference.lean').write_text(REFERENCE.read_text())
     (directory / 'admission-bad.lean').write_text(drafts(REFERENCE.read_text())['integer-instead-of-proof'])
     common.save(directory / 'checks.json', {'schema': 1, 'checks': [{'name': 'lean',
@@ -181,6 +182,9 @@ def repair_admission_script(lean_root, search_path, condition):
     lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
              'cat .agents/skills/fr/SKILL.md .fr/argument-repair.txt > /dev/null',
              'proof_target=$(cat .fr/admission-target.txt)',
+             'fr --json spec proof-state "$proof_target" --from .fr/admission-start.lean --at 1:5 --token-limit 4096 --timeout-seconds 30 > .fr/admission-state.json',
+             shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-state.json")); '
+                 'assert r["goals"] and r["acceptance"] == "not-checked"']),
              'fr --json spec proof-check "$proof_target" --from .fr/admission-bad.lean --token-limit 4096 > .fr/admission-rejected.json',
              shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-rejected.json")); '
                 'assert r["passed"] is False and r["receipt"] is None; '

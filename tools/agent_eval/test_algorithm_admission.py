@@ -79,12 +79,12 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'every profile'):
                     admission.validate_receipts(delivery_rows, binaries, 'c' * 64, '12', admission.DELIVERY_STUDY, checkers)
                 repair_rows = {name + '/' + setup: {**row, 'study': admission.REPAIR_STUDY, 'setup': setup,
-                    'argument_type_rejection': True, 'independent_patch_replay': True}
+                    'interactive_goal': True, 'argument_type_rejection': True, 'independent_patch_replay': True}
                     for name, row in rows.items() if name != 'codex-luna-fast'
                     for setup in ('shared-skill', 'argument-repair')}
                 admitted = admission.validate_receipts(repair_rows, binaries, 'c' * 64, '12', admission.REPAIR_STUDY, checkers)
                 self.assertEqual(len(admitted['profiles']), 4)
-                for field, value in (('argument_type_rejection', False), ('session_accounting', False),
+                for field, value in (('interactive_goal', False), ('argument_type_rejection', False), ('session_accounting', False),
                                      ('independent_patch_replay', False), ('client_sha256', 'stale')):
                     changed = copy.deepcopy(repair_rows)
                     changed['opencode2-glm-flash/argument-repair'][field] = value
