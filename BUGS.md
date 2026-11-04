@@ -30,6 +30,13 @@ complete native qualification remains required; the package probe alone cannot
 establish that the full client fits. No paid model slots were spent on these
 setup failures.
 
+The first hosted check of the worker fix also exposed an old-project
+reconstruction error. The check created the archived project's package with the
+current template, and its source fingerprint correctly refused it. Both current
+and archived algorithm fixtures now include their explicit package files. The
+archived set must reproduce the original full source hash; the check does not
+relax that hash or change any old attempt outcome.
+
 The same review retains one Kimi timeout after both saved proofs and the package
 passed. It used unsupported `fr history --limit` commands instead of exporting the
 saved IDs. Fr correctly rejected that flag. The failure does not justify a longer

@@ -68,6 +68,8 @@ def implementation_bindings(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'reserved').glob('*.lean'))
             paths += [directory / 'interrupted-results/summary.json']
+            paths += [directory / 'interrupted-results' / name for name in
+                      ('lakefile.toml', 'lake-manifest.json', 'lean-toolchain')]
             paths += list((directory / 'interrupted-results').glob('*.lean'))
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]

@@ -69,9 +69,11 @@ def core_digest(milestone):
                       ROOT / '.github/workflows/grade-algorithms.yml', ROOT / '.github/workflows/refinement-evidence.yml',
                       directory / 'requirements.json', directory / 'guidance.json', directory / 'declarations.txt']
             paths += list((directory / 'controls').glob('*.lean'))
-            paths += list((directory / 'fixtures').glob('*.lean'))
+            paths += [path for path in (directory / 'fixtures').iterdir() if path.is_file()]
             paths += list((directory / 'reserved').glob('*.lean'))
             paths += [directory / 'interrupted-results/summary.json']
+            paths += [directory / 'interrupted-results' / name for name in
+                      ('lakefile.toml', 'lake-manifest.json', 'lean-toolchain')]
             paths += list((directory / 'interrupted-results').glob('*.lean'))
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
     if milestone == DELIVERY_STUDY:

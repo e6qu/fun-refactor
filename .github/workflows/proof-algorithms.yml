@@ -144,11 +144,12 @@ jobs:
           python3 -B -m agent_eval.proof_algorithms --fr target/debug/fr
           --output "$RUNNER_TEMP/algorithm-controls" --native "$RUNNER_TEMP/algorithm-native/summary.json"
       - name: Save and deliver supplied proofs and reject incomplete delivery
+        id: delivery-controls
         run: >-
           python3 -B -m agent_eval.proof_delivery --fr target/debug/fr
           --qualification "$RUNNER_TEMP/algorithm-controls" --output "$RUNNER_TEMP/proof-delivery"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && (steps.delivery-controls.outcome == 'success' || steps.delivery-controls.outcome == 'failure')
         with:
           name: proof-delivery-controls
           path: |

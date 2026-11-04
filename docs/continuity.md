@@ -63,6 +63,15 @@ calls. Release 0.89.1 merged during validation. Main is integrated and the first
 release-matching replay passed. The direct-check fix changes native source again;
 refresh the affected current records and native tools before freezing inputs.
 
+The worker-matching project replay passed in run 41828853087. Linux algorithm
+qualification then caught a separate reconstruction error: it created an old
+interrupted project's package with the new template. The original package files
+are now explicit fixtures recovered from its recorded commit. A regression
+reproduces the exact closed-batch source hash and rejects a changed worker setting.
+The original outcomes stay fixed. Refresh hosted proof qualification after this
+controller fix; the successful Mac build in run 41828607812 has matching native
+source and can be verified from its exact build metadata.
+
 ## What the merged proof work established
 
 `spec proof-state` reads Lean's actual goals at a draft cursor. A solved branch is

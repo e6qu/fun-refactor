@@ -6,6 +6,12 @@ and passing the Lean package build. The fifth session hit the workstation's
 1 GiB memory limit. The remaining three fact slots and all twelve presentation
 slots stayed unstarted. The [summary](summary.json) preserves all these states.
 
+The package files beside this page preserve the original compiler settings,
+toolchain and dependency manifest. They were recovered from the recorded source
+commit. A regression checks the complete project fingerprint against this batch's
+original summary before replaying its submitted patch. Recreating these files
+with today's package template changes that fingerprint and must fail the check.
+
 The inner monitor missed OpenCode's private server because it used a separate
 process group. A non-model health request reproduced that separation.
 The outer guard still enforced the workstation limit, but the recorded inner
