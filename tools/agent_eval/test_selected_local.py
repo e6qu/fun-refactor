@@ -19,6 +19,51 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_uncooperative_client_stops_before_collection_deadline(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            row = {'id': 'bounded-client', 'profile': 'client', 'task': 'fixture', 'setup': 'files'}
+            schedule = {'milestone': 'M1', 'attempts': [row], 'profiles': {'client': {'client': 'codex'}}}
+            checkers = {name: {'path': sys.executable, 'sha256': local.hash_file(Path(sys.executable))}
+                        for name in ('python', 'rustc', 'rustdoc', 'lean')}
+            value = {'schedule': schedule, 'live_calls_enabled': True, 'source': {'native_inputs': {}},
+                     'implementation': {}, 'limits': local.LIMITS, 'client_finish_seconds': 10,
+                     'public_check_environment': local.PUBLIC_CHECK_ENVIRONMENT,
+                     'binaries': {}, 'components': {}, 'checkers': checkers,
+                     'seeds': {'fixture': {'archive': 'fixture.tar', 'receipt': {}}},
+                     'prompts': {'bounded-client': 'Finish before the deadline.'}}
+            value['sha256'] = hashlib.sha256(local.encoded(value)).hexdigest()
+            plan = root / 'plan.json'
+            plan.write_text(json.dumps(value))
+            clock = [100.]
+            def unpack(archive, receipt, project):
+                (project / '.git/info').mkdir(parents=True)
+                clock[0] = 105.
+            def native(command, prompt, stdout, stderr, project, **settings):
+                self.assertEqual(settings['wall_seconds'], 135.)
+                clock[0] += settings['wall_seconds']
+                return {'exit_code': 124, 'stop_reason': 'wall_seconds'}
+            with mock.patch.object(local.sys, 'platform', 'darwin'), \
+                    mock.patch.object(local, 'identity', return_value={'native_inputs': {}}), \
+                    mock.patch.object(local, 'prepare', return_value=schedule), \
+                    mock.patch.object(local, 'implementation_bindings', return_value={}), \
+                    mock.patch.object(local, 'project_parent', return_value=root / 'work'), \
+                    mock.patch.object(local, 'unpack', side_effect=unpack), \
+                    mock.patch.object(local.tasks.comparison_grade.BASE, 'initialize'), \
+                    mock.patch.object(local, 'elapsed_time', side_effect=lambda: clock[0]), \
+                    mock.patch.object(local.shutil, 'which', return_value=None), \
+                    mock.patch.object(local, 'invocation', return_value=(['client'], b'')), \
+                    mock.patch.object(local, 'bounded_run', side_effect=native), \
+                    mock.patch.object(local, 'retain_result') as retain:
+                result = local.attempt(plan, row['id'])
+            self.assertEqual(result['status'], 'failed')
+            self.assertEqual(result['process']['stop_reason'], 'wall_seconds')
+            self.assertEqual(result['elapsed_seconds'], 140.)
+            self.assertFalse(result['complete_attempt_deadline_missed'])
+            retain.assert_called_once()
+            saved = json.loads((root / 'attempts/bounded-client/result.json').read_text())
+            self.assertEqual(saved['process'], result['process'])
+
     def test_delivery_projects_and_private_records_share_the_explicit_persistent_root(self):
         plan = Path('/project/.local-agent-runs/delivery/plan.json')
         parent = local.project_parent(plan, 'M3-delivery', 'a' * 64, 'fixed-slot')

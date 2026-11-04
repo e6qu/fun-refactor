@@ -283,7 +283,7 @@ class ProofFeedbackTests(unittest.TestCase):
                     return initial, len(initial.encode())
 
                 def native(argv, stdin, stdout, stderr, workspace, **kwargs):
-                    self.assertEqual(kwargs['wall_seconds'], 147 if milestone == 'M3-feedback' else 150)
+                    self.assertEqual(kwargs['wall_seconds'], 137 if milestone == 'M3-feedback' else 140)
                     self.assertEqual(kwargs['transcript_bytes'], local.LIMITS['transcript_bytes'] -
                                      (len(initial.encode()) if milestone == 'M3-feedback' else 0))
                     prompts[condition] = argv[-1]

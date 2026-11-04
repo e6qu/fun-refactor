@@ -98,7 +98,10 @@ def prepare(root, milestone):
             for task_index, task in enumerate(tasks['tasks']):
                 order = tasks['setups'] if (repetition + profile_index + task_index) % 2 == 0 else list(reversed(tasks['setups']))
                 for position, setup in enumerate(order):
-                    attempts.append({'id': f'{profile}-{task}-{setup}-{repetition + 1}',
+                    identity = f'{profile}-{task}-{setup}-{repetition + 1}'
+                    if milestone == REPAIR_STUDY:
+                        identity = 'argument-repair-' + identity
+                    attempts.append({'id': identity,
                         'profile': profile, 'task': task, 'setup': setup, 'repetition': repetition + 1,
                         'position': position + 1, 'status': 'unstarted', 'outcome': None,
                         'usage': None, 'cost': None, 'fr_contribution': None})

@@ -145,7 +145,9 @@ replay pass. The runner rejects missing or duplicate response records.
    goal inspection. Peaks are 500 to 535 MiB against the unchanged 640 MiB
    admission ceiling. Freezing caught a Python version mismatch caused by a
    moving installation link. Repeat qualification with the copied, versioned
-   runtime, then freeze all eight slots. No paid attempt has started.
+   runtime. Those controls passed, but the first baseline attempt exposed a
+   missing enforced finishing reserve. Preserve its interrupted collection and
+   seven unstarted slots. Qualify the repaired collector before eight new slots.
 2. Review the original page-count failure against the unchanged complete claim.
    Use the algorithm workflow’s `page-count-diagnosis` job to check the complete
    claim with one changed proof step per control. Distinguish choosing a division

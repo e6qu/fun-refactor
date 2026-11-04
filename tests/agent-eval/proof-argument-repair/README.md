@@ -84,7 +84,7 @@ model; its connection to Rust execution remains unproved. Publish submitted patc
 and reviewed summaries only. Raw prompts, transcripts, drafts, source archives,
 session exports and account data stay private.
 
-Current state: qualification, with no new model calls yet. The
+Current state: collector repair after one interrupted baseline attempt. The
 [reviewed probe summary](qualification-probes.json) preserves failed complete
 controls and the isolated compiler checks. The first control exposed an input-format
 bug in patch validation. The next completed checking, saving, package build,
@@ -113,3 +113,17 @@ setup checks with zero model calls. Freezing then refused because a Homebrew
 link had moved Python from the declared 3.14.6 to 3.14.10. Those controls do not
 qualify paid calls. Use the copied, explicitly versioned runtime and repeat
 hosted and local qualification before freezing the eight paid slots.
+
+The copied Python runtime and all four fresh controls passed. The first baseline
+attempt then exposed a different bug: the launcher allowed the CLI to use the
+entire attempt budget. The outer guard stopped collection before process results
+and session accounting were saved. The ten-second finishing reserve had been
+stated in the prompt but was not enforced. The launcher now subtracts that
+existing reserve from native work; the total deadline stays 150 seconds.
+
+The [interrupted collection](interrupted-collection.json) retains that failure
+and the seven unstarted slots. No accepted proof or patch was delivered, and
+complete usage is unknown. This is not an instruction comparison. Stop that
+packet permanently, qualify the repaired collector, and freeze eight new slots
+with distinct `argument-repair-` identifiers. Preserve the interrupted attempt
+when reporting total cost; never count it as a successful or repeated slot.

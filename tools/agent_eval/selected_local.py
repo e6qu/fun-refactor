@@ -639,8 +639,8 @@ def attempt(plan_path, attempt_id):
         report['project'] = str(project)
         tasks.save(output / 'result.json', report)
         with (output / 'native.stdout').open('xb') as stdout, (output / 'native.stderr').open('xb') as stderr:
-            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started)
-            require(remaining > 0, 'attempt deadline expired during preparation')
+            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started) - value['client_finish_seconds']
+            require(remaining > 0, 'client deadline expired during preparation; preserve finishing time')
             process = bounded_run(argv, stdin, stdout, stderr, project, env=env, cwd=project,
                                   **{**LIMITS, 'wall_seconds': remaining,
                                      'transcript_bytes': LIMITS['transcript_bytes'] - initial_bytes})
