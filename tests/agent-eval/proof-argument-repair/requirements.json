@@ -2,7 +2,7 @@
   "purpose": "Test whether an instruction to repair typed arguments after a mapped error helps finish the unchanged complete page-count proof",
   "tasks": {
     "page-count": {
-      "request": "Write proof steps for the fixed Lean page-count theorem. For example, eleven items at five per page need three pages. Read all claim parts: the invalid-input result, valid-input bounds and this example. The theorem starts without a proof. Keep the Rust source, Lean model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof into the marked region. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved. Read .fr/argument-repair.txt before starting."
+      "request": "Write proof steps for the fixed Lean page-count theorem. For example, eleven items at five per page need three pages. Read all claim parts: the invalid-input result, valid-input bounds and this example. The theorem starts without a proof. Keep the Rust source, Lean model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof into the marked region. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved. Read .fr/argument-repair.txt before starting. Keep the supplied skill and instruction handout unchanged."
     }
   },
   "profiles_file": "../proof-writing/profiles.json",

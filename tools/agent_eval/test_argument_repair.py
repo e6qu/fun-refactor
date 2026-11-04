@@ -114,6 +114,19 @@ class ArgumentRepairTests(unittest.TestCase):
                 self.assertIn(required, commands)
             self.assertEqual(commands.count(' spec proof-check '), 2)
 
+    def test_native_setup_protects_the_shared_skill_and_keeps_control_drafts_separate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            protected = feedback.install_repair_admission(project, 'argument-repair', Path('/lean'),
+                                                         {'target': 'specs/Fixed.lean::page_bounds'})
+            self.assertIn('.agents/skills/fr/SKILL.md', protected)
+            self.assertIn('.fr/argument-repair.txt', protected)
+            self.assertIn('.fr/checks.json', protected)
+            self.assertEqual(local.checking_input_changes(project, protected), [])
+            self.assertIn('Int.tdiv_nonneg items size', (project / '.fr/admission-bad.lean').read_text())
+            self.assertNotIn('Int.tdiv_nonneg items size', (project / '.fr/admission-reference.lean').read_text())
+            self.assertEqual((project / '.fr/admission-target.txt').read_text(), 'specs/Fixed.lean::page_bounds')
+
     def test_frozen_controls_require_the_exact_instruction_and_actual_type_error(self):
         from agent_eval import selected_local_grade as public
         receipt = {'study': STUDY, 'passed': True, 'live_model_calls': 0,

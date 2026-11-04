@@ -549,7 +549,7 @@ def attempt(plan_path, attempt_id):
             (binary_directory / 'fr').symlink_to(value['binaries']['fr']['path'])
             if milestone != DELIVERY_STUDY:
                 shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
-            if milestone in ALGORITHM_STUDIES:
+            if milestone in ALGORITHM_STUDIES | {REPAIR_STUDY}:
                 checking_inputs.update({str(path.relative_to(project)): hash_file(path)
                     for path in (project / '.agents/skills/fr').rglob('*') if path.is_file()})
         env = {key: os.environ[key] for key in ('HOME', 'PATH', 'LANG', 'CODEX_HOME', 'XDG_CONFIG_HOME',
