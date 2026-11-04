@@ -34,14 +34,16 @@ reference, change one proof step per control, and check with the current fr buil
 An accepted reference is checked again after the rejection controls.
 
 The new `page-count-diagnosis` job in the algorithm workflow owns this check.
-Its report must distinguish wrong argument types, the wrong assumption,
+The [reviewed control report](../tests/agent-eval/proof-page-count/typed-division-review.md)
+records acceptance of the reference twice and rejection of seven changed steps.
+It distinguishes wrong argument types, the wrong assumption,
 truncating versus Euclidean division, missing conversion, missing arithmetic
 relationships and unpacking an alternative as a pair. Its result is a tool
 control, never a new agent attempt or a replacement for an old failure.
 
-Before another comparison, record which controls actually fail and their first
-useful Lean diagnostics. Then propose one instruction or tool change with a
-prediction fixed before calls. Do not launch the old unrun division-fact plan,
+The review fixes a proposed instruction and prediction before another comparison:
+match each required proof argument to a named assumption after reading a type error,
+then check that step before searching again. No live execution plan is frozen. Do not launch the old unrun division-fact plan,
 repeat a closed slot, lengthen the deadline or claim the proof-writing milestone
 complete from these controls. Keep the remaining M3 work in its milestone PR.
 

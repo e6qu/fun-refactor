@@ -144,8 +144,10 @@ replay pass. The runner rejects missing or duplicate response records.
 2. Review the original page-count failure against the unchanged complete claim.
    Use the algorithm workflow’s `page-count-diagnosis` job to check the complete
    claim with one changed proof step per control. Distinguish choosing a division
-   fact from applying it with the wrong types. These controls make no model calls. The next proposed change must name that obstacle and a
-   fixed prediction before requesting another comparison.
+   fact from applying it with the wrong types. These controls make no model calls. The [typed-division review](tests/agent-eval/proof-page-count/typed-division-review.md)
+   records the seven rejected steps and fixes the next instruction proposal and
+   prediction. Qualify that proposal and fresh complete native admission before
+   freezing another comparison.
 3. Finish M3's existing language examples, numeric proofs and source/model checks
    together in its milestone PR. A familiar GCD delivery cannot replace them.
 

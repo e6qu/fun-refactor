@@ -1,0 +1,67 @@
+{
+  "schema": "fr-page-count-typed-control-review-1",
+  "run": "https://github.com/e6qu/fun-refactor/actions/runs/41796378113",
+  "source_commit": "5405ea872fd066b32168bca23ab7f9773f8c15da",
+  "fr_sha256": "6be7938621a764115302a3c10a47698223f427c4e620b9ea4f42f740f86e6f08",
+  "reference_sha256": "204b365838888955f72518d93846eeab02553f2f95407f2657b801d832203b9e",
+  "live_model_calls": 0,
+  "complete_original_claim": true,
+  "source_implementation_proved": false,
+  "agent_outcomes_changed": false,
+  "controls": {
+    "reference": {
+      "accepted": true,
+      "draft_sha256": "204b365838888955f72518d93846eeab02553f2f95407f2657b801d832203b9e",
+      "first_error": null,
+      "all_errors_mapped": true
+    },
+    "integer-instead-of-proof": {
+      "accepted": false,
+      "draft_sha256": "6e728af270ce9b8c47681c57c549e421fb0b6b4a812bdd579c9999a6deef6e8d",
+      "first_error": "Application type mismatch: The argument",
+      "all_errors_mapped": true
+    },
+    "upper-bound-instead-of-lower-bound": {
+      "accepted": false,
+      "draft_sha256": "d3aff4ef85f8ee1e035627755e9b547e66b3b3079e78e33e0f5c180147856132",
+      "first_error": "Application type mismatch: The argument",
+      "all_errors_mapped": true
+    },
+    "division-fact-missing": {
+      "accepted": false,
+      "draft_sha256": "ee6c9b6f4c75f79c13ef0d1e65a9b83370b69888d13a36f199fbc0c05d0890e3",
+      "first_error": "omega could not prove the goal:",
+      "all_errors_mapped": true
+    },
+    "wrong-division-family": {
+      "accepted": false,
+      "draft_sha256": "39b0b7f8ab2781809f7de991096d0752432448a581f2be7db1ee41c8c68f5507",
+      "first_error": "Type mismatch: After simplification, term",
+      "all_errors_mapped": true
+    },
+    "conversion-missing": {
+      "accepted": false,
+      "draft_sha256": "1cf39f2fa91d821116c7ecb9c12ce6960f70f172c7734da09c4b112b724d91da",
+      "first_error": "Type mismatch",
+      "all_errors_mapped": true
+    },
+    "alternatives-treated-as-pair": {
+      "accepted": false,
+      "draft_sha256": "170d922c156644eac790b1bf862a8f8c37134308dd79c847f2fbf5e242547a9f",
+      "first_error": "Tactic `cases` failed with a nested error:",
+      "all_errors_mapped": true
+    },
+    "nonlinear-relationship-missing": {
+      "accepted": false,
+      "draft_sha256": "64905676f96b48bc5b4fef7bccaca13360e3ab3c3dd16a9031b8939b0387a7cf",
+      "first_error": "omega could not prove the goal:",
+      "all_errors_mapped": true
+    },
+    "reference-again": {
+      "accepted": true,
+      "draft_sha256": "204b365838888955f72518d93846eeab02553f2f95407f2657b801d832203b9e",
+      "first_error": null,
+      "all_errors_mapped": true
+    }
+  }
+}
