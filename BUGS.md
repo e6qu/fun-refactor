@@ -29,6 +29,12 @@ passed all 21 saved-findings changes and both deliveries again.
 New retained records match the released build; original records and exact hash
 checks remain intact.
 
+After release 0.89 merged, PR CI built 0.89 while the current project replay
+still recorded 0.88 executables. The exact hash check correctly rejected that
+mismatch. The branch now includes 0.89. Fresh replay records declare their release,
+and CI checks it before compilation with an error that names both versions.
+A release mismatch requires a fresh replay; it never relaxes the executable hashes.
+
 The Python text-flow, structural-change and consumer-scope checkers also hashed
 the SDK release literal as behavior input. They now use the shared release identity rule.
 Structural and scope checks bind the complete SDK tree and packaging metadata too.

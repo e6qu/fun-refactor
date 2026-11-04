@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,8 @@ scalar = load('retain-scalar-evidence')
 
 
 def sources():
-    names = ('tools/recheck-project-changes.py', '.github/workflows/project-changes-recheck.yml')
+    names = ('tools/recheck-project-changes.py', 'tools/test-project-replay-release.py',
+             '.github/workflows/project-changes-recheck.yml')
     return {**bindings(ROOT), **{name: digest(ROOT / name) for name in names}}
 
 
@@ -62,8 +64,15 @@ def unpack(archive, destination):
     return data
 
 
+def require_current_release(report, current):
+    recorded = report['release']
+    assert recorded == current, (f'Current replay records release {recorded}; this checkout builds {current}. '
+                                 'Integrate main and collect a fresh replay before running the full gate.')
+
+
 def audit(directory, binary, alternate):
     report = json.loads((directory / 'result.json').read_text())
+    require_current_release(report, tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version'])
     assert report['schema'] == 'fr-project-changes-recheck' and report['passed'] is True
     assert report['all_projects_familiar'] is True and report['new_unread_claim'] is False
     assert report['source_bindings'] == sources()
@@ -104,7 +113,8 @@ def reject_false_claims(directory, binary, alternate):
     encoded = path.read_bytes()
     value = json.loads(encoded)
     mutations = []
-    for field, replacement in (('passed', False), ('all_projects_familiar', False), ('new_unread_claim', True),
+    for field, replacement in (('passed', False), ('release', 'wrong-release'),
+                               ('all_projects_familiar', False), ('new_unread_claim', True),
                                ('source_bindings', {}), ('original_unread', {}), ('saved_findings', {}),
                                ('deliveries', {}), ('files', {})):
         changed = copy.deepcopy(value)
@@ -160,6 +170,7 @@ def collect(directory, binary, alternate, checkers):
                     archive.write(path, path.relative_to(work).as_posix())
     assert sources() == before, 'replay changed its source inputs'
     save(directory / 'result.json', {'schema': 'fr-project-changes-recheck', 'passed': True,
+        'release': tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version'],
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': before, 'all_projects_familiar': True, 'new_unread_claim': False,
         'original_unread': reference, 'saved_findings': {'complete': True, 'projects': 3, 'changes_per_project': 7},
