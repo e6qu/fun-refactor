@@ -68,8 +68,7 @@ def property_for(task, milestone):
 
 def prepare_inputs(binary, project, output, milestone):
     if milestone in {'M3-page-count', REPAIR_STUDY}:
-        arguments = prepare(ROOT, milestone)['requirements']['lean_arguments'] if milestone == REPAIR_STUDY else []
-        return proof.prepare('page-count', binary, project, output, arguments)
+        return proof.prepare('page-count', binary, project, output)
     details = case_details(milestone)
     require(not project.exists(), 'prepare the diagnostic in a new project')
     project.mkdir(parents=True)

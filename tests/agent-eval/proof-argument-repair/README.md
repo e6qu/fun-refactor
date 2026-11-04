@@ -22,7 +22,8 @@ extra theorem names or stronger assumptions.
 The [requirements](requirements.json) own eight fresh slots: GLM Flash and
 non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
 OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
-Both package builds use the explicit Lean compiler argument `-j1` (one worker).
+Fr's direct proof checks and newly generated packages explicitly use one Lean
+compiler worker. Both comparison settings use that same `-j1` setting.
 The order reverses between repetitions. All complete attempts retain the
 150-second deadline and existing CPU, memory, disk and output limits.
 
@@ -78,5 +79,6 @@ native accounting, then exposed a controller input-format bug during patch
 validation. That check also lacked the required memory reserve. Its records stay
 private. A bounded two-run package probe accepted the same proof under both
 compiler settings; the explicit single worker reduced sampled memory by about
-87 MiB. Both comparison settings now pin that worker count. Fresh full client
+87 MiB. The phase trace also showed peaks during separate proof checking and
+saving, so fr now pins their compiler worker count too. Fresh full client
 qualification must still demonstrate the unchanged memory reserve before calls.

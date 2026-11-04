@@ -331,7 +331,7 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
             for module in &before.modules {
                 let mut check = command(tool("lean")?, scratch.path());
                 check
-                    .arg("-DwarningAsError=true")
+                    .args(["-j", "1", "-DwarningAsError=true"])
                     .arg(module)
                     .env("LEAN_PATH", scratch.path().join(".lake/build/lib/lean"));
                 let checked = crate::checks::bounded_process(
@@ -340,7 +340,7 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
                     2048,
                     true,
                 )?;
-                results.push(json!({"module":module,"command":"lean -DwarningAsError=true","result":checked}));
+                results.push(json!({"module":module,"command":"lean -j 1 -DwarningAsError=true","result":checked}));
             }
         }
     }

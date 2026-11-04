@@ -85,7 +85,7 @@ def prepare_audit(binary, output):
     output.mkdir(parents=True, exist_ok=False)
     for task in TASKS:
         project, inputs = output / 'working' / task, output / ('m3-prepared-' + task)
-        prepared = cases.prepare(task, binary, project, inputs, [])
+        prepared = cases.prepare(task, binary, project, inputs)
         controller.exercise(task, binary, project, prepared,
                             output / ('m3-proof-controls-' + task) / 'controls', inputs)
 

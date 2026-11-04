@@ -23,8 +23,12 @@ and still verifies its exact bytes. A complete scripted local check then exposed
 a patch-input format mismatch, which is fixed. That check also lacked the required
 memory reserve. A bounded probe accepted the same package with one explicit Lean
 compiler worker and used about 87 MiB less sampled memory. Both new comparison
-conditions pin that worker count; fresh complete native qualification remains
-required. No paid model slots were spent on these setup failures.
+conditions pin that worker count. The phase trace also showed peaks during the
+separate proof check and save checks. Fr now pins one compiler worker for its
+direct checks and records it in newly generated package settings too. Fresh
+complete native qualification remains required; the package probe alone cannot
+establish that the full client fits. No paid model slots were spent on these
+setup failures.
 
 The same review retains one Kimi timeout after both saved proofs and the package
 passed. It used unsupported `fr history --limit` commands instead of exporting the

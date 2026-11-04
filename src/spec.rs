@@ -28,6 +28,7 @@ defaultTargets = ["FrSpecs"]
 
 [[lean_lib]]
 name = "FrSpecs"
+moreLeanArgs = ["-j1"]
 "#;
 
 const ROOT_MODULE: &str = r#"/-
@@ -1835,8 +1836,9 @@ fn check_prepared_proof(
     scratch.as_file_mut().write_all(checker_source.as_bytes())?;
     scratch.as_file_mut().flush()?;
     if output.status.success() {
+        // Pin the compiler pool, as the interactive proof worker already does.
         output = Command::new("lake")
-            .args(["env", "lean"])
+            .args(["env", "lean", "-j", "1"])
             .arg(scratch.path())
             .current_dir(&package)
             .output()
@@ -1985,7 +1987,7 @@ fn check_generated_formal_module(package: &Path, source: &str) -> Result<()> {
     scratch.as_file_mut().write_all(source.as_bytes())?;
     scratch.as_file_mut().flush()?;
     let output = Command::new("lake")
-        .args(["env", "lean"])
+        .args(["env", "lean", "-j", "1"])
         .arg(scratch.path())
         .current_dir(package)
         .output()
@@ -4059,7 +4061,7 @@ fn verify_with_warnings(
                         continue;
                     }
                     let mut check = Command::new("lake");
-                    check.args(["env", "lean"]);
+                    check.args(["env", "lean", "-j", "1"]);
                     if deny_warnings {
                         check.arg("-DwarningAsError=true");
                     }

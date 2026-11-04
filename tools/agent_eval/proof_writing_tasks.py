@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import tomllib
 
 from . import selected_tasks as common
 from .selected_plan import ROOT, require
@@ -105,9 +106,8 @@ def masked_proof(text, obligation):
     return text[:start] + '<M3 agent proof steps>\n' + text[finish:]
 
 
-def prepare(case, binary, project, output, lean_arguments):
+def prepare(case, binary, project, output):
     require(case in CASES and not project.exists(), 'prepare one named proof case in a new folder')
-    require(lean_arguments in ([], ['-j1']), 'select the original compiler settings or one explicit Lean worker')
     output.mkdir(parents=True, exist_ok=False)
     entry = CASES[case]
     project.mkdir(parents=True)
@@ -123,11 +123,9 @@ def prepare(case, binary, project, output, lean_arguments):
     plan = common.fr(binary, project, ['spec', 'plan', target, '--property-from', str(output / 'property.json')], output / 'plan.json')
     common.save(output / 'formal-plan.json', plan)
     common.fr(binary, project, ['spec', 'scaffold', '--from', str(output / 'formal-plan.json'), '--package', 'specs', '--write'], output / 'scaffold.json')
-    if lean_arguments:
-        configuration = project / 'specs/lakefile.toml'
-        text = configuration.read_text()
-        require(text.endswith('[[lean_lib]]\nname = "FrSpecs"\n'), 'pin workers only in the declared proof library')
-        configuration.write_text(text + 'moreLeanArgs = ' + json.dumps(lean_arguments) + '\n')
+    configuration = tomllib.loads((project / 'specs/lakefile.toml').read_text())
+    lean_arguments = configuration['lean_lib'][0]['moreLeanArgs']
+    require(lean_arguments == ['-j1'], 'the generated proof library must declare one Lean compiler worker')
     spec = 'specs/FrSpecs/' + plan['kernel']['module'] + '.lean'
     obligation = plan['properties'][0]['name']
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
@@ -209,6 +207,6 @@ if __name__ == '__main__':
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     arguments = parser.parse_args()
-    result = prepare(arguments.case, arguments.fr.resolve(), arguments.output / 'original', arguments.output / 'inputs', [])
+    result = prepare(arguments.case, arguments.fr.resolve(), arguments.output / 'original', arguments.output / 'inputs')
     print(json.dumps({'case': arguments.case, 'target': result['target'], 'goal_digest': result['goal_digest'],
                       'source_implementation_proved': False, 'live_model_calls': 0}))

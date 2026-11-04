@@ -182,7 +182,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, required=True)
     arguments = parser.parse_args()
     arguments.output.mkdir(parents=True, exist_ok=False)
-    prepared = tasks.prepare(arguments.case, arguments.fr.resolve(), arguments.output / 'original', arguments.output / 'inputs', [])
+    prepared = tasks.prepare(arguments.case, arguments.fr.resolve(), arguments.output / 'original', arguments.output / 'inputs')
     result = exercise(arguments.case, arguments.fr.resolve(), arguments.output / 'original', prepared,
                       arguments.output / 'controls', arguments.output / 'inputs')
     tasks.common.save(arguments.output / 'result.json', result)

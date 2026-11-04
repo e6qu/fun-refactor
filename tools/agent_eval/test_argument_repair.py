@@ -46,7 +46,7 @@ class ArgumentRepairTests(unittest.TestCase):
                          feedback.proof.property_for('page-count', {'object_digest': 'fixed'}))
         with patch.object(feedback.proof, 'prepare', return_value='original') as preparing:
             self.assertEqual(feedback.prepare_inputs('fr', 'project', 'out', STUDY), 'original')
-        preparing.assert_called_once_with('page-count', 'fr', 'project', 'out', ['-j1'])
+        preparing.assert_called_once_with('page-count', 'fr', 'project', 'out')
         for name in ('cases.json', 'fixtures/src/pages.rs', 'controls/page-count.lean'):
             self.assertIn('tests/agent-eval/proof-writing/' + name, frozen['bindings'])
 

@@ -56,9 +56,12 @@ validation exposed a mismatched protected-input format. Its peak also left less
 than the required 128 MiB client reserve. Both failures stay recorded privately;
 they are not live attempts. The controller format is corrected, and both new
 conditions pin one Lean compiler worker after a bounded same-proof probe reduced
-sampled memory by about 87 MiB. Require fresh complete qualification before calls.
-Release 0.89.1 merged during validation. Main is integrated; collect a fresh
-current-project replay and native tools for that release before freezing inputs.
+sampled memory by about 87 MiB. A phase review also found peaks in direct proof
+checking and saving. Fr now explicitly uses one compiler worker for those checks
+and newly generated package settings. Require fresh complete qualification before
+calls. Release 0.89.1 merged during validation. Main is integrated and the first
+release-matching replay passed. The direct-check fix changes native source again;
+refresh the affected current records and native tools before freezing inputs.
 
 ## What the merged proof work established
 
