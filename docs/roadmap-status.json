@@ -31,7 +31,8 @@
         "src/spec/proof_state.rs",
         "src/workflow.rs",
         "tools/agent_eval/bounded_host.py",
-        "tools/evidence_basis.py"
+        "tools/evidence_basis.py",
+        "tools/project_change_sources.py"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
@@ -213,8 +214,12 @@
     },
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-03-bounded-proof-delivery-text-package-recheck",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/refinement-evidence.yml",
+        "tools/project_change_checkers.py",
+        "tools/project_change_sources.py"
+      ],
+      "freshness": "stale",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
@@ -293,6 +298,8 @@
         "tools/evidence_basis.py",
         "tools/package-questions.py",
         "tools/package_question_replay.py",
+        "tools/project_change_checkers.py",
+        "tools/project_change_sources.py",
         "tools/python-contract.py",
         "tools/python_contract_cases.py",
         "tools/retain-scalar-evidence.py",
@@ -361,6 +368,7 @@
         "src/workflow.rs",
         "tools/agent_eval/bounded_host.py",
         "tools/evidence_basis.py",
+        "tools/project_change_sources.py",
         "tools/saved-work-cost.py",
         "tools/test-saved-work-cost.py"
       ],
@@ -373,8 +381,10 @@
     },
     {
       "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41554016040",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tools/project_change_sources.py"
+      ],
+      "freshness": "stale",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -412,13 +422,13 @@
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-03-bounded-proof-delivery-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-04-pinned-checker-build-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-03-bounded-proof-delivery-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-04-pinned-checker-build-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -437,25 +447,29 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [],
+      "remaining": [
+        "B.repository-flow"
+      ],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.performance"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
@@ -473,7 +487,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -653,7 +667,9 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [],
+      "blockers": [
+        "original-package-questions: stale source binding"
+      ],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -697,7 +713,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace values in unfamiliar projects"
     },
     {
@@ -814,7 +830,9 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [],
+      "blockers": [
+        "current-saved-work-cost: stale source binding"
+      ],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -857,7 +875,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
