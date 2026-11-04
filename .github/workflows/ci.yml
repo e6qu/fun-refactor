@@ -158,6 +158,19 @@ jobs:
               paths.add('/' + path.parent.as_posix() + '/')
           subprocess.run(['git', 'sparse-checkout', 'add', *sorted(paths)], check=True, timeout=60)
           PY
+      - name: Reject a replay from another release before compiling
+        run: |
+          python3 -B tools/test-project-replay-release.py
+          python3 -B - <<'PYCHECK'
+          import hashlib, json, runpy, tomllib
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
+          path = Path(entry['path'])
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+          check = runpy.run_path('tools/recheck-project-changes.py')['require_current_release']
+          check(json.loads(path.read_text()), tomllib.loads(Path('Cargo.toml').read_text())['package']['version'])
+          PYCHECK
       - name: Build both current checker implementations
         run: |
           cargo build --locked --bin fr

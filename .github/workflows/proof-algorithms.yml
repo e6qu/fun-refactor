@@ -16,6 +16,42 @@ env:
   LEAN_NUM_THREADS: '1'
   RAYON_NUM_THREADS: '1'
 jobs:
+  page-count-diagnosis:
+    name: Distinguish division facts from their application without model calls
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/download-artifact@v8
+        with:
+          name: algorithm-linux-tool
+          path: ${{ runner.temp }}/page-count-tool
+      - run: chmod +x "$RUNNER_TEMP/page-count-tool/fr"
+      - run: python3 -B -m unittest agent_eval.test_page_count_diagnosis
+      - name: Check the unchanged complete page-count claim
+        run: >-
+          python3 -B -m agent_eval.page_count_diagnosis
+          --fr "$RUNNER_TEMP/page-count-tool/fr" --output "$RUNNER_TEMP/page-count-diagnosis"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: page-count-diagnosis
+          path: |
+            ${{ runner.temp }}/page-count-diagnosis/summary.json
+            ${{ runner.temp }}/page-count-diagnosis/*-check.json
+          if-no-files-found: error
+          retention-days: 30
   macos-tool:
     name: Build the checked algorithm tool for local Mac sessions
     runs-on: macos-15

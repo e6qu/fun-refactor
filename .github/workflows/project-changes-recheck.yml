@@ -56,6 +56,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1'
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - run: python3 -B tools/test-project-replay-release.py
       - name: Build both current checker implementations
         run: |
           cargo build --locked --bin fr

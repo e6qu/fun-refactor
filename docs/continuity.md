@@ -9,59 +9,43 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 
 ## Current work
 
-PRs [#592](https://github.com/e6qu/fun-refactor/pull/592) and
-[#593](https://github.com/e6qu/fun-refactor/pull/593) are merged. PR #593 passed
-[all 92 project CI jobs](https://github.com/e6qu/fun-refactor/actions/runs/41595629760),
-the GCD controls and agent skill checks before merge. There is no remaining work
-on their old branches. M1 and M2 have their complete comparisons. M3 remains open:
-GLM and Kimi still lack accepted page-count proofs within the original 150 seconds.
+PR [#597](https://github.com/e6qu/fun-refactor/pull/597) is merged. Its final
+[CI run](https://github.com/e6qu/fun-refactor/actions/runs/41727356977) passed all
+92 jobs, and all seven auxiliary workflows passed on the same commit.
+M1 and M2 have their complete comparisons. M3 remains open: GLM and Kimi still
+lack accepted page-count proofs within the original 150 seconds.
 
-[PR #595](https://github.com/e6qu/fun-refactor/pull/595) also merged after all 92
-project CI jobs passed. It added and qualified the supplied-proof delivery
-controls and fixed the comparison before native admission or new model calls.
+The [supplied-proof delivery results](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
+retain all twelve attempts: eleven accepted patches, five complete successes,
+six missing-accounting failures and one timeout without a patch. Both proofs
+were supplied. This establishes neither better proof discovery nor a finish-card
+advantage. Keep every original outcome and leave list reversal reserved.
 
-The next concrete question is [delivery of two supplied proofs](../tests/agent-eval/proof-delivery/README.md).
-Both setups receive the same correct GCD drafts, shared skill, source and checks.
-One also receives a short finish card. Test saving both proofs, checking the package
-and delivering both saved edits in one root `change.patch`. The clean receiving
-project must accept that patch; a correct working file is insufficient.
+OpenCode2 2.0.32 omitted final usage after session completion. Both no-model
+reproductions pass with the pinned official 2.2.5 repair. The runner and native
+admission reject missing or duplicate usage. A new comparison must have fresh
+complete admission; the old receipts cannot authorize more calls.
 
-Continue on `improve/native-proof-delivery`, [PR #597](https://github.com/e6qu/fun-refactor/pull/597).
-All twelve `M3-delivery` slots ran once after
-[fresh hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41636379313)
-and six reported passing local checks. The tools and inputs stayed fixed during the calls.
-[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41645916940)
-accepted eleven patches. The [complete results](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
-retain five complete successes, six incomplete-accounting failures and one Kimi
-timeout without a patch. Do not rerun a slot. Both proofs were supplied; M3 stays open.
+Continue on `improve/typed-division-guidance` for the next part of M3.
+The immediate task is a repeatable no-model diagnosis of the complete page-count
+claim. The original source, generated model, invalid-input branch, signed-64
+bounds and eleven-at-five example stay fixed. Start from the accepted manual
+reference, change one proof step per control, and check with the current fr build.
+An accepted reference is checked again after the rejection controls.
 
-The six affected OpenCode sessions have a finished final reply in the saved
-session but no matching final usage event in the JSON stream. The exporter already
-refuses complete usage for them. The runner and native admission now reject this
-mismatch immediately, including duplicate events that could conceal a missing one.
-Rechecking the original four OpenCode admission records found the same missing
-final usage. Their old receipts checked session success, not complete event coverage.
-Keep those original receipts and their recorded defect; they cannot admit new calls.
-The original native statuses remain unchanged. No missing tokens were inferred.
-Luna completed both setups twice; the GLM/Kimi guidance comparison is unusable.
-The finish card has no established success advantage. Keep list reversal reserved.
+The new `page-count-diagnosis` job in the algorithm workflow owns this check.
+The [reviewed control report](../tests/agent-eval/proof-page-count/typed-division-review.md)
+records acceptance of the reference twice and rejection of seven changed steps.
+It distinguishes wrong argument types, the wrong assumption,
+truncating versus Euclidean division, missing conversion, missing arithmetic
+relationships and unpacking an alternative as a pair. Its result is a tool
+control, never a new agent attempt or a replacement for an old failure.
 
-The no-model reproducer now confirms the cause: OpenCode2 2.0.32 stops ordinary
-event consumption when the session becomes idle, then reconciles text and tools
-without final usage. Both combined and separate usage chunks reproduce it.
-The official 2.2.5 release reconciles completed steps too; both reproductions pass.
-The project now pins that exact release and checksum. The M1 native check uses the
-current client with its current protocol helpers, then restores the original manifest
-for historical grading. No original study record changes client or outcome.
-
-All four [current qualification jobs](https://github.com/e6qu/fun-refactor/actions/runs/41654594443)
-pass, including the six native exchanges and retained-patch replay.
-The release-matched project-change replay also passes. The PR checks own its
-final-head CI status. Require the full gate before marking it ready; leave it unmerged.
-Any later comparison needs fresh complete admission for its selected client.
-Then return to the original page-count proof obstacle under the unchanged
-150-second limit. The roadmap owns the remaining M3 completion conditions.
-Prepared protocols still cannot launch calls.
+The review fixes a proposed instruction and prediction before another comparison:
+match each required proof argument to a named assumption after reading a type error,
+then check that step before searching again. No live execution plan is frozen. Do not launch the old unrun division-fact plan,
+repeat a closed slot, lengthen the deadline or claim the proof-writing milestone
+complete from these controls. Keep the remaining M3 work in its milestone PR.
 
 ## What the merged proof work established
 

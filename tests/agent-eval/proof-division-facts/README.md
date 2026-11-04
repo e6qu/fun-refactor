@@ -1,7 +1,9 @@
 # Can the agents select and apply current division facts?
 
 The hosted tool qualification passed, but no agent attempts started and no execution plan was frozen.
-The new [algorithm study](../proof-algorithms/README.md) takes priority.
+The [algorithm study](../proof-algorithms/README.md) and supplied-proof delivery study have finished.
+The next step is the no-model page-count diagnosis described in the [handoff](../../../docs/continuity.md#current-work).
+This older plan still names OpenCode2 2.0.32; do not launch it as a current comparison.
 Keep this plan as a supporting diagnostic; it cannot replace an algorithm proof or close M3.
 The [earlier page-count attempts](../proof-page-count/README.md) keep their original failures.
 
