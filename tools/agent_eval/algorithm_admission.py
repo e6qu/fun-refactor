@@ -264,7 +264,7 @@ def child(args):
             require(common.sources(receiver) == common.sources(project), 'the delivered patch omits saved work')
         common.save(args.output / 'child.json', {'passed': True, 'scripted_requests': len(requests),
             'scripted_errors': len(errors), 'complete_workflow': True,
-            'recursive_loop_rejected': args.study != DELIVERY_STUDY,
+            'recursive_loop_rejected': args.study in ALGORITHM_STUDIES,
             'argument_type_rejection': args.study == REPAIR_STUDY,
             'supplied_proofs': args.study == DELIVERY_STUDY, 'saved_edit_export': args.study == DELIVERY_STUDY,
             'independent_patch_replay': args.study == DELIVERY_STUDY,
