@@ -3711,13 +3711,15 @@ fn insert_model_import(source: &str, module: &str) -> Result<String> {
     if parsed.has_errors() {
         bail!("the existing Lean package entry has syntax errors; no files changed.");
     }
-    let import = format!("import FrSpecs.{module}");
+    let imported_module = format!("FrSpecs.{module}");
+    let import = format!("import {imported_module}");
     let mut cursor = parsed.root().walk();
     if parsed.root().named_children(&mut cursor).any(|node| {
         node.kind() == "import"
-            && node
-                .utf8_text(source.as_bytes())
-                .is_ok_and(|text| text.trim() == import)
+            && node.child_by_field_name("module").is_some_and(|name| {
+                name.utf8_text(source.as_bytes())
+                    .is_ok_and(|text| text == imported_module)
+            })
     }) {
         return Ok(source.into());
     }
@@ -5648,6 +5650,11 @@ mod tests {
         assert_eq!(
             super::insert_model_import(&updated, "Numeric").unwrap(),
             updated
+        );
+        let public = "module\nprelude\npublic import FrSpecs.Numeric\n";
+        assert_eq!(
+            super::insert_model_import(public, "Numeric").unwrap(),
+            public
         );
         assert!(super::insert_model_import("def broken := (", "Numeric").is_err());
     }
