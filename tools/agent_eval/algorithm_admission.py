@@ -221,6 +221,8 @@ def child(args):
         OPENCODE_DISABLE_DEFAULT_PLUGINS='1', OPENCODE_DISABLE_MODELS_FETCH='1', DISABLE_TELEMETRY='1',
         GOMAXPROCS='1', BUN_JSC_useJIT='false', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1',
         RAYON_NUM_THREADS='1', PYTHONDONTWRITEBYTECODE='1', OPENAI_API_KEY='sk-scripted-control-not-a-live-key')
+    if args.study == REPAIR_STUDY:
+        env.update(prepare(ROOT, args.study)['requirements']['client_environment'])
     original_chat = provider.chat
     def local_chat(model, command, first):
         require('"' not in str(project) and '\\' not in str(project), 'unsupported scripted directory')
@@ -268,7 +270,7 @@ def child(args):
             'recursive_loop_rejected': args.study in ALGORITHM_STUDIES,
             'argument_type_rejection': args.study == REPAIR_STUDY,
             'supplied_proofs': args.study == DELIVERY_STUDY, 'saved_edit_export': args.study == DELIVERY_STUDY,
-            'independent_patch_replay': args.study == DELIVERY_STUDY,
+            'independent_patch_replay': args.study in {DELIVERY_STUDY, REPAIR_STUDY},
             'session_accounting': True, 'warmups': len(warmups)})
 
 

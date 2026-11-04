@@ -33,6 +33,7 @@ class ArgumentRepairTests(unittest.TestCase):
         frozen = plan.prepare(plan.ROOT, STUDY)
         self.assertEqual(len(frozen['attempts']), 8)
         self.assertFalse(frozen['live_calls_enabled'])
+        self.assertEqual(frozen['requirements']['client_environment'], {'BUN_OPTIONS': '--smol'})
         self.assertEqual(frozen['requirements']['limits'], {**local.LIMITS, 'parallel_attempts': 1})
         self.assertEqual(set(frozen['profiles']), {'opencode2-glm-flash', 'opencode2-kimi-k3'})
         for profile in frozen['profiles']:

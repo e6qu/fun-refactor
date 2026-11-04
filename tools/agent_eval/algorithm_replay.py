@@ -90,7 +90,7 @@ def replay(binary, qualification, output):
     algorithms.validate_controls(controls, 'M3-algorithm-facts')
     require(common.digest(binary) == controls['fr_sha256'], 'replay the currently qualified executable')
     original = output / 'original'
-    prepared = algorithms.prepare(binary, original, output / 'inputs', ROOT / algorithms.DIRECTORY / 'fixtures/Euclid.lean')
+    prepared = algorithms.prepare(binary, original, output / 'inputs', ROOT / algorithms.DIRECTORY / 'retained-fixtures/Euclid.lean')
     image = controls['private_image']
     rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True).strip())
     rows = []

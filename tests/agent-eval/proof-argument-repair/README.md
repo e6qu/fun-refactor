@@ -24,6 +24,11 @@ non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
 OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
 Fr's direct proof checks and newly generated packages explicitly use one Lean
 compiler worker. Both comparison settings use that same `-j1` setting.
+Both also explicitly run the OpenCode executable with `BUN_OPTIONS=--smol`.
+This [Bun runtime option](https://bun.sh/docs/compiler/executables) trades
+more frequent memory collection for a smaller heap. Fresh complete qualification
+must establish whether this leaves the required reserve; the option is not a
+claim that the workflow now fits.
 The order reverses between repetitions. All complete attempts retain the
 150-second deadline and existing CPU, memory, disk and output limits.
 
