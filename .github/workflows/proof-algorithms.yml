@@ -272,6 +272,16 @@ jobs:
           docker load --input "$RUNNER_TEMP/private-checker/grader-image.tar.gz"
           python3 -B -m agent_eval.algorithm_replay replay --fr "$RUNNER_TEMP/current-tool/fr" \
             --qualification "$RUNNER_TEMP/qualified/algorithm-controls" --output "$RUNNER_TEMP/algorithm-current-replay"
+      - name: Retain failed replay diagnostics
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: algorithm-current-replay-failure
+          path: |
+            ${{ runner.temp }}/algorithm-current-replay/*/result.json
+            ${{ runner.temp }}/algorithm-current-replay/*/grader.stdout
+            ${{ runner.temp }}/algorithm-current-replay/*/grader.stderr
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v7
         with:
           name: algorithm-current-replay

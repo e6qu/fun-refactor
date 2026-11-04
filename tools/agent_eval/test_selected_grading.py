@@ -13,6 +13,43 @@ from agent_eval.selected_grade_probe import restore_dependency_cache
 
 
 class SelectedGradingTests(unittest.TestCase):
+    def test_algorithm_grader_accepts_exact_named_snapshots_and_rejects_package_changes(self):
+        from agent_eval import proof_algorithms as algorithms
+        for directory in ('fixtures', 'interrupted-results', 'retained-fixtures'):
+            with self.subTest(snapshot=directory):
+                inputs = self.root / directory
+                original = inputs / 'original'
+                fixture = algorithms.ROOT / algorithms.DIRECTORY / directory
+                for target, name in {algorithms.SPEC: 'Euclid.lean', **{
+                        'specs/' + name: name for name in algorithms.PACKAGE_FILES}}.items():
+                    path = original / target
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes((fixture / name).read_bytes())
+                prepared = {'task': 'euclid', 'fixture': directory + '/Euclid.lean',
+                            'obligations': list(algorithms.OBLIGATIONS),
+                            'protected_source': algorithms.masked((original / algorithms.SPEC).read_text()),
+                            'original': grading.tasks.sources(original)}
+                (inputs / 'project.json').write_text(json.dumps(prepared))
+                (inputs / 'delivery.json').write_text('{"provided": false}')
+                (inputs / 'change.patch').write_bytes(b'')
+                workspace = inputs / 'workspace'
+                workspace.mkdir()
+                container = inputs / '.dockerenv'
+                container.touch()
+                paths = {'/.dockerenv': container, '/workspace': workspace,
+                         **{'/inputs/' + name: inputs / name for name in
+                            ('original', 'project.json', 'delivery.json', 'change.patch')}}
+                with mock.patch.object(probe, 'Path', side_effect=lambda value: paths.get(value, Path(value))), \
+                        mock.patch.dict(probe.os.environ, {}, clear=True):
+                    result = probe.run('euclid', 'M3-algorithm-facts')
+                    self.assertEqual(result['reason'], 'the agent did not deliver a nonempty patch')
+                    package = original / 'specs/lakefile.toml'
+                    package.write_text(package.read_text() + '\n# changed package\n')
+                    prepared['original'] = grading.tasks.sources(original)
+                    (inputs / 'project.json').write_text(json.dumps(prepared))
+                    with self.assertRaisesRegex(ValueError, 'private executable algorithm'):
+                        probe.run('euclid', 'M3-algorithm-facts')
+
     def test_page_count_grader_uses_its_settings_and_checks_exact_patch_delivery(self):
         inputs = self.root / 'inputs'
         original = inputs / 'original'
