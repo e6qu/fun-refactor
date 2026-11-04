@@ -1,0 +1,51 @@
+{
+  "schema": "fr-proof-attempt-1",
+  "goal_id": "e8891c45b83de20760ea16fac77c9e2608059adc9f5f2f8ed13f75e75d5783ac",
+  "proof_digest": "9d43222b6ebc2c5e085b5ad4838e0445573dd0650a9bef102eeb8437da60a41a",
+  "checker": "leanprover/lean4:v4.28.0",
+  "checker_context_digest": "15c7fad7535fb793b95addf1d5997557e75538b3d4cbd29476481634b92bf3f9",
+  "passed": true,
+  "diagnostics": [],
+  "diagnostics_omitted": 0,
+  "receipt": "2b51cd0b4ac93548006ab133824a46a16633302327033e7917a71afe1105e7f4",
+  "actions": {
+    "inspect": [
+      "spec",
+      "proof-state",
+      "specs/FrSpecs/RustPreservation.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-41872963310-1/refinement-evidence/2026-11-04-focused-proof-imports-model-comparisons/tactics.txt",
+      "--at",
+      "<LINE:COLUMN>",
+      "--timeout-seconds",
+      "<SECONDS>",
+      "--token-limit",
+      "4096"
+    ],
+    "revise": [
+      "spec",
+      "proof-check",
+      "specs/FrSpecs/RustPreservation.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-41872963310-1/refinement-evidence/2026-11-04-focused-proof-imports-model-comparisons/tactics.txt"
+    ],
+    "apply": [
+      "spec",
+      "prove",
+      "specs/FrSpecs/RustPreservation.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-41872963310-1/refinement-evidence/2026-11-04-focused-proof-imports-model-comparisons/tactics.txt",
+      "--write"
+    ],
+    "verify": [
+      "spec",
+      "verify",
+      "/tmp/fr-refinement-eval-bodfdstf/native/specs/FrSpecs/RustPreservation.lean"
+    ]
+  },
+  "token_budget": {
+    "limit": 4096,
+    "used_upper_bound": 1711,
+    "measurement": "serialized_utf8_bytes"
+  }
+}
