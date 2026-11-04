@@ -22,6 +22,8 @@ extra theorem names or stronger assumptions.
 The [requirements](requirements.json) own eight fresh slots: GLM Flash and
 non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
 OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
+The local controller uses Python 3.14.10 from an explicitly versioned installation.
+Admission checks that version before starting native work.
 Fr's direct proof checks and newly generated packages explicitly use one Lean
 compiler worker. Both comparison settings use that same `-j1` setting.
 Fr generates `prelude` and explicitly imports `Init.Data.Int.DivMod.Lemmas` in
@@ -103,9 +105,11 @@ it does not establish full-client admission or a general performance result.
 Fresh complete qualification must demonstrate the unchanged reserve before calls.
 Raw records stay private; no passing component probe replaces failed admission.
 
-All four complete local controls now pass with fr's generated imports. They
+All four complete local controls passed with fr's generated imports. They
 inspect the open goal, reject the mapped type error, check and save the corrected
 proof, build the package, replay the patch and finish accounting. Sampled peaks
 are 500 to 535 MiB, below the same 640 MiB admission ceiling. These are scripted
-setup checks with zero model calls. Finish the measurement-record updates before
-freezing matching qualification and the eight paid slots.
+setup checks with zero model calls. Freezing then refused because a Homebrew
+link had moved Python from the declared 3.14.6 to 3.14.10. Those controls do not
+qualify paid calls. Use the copied, explicitly versioned runtime and repeat
+hosted and local qualification before freezing the eight paid slots.

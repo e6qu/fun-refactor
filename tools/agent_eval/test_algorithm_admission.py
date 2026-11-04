@@ -106,12 +106,19 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
         self.assertEqual(admission.server_packages(), {'websockets': '15.0.1'})
         with patch.object(admission.metadata, 'version', side_effect=admission.metadata.PackageNotFoundError('websockets')):
             with self.assertRaisesRegex(ValueError, 'Selected Python lacks'):
-                admission.native_python()
+                admission.native_python(admission.platform.python_version())
         with patch.object(admission.metadata, 'version', return_value='16.0'):
             with self.assertRaisesRegex(ValueError, 'hash-locked requirement'):
-                admission.native_python()
+                admission.native_python(admission.platform.python_version())
         with patch.object(admission.metadata, 'version', return_value='15.0.1'):
-            self.assertEqual(admission.native_python()['packages'], admission.server_packages())
+            self.assertEqual(admission.native_python(admission.platform.python_version())['packages'], admission.server_packages())
+
+    def test_python_pin_is_checked_before_package_inventory_and_native_work(self):
+        with patch.object(admission.platform, 'python_version', return_value='3.14.11'), \
+                patch.object(admission.metadata, 'version') as inventory:
+            with self.assertRaisesRegex(ValueError, 'Python differs from its explicit pin'):
+                admission.native_python('3.14.10')
+            inventory.assert_not_called()
 
 
 if __name__ == '__main__':

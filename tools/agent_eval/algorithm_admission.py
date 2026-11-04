@@ -5,6 +5,7 @@ from importlib import metadata
 import json
 import math
 import os
+import platform
 from pathlib import Path
 import re
 import shlex
@@ -17,7 +18,7 @@ from . import proof_writing_tasks as proof
 from .opencode2_client import scripted_configuration
 from .selected_cli import configuration, invocation, export_session, verify_export
 from .selected_guarded import GUARD, IndependentSampler
-from .selected_plan import ALGORITHM_STUDIES, ADMISSION_STUDIES, DELIVERY_STUDY, REPAIR_STUDY, ROOT, encoded, prepare, require
+from .selected_plan import ALGORITHM_STUDIES, ADMISSION_STUDIES, CASE_DIRECTORIES, DELIVERY_STUDY, REPAIR_STUDY, ROOT, encoded, prepare, require
 
 CONTROL_LIMITS = {'wall_seconds': 60, 'rss_bytes': 805306368, 'cpu_limit_seconds': 25,
                   'disk_bytes': 67108864, 'transcript_bytes': 131072}
@@ -33,7 +34,8 @@ def server_packages():
     return {'websockets': versions[0]}
 
 
-def native_python():
+def native_python(expected_python):
+    require(platform.python_version() == expected_python, 'native admission Python differs from its explicit pin')
     required = server_packages()
     try:
         packages = {name: metadata.version(name) for name in required}
@@ -279,7 +281,8 @@ def observe(args):
     require(all(path.is_file() for path in (args.fr, args.client, args.controls, args.lean_root / 'bin/lake',
                 args.inputs / 'seed.json', args.inputs / 'original.tar.gz')),
             'admission requires existing pinned tools and qualified task inputs')
-    python_runtime = native_python()
+    settings = json.loads((ROOT / CASE_DIRECTORIES[args.study] / 'checkers.json').read_text())
+    python_runtime = native_python(settings['local_python'])
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     os.nice(15)
     command = ['python3', str(args.guard), sys.executable, '-B', '-m', 'agent_eval.algorithm_admission', 'guarded']

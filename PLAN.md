@@ -143,8 +143,9 @@ replay pass. The runner rejects missing or duplicate response records.
    Keep these twelve outcomes under their original client and never reopen their slots.
    The import fix now passes all four complete local controls, including interactive
    goal inspection. Peaks are 500 to 535 MiB against the unchanged 640 MiB
-   admission ceiling. Finish the replacement measurement records, then freeze
-   fresh matching qualification and all eight slots. No paid attempt has started.
+   admission ceiling. Freezing caught a Python version mismatch caused by a
+   moving installation link. Repeat qualification with the copied, versioned
+   runtime, then freeze all eight slots. No paid attempt has started.
 2. Review the original page-count failure against the unchanged complete claim.
    Use the algorithm workflow’s `page-count-diagnosis` job to check the complete
    claim with one changed proof step per control. Distinguish choosing a division
