@@ -128,6 +128,14 @@ def prepare(case, binary, project, output):
     require(lean_arguments == ['-j1'], 'the generated proof library must declare one Lean compiler worker')
     spec = 'specs/FrSpecs/' + plan['kernel']['module'] + '.lean'
     obligation = plan['properties'][0]['name']
+    if case == 'page-count':
+        require(entry['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'],
+                'declare the complete page-count task imports explicitly')
+        module = project / spec
+        source = module.read_text()
+        require(source.startswith('namespace FrSpecs\n'), 'keep the generated page-count model unchanged')
+        module.write_text('prelude\n' + ''.join('import ' + name + '\n' for name in entry['lean_imports']) + source)
+        (project / 'specs/FrSpecs.lean').write_text('prelude\nimport FrSpecs.' + plan['kernel']['module'] + '\n')
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
     require(built['returncode'] == 0, 'the prepared Lean package must build before a live attempt')
     catalog = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
@@ -158,6 +166,8 @@ def prepare(case, binary, project, output):
                        'model': 'Bool' if case.startswith('access-') else 'Lean mathematical Int with truncating division' if case == 'page-count' else 'Lean mathematical Nat',
                        'source_implementation_proved': False},
         'scope': 'Source, model, fixed property and package are identical for both setups; no proof steps are supplied.'}
+    if case == 'page-count':
+        result['lean_imports'] = entry['lean_imports']
     common.save(output / 'project.json', result)
     common.retain_seed(project, result, output)
     return result

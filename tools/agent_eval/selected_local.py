@@ -568,8 +568,6 @@ def attempt(plan_path, attempt_id):
             OPENCODE_DISABLE_DEFAULT_PLUGINS='1', OPENCODE_DISABLE_MODELS_FETCH='1', DISABLE_TELEMETRY='1',
             GOMAXPROCS='1', BUN_JSC_useJIT='false')
         env.update(value['public_check_environment'])
-        if milestone == REPAIR_STUDY:
-            env.update(value['schedule']['requirements']['client_environment'])
         if milestone == 'M2':
             require(all(hash_file(Path(path)) == expected for path, expected in value['runtime_source_bindings'].items()),
                     'offline dependency or TypeScript checker source changed')

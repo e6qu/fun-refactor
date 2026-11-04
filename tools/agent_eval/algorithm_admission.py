@@ -179,6 +179,7 @@ def child(args):
         prepared = json.loads((args.inputs / 'project.json').read_text())
         require(prepared['task'] == 'page-count' and common.sources(project) == prepared['original'] and
                 prepared['lean_arguments'] == ['-j1'] and
+                prepared['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'] and
                 prepared['property'] == proof.property_for('page-count',
                 {'object_digest': prepared['property']['task_digest']}), 'admit the unchanged complete page-count task')
     else:
@@ -221,8 +222,6 @@ def child(args):
         OPENCODE_DISABLE_DEFAULT_PLUGINS='1', OPENCODE_DISABLE_MODELS_FETCH='1', DISABLE_TELEMETRY='1',
         GOMAXPROCS='1', BUN_JSC_useJIT='false', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1',
         RAYON_NUM_THREADS='1', PYTHONDONTWRITEBYTECODE='1', OPENAI_API_KEY='sk-scripted-control-not-a-live-key')
-    if args.study == REPAIR_STUDY:
-        env.update(prepare(ROOT, args.study)['requirements']['client_environment'])
     original_chat = provider.chat
     def local_chat(model, command, first):
         require('"' not in str(project) and '\\' not in str(project), 'unsupported scripted directory')

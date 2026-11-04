@@ -141,6 +141,10 @@ replay pass. The runner rejects missing or duplicate response records.
 
 1. Before a new study, freeze fresh complete native admission for its selected client.
    Keep these twelve outcomes under their original client and never reopen their slots.
+   Current blocker: the complete page-count workflow exceeds its memory budget.
+   Compiler worker and client heap settings did not establish enough reserve.
+   Qualify explicit integer-division imports in both the proof module and package
+   entry, preserving the complete claim, before starting the eight new attempts.
 2. Review the original page-count failure against the unchanged complete claim.
    Use the algorithm workflow’s `page-count-diagnosis` job to check the complete
    claim with one changed proof step per control. Distinguish choosing a division

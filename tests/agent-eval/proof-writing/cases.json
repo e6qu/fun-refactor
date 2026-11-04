@@ -7,6 +7,6 @@
   "access-tsx": {"language": "TSX", "path": "src/allowed.tsx", "symbol": "allowed", "property": "access_rule"},
   "access-zig": {"language": "Zig", "path": "src/allowed.zig", "symbol": "allowed", "property": "access_rule"},
   "access-lean": {"language": "Lean", "path": "src/allowed.lean", "symbol": "allowed", "property": "access_rule"},
-  "page-count": {"language": "Rust", "path": "src/pages.rs", "symbol": "page_count", "property": "page_bounds"},
+  "page-count": {"language": "Rust", "path": "src/pages.rs", "symbol": "page_count", "property": "page_bounds", "lean_imports": ["Init.Data.Int.DivMod.Lemmas"]},
   "fits-window": {"language": "Rust", "path": "src/window.rs", "symbol": "fits_window", "property": "fits_exactly"}
 }

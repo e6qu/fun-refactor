@@ -24,13 +24,12 @@ non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
 OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
 Fr's direct proof checks and newly generated packages explicitly use one Lean
 compiler worker. Both comparison settings use that same `-j1` setting.
-Both explicitly use `BUN_OPTIONS=--smol`, `BUN_JSC_forceRAMSize=268435456`
-and `BUN_JSC_useJIT=0`. The runtime sizes memory collection for 256 MiB and
-disables just-in-time compilation; the hint does not impose a memory cap.
-The [earlier client investigation](../opencode/changes/2026-10-08-memory/README.md)
-rejected smaller-heap mode alone and found that the combined settings passed
-its controls at a CPU cost. Those results concern an older client and workflow.
-Fresh complete qualification must establish the unchanged reserve here too.
+Both use `prelude` and explicitly import `Init.Data.Int.DivMod.Lemmas` in
+the proof module. The package entry also uses `prelude`. This disables Lean's
+automatic import of the whole `Init` library while retaining the integer-division
+facts and tactics used by the complete reference proof. Both conditions receive
+this same library context and preserve its imports. Earlier attempts keep their
+original context and timings; this preparation change is not an agent improvement.
 The order reverses between repetitions. All complete attempts retain the
 150-second deadline and existing CPU, memory, disk and output limits.
 
@@ -81,14 +80,22 @@ and reviewed summaries only. Raw prompts, transcripts, drafts, source archives,
 session exports and account data stay private.
 
 Current state: qualification, with no new model calls yet. The
-[reviewed probe summary](qualification-probes.json) preserves both failed complete
-controls and the isolated package checks. The first control exposed an input-format
+[reviewed probe summary](qualification-probes.json) preserves failed complete
+controls and the isolated compiler checks. The first control exposed an input-format
 bug in patch validation. The next completed checking, saving, package build,
 patch replay and native accounting, but peaked at about 751 MiB against the
 unchanged 640 MiB admission ceiling. A receipt incorrectly reported its completed
 patch replay as false; that flag is fixed.
 
 The single-worker package probe sampled about 87 MiB less memory. That isolated
-sample did not predict enough reserve in the complete workflow. Fresh complete
-qualification must establish the reserve with the declared client settings before
-any calls. Raw records stay private; no passing probe replaces failed admission.
+sample did not predict enough reserve in the complete workflow. The next control
+tested the smaller-heap settings from an older client investigation and hit the
+768 MiB cap. Its client footprint was nearly unchanged, so those extra settings
+were removed. No other condition or paid attempt started after that failure.
+
+The same complete proof then passed isolated checks with the automatic `Init`
+import and with explicit integer-division imports, sampling about 364 MiB and
+148 MiB respectively. This identifies a smaller library context to qualify;
+it does not establish full-client admission or a general performance result.
+Fresh complete qualification must demonstrate the unchanged reserve before calls.
+Raw records stay private; no passing component probe replaces failed admission.

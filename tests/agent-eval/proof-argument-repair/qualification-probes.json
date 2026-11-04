@@ -60,7 +60,7 @@
       }
     ]
   },
-  "next_gate": "Fresh complete native qualification with one Lean compiler worker and the explicitly declared smaller-heap, 256 MiB GC sizing and interpreter settings, unchanged hard limits, and the full required reserve. Earlier client evidence rejected smol alone. No paid slots are admitted by component probes or a previous client runtime.",
+  "next_gate": "Fresh hosted and complete native qualification with explicit integer-division imports in the proof module, prelude in the package entry, one compiler worker, the original client settings and unchanged full memory reserve. The claim is unchanged; earlier attempts retain their original import context and timings. No component probe admits paid calls.",
   "publication": "Reviewed summaries only; raw scripted client and resource traces stay private.",
   "one_worker_complete_workflow": {
     "qualified_task_run": "41841646349",
@@ -112,5 +112,76 @@
       }
     ],
     "interpretation": "The complete workflow still lacks the required 128 MiB reserve. The lower isolated-package sample did not establish that the complete native workflow fits. Sampling can miss brief peaks; no general performance improvement follows."
+  },
+  "client_settings_complete_workflow": {
+    "qualified_task_run": "41858994886",
+    "live_model_calls": 0,
+    "client_environment": {
+      "BUN_OPTIONS": "--smol",
+      "BUN_JSC_forceRAMSize": "268435456",
+      "BUN_JSC_useJIT": "0"
+    },
+    "complete_workflow": false,
+    "reserve_satisfied": false,
+    "stop_reason": "rss_bytes",
+    "sampled_aggregate_rss_bytes": 811581440,
+    "complete_seconds": 6.688807625000663,
+    "resource_record_sha256": "e9bb901b1e9079c0dc97d444e5aca720450359140dea4c5a825605397853ccbb",
+    "peak_processes": [
+      {
+        "executable": "Python",
+        "rss_bytes": 19054592
+      },
+      {
+        "executable": "Python",
+        "rss_bytes": 62750720
+      },
+      {
+        "executable": "opencode2",
+        "rss_bytes": 76087296
+      },
+      {
+        "executable": "opencode2",
+        "rss_bytes": 203390976
+      },
+      {
+        "executable": "bash",
+        "rss_bytes": 2850816
+      },
+      {
+        "executable": "fr",
+        "rss_bytes": 16924672
+      },
+      {
+        "executable": "lake",
+        "rss_bytes": 58556416
+      },
+      {
+        "executable": "lean",
+        "rss_bytes": 371965952
+      }
+    ],
+    "decision": "Rejected. Stop remaining controls; no paid attempts. Client memory was nearly unchanged. Remove these extra settings rather than carry unhelpful tuning forward."
+  },
+  "import_probe": {
+    "scope": "Guard and one Lean compiler, without native client or Lake. Same complete proof body, model, claim and explicit -j1; only the leading import context differs. Cache order is uncontrolled and sampling can miss brief peaks. No whole-workflow admission or general timing claim.",
+    "attempts": [
+      {
+        "imports": null,
+        "proof_passed": true,
+        "sampled_aggregate_rss_bytes": 381255680,
+        "seconds": 1.519393417000174,
+        "resource_record_sha256": "c797c62514da556382fecf3b2cccfa79648c74938620ccbc3b3f3dfc4f41ba0e"
+      },
+      {
+        "imports": [
+          "Init.Data.Int.DivMod.Lemmas"
+        ],
+        "proof_passed": true,
+        "sampled_aggregate_rss_bytes": 154681344,
+        "seconds": 0.1981743339993045,
+        "resource_record_sha256": "11c0a06816f5fd3dcdd8ad388956a22cc67258926bc2cf8dc7260ce818f46735"
+      }
+    ]
   }
 }
