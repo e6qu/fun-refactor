@@ -17,12 +17,20 @@ class PageCountDiagnosis(unittest.TestCase):
     def test_missing_boolean_results_and_inconsistent_receipts_cannot_pass(self):
         for name in ('reference', 'reference-again', 'integer-instead-of-proof'):
             accepted = name != 'integer-instead-of-proof'
-            valid = {'passed': accepted, 'receipt': {} if accepted else None}
+            valid = {'passed': accepted, 'receipt': {} if accepted else None,
+                     'diagnostics': [] if accepted else [{'message': 'type mismatch',
+                                                         'draft_location': {'line': 1}}]}
             diagnosis.validate(name, valid)
             for invalid in ({}, {'passed': int(accepted)}, {**valid, 'passed': not accepted},
                             {**valid, 'receipt': None if accepted else {}}):
                 with self.assertRaises(ValueError):
                     diagnosis.validate(name, invalid)
+
+    def test_unmapped_tool_failure_cannot_count_as_a_rejected_proof(self):
+        for diagnostics in ([], [{'message': 'compiler unavailable', 'draft_location': None}]):
+            with self.assertRaisesRegex(ValueError, 'mapped to the changed draft'):
+                diagnosis.validate('integer-instead-of-proof',
+                    {'passed': False, 'receipt': None, 'diagnostics': diagnostics})
 
 
 if __name__ == '__main__':

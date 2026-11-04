@@ -40,6 +40,10 @@ def validate(name, value):
             'unexpected page-count control result: ' + name)
     require((value.get('receipt') is not None) is expected,
             'only a checked complete reference may have a receipt: ' + name)
+    if not expected:
+        require(any(row.get('draft_location') and row.get('message')
+                    for row in value.get('diagnostics', [])),
+                'a rejection needs a Lean error mapped to the changed draft: ' + name)
 
 
 def run(binary, output):
@@ -60,7 +64,9 @@ def run(binary, output):
             '--from', str(draft), '--token-limit', '4096'], output / (name + '-check.json'))
         validate(name, value)
         require(common.sources(project) == baseline, 'a diagnostic changed the prepared project')
-        report['controls'][name] = {'accepted': value['passed'], 'draft_sha256': common.digest(draft)}
+        report['controls'][name] = {'accepted': value['passed'], 'draft_sha256': common.digest(draft),
+                                   'diagnostics': value['diagnostics'],
+                                   'diagnostics_omitted': value['diagnostics_omitted']}
         common.save(output / 'summary.json', report)
     report['passed'] = True
     common.save(output / 'summary.json', report)
