@@ -228,15 +228,16 @@ class ProofFeedbackTests(unittest.TestCase):
                     self.assertRaisesRegex(ValueError, 'argument-type error'):
                 feedback.initial_check('/fr', root, {'target': 'spec::fixed'}, {}, output, 20)
 
-    def test_freeze_captures_only_selected_clients_and_their_companions(self):
+    def test_freeze_captures_single_file_opencode_without_other_clients(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for name in ('fr', 'opencode2', 'opencode'):
+            for name in ('fr', 'opencode2'):
                 (root / name).write_bytes(name.encode())
             binaries, components = local.freeze_binaries(
                 {name: root / name for name in ('fr', 'opencode2')}, root / 'capture', {'opencode2'})
             self.assertEqual(set(binaries), {'fr', 'opencode2'})
-            self.assertEqual(set(components), {'opencode'})
+            self.assertEqual(components, {})
+            self.assertEqual({path.name for path in (root / 'capture/bin').iterdir()}, {'fr', 'opencode2'})
 
     def test_controller_charges_initial_check_to_both_conditions_and_changes_only_visibility(self):
         prompts = {}
