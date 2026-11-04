@@ -44,9 +44,13 @@ decision rule before calls: GLM and Kimi, two conditions, two repetitions each.
 Keep the 150-second complete-attempt deadline and all resource limits.
 Never reopen an earlier slot or reuse the old client's admission.
 
-The prediction is that each agent checks a draft within 45 seconds and delivers
-at least one independently accepted complete proof in its two instructed attempts.
-Missing times or incomplete accounting cannot satisfy it. Count complete results
+The prediction is that, after the first mapped argument-type error, the next
+proof check fixes that argument mismatch before another theorem search. Record
+the diagnostic, next action and next check separately. If no such error occurs,
+this mechanism remains unobserved, even if the proof passes. First-check timing
+is an observation, not an expected effect of an instruction about later errors.
+Each agent must also deliver at least one independently accepted complete proof
+in its two instructed attempts. Incomplete accounting cannot satisfy that result. Count complete results
 per agent and condition; a two-versus-zero result supports testing the instruction
 further, while ties and mixed results leave its benefit unresolved. A prediction
 failure keeps the broader comparison paused.
