@@ -3715,11 +3715,21 @@ fn insert_model_import(source: &str, module: &str) -> Result<String> {
     let import = format!("import {imported_module}");
     let mut cursor = parsed.root().walk();
     if parsed.root().named_children(&mut cursor).any(|node| {
-        node.kind() == "import"
-            && node.child_by_field_name("module").is_some_and(|name| {
-                name.utf8_text(source.as_bytes())
-                    .is_ok_and(|text| text == imported_module)
-            })
+        if node.kind() != "import" {
+            return false;
+        }
+        let mut module_cursor = node.walk();
+        let mut remaining = imported_module.as_str();
+        for part in node.children_by_field_name("module", &mut module_cursor) {
+            let Ok(text) = part.utf8_text(source.as_bytes()) else {
+                return false;
+            };
+            let Some(rest) = remaining.strip_prefix(text) else {
+                return false;
+            };
+            remaining = rest;
+        }
+        remaining.is_empty()
     }) {
         return Ok(source.into());
     }
