@@ -29,6 +29,14 @@ passed all 21 saved-findings changes and both deliveries again.
 New retained records match the released build; original records and exact hash
 checks remain intact.
 
+The current project replay also failed after the hosted runner image changed.
+The source bindings, Rust version and compiler flags matched, but the executable
+hashes differed. Rust alone did not pin the native C compiler, linker or system
+libraries. Current checker builds now use one immutable GCC image, fixed paths
+inside that container and an explicit Rust toolchain. Compilation has no network
+access. The original executable hash checks remain strict. Collect fresh replay
+records for this build procedure. Historical results stay unchanged.
+
 The Python text-flow, structural-change and consumer-scope checkers also hashed
 the SDK release literal as behavior input. They now use the shared release identity rule.
 Structural and scope checks bind the complete SDK tree and packaging metadata too.
