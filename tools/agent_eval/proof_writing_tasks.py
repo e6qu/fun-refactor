@@ -105,8 +105,9 @@ def masked_proof(text, obligation):
     return text[:start] + '<M3 agent proof steps>\n' + text[finish:]
 
 
-def prepare(case, binary, project, output):
+def prepare(case, binary, project, output, lean_arguments):
     require(case in CASES and not project.exists(), 'prepare one named proof case in a new folder')
+    require(lean_arguments in ([], ['-j1']), 'select the original compiler settings or one explicit Lean worker')
     output.mkdir(parents=True, exist_ok=False)
     entry = CASES[case]
     project.mkdir(parents=True)
@@ -122,6 +123,11 @@ def prepare(case, binary, project, output):
     plan = common.fr(binary, project, ['spec', 'plan', target, '--property-from', str(output / 'property.json')], output / 'plan.json')
     common.save(output / 'formal-plan.json', plan)
     common.fr(binary, project, ['spec', 'scaffold', '--from', str(output / 'formal-plan.json'), '--package', 'specs', '--write'], output / 'scaffold.json')
+    if lean_arguments:
+        configuration = project / 'specs/lakefile.toml'
+        text = configuration.read_text()
+        require(text.endswith('[[lean_lib]]\nname = "FrSpecs"\n'), 'pin workers only in the declared proof library')
+        configuration.write_text(text + 'moreLeanArgs = ' + json.dumps(lean_arguments) + '\n')
     spec = 'specs/FrSpecs/' + plan['kernel']['module'] + '.lean'
     obligation = plan['properties'][0]['name']
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
@@ -145,6 +151,7 @@ def prepare(case, binary, project, output):
     (project / '.git/info/exclude').write_text('\n'.join(sorted((common.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     common.comparison_grade.BASE.initialize(project)
     result = {'task': case, 'language': entry['language'], 'source': entry['path'], 'spec': spec,
+        'lean_arguments': lean_arguments,
         'obligation': obligation, 'target': spec + '::' + obligation,
         'original': common.sources(project), 'protected_proof': masked_proof((project / spec).read_text(), obligation),
         'plan_digest': plan['object_digest'], 'goal_digest': goal['id'],
@@ -202,6 +209,6 @@ if __name__ == '__main__':
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     arguments = parser.parse_args()
-    result = prepare(arguments.case, arguments.fr.resolve(), arguments.output / 'original', arguments.output / 'inputs')
+    result = prepare(arguments.case, arguments.fr.resolve(), arguments.output / 'original', arguments.output / 'inputs', [])
     print(json.dumps({'case': arguments.case, 'target': result['target'], 'goal_digest': result['goal_digest'],
                       'source_implementation_proved': False, 'live_model_calls': 0}))

@@ -68,7 +68,8 @@ def property_for(task, milestone):
 
 def prepare_inputs(binary, project, output, milestone):
     if milestone in {'M3-page-count', REPAIR_STUDY}:
-        return proof.prepare('page-count', binary, project, output)
+        arguments = prepare(ROOT, milestone)['requirements']['lean_arguments'] if milestone == REPAIR_STUDY else []
+        return proof.prepare('page-count', binary, project, output, arguments)
     details = case_details(milestone)
     require(not project.exists(), 'prepare the diagnostic in a new project')
     project.mkdir(parents=True)
@@ -171,7 +172,8 @@ def install_repair_admission(project, condition, lean_root, prepared):
         'argv': [str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail'], 'cwd': '.',
         'timeout_seconds': 120, 'covers': ['fixed Lean theorem without proof gaps']}]})
     paths = [handout, directory / 'checks.json', *(project / '.agents/skills/fr').rglob('*')]
-    return {str(path.relative_to(project)): local.hash_file(path) for path in paths if path.is_file()}
+    return {str(path.relative_to(project)): {'sha256': local.hash_file(path), 'mode': path.stat().st_mode & 0o7777}
+            for path in paths if path.is_file()}
 
 
 def repair_admission_script(lean_root, search_path, condition):
@@ -242,7 +244,7 @@ def validate_controls(value, milestone):
     if milestone == 'M3-facts':
         fields |= {'declarations_sha256', 'handout_changes_rejected'}
     if milestone == REPAIR_STUDY:
-        fields |= {'repair_instruction_sha256', 'handout_changes_rejected', 'argument_type_error_rejected'}
+        fields |= {'repair_instruction_sha256', 'handout_changes_rejected', 'argument_type_error_rejected', 'lean_arguments'}
     require(value['study'] == milestone and set(value) == fields, 'diagnostic controls need their exact declared fields')
     if milestone == 'M3-facts':
         require(value['declarations_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] / 'fixtures/declarations.txt')
@@ -250,7 +252,7 @@ def validate_controls(value, milestone):
     if milestone == REPAIR_STUDY:
         require(value['repair_instruction_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                 'fixtures/argument-repair.txt') and value['handout_changes_rejected'] is True and
-                value['argument_type_error_rejected'] is True,
+                value['argument_type_error_rejected'] is True and value['lean_arguments'] == ['-j1'],
                 'qualify the exact repair instruction and protected handout')
     expected = {variant: {'status': 'passed', 'accepted': variant == 'reference'} for variant in VARIANTS}
     require(value['passed'] is True and value['live_model_calls'] == 0 and value['controls'] == expected,
@@ -318,7 +320,7 @@ def controls(binary, output, native, milestone):
             handout.unlink()
             require(local.checking_input_changes(project, protected) == ['.fr/argument-repair.txt'],
                     'reject deleted repair handouts')
-        result.update(argument_type_error_rejected=True,
+        result.update(argument_type_error_rejected=True, lean_arguments=prepared['lean_arguments'],
                       repair_instruction_sha256=common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                       'fixtures/argument-repair.txt'), handout_changes_rejected=True)
         common.save(output / 'controls.json', result)

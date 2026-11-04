@@ -22,6 +22,7 @@ extra theorem names or stronger assumptions.
 The [requirements](requirements.json) own eight fresh slots: GLM Flash and
 non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
 OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
+Both package builds use the explicit Lean compiler argument `-j1` (one worker).
 The order reverses between repetitions. All complete attempts retain the
 150-second deadline and existing CPU, memory, disk and output limits.
 
@@ -71,4 +72,11 @@ model; its connection to Rust execution remains unproved. Publish submitted patc
 and reviewed summaries only. Raw prompts, transcripts, drafts, source archives,
 session exports and account data stay private.
 
-Current state: implementation and preparation checks; no new model calls yet.
+Current state: qualification, with no new model calls yet. The [reviewed probe summary](qualification-probes.json) retains the setup failure and both package checks. A complete local
+scripted session checked and saved the reference, built the package and finished
+native accounting, then exposed a controller input-format bug during patch
+validation. That check also lacked the required memory reserve. Its records stay
+private. A bounded two-run package probe accepted the same proof under both
+compiler settings; the explicit single worker reduced sampled memory by about
+87 MiB. Both comparison settings now pin that worker count. Fresh full client
+qualification must still demonstrate the unchanged memory reserve before calls.

@@ -178,6 +178,7 @@ def child(args):
     if args.study == REPAIR_STUDY:
         prepared = json.loads((args.inputs / 'project.json').read_text())
         require(prepared['task'] == 'page-count' and common.sources(project) == prepared['original'] and
+                prepared['lean_arguments'] == ['-j1'] and
                 prepared['property'] == proof.property_for('page-count',
                 {'object_digest': prepared['property']['task_digest']}), 'admit the unchanged complete page-count task')
     else:

@@ -50,7 +50,7 @@ def run(binary, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run this collection on GitHub')
     output.mkdir(parents=True, exist_ok=False)
     project = output / 'project'
-    prepared = proof.prepare('page-count', binary, project, output / 'inputs')
+    prepared = proof.prepare('page-count', binary, project, output / 'inputs', [])
     baseline = common.sources(project)
     report = {'schema': 'fr-page-count-diagnosis-1', 'passed': False, 'live_model_calls': 0,
               'source_commit': os.environ['GITHUB_SHA'], 'fr_sha256': common.digest(binary),

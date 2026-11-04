@@ -46,7 +46,7 @@ class ArgumentRepairTests(unittest.TestCase):
                          feedback.proof.property_for('page-count', {'object_digest': 'fixed'}))
         with patch.object(feedback.proof, 'prepare', return_value='original') as preparing:
             self.assertEqual(feedback.prepare_inputs('fr', 'project', 'out', STUDY), 'original')
-        preparing.assert_called_once_with('page-count', 'fr', 'project', 'out')
+        preparing.assert_called_once_with('page-count', 'fr', 'project', 'out', ['-j1'])
         for name in ('cases.json', 'fixtures/src/pages.rs', 'controls/page-count.lean'):
             self.assertIn('tests/agent-eval/proof-writing/' + name, frozen['bindings'])
 
@@ -122,7 +122,17 @@ class ArgumentRepairTests(unittest.TestCase):
             self.assertIn('.agents/skills/fr/SKILL.md', protected)
             self.assertIn('.fr/argument-repair.txt', protected)
             self.assertIn('.fr/checks.json', protected)
-            self.assertEqual(local.checking_input_changes(project, protected), [])
+            from agent_eval.proof_delivery import input_changes
+            self.assertEqual(input_changes(project, protected), [])
+            (project / 'change.patch').write_bytes(b'nonempty submitted patch\n')
+            from agent_eval.proof_delivery import submission
+            submitted, error = submission(project, protected)
+            self.assertIsNone(error)
+            self.assertEqual(submitted, project / 'change.patch')
+            handout = project / '.fr/argument-repair.txt'
+            handout.write_text('altered\n')
+            self.assertEqual(input_changes(project, protected), ['.fr/argument-repair.txt'])
+            self.assertIsNone(submission(project, protected)[0])
             self.assertIn('Int.tdiv_nonneg items size', (project / '.fr/admission-bad.lean').read_text())
             self.assertNotIn('Int.tdiv_nonneg items size', (project / '.fr/admission-reference.lean').read_text())
             self.assertEqual((project / '.fr/admission-target.txt').read_text(), 'specs/Fixed.lean::page_bounds')
@@ -137,12 +147,12 @@ class ArgumentRepairTests(unittest.TestCase):
                    'fr_sha256': 'd' * 64, 'core_checker_sha256': 'checker',
                    'repair_instruction_sha256': local.hash_file(plan.ROOT / plan.CASE_DIRECTORIES[STUDY] /
                        'fixtures/argument-repair.txt'), 'handout_changes_rejected': True,
-                   'argument_type_error_rejected': True}
+                   'argument_type_error_rejected': True, 'lean_arguments': ['-j1']}
         with patch.object(local, 'implementation_bindings', return_value={}), \
                 patch.object(public, 'core_digest', return_value='checker'):
             feedback.validate_controls(receipt, STUDY)
             for change in ({'repair_instruction_sha256': '0' * 64}, {'handout_changes_rejected': False},
-                           {'argument_type_error_rejected': False}):
+                           {'argument_type_error_rejected': False}, {'lean_arguments': []}):
                 with self.assertRaises(ValueError):
                     feedback.validate_controls({**receipt, **change}, STUDY)
 

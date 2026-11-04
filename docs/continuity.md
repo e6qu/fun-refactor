@@ -50,6 +50,16 @@ yet. Do not launch the old unrun division-fact plan,
 repeat a closed slot, lengthen the deadline or claim the proof-writing milestone
 complete from these controls. Keep the remaining M3 work in its milestone PR.
 
+The first complete local check used the shared-skill GLM setting with scripted
+replies. Proof checking, saving, package building and accounting passed, but patch
+validation exposed a mismatched protected-input format. Its peak also left less
+than the required 128 MiB client reserve. Both failures stay recorded privately;
+they are not live attempts. The controller format is corrected, and both new
+conditions pin one Lean compiler worker after a bounded same-proof probe reduced
+sampled memory by about 87 MiB. Require fresh complete qualification before calls.
+Release 0.89.1 merged during validation. Main is integrated; collect a fresh
+current-project replay and native tools for that release before freezing inputs.
+
 ## What the merged proof work established
 
 `spec proof-state` reads Lean's actual goals at a draft cursor. A solved branch is

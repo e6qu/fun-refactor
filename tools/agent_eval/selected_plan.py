@@ -128,6 +128,10 @@ def prepare(root, milestone):
     if milestone in {'M3-facts', REPAIR_STUDY}:
         require(tasks['attempts'] == expected_count == 8 and tasks['client_finish_seconds'] == 10,
                 'fact selection needs eight attempts and the original finishing reserve')
+    if milestone == REPAIR_STUDY:
+        checkers = json.loads((root / case_directory / 'checkers.json').read_text())
+        require(tasks['lean_arguments'] == checkers['lean_arguments'] == ['-j1'],
+                'both conditions require one explicit Lean compiler worker')
     require(len(attempts) == expected_count and len({row['id'] for row in attempts}) == expected_count,
             milestone + ' needs all ' + str(expected_count) + ' distinct attempts')
     return {**result, 'sha256': hashlib.sha256(encoded(result)).hexdigest()}

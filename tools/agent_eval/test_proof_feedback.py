@@ -99,7 +99,7 @@ class ProofFeedbackTests(unittest.TestCase):
         self.assertIn('tests/agent-eval/proof-writing/controls/page-count.lean', schedule['bindings'])
         with mock.patch.object(feedback.proof, 'prepare', return_value='canonical') as preparing:
             self.assertEqual(feedback.prepare_inputs('fr', 'project', 'output', 'M3-page-count'), 'canonical')
-        preparing.assert_called_once_with('page-count', 'fr', 'project', 'output')
+        preparing.assert_called_once_with('page-count', 'fr', 'project', 'output', [])
         prompt = local.prompt('page-count', 'fr',
                               {'lean': {'source_root': '/pinned/lean'}, 'lake': {'path': '/pinned/lake'}},
                               'M3-page-count')

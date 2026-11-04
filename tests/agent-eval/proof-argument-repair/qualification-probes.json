@@ -1,0 +1,65 @@
+{
+  "purpose": "Root-cause package compiler memory before any model call; this does not measure the instruction effect or establish complete client admission",
+  "live_model_calls": 0,
+  "qualified_task_run": "41822381659",
+  "lean": "4.28.0",
+  "model_sha256": "657e66dc182819a9739a737a67c5567557536916333aa498a2258b1388052ac3",
+  "property_sha256": "f46906c6a23065e57a58ebb632c235e380567a06116e38d9c0c108a63e02b858",
+  "scripted_workflow": {
+    "status": "failed",
+    "reason": "Patch validation expected file hashes and permissions; setup supplied hashes alone",
+    "required_client_reserve_bytes": 134217728,
+    "rss_ceiling_bytes": 805306368,
+    "sampled_aggregate_rss_bytes": 803586048,
+    "reserve_satisfied": false
+  },
+  "package_probe": {
+    "scope": "Guard, Lake and Lean; native client is absent. Fresh package build directories, uncontrolled operating-system cache. Same complete accepted proof, claim and source. Both retain LEAN_NUM_THREADS=1; only the explicit compiler worker flag differs.",
+    "attempts": [
+      {
+        "compiler_arguments": [],
+        "package_passed": true,
+        "sampled_aggregate_rss_bytes": 425410560,
+        "complete_seconds": 1.805188707999946,
+        "peak_processes": [
+          {
+            "executable": "Python",
+            "rss_bytes": 16580608
+          },
+          {
+            "executable": "lake",
+            "rss_bytes": 60309504
+          },
+          {
+            "executable": "lean",
+            "rss_bytes": 348520448
+          }
+        ]
+      },
+      {
+        "compiler_arguments": [
+          "-j1"
+        ],
+        "package_passed": true,
+        "sampled_aggregate_rss_bytes": 334397440,
+        "complete_seconds": 0.4307623340000646,
+        "peak_processes": [
+          {
+            "executable": "Python",
+            "rss_bytes": 16449536
+          },
+          {
+            "executable": "lake",
+            "rss_bytes": 59785216
+          },
+          {
+            "executable": "lean",
+            "rss_bytes": 258162688
+          }
+        ]
+      }
+    ]
+  },
+  "next_gate": "Fresh complete native qualification with the fixed patch-input format, one explicit compiler worker, the same limits and the full required reserve. No paid slot is admitted by this probe.",
+  "publication": "Reviewed summaries only; raw scripted client and resource traces stay private."
+}
