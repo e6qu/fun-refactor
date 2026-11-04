@@ -133,9 +133,9 @@ def prepare(case, binary, project, output):
                 'declare the complete page-count task imports explicitly')
         module = project / spec
         source = module.read_text()
-        require(source.startswith('namespace FrSpecs\n'), 'keep the generated page-count model unchanged')
-        module.write_text('prelude\n' + ''.join('import ' + name + '\n' for name in entry['lean_imports']) + source)
-        (project / 'specs/FrSpecs.lean').write_text('prelude\nimport FrSpecs.' + plan['kernel']['module'] + '\n')
+        require(source.startswith('prelude\nimport Init.Data.Int.DivMod.Lemmas\nnamespace FrSpecs\n') and
+                (project / 'specs/FrSpecs.lean').read_text().startswith('prelude\n'),
+                'fr must generate the explicit proof imports and package entry without setup rewrites')
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
     require(built['returncode'] == 0, 'the prepared Lean package must build before a live attempt')
     catalog = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')

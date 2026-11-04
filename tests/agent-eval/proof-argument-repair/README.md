@@ -24,11 +24,12 @@ non-Pro Kimi K3, two instruction settings and two repetitions each. Both use
 OpenCode2 2.2.5, low reasoning, the same fr executable and shared skill.
 Fr's direct proof checks and newly generated packages explicitly use one Lean
 compiler worker. Both comparison settings use that same `-j1` setting.
-Both use `prelude` and explicitly import `Init.Data.Int.DivMod.Lemmas` in
-the proof module. The package entry also uses `prelude`. This disables Lean's
+Fr generates `prelude` and explicitly imports `Init.Data.Int.DivMod.Lemmas` in
+the proof module. New package entries also use `prelude`. This disables Lean's
 automatic import of the whole `Init` library while retaining the integer-division
 facts and tactics used by the complete reference proof. Both conditions receive
-this same library context and preserve its imports. Earlier attempts keep their
+this same library context and preserve its imports. Setup checks these generated
+headers; it does not rewrite them. Earlier attempts keep their
 original context and timings; this preparation change is not an agent improvement.
 The order reverses between repetitions. All complete attempts retain the
 150-second deadline and existing CPU, memory, disk and output limits.
