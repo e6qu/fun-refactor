@@ -1,0 +1,55 @@
+{
+  "purpose": "Test whether an instruction to repair typed arguments after a mapped error helps finish the unchanged complete page-count proof",
+  "tasks": {
+    "page-count": {
+      "request": "Write proof steps for the fixed Lean page-count theorem. For example, eleven items at five per page need three pages. Read all claim parts: the invalid-input result, valid-input bounds and this example. The theorem starts without a proof. Keep the Rust source, Lean model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof into the marked region. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved. Read .fr/argument-repair.txt before starting."
+    }
+  },
+  "profiles_file": "../proof-writing/profiles.json",
+  "profiles": [
+    "opencode2-glm-flash",
+    "opencode2-kimi-k3"
+  ],
+  "repetitions": 2,
+  "setups": [
+    "shared-skill",
+    "argument-repair"
+  ],
+  "attempts": 8,
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "client_finish_seconds": 10,
+  "publication": "Patches and reviewed summaries only; native records, prompts, drafts, snapshots and account data stay local",
+  "decisions": {
+    "2,0": "Test this instruction on a different fixed proof before adopting it; two repetitions do not establish a general advantage",
+    "0,2": "Inspect possible harm from the extra instruction before adopting it",
+    "mixed": "Inconclusive; preserve every outcome and inspect the observed error, next action and next check"
+  },
+  "mechanism_prediction": "After the first mapped argument-type error, the next proof-check fixes that mismatch before another theorem search. If no mapped argument-type error occurs, the mechanism is unobserved. First-check timing is observational, not a predicted effect.",
+  "completion_prediction": "Each agent delivers at least one independently accepted complete proof in its two argument-repair attempts. Failure keeps the broader 36-attempt comparison paused; this diagnostic alone cannot close M3.",
+  "cost_comparison": "The same agent, complete claim, fr, shared skill, source, models, checks and limits; only the argument-repair handout differs. Measure complete attempts including failures and accounting. This does not measure fr overhead against ordinary Lean.",
+  "native_admission": {
+    "complete_workflow_required": true,
+    "argument_type_rejection_required": true,
+    "independent_patch_replay_required": true,
+    "session_accounting_required": true,
+    "conditions": [
+      "shared-skill",
+      "argument-repair"
+    ],
+    "client_context_reserve_bytes": 134217728,
+    "control_limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    }
+  }
+}

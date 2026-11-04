@@ -26,12 +26,10 @@ reproductions pass with the pinned official 2.2.5 repair. The runner and native
 admission reject missing or duplicate usage. A new comparison must have fresh
 complete admission; the old receipts cannot authorize more calls.
 
-Continue on `improve/typed-division-guidance` for the next part of M3.
-The immediate task is a repeatable no-model diagnosis of the complete page-count
-claim. The original source, generated model, invalid-input branch, signed-64
-bounds and eleven-at-five example stay fixed. Start from the accepted manual
-reference, change one proof step per control, and check with the current fr build.
-An accepted reference is checked again after the rejection controls.
+PR #599 merged with passing CI. Continue on
+`improve/typed-proof-repair-comparison` for the next part of M3.
+The no-model diagnosis is complete. The original source, generated model,
+invalid-input branch, signed-64 bounds and eleven-at-five example stay fixed.
 
 The new `page-count-diagnosis` job in the algorithm workflow owns this check.
 The [reviewed control report](../tests/agent-eval/proof-page-count/typed-division-review.md)
@@ -43,7 +41,12 @@ control, never a new agent attempt or a replacement for an old failure.
 
 The review fixes a proposed instruction and prediction before another comparison:
 match each required proof argument to a named assumption after reading a type error,
-then check that step before searching again. No live execution plan is frozen. Do not launch the old unrun division-fact plan,
+then check that step before searching again. The
+[fresh eight-slot comparison](../tests/agent-eval/proof-argument-repair/README.md)
+tests only that instruction against the shared skill alone. Qualify the exact
+complete native workflow in all four profile/condition pairs, then freeze its
+inputs and admission receipts before any call. No live execution plan is frozen
+yet. Do not launch the old unrun division-fact plan,
 repeat a closed slot, lengthen the deadline or claim the proof-writing milestone
 complete from these controls. Keep the remaining M3 work in its milestone PR.
 

@@ -11,7 +11,7 @@ from . import selected_local as local
 from . import selected_local_grade as grading
 from . import selected_tasks as common
 from .project_edits_results import encoded_summary, DETAILS
-from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, encoded, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, REPAIR_STUDY, encoded, require
 
 
 def command_tokens(command):
@@ -131,8 +131,10 @@ def export(plan_path, review, destination):
         fields = {'record_sha256', 'contributing_actions', 'failure_summary'}
         if milestone == 'M3-feedback':
             fields.add('feedback_observations')
-        elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+        elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
             fields.add('proof_observations')
+            if milestone == REPAIR_STUDY:
+                fields.add('argument_repair_observations')
         elif milestone in ALGORITHM_TASKS:
             fields.add('algorithm_observations')
         require(set(review[identity]) == fields,
@@ -210,10 +212,10 @@ def export(plan_path, review, destination):
             rows[-1]['feedback_observations'] = observation
             rows[-1]['initial_check'] = {key: record[key] for key in
                 ('initial_check_seconds', 'initial_check_bytes', 'initial_check_sha256', 'initial_feedback_supplied')}
-        elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+        elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
             observation = review[identity]['proof_observations']
             timings = {'first_passing_proof_seconds', 'package_check_seconds', 'patch_delivery_seconds'}
-            if milestone in {'M3-page-count', 'M3-facts'}:
+            if milestone in {'M3-page-count', 'M3-facts', REPAIR_STUDY}:
                 timings.add('first_proof_check_seconds')
             if milestone == 'M3-facts':
                 timings.add('proof_write_seconds')
@@ -227,8 +229,15 @@ def export(plan_path, review, destination):
             require(observation['execution_validity'] in {'valid', 'service-failed', 'collection-failed', 'unknown'},
                     'review construction execution explicitly')
             rows[-1]['proof_observations'] = observation
+            if milestone == REPAIR_STUDY:
+                from .proof_feedback import validate_repair_observations
+                validate_repair_observations(review[identity]['argument_repair_observations'], record['elapsed_seconds'])
+                rows[-1]['argument_repair_observations'] = review[identity]['argument_repair_observations']
         elif milestone in ALGORITHM_TASKS:
             from .algorithm_results import validate_observations
+            rows[-1]['algorithm_observations'] = validate_observations(
+                review[identity]['algorithm_observations'], record['elapsed_seconds'])
+        if milestone in ALGORITHM_TASKS | {REPAIR_STUDY}:
             resources = record['complete_attempt_resources']
             require(resources['limits'] == {'wall_seconds': 150, 'rss_bytes': 805306368,
                     'cpu_seconds': 75, 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
@@ -242,11 +251,10 @@ def export(plan_path, review, destination):
                 rows[-1]['delivery_capture_bound_seconds'] = resources['elapsed_seconds'] if record['patch_delivered'] else None
             rows[-1]['stop_reason'] = resources['stop_reason'] or rows[-1]['stop_reason']
             rows[-1]['sampled_rss_bytes'] = resources['sampled_aggregate_rss_bytes']
-            rows[-1]['algorithm_observations'] = validate_observations(
-                review[identity]['algorithm_observations'], record['elapsed_seconds'])
     comparison = ({'M3-feedback': 'Assisted repair with the same fr, task, draft and instructions; initial feedback visibility differs.',
                    'M3-construction': 'Four fresh construction attempts with fr and corrected shared instructions; no timing baseline.',
                    'M3-facts': 'Eight attempts compare selecting current division facts with receiving four declaration types; no completed proof is supplied.',
+                   REPAIR_STUDY: 'Eight fresh complete page-count attempts; only the post-error argument-repair instruction differs.',
                    'M3-page-count': 'Four page-count attempts with fr and the unchanged M3 claim; no timing baseline.'}[milestone]
                   if milestone in PROOF_DIAGNOSTICS else
                   'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.')
@@ -290,6 +298,9 @@ def export(plan_path, review, destination):
         summary['scope'] = 'Four familiar development-example construction attempts. No causal improvement or full M3 claim.'
     elif milestone == 'M3-page-count':
         summary['scope'] = 'Four attempts on the unchanged M3 page-count claim. No ordinary-tool baseline, causal improvement or full M3 claim.'
+    elif milestone == REPAIR_STUDY:
+        summary['native_admission'] = plan['admission']
+        summary['scope'] = 'Eight fresh full page-count attempts; no ordinary-tool overhead baseline or M3 completion claim.'
     elif milestone == 'M3-facts':
         summary['scope'] = 'Eight development-example attempts on selecting and applying division facts. No ordinary-tool timing baseline or full M3 claim.'
         summary['provider_request_count'] = None
@@ -364,6 +375,9 @@ if __name__ == '__main__':
     exporting_facts = commands.add_parser('export-facts')
     for name in ('plan', 'review', 'output'):
         exporting_facts.add_argument('--' + name, type=Path, required=True)
+    exporting_repair = commands.add_parser('export-argument-repair')
+    for name in ('plan', 'review', 'output'):
+        exporting_repair.add_argument('--' + name, type=Path, required=True)
     exporting_algorithm = commands.add_parser('export-algorithm')
     for name in ('plan', 'review', 'output'):
         exporting_algorithm.add_argument('--' + name, type=Path, required=True)
@@ -377,11 +391,11 @@ if __name__ == '__main__':
         require(json.loads(args.plan.read_text())['schedule']['milestone'] == args.study, 'export the selected algorithm phase')
         summary = export(args.plan.resolve(), json.loads(args.review.read_text()), args.output.resolve())
         print(json.dumps({'study': summary['study'], 'attempts': len(summary['attempts']), 'publication': 'patches and summary only'}))
-    elif args.operation in {'export-m2', 'export-m3', 'export-feedback', 'export-construction', 'export-page-count', 'export-facts'}:
+    elif args.operation in {'export-m2', 'export-m3', 'export-feedback', 'export-construction', 'export-page-count', 'export-facts', 'export-argument-repair'}:
         require(json.loads(args.plan.read_text())['schedule']['milestone'] ==
                 {'export-m2': 'M2', 'export-m3': 'M3', 'export-feedback': 'M3-feedback',
                  'export-construction': 'M3-construction', 'export-page-count': 'M3-page-count',
-                 'export-facts': 'M3-facts'}[args.operation],
+                 'export-facts': 'M3-facts', 'export-argument-repair': REPAIR_STUDY}[args.operation],
                 'export operation differs from the frozen study')
         summary = export(args.plan.resolve(), json.loads(args.review.read_text()), args.output.resolve())
         print(json.dumps({'study': summary['study'], 'attempts': len(summary['attempts']), 'publication': 'patches and summary only'}))

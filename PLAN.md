@@ -146,8 +146,12 @@ replay pass. The runner rejects missing or duplicate response records.
    claim with one changed proof step per control. Distinguish choosing a division
    fact from applying it with the wrong types. These controls make no model calls. The [typed-division review](tests/agent-eval/proof-page-count/typed-division-review.md)
    records the seven rejected steps and fixes the next instruction proposal and
-   prediction. Qualify that proposal and fresh complete native admission before
-   freezing another comparison.
+   prediction. The [next eight-slot comparison](tests/agent-eval/proof-argument-repair/README.md)
+   tests the post-error instruction against the shared skill alone on that same
+   complete claim. Qualify all four client/condition pairs and freeze fresh
+   complete native admission before calls. Record the first typed-argument error,
+   next action and next check separately; no error means the mechanism was
+   unobserved. Neither preparation nor this small comparison closes M3.
 3. Finish M3's existing language examples, numeric proofs and source/model checks
    together in its milestone PR. A familiar GCD delivery cannot replace them.
 

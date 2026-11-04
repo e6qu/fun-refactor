@@ -8,7 +8,7 @@ import sys
 import time
 
 from . import bounded_host as host, client_memory_profile, selected_local as local
-from .selected_plan import ALGORITHM_TASKS, ROOT, require
+from .selected_plan import ADMISSION_STUDIES, ROOT, require
 
 GUARD = Path('/Users/zardoz/.codex/tools/fr-local-guard.py')
 
@@ -64,7 +64,7 @@ def attempt(plan_path, attempt_id):
     plan = json.loads(plan_path.read_text())
     milestone = plan['schedule']['milestone']
     require(plan['live_calls_enabled'] is True, 'live calls require an admitted execution plan')
-    require(milestone in ALGORITHM_TASKS and plan['resource_monitor'] == contract(),
+    require(milestone in ADMISSION_STUDIES and plan['resource_monitor'] == contract(),
             'freeze this guard and independent observer before calls')
     require(plan['implementation'] == local.implementation_bindings(milestone), 'monitor or study code changed')
     require(attempt_id in {row['id'] for row in plan['schedule']['attempts']}, 'unknown frozen attempt')

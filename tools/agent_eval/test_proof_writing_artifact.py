@@ -40,7 +40,7 @@ class ArtifactIdentity(unittest.TestCase):
             binary.write_bytes(b'controlled test executable')
             with mock.patch.object(artifact, 'command', side_effect=command), \
                  mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'example/project'}):
-                return artifact.verify('123', binary)
+                return artifact.verify('123', binary, 'numeric-models')
 
     def test_identical_native_inputs_and_passing_tests_allow_explicit_reuse(self):
         result = self.run_verification(changed=False, conclusions=['success'])

@@ -6,18 +6,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DIRECTORY = Path('tests/agent-eval/selected-agents')
 INPUTS = ('clients.json', 'profiles.json', 'tasks.json')
+REPAIR_STUDY = 'M3-argument-repair'
 CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits'),
                     'M3': Path('tests/agent-eval/proof-writing'),
                     'M3-feedback': Path('tests/agent-eval/proof-feedback'),
                     'M3-construction': Path('tests/agent-eval/proof-construction'),
                     'M3-page-count': Path('tests/agent-eval/proof-page-count'),
                     'M3-facts': Path('tests/agent-eval/proof-division-facts')}
+CASE_DIRECTORIES[REPAIR_STUDY] = Path('tests/agent-eval/proof-argument-repair')
 ALGORITHM_STUDIES = frozenset({'M3-algorithm-facts', 'M3-algorithm-presentation'})
 DELIVERY_STUDY = 'M3-delivery'
 ALGORITHM_TASKS = ALGORITHM_STUDIES | {DELIVERY_STUDY}
 CASE_DIRECTORIES.update({name: Path('tests/agent-eval/proof-algorithms') for name in ALGORITHM_STUDIES})
 CASE_DIRECTORIES[DELIVERY_STUDY] = Path('tests/agent-eval/proof-delivery')
-PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts'})
+PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY})
+ADMISSION_STUDIES = ALGORITHM_TASKS | {REPAIR_STUDY}
 PROOF_STUDIES = PROOF_DIAGNOSTICS | ALGORITHM_TASKS | {'M3'}
 PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.json',
                  'M3': CASE_DIRECTORIES['M3'] / 'profiles.json',
@@ -26,7 +29,8 @@ PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.
                  'M3-page-count': CASE_DIRECTORIES['M3'] / 'profiles.json',
                  'M3-facts': CASE_DIRECTORIES['M3'] / 'profiles.json'}
 PROFILE_PATHS.update({name: CASE_DIRECTORIES['M3'] / 'profiles.json' for name in ALGORITHM_TASKS})
-TASK_PATHS = {name: path / ('requirements.json' if name in {'M3-construction', 'M3-page-count', 'M3-facts'} else 'tasks.json')
+PROFILE_PATHS[REPAIR_STUDY] = CASE_DIRECTORIES['M3'] / 'profiles.json'
+TASK_PATHS = {name: path / ('requirements.json' if name in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY} else 'tasks.json')
               for name, path in CASE_DIRECTORIES.items()}
 TASK_PATHS.update({name: CASE_DIRECTORIES[name] / 'requirements.json' for name in ALGORITHM_TASKS})
 
@@ -55,7 +59,7 @@ def prepare(root, milestone):
     paths['tasks.json'] = TASK_PATHS[milestone]
     documents = {name: json.loads((root / path).read_text()) for name, path in paths.items()}
     profiles, tasks = documents['profiles.json'], documents['tasks.json']
-    if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+    if milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
         require(tasks['profiles_file'] == '../proof-writing/profiles.json' and
                 tasks['profiles'] == ['opencode2-glm-flash', 'opencode2-kimi-k3'], 'construction profiles changed')
         profiles = {name: profiles[name] for name in tasks['profiles']}
@@ -66,9 +70,10 @@ def prepare(root, milestone):
                       'M2': {'rust-parameter', 'typescript-alias', 'regex-escape-len', 'python-invoice'},
                       'M3': {'access-rust', 'page-count', 'fits-window'},
                       'M3-feedback': {'division-repair'}, 'M3-construction': {'scaled-total'},
-                      'M3-page-count': {'page-count'}, 'M3-facts': {'division-facts'}}[milestone]
+                      'M3-page-count': {'page-count'}, 'M3-facts': {'division-facts'}, REPAIR_STUDY: {'page-count'}}[milestone]
     require(set(tasks['tasks']) == expected_tasks, milestone + ' requires its fixed tasks')
     expected_setups = (['self-check', 'supplied-feedback'] if milestone == 'M3-feedback' else
+                       ['shared-skill', 'argument-repair'] if milestone == REPAIR_STUDY else
                        ['select-facts', 'supplied-declarations'] if milestone == 'M3-facts' else
                        ['fr'] if milestone in {'M3-construction', 'M3-page-count'} else ['files', 'fr'])
     require(tasks['repetitions'] == 2 and tasks['setups'] == expected_setups,
@@ -84,7 +89,7 @@ def prepare(root, milestone):
             provider, model = ({'opencode2-glm-flash': ('zai-coding-plan', 'glm-5.3-flash'),
                                 'opencode2-kimi-k3': ('kimi-code-plan-global', 'k3')})[name]
             variant = {'M1': 'high', 'M2': 'high', 'M3': 'low', 'M3-feedback': 'low',
-                       'M3-construction': 'low', 'M3-page-count': 'low', 'M3-facts': 'low'}[milestone]
+                       'M3-construction': 'low', 'M3-page-count': 'low', 'M3-facts': 'low', REPAIR_STUDY: 'low'}[milestone]
             require(profile == {'client': 'opencode2', 'model': {'providerID': provider, 'id': model, 'variant': variant}},
                     'OpenCode2 provider, model and reasoning must match the selected profile')
     attempts = []
@@ -106,9 +111,11 @@ def prepare(root, milestone):
             bound_paths += [path.relative_to(root) for path in (root / case_directory / 'controls').glob('*.lean')]
         bound_paths += [path.relative_to(root) for path in sorted((root / case_directory / 'fixtures').rglob('*'))
                         if path.is_file()]
-    if milestone == 'M3-page-count':
+    if milestone in {'M3-page-count', REPAIR_STUDY}:
         bound_paths += [CASE_DIRECTORIES['M3'] / name for name in
                         ('cases.json', 'fixtures/src/pages.rs', 'controls/page-count.lean')]
+    if milestone == REPAIR_STUDY:
+        bound_paths += [case_directory / 'fixtures/argument-repair.txt']
     bindings = {str(path): hashlib.sha256((root / path).read_bytes()).hexdigest() for path in bound_paths}
     result = {'milestone': milestone, 'live_calls_enabled': False, 'profiles': profiles,
               'clients': documents['clients.json'], 'requirements': tasks,
@@ -118,7 +125,7 @@ def prepare(root, milestone):
     if milestone in {'M3-construction', 'M3-page-count'}:
         require(tasks['attempts'] == expected_count == 4 and tasks['client_finish_seconds'] == 10,
                 'construction needs exactly four attempts and the original finishing reserve')
-    if milestone == 'M3-facts':
+    if milestone in {'M3-facts', REPAIR_STUDY}:
         require(tasks['attempts'] == expected_count == 8 and tasks['client_finish_seconds'] == 10,
                 'fact selection needs eight attempts and the original finishing reserve')
     require(len(attempts) == expected_count and len({row['id'] for row in attempts}) == expected_count,

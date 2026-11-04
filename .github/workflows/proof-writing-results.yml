@@ -90,7 +90,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          python3 -B -m agent_eval.proof_writing_artifact --build-kind numeric-models --run "$M3_TOOL_RUN"
           --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-patch-build.json"
       - name: Check the rebuilt original-source executable
         if: inputs.policy == 'fresh'
