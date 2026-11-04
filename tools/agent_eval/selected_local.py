@@ -240,8 +240,6 @@ def freeze_binaries(binaries, output, clients):
     companions = {}
     if 'codex' in clients:
         companions['codex-code-mode-host'] = binaries['codex'].resolve().parent / 'codex-code-mode-host'
-    if 'opencode2' in clients:
-        companions['opencode'] = binaries['opencode2'].resolve().parent / 'opencode'
     directory = output / 'bin'
     directory.mkdir(parents=True, exist_ok=False)
     captured = {}

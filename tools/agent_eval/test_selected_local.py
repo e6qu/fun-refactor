@@ -42,8 +42,7 @@ class SelectedLocalTests(unittest.TestCase):
             assets = {
                 'codex': '#!/bin/sh\nprintf "codex-cli 0.164.0\\n"\n',
                 'codex-code-mode-host': '#!/bin/sh\nexit 0\n',
-                'opencode2': '#!/bin/sh\nexec "$(dirname "$0")/opencode" "$@"\n',
-                'opencode': '#!/bin/sh\nprintf "opencode v2.0.32\\n"\n',
+                'opencode2': '#!/bin/sh\nprintf "opencode v2.2.5\\n"\n',
                 'fr': '#!/bin/sh\nprintf "fr fixture\\n"\n',
             }
             for name, content in assets.items():
@@ -52,18 +51,19 @@ class SelectedLocalTests(unittest.TestCase):
                 path.chmod(0o755)
             paths, components = local.freeze_binaries(
                 {name: installed / name for name in ('fr', 'codex', 'opencode2')}, root / 'study', {'codex', 'opencode2'})
+            self.assertEqual(set(components), {'codex-code-mode-host'})
             shutil.rmtree(installed)
             for name, entry in {**paths, **components}.items():
                 self.assertEqual(Path(entry['path']).read_text(), assets[name])
                 self.assertEqual(local.hash_file(Path(entry['path'])), entry['sha256'])
                 self.assertTrue(Path(entry['path']).is_relative_to(root / 'study'))
             result = subprocess.run([paths['opencode2']['path'], '--version'], capture_output=True, check=True)
-            self.assertEqual(result.stdout, b'opencode v2.0.32\n')
+            self.assertEqual(result.stdout, b'opencode v2.2.5\n')
 
     def test_corrupted_frozen_executable_copy_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for name in ('fr', 'codex', 'codex-code-mode-host', 'opencode2', 'opencode'):
+            for name in ('fr', 'codex', 'codex-code-mode-host', 'opencode2'):
                 (root / name).write_bytes(name.encode())
             copyfile = shutil.copyfile
             def corrupt(source, target):
