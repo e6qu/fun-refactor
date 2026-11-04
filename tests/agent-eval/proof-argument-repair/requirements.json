@@ -56,6 +56,8 @@
     "-j1"
   ],
   "client_environment": {
-    "BUN_OPTIONS": "--smol"
+    "BUN_OPTIONS": "--smol",
+    "BUN_JSC_forceRAMSize": "268435456",
+    "BUN_JSC_useJIT": "0"
   }
 }

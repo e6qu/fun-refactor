@@ -60,6 +60,57 @@
       }
     ]
   },
-  "next_gate": "Fresh complete native qualification with the fixed patch-input format, one explicit compiler worker, the same limits and the full required reserve. No paid slot is admitted by this probe.",
-  "publication": "Reviewed summaries only; raw scripted client and resource traces stay private."
+  "next_gate": "Fresh complete native qualification with one Lean compiler worker and the explicitly declared smaller-heap, 256 MiB GC sizing and interpreter settings, unchanged hard limits, and the full required reserve. Earlier client evidence rejected smol alone. No paid slots are admitted by component probes or a previous client runtime.",
+  "publication": "Reviewed summaries only; raw scripted client and resource traces stay private.",
+  "one_worker_complete_workflow": {
+    "qualified_task_run": "41841646349",
+    "live_model_calls": 0,
+    "complete_workflow": true,
+    "session_accounting": true,
+    "independent_patch_replay": true,
+    "receipt_correction": "The patch replay completed before child.json was written. Its independent_patch_replay flag was incorrectly false; the controller now reports it for both applicable studies.",
+    "reserve_satisfied": false,
+    "sampled_aggregate_rss_bytes": 787709952,
+    "complete_seconds": 7.685385792000488,
+    "resource_record_sha256": "7b7d29c22d1ec3753530ddb0ee32be8b389d7c0d8d2dc37224da4c188ea10e72",
+    "peak_processes": [
+      {
+        "executable": "bash",
+        "rss_bytes": 2408448
+      },
+      {
+        "executable": "fr",
+        "rss_bytes": 16908288
+      },
+      {
+        "executable": "lake",
+        "rss_bytes": 58327040
+      },
+      {
+        "executable": "lean",
+        "rss_bytes": 358449152
+      },
+      {
+        "executable": "(ps)",
+        "rss_bytes": 2146304
+      },
+      {
+        "executable": "Python",
+        "rss_bytes": 18677760
+      },
+      {
+        "executable": "Python",
+        "rss_bytes": 53477376
+      },
+      {
+        "executable": "opencode2",
+        "rss_bytes": 75972608
+      },
+      {
+        "executable": "opencode2",
+        "rss_bytes": 201342976
+      }
+    ],
+    "interpretation": "The complete workflow still lacks the required 128 MiB reserve. The lower isolated-package sample did not establish that the complete native workflow fits. Sampling can miss brief peaks; no general performance improvement follows."
+  }
 }
