@@ -1034,6 +1034,7 @@ jobs:
           python3 -B tools/test-python-text-flow.py
           python3 -B tools/test-retain-language-behavior.py
       - name: Retain formatting differences
+        id: language-format
         run: |
           cargo fmt --all
           git diff -- '*.rs' > "$RUNNER_TEMP/language-format.patch"
@@ -1068,7 +1069,7 @@ jobs:
           python3 -B tools/python-text-flow.py collect --binary target/debug/fr
           --output "$RUNNER_TEMP/language-behavior/text"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.language-format.outcome == 'success'
         with:
           name: language-behavior
           path: |
