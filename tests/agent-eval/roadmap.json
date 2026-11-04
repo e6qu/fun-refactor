@@ -78,20 +78,20 @@
       "sha256": "0c788fd3e8372885df75f83268290203bbba585b6136d39dfd434b60a1be8eea"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-03-release-088-structural-inputs-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-04-one-worker-proof-checks-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-03-release-088-structural-inputs-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-04-one-worker-proof-checks-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "f460478d6fea9b2ee937e821ec5c6a7d332304b700f2de4e7141e1c12f68ae9c"
+      "sha256": "e85afc89ef959fcb39f671d6bf043db3e759cf3ab78f2b0af5c5bc5eddd0d058"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-03-proof-delivery-remaining-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-04-one-worker-proof-checks-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-03-proof-delivery-remaining-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-04-one-worker-proof-checks-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "87d1587391ce9dffccca98beb10a0dfc2d37d81af260ca44f1d8a442b5a11adf"
+      "sha256": "c4e56fade9e97393fdb36585dd217978bc43af871922ce8c9890b36bfa12a72b"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
