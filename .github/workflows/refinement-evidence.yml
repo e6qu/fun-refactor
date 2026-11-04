@@ -198,7 +198,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CARGO_HOME: ${{ runner.temp }}/project-change-cargo
+      CARGO_HOME: ${{ github.workspace }}/target/project-change-cargo
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
