@@ -5649,7 +5649,7 @@ mod tests {
             super::insert_model_import(&updated, "Numeric").unwrap(),
             updated
         );
-        assert!(super::insert_model_import("namespace", "Numeric").is_err());
+        assert!(super::insert_model_import("def broken := (", "Numeric").is_err());
     }
 
     #[test]
