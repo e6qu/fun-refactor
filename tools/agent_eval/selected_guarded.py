@@ -8,7 +8,7 @@ import sys
 import time
 
 from . import bounded_host as host, client_memory_profile, selected_local as local
-from .selected_plan import ALGORITHM_STUDIES, ROOT, require
+from .selected_plan import ALGORITHM_TASKS, ROOT, require
 
 GUARD = Path('/Users/zardoz/.codex/tools/fr-local-guard.py')
 
@@ -63,13 +63,14 @@ def attempt(plan_path, attempt_id):
     require(sys.platform == 'darwin', 'the workstation guard is local to macOS')
     plan = json.loads(plan_path.read_text())
     milestone = plan['schedule']['milestone']
-    require(milestone in ALGORITHM_STUDIES and plan['resource_monitor'] == contract(),
+    require(plan['live_calls_enabled'] is True, 'live calls require an admitted execution plan')
+    require(milestone in ALGORITHM_TASKS and plan['resource_monitor'] == contract(),
             'freeze this guard and independent observer before calls')
     require(plan['implementation'] == local.implementation_bindings(milestone), 'monitor or study code changed')
     require(attempt_id in {row['id'] for row in plan['schedule']['attempts']}, 'unknown frozen attempt')
     monitor = plan_path.parent / 'attempt-monitors' / attempt_id
     monitor.mkdir(parents=True, exist_ok=False)
-    project_parent = Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + plan['sha256'][:12]) / attempt_id
+    project_parent = local.project_parent(plan_path, milestone, plan['sha256'], attempt_id)
     project_parent.mkdir(parents=True, exist_ok=False)
     command = ['python3', str(GUARD), sys.executable, '-B', '-m', 'agent_eval.selected_local',
                'attempt', '--plan', str(plan_path), '--id', attempt_id]

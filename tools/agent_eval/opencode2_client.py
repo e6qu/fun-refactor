@@ -47,6 +47,7 @@ def scripted_configuration(profile, endpoint):
 class OpenCode2ResponseError(ValueError):
     def __init__(self, method, path, status, expected, body):
         self.status = status
+        self.body = body
         super().__init__(f'{method} {path}: expected {expected}, got {status}: {body[:512]!r}')
 
 
@@ -123,10 +124,17 @@ class OpenCode2Server:
         while True:
             remaining = deadline - time.monotonic()
             require(remaining > 0, 'OpenCode2 agent inventory did not become ready within its deadline')
-            catalog = self.request('GET', '/api/agent', None, 200, remaining)
             polls += 1
-            if any(row['id'] == identity for row in catalog['data']):
-                return {'catalog': catalog, 'polls': polls}
+            try:
+                catalog = self.request('GET', '/api/agent', None, 200, remaining)
+            except OpenCode2ResponseError as error:
+                if error.status != 503 or json.loads(error.body) != {
+                    '_tag': 'ServiceUnavailableError', 'service': 'plugin',
+                    'message': 'Location plugins did not finish activating'}:
+                    raise
+            else:
+                if any(row['id'] == identity for row in catalog['data']):
+                    return {'catalog': catalog, 'polls': polls}
             time.sleep(0.05)
 
     def wait_skill(self, name, timeout_seconds):

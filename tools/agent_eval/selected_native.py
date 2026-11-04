@@ -75,7 +75,8 @@ def exchange(image, profile, setup, output):
             process, stdout, stderr = scope.invoke(DOCKER + arguments, b'', output, timeout, 2 * 1024**2)
             report.setdefault('commands', []).append({'arguments': arguments, 'process': process,
                 'stdout': stdout.decode(errors='replace'), 'stderr': stderr.decode(errors='replace')})
-            require(process['exit_code'] == 0 and not process['stop_reason'], 'native container command failed: ' + str(arguments))
+            require(process['exit_code'] == 0 and not process['stop_reason'],
+                    'native container command failed: ' + str(arguments) + '\n' + stderr.decode(errors='replace')[-4096:])
             return stdout
 
         try:

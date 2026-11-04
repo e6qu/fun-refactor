@@ -1,6 +1,6 @@
 # Can a graph help smaller agents finish proofs?
 
-Reviewed on 2026-11-02. The [Euclid study](../tests/agent-eval/proof-algorithms/README.md)
+Reviewed on 2026-11-03. The [Euclid study](../tests/agent-eval/proof-algorithms/README.md)
 finished all twenty sessions once. Eight delivered patches passed independent checks;
 twelve complete attempts timed out. These prove the fixed executable Lean algorithm,
 including termination and correctness, rather than only a supporting arithmetic lemma.
@@ -91,10 +91,13 @@ Keep guides small and available at the relevant goal. Do not load every guide or
 
 A workflow graph could track delivery separately from mathematical reasoning.
 The [supplied-proof delivery diagnostic](../tests/agent-eval/proof-delivery/README.md)
-now defines that narrower comparison. Both setups get correct drafts; one adds a
-short finish card. It uses the existing 150-second complete limit and keeps live
-calls disabled pending full native admission. Scripted controls cannot establish
-an agent success gain or a benefit from graph presentation.
+has finished all twelve fixed slots after native admission. Both setups got correct
+drafts; one added a short finish card. Independent checking accepted eleven patches,
+but six OpenCode attempts lack complete streamed usage and one Kimi attempt timed
+out without a patch. Only five meet all completion requirements. Luna tied across
+setups; the GLM/Kimi comparison is unusable. The
+[review](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
+preserves these limits. No graph benefit, card advantage or transfer candidate follows.
 The earlier repair diagnostic recorded a GLM proof passing at 66 seconds and its package check at 86 seconds.
 Repeated work then consumed the remaining time. A clear “proof accepted, now deliver” phase is worth testing.
 Those older instructions had a known defect, so that record does not establish that the current skill still fails.

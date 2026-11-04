@@ -27,6 +27,7 @@ GROUPS = {
     'package-flow': ['package-flow'],
     'python-repositories': ['python-repositories'],
     'compiler-profile': ['compiler-profile'],
+    'index-resolution': ['index-resolution'],
     'sdk-contexts': ['agent-context-workspace', 'agent-guide-context', 'agent-runtime-context',
                      'native-intent-context', 'intent-action-context'],
     'all': ['model-comparisons', 'checked-outcomes', 'completion-workflows', 'structural-change'],
@@ -49,6 +50,7 @@ SCRIPTS = {
     'package-flow': 'package-flow-acceptance',
     'python-repositories': 'python-repository-acceptance',
     'compiler-profile': 'compiler-profile',
+    'index-resolution': 'index-resolution-acceptance',
 }
 ACTIVE_REFERENCES = {
     'checked-outcomes': 'tests/agent_acceptance.rs',
@@ -127,6 +129,8 @@ def main():
             artifact, producer = 'roadmap-evidence', 'repositories'
         elif collection == 'compiler-profile':
             artifact, producer = 'compiler-profile', 'compiler-profile'
+        elif collection == 'index-resolution':
+            artifact, producer = 'index-resolution-evidence', 'Revalidate exploration pages and index resolution'
         else:
             artifact, producer = 'refinement-evidence', 'refresh'
         data, identity = scalar.collect(runs[collection], artifact, producer,
@@ -163,7 +167,7 @@ def main():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
         script = SCRIPTS.get(group, group)
-        flag = '--verify' if group == 'index-consumers' else '--audit'
+        flag = '--verify' if group in {'index-consumers', 'index-resolution'} else '--audit'
         argument = directory if group in DIRECTORY_REPORTS | {'python-repositories'} else report
         subprocess.run(['python3', '-B', f'tools/{script}.py', flag, str(argument)],
                        cwd=ROOT, check=True, timeout=60, stdout=subprocess.DEVNULL)
@@ -179,14 +183,15 @@ def main():
                      audit='python3 -B tools/refinement-acceptance.py --audit ' + str(directory.relative_to(ROOT)))
         catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     for group, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks'),
-                              ('compiler-profile', 'compiler-profile')):
+                              ('compiler-profile', 'compiler-profile'), ('index-resolution', 'index-resolution')):
         if group in receipts:
             entry, = [row for row in catalog['evidence'] if row['id'] == identifier]
             directory = f'tests/agent-eval/results/{args.prefix}-{group}'
+            flag = '--verify' if group == 'index-resolution' else '--audit'
             entry.update(path=directory + '/result.json', sha256=receipts[group]['sha256'],
-                         audit='python3 -B tools/' + SCRIPTS[group] + '.py --audit ' +
+                         audit='python3 -B tools/' + SCRIPTS[group] + '.py ' + flag + ' ' +
                          (directory if group == 'python-repositories' else directory + '/result.json'))
-    if receipts.keys() & {'package-flow', 'python-repositories', 'compiler-profile'}:
+    if receipts.keys() & {'package-flow', 'python-repositories', 'compiler-profile', 'index-resolution'}:
         catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     if 'compiler-profile' in receipts:
         receipt = receipts['compiler-profile']

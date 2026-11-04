@@ -279,7 +279,7 @@ class TeamSolveTests(unittest.TestCase):
         original = Path(self.settings['project'])
         team.copy_source(self.run / 'seed', original);team.initialize(original)
         install = self.root / 'installed';install.mkdir()
-        for name, reply in {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32',
+        for name, reply in {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.2.5',
                             'fr': 'fr fixture', 'codex-code-mode-host': 'companion', 'opencode': 'companion'}.items():
             path = install / name;path.write_text('#!/bin/sh\nprintf "' + reply + '\\n"\n');path.chmod(0o755)
         value = copy.deepcopy(self.settings)
@@ -289,7 +289,7 @@ class TeamSolveTests(unittest.TestCase):
             team.prepare(value, self.plan['profiles'], prepared)
         plan = team.load(prepared / 'plan.json')
         team.verified_plan(prepared, plan['sha256'])
-        self.assertEqual(plan['versions']['opencode2'], 'opencode v2.0.32')
+        self.assertEqual(plan['versions']['opencode2'], 'opencode v2.2.5')
         self.assertEqual(plan['source'], self.plan['source'])
         self.assertEqual(set(plan['companions']), {'codex-code-mode-host', 'opencode'})
         self.assertEqual(team.sources(original), self.plan['source'])

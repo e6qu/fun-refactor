@@ -16,7 +16,7 @@ from .bounded_host import run as bounded_run
 from .bounded_host import elapsed_time
 from .selected_cli import configuration, invocation, export_session, verify_export
 from . import selected_tasks as tasks
-from .selected_plan import ALGORITHM_STUDIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import ALGORITHM_STUDIES, ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
@@ -59,7 +59,8 @@ def implementation_bindings(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += [ROOT / '.github/workflows/proof-feedback.yml']
             paths += [ROOT / '.github/workflows/refinement-evidence.yml']
-        elif milestone in ALGORITHM_STUDIES:
+        elif milestone in ALGORITHM_TASKS:
+            directory = ROOT / CASE_DIRECTORIES['M3-algorithm-facts']
             paths += [ROOT / PROFILE_PATHS[milestone], ROOT / '.github/workflows/proof-algorithms.yml',
                       ROOT / '.github/workflows/grade-algorithms.yml',
                       ROOT / '.github/workflows/refinement-evidence.yml',
@@ -98,7 +99,12 @@ def checking_input_changes(project, expected):
 
 
 def prompt(task, setup, checkers, milestone):
-    if milestone in ALGORITHM_STUDIES:
+    if milestone == DELIVERY_STUDY:
+        from . import proof_delivery
+        require(task == 'euclid', 'delivery uses the fixed executable GCD task')
+        request = proof_delivery.request(setup, prepare(ROOT, milestone)['requirements'])
+        checks = [shlex.join([checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'])]
+    elif milestone in ALGORITHM_STUDIES:
         from . import algorithm_guidance
         require(task == 'euclid' and setup in prepare(ROOT, milestone)['requirements']['setups'],
                 'choose the algorithm task and condition explicitly')
@@ -170,10 +176,13 @@ def prompt(task, setup, checkers, milestone):
         + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md. '
            'Use fr for a contributing discovery, preview, edit or check step in the delivered change. '
            'Ordinary tools remain available for the rest.\n'
-           if setup == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES else 'Fr is not provided in this setup. Use the ordinary tools.\n')
+           if setup == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS else 'Fr is not provided in this setup. Use the ordinary tools.\n')
         + 'Available project checking commands:\n' + '\n'.join(checks) + '\n'
-        'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. '
-        'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
+        + ('Finish by exporting BOTH returned edit IDs in save order with fr history patch '
+           '<FIRST_ID> <SECOND_ID> --output change.patch, then report the passed checks. '
+           if milestone == DELIVERY_STUDY else
+           'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. ')
+        + 'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
 
 
 def execution_prompt(frozen_prompt, started_at, wall_seconds, finish_seconds):
@@ -258,7 +267,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
     if milestone in PROOF_STUDIES:
         expected_runtime |= {'fr_build', 'controls'}
-    if milestone in ALGORITHM_STUDIES:
+    if milestone in ALGORITHM_TASKS:
         expected_runtime.add('admission')
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     clients = {profile['client'] for profile in proposed['profiles'].values()}
@@ -269,7 +278,9 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require(result.returncode == 0, 'selected CLI version probe failed')
         versions[name] = result.stdout.strip()
     source_version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
-    expected_versions = {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32', 'fr': 'fr ' + source_version}
+    expected_versions = {'codex': 'codex-cli ' + proposed['clients']['codex']['version'],
+                         'opencode2': 'opencode v' + proposed['clients']['opencode2']['version'],
+                         'fr': 'fr ' + source_version}
     require(versions == {name: expected_versions[name] for name in paths},
             'installed CLI releases differ from the reviewed local setup: ' + json.dumps(versions))
     checker_paths = {'python': runtime['python'],
@@ -326,6 +337,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
         seeds[task] = {'archive': str((directory / 'original.tar.gz').resolve()), 'receipt': receipt}
     packets = {row['id']: prompt(row['task'], row['setup'], checkers, milestone) for row in proposed['attempts']}
     value = {'source': identity(), 'schedule': proposed, 'binaries': paths, 'components': components, 'versions': versions,
+             'live_calls_enabled': True,
              'seeds': seeds, 'prompts': packets, 'implementation': implementation_bindings(milestone),
              'checkers': checkers, 'checker_versions': checker_versions, 'python_packages': python_packages,
              'limits': LIMITS, 'client_finish_seconds': CLIENT_FINISH_SECONDS,
@@ -367,6 +379,8 @@ def freeze(inputs, binaries, runtime, output, milestone):
     elif milestone in PROOF_STUDIES:
         if milestone == 'M3':
             from .proof_writing_tasks import validate_controls
+        elif milestone == DELIVERY_STUDY:
+            from .proof_delivery import validate_controls
         elif milestone in ALGORITHM_STUDIES:
             from .proof_algorithms import validate_controls
         else:
@@ -385,7 +399,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
         for task in seeds:
             prepared = json.loads((inputs / task / 'project.json').read_text())
             require(prepared['original'] == seeds[task]['receipt']['original'], 'fixed proof input differs from its seed')
-            if milestone in ALGORITHM_STUDIES:
+            if milestone in ALGORITHM_TASKS:
                 value['formal_inputs'][task] = {name: prepared[name] for name in
                     ('spec', 'obligations', 'protected_source', 'proved_program', 'source_model_bridge')}
                 continue
@@ -394,12 +408,19 @@ def freeze(inputs, binaries, runtime, output, milestone):
             value['formal_inputs'][task].update(
                 model_sha256=hashlib.sha256(prepared['model'].encode()).hexdigest(),
                 property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
-    if milestone in ALGORITHM_STUDIES:
+    if milestone in ALGORITHM_TASKS:
         from .selected_guarded import contract
-        from .algorithm_admission import validate_receipts
+        from .algorithm_admission import server_packages, validate_receipts
         value['resource_monitor'] = contract()
         value['admission'] = validate_receipts(json.loads(runtime['admission'].read_text()), paths,
-            seeds['euclid']['receipt']['archive_sha256'], value['controls']['run'])
+            seeds['euclid']['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
+        if milestone == DELIVERY_STUDY:
+            packages = subprocess.run([checkers['python']['path'], '-c',
+                'import importlib.metadata,json; print(json.dumps({"websockets":importlib.metadata.version("websockets")}))'],
+                capture_output=True, text=True, timeout=10)
+            require(packages.returncode == 0 and json.loads(packages.stdout) == server_packages(),
+                    'the selected Python must retain its admitted scripted server packages')
+            value['python_packages'] = json.loads(packages.stdout)
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value
@@ -431,8 +452,8 @@ def record_opencode_accounting(report, binary, session, project, env, output, pr
     observed = verify_export(saved, profile, session, events)
     tasks.save(output / 'session-export.json', saved)
     report['usage']['exported'] = observed
-    report['session_accounting'] = {'status': 'completed', 'exported': True}
-    if observed['outcome'] != 'succeeded':
+    report['session_accounting'] = {'status': 'completed' if observed['usage_complete'] else 'incomplete', 'exported': True}
+    if observed['outcome'] != 'succeeded' or not observed['usage_complete']:
         report['status'] = 'failed'
 
 
@@ -469,6 +490,12 @@ def retain_result(project, output, report):
             report['status'] = 'failed'
 
 
+def project_parent(plan_path, milestone, plan_sha256, attempt_id):
+    if milestone == DELIVERY_STUDY:
+        return plan_path.parent / 'projects' / attempt_id
+    return Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + plan_sha256[:12]) / attempt_id
+
+
 def attempt(plan_path, attempt_id):
     entered, entered_at, awake_started = elapsed_time(), time.time(), time.monotonic()
     require(sys.platform == 'darwin', 'run the requested local CLI attempts on macOS')
@@ -476,6 +503,7 @@ def attempt(plan_path, attempt_id):
     milestone = value['schedule']['milestone']
     unsigned = {key: item for key, item in value.items() if key != 'sha256'}
     require(hashlib.sha256(encoded(unsigned)).hexdigest() == value['sha256'], 'local execution plan changed')
+    require(value['live_calls_enabled'] is True, 'live calls require an admitted execution plan')
     checkout = identity()
     require(value['source']['native_inputs'] == checkout['native_inputs'] and value['schedule'] == prepare(ROOT, milestone),
             'committed native source or study requirements changed')
@@ -489,7 +517,7 @@ def attempt(plan_path, attempt_id):
     rows = [row for row in value['schedule']['attempts'] if row['id'] == attempt_id]
     require(len(rows) == 1, 'attempt is not in the frozen milestone schedule')
     row = rows[0]
-    with_fr = row['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES
+    with_fr = row['setup'] == 'fr' or milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS
     output = plan_path.parent / 'attempts' / attempt_id
     output.mkdir(parents=True, exist_ok=False)
     report = {'id': attempt_id, 'status': 'started', 'plan_sha256': value['sha256'], 'profile': row['profile'],
@@ -510,8 +538,9 @@ def attempt(plan_path, attempt_id):
     started = entered
     project = None
     checking_inputs = {}
+    delivery_inputs = {}
     try:
-        project = Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + value['sha256'][:12]) / attempt_id / 'project'
+        project = project_parent(plan_path, milestone, value['sha256'], attempt_id) / 'project'
         seed = value['seeds'][row['task']]
         unpack(Path(seed['archive']), seed['receipt'], project)
         tasks.comparison_grade.BASE.initialize(project)
@@ -520,7 +549,8 @@ def attempt(plan_path, attempt_id):
         binary_directory.mkdir()
         if with_fr:
             (binary_directory / 'fr').symlink_to(value['binaries']['fr']['path'])
-            shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
+            if milestone != DELIVERY_STUDY:
+                shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
             if milestone in ALGORITHM_STUDIES:
                 checking_inputs.update({str(path.relative_to(project)): hash_file(path)
                     for path in (project / '.agents/skills/fr').rglob('*') if path.is_file()})
@@ -554,6 +584,10 @@ def attempt(plan_path, attempt_id):
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
             checking_inputs['.fr/checks.json'] = hash_file(directory / 'checks.json')
             report['provided_checking_inputs'] = checking_inputs
+        elif milestone == DELIVERY_STUDY:
+            from .proof_delivery import install
+            delivery_inputs = install(project, row['setup'], Path(checkers['lake']['path']))
+            report['provided_delivery_inputs'] = delivery_inputs
         elif milestone in PROOF_STUDIES:
             directory = project / '.fr'
             directory.mkdir(exist_ok=True)
@@ -634,11 +668,14 @@ def attempt(plan_path, attempt_id):
     finally:
         if project is not None and project.is_dir():
             report['checking_input_changes'] = checking_input_changes(project, checking_inputs)
+            if milestone == DELIVERY_STUDY:
+                from .proof_delivery import input_changes
+                report['checking_input_changes'] += input_changes(project, delivery_inputs)
             if report['checking_input_changes']:
                 report['status'] = 'failed'
             retain_result(project, output, report)
         report['elapsed_seconds'] = elapsed_time() - started
-        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_STUDIES and (output / 'native.stdout').exists():
+        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS and (output / 'native.stdout').exists():
             report['native_stdout_sha256'] = hash_file(output / 'native.stdout')
         report['finished_at'] = time.time()
         report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))

@@ -20,6 +20,9 @@ class ReportRetention(unittest.TestCase):
         payload = b'{"sample":0.10000000000000001}\n'
         groups = [reports.ARTIFACT_GROUPS[name] for name in reports.GROUPS]
         def collect(run, *_):
+            if groups[run - 1] == ['index-resolution']:
+                self.assertEqual(_[:2], ('index-resolution-evidence',
+                    'Revalidate exploration pages and index resolution'))
             data = {f'refinement-evidence/{prefix}-{name}/result.json': payload for name in groups[run - 1]}
             identity = {'source_commit': ('b' if (mixed or bookkeeping) and run == 2 else 'a') * 40, 'run_id': str(run)}
             if 'compiler-profile' in groups[run - 1]:
@@ -45,14 +48,14 @@ class ReportRetention(unittest.TestCase):
         catalog = root / 'tests/agent-eval/roadmap.json'
         catalog.parent.mkdir(parents=True)
         catalog.write_text(json.dumps({'evidence': [{'id': name} for name in
-            ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile', 'model-relations')]}))
+            ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile', 'model-relations', 'index-resolution')]}))
         (root / 'tools').mkdir()
         (root / 'tools/test-compiler-profile.py').write_text("REPORT = ROOT / 'previous.json'\n")
         (catalog.parent / 'current-scalar-reports.json').write_text(json.dumps({
             'schema': 'fr-current-scalar-reports', 'reports': {name: {
                 'path': 'previous/' + name, 'sha256': 'previous', 'catalog_id': identifier}
                 for name, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks'),
-                                          ('compiler-profile', 'compiler-profile'))}}))
+                                          ('compiler-profile', 'compiler-profile'), ('index-resolution', 'index-resolution'))}}))
         (catalog.parent / 'results').mkdir()
         (catalog.parent / 'representative-acceptance.json').write_text(json.dumps({'cases': [{
             'id': identifier, 'runner': reports.ACTIVE_REFERENCES[group],
@@ -175,7 +178,7 @@ class ReportRetention(unittest.TestCase):
                              {'test-reports-retained-proofs', 'test-reports-ci-collection'})
             self.assertEqual(json.loads((root / 'tests/agent-eval/roadmap.json').read_text()),
                              {'evidence': [{'id': name} for name in
-                                 ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile', 'model-relations')]})
+                                 ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile', 'model-relations', 'index-resolution')]})
             manifest = json.loads((saved / 'test-reports-ci-collection/manifest.json').read_text())
             self.assertEqual(set(manifest['groups']), {'retained-proofs'})
             for group, name in reports.ACTIVE_REFERENCES.items():
@@ -186,6 +189,28 @@ class ReportRetention(unittest.TestCase):
             for group in reports.ACTIVE_FUNCTIONS:
                 self.assertIn(f'"tests/agent-eval/previous-{group}.json"',
                               (root / 'tests/python_sdk.rs').read_text())
+
+    def test_index_refresh_uses_its_producer_and_preserves_other_current_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = self.retain(root, only=['index-resolution'])
+            path = root / 'tests/agent-eval/results/test-reports-index-resolution/result.json'
+            self.assertEqual(path.read_bytes(), original)
+            self.assertIn(['python3', '-B', 'tools/index-resolution-acceptance.py',
+                           '--verify', str(path)], self.commands)
+            catalog = json.loads((root / 'tests/agent-eval/roadmap.json').read_text())
+            entry, = [row for row in catalog['evidence'] if row['id'] == 'index-resolution']
+            self.assertEqual(entry['path'], path.relative_to(root).as_posix())
+            self.assertEqual(entry['sha256'], hashlib.sha256(original).hexdigest())
+            self.assertIn('--verify', entry['audit'])
+            settings = json.loads((root / 'tests/agent-eval/current-scalar-reports.json').read_text())
+            for name, row in settings['reports'].items():
+                if name == 'index-resolution':
+                    self.assertEqual(row['path'], entry['path'])
+                    self.assertEqual(row['sha256'], entry['sha256'])
+                else:
+                    self.assertEqual(row['path'], 'previous/' + name)
+                    self.assertEqual(row['sha256'], 'previous')
 
     def test_empty_refresh_refuses_before_any_report_is_saved(self):
         with tempfile.TemporaryDirectory() as directory:

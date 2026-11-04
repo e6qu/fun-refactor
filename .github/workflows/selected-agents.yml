@@ -18,17 +18,23 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .github/actions/native-tools/python-wheels.txt
+            .github/actions/lean-toolchain
+            .github/workflows
             tools
             sdk/python/src
             skills/fr
             tests/agent-eval/selected-agents
             tests/agent-eval/project-edits
+            tests/agent-eval/project-changes/oracle.py
+            tests/agent-eval/project-changes/tasks.json
+            tests/agent-eval/unknown-target/task.json
             tests/agent-eval/proof-writing
             tests/agent-eval/proof-feedback
             tests/agent-eval/proof-construction
             tests/agent-eval/proof-page-count
             tests/agent-eval/proof-division-facts
             tests/agent-eval/proof-algorithms
+            tests/agent-eval/proof-delivery
             tests/agent-eval/team-solve
       - uses: actions/setup-python@v7
         with:
@@ -69,6 +75,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             tools
+            tests/agent-eval/selected-agents/clients.json
             tests/agent-eval/selected-agents/local-results
       - name: Preserve the public patches and current report checker
         run: |
@@ -79,6 +86,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/m1-native-tools"
           cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
             tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py "$RUNNER_TEMP/m1-native-tools/"
+          cp tests/agent-eval/selected-agents/clients.json "$RUNNER_TEMP/m1-native-tools/clients.json"
+          cp tools/selected-agent-probe.py "$RUNNER_TEMP/m1-native-tools/selected-agent-probe.py"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -132,10 +141,12 @@ jobs:
           done
       - name: Exercise real native tool results with scripted replies and no external network
         run: |
-          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py' EXIT
+          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py tools/selected-agent-probe.py tests/agent-eval/selected-agents/clients.json' EXIT
           for helper in opencode2_client.py selected_native_probe.py selected_cli.py selected_native.py; do
             cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
           done
+          cp "$RUNNER_TEMP/m1-native-tools/clients.json" tests/agent-eval/selected-agents/clients.json
+          cp "$RUNNER_TEMP/m1-native-tools/selected-agent-probe.py" tools/selected-agent-probe.py
           python3 -B -m agent_eval.selected_native --fr target/debug/fr \
           --profiles tests/agent-eval/selected-agents/profiles.json \
           --output "$RUNNER_TEMP/m1-native"

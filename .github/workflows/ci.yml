@@ -127,6 +127,12 @@ jobs:
       RAYON_NUM_THREADS: '1'
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -138,6 +144,20 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1'
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Fetch the current replay, its original result and declared receipt
+        run: |
+          python3 -B - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          paths = {'/tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json'}
+          for name in ('current-project-changes', 'project-changes'):
+              entry, = [row for row in catalog['evidence'] if row['id'] == name]
+              path = Path(entry['path'])
+              assert path.resolve().is_relative_to(Path.cwd())
+              paths.add('/' + path.parent.as_posix() + '/')
+          subprocess.run(['git', 'sparse-checkout', 'add', *sorted(paths)], check=True, timeout=60)
+          PY
       - name: Build both current checker implementations
         run: |
           cargo build --locked --bin fr
@@ -206,10 +226,12 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /*
-            !/tests/agent-eval/results/*-text-package-recheck/
+            !/tests/agent-eval/results/*
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Check retained input selection in a real sparse repository
+        run: python3 -B tools/test-ci-shards.py
       - name: Audit the original results and reject false completion records
         run: >-
           python3 -B tools/audit-historical-package-questions.py
@@ -224,9 +246,18 @@ jobs:
               entry, = [row for row in catalog['evidence'] if row['id'] == name]
               path = Path(entry['path'])
               assert path.resolve().is_relative_to(Path.cwd())
-              subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/'],
-                             check=True, timeout=60)
-              assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+              record = subprocess.check_output(['git', 'show', 'HEAD:' + path.as_posix()], timeout=30)
+              assert hashlib.sha256(record).hexdigest() == entry['sha256']
+              inputs = {'/' + path.parent.as_posix() + '/'}
+              for relative in json.loads(record)['source_bindings']:
+                  if not relative.startswith('tests/agent-eval/results/'):
+                      continue
+                  assert not any(part in {'', '.', '..'} for part in relative.split('/'))
+                  assert not any(char in relative for char in '\\!*?[]\n')
+                  assert Path(relative).resolve().is_relative_to(Path.cwd())
+                  inputs.add('/' + relative)
+              subprocess.run(['git', 'sparse-checkout', 'add', *sorted(inputs)], check=True, timeout=60)
+              assert path.read_bytes() == record
               subprocess.run(['python3', '-B', 'tools/' + script + '.py', 'audit', '--directory', str(path.parent)], check=True)
           PY
 
@@ -668,6 +699,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
@@ -708,7 +745,15 @@ jobs:
       CARGO_INCREMENTAL: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - run: rustup toolchain install stable --profile minimal
+      - name: Fetch the retained inputs named by the assigned test group
+        run: python3 tools/ci-shards.py checkout-${{ matrix.kind }} ${{ matrix.index }}
       - uses: ./.github/actions/native-tools
       - uses: Swatinem/rust-cache@v2
         with:
@@ -731,6 +776,26 @@ jobs:
       CARGO_INCREMENTAL: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - name: Fetch the resolution workload and guide-linked evidence
+        run: |
+          python3 -B - <<'PY'
+          import json, runpy, subprocess
+          from pathlib import Path
+          scalar = json.loads(Path('tests/agent-eval/current-scalar-reports.json').read_text())
+          paths = [Path(scalar['reports']['index-resolution']['path'])]
+          assert all(path.resolve().is_relative_to(Path.cwd()) for path in paths)
+          docs = runpy.run_path('tools/review-docs.py')
+          patterns = {'/' + path.parent.as_posix() + '/' for path in paths}
+          patterns.update('/' + path.as_posix() for path in docs['evidence_links'](docs['guides']()))
+          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+              input=''.join(path + '\n' for path in sorted(patterns)), text=True, check=True, timeout=60)
+          PY
       - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
       - uses: ./.github/actions/native-tools
       - uses: Swatinem/rust-cache@v2
@@ -783,6 +848,12 @@ jobs:
           test "$CURRENT_PROJECT_CHANGES" = success &&
           test "$CURRENT_SESSION_COST" = success
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: actions/download-artifact@v8
         with:
           pattern: ci-*
@@ -800,6 +871,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown

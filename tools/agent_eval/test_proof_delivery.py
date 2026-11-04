@@ -80,6 +80,8 @@ class DeliveryChecks(unittest.TestCase):
                 self.assertIsNotNone(delivery.submission(root, protected)[0], name)
                 path.chmod(0o755)
                 self.assertIsNone(delivery.submission(root, protected)[0], name)
+                path.chmod(0o1644)
+                self.assertIsNone(delivery.submission(root, protected)[0], name)
                 path.chmod(protected[name]['mode'])
 
     def test_symlinked_parent_cannot_hide_unchanged_protected_bytes(self):

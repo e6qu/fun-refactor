@@ -46,6 +46,11 @@ jobs:
             fr_sha: bb8d04340518791e58f4f71ed018d5bba50ca8905a284eb20509b58bb8f7386f
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            tools
+            tests/agent-eval/opencode
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'

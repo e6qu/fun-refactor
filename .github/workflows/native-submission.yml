@@ -18,6 +18,12 @@ jobs:
       OPENCODE_MODELS_PATH: ${{ github.workspace }}/tests/agent-eval/opencode/catalog/2026-10-07/catalog.json
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/grading-registry
+            tools
+            tests/agent-eval/opencode
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:

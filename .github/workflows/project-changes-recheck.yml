@@ -32,6 +32,19 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Fetch the original project records and roadmap inputs
+        run: |
+          python3 -B - <<'PY'
+          import runpy
+          from pathlib import Path
+          runpy.run_path('tools/ci-shards.py')['checkout_inputs'](
+              {'sources': [Path('tests/agent-eval/test_roadmap_status.py').read_text()],
+               'guides': False, 'catalog': True})
+          PY
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -77,7 +90,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$PREFIX-project-changes-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git add --sparse "tests/agent-eval/results/$PREFIX-project-changes-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: recheck familiar project changes after release integration'
           git push origin "HEAD:refs/heads/$BRANCH"
       - uses: actions/upload-artifact@v7

@@ -19,6 +19,21 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_delivery_projects_and_private_records_share_the_explicit_persistent_root(self):
+        plan = Path('/project/.local-agent-runs/delivery/plan.json')
+        parent = local.project_parent(plan, 'M3-delivery', 'a' * 64, 'fixed-slot')
+        self.assertEqual(parent, plan.parent / 'projects/fixed-slot')
+        self.assertTrue(parent.is_relative_to(plan.parent))
+        self.assertEqual(local.project_parent(plan, 'M3-algorithm-facts', 'a' * 64, 'old-slot'),
+                         Path('/private/tmp/fr-m3-algorithm-facts-aaaaaaaaaaaa/old-slot'))
+    def test_delivery_prompt_keeps_both_saved_edits_and_supplied_answers_explicit(self):
+        for setup in ('shared-skill', 'finish-card'):
+            prompt = local.prompt('euclid', setup, {'lake': {'path': '/pinned/lake'}}, 'M3-delivery')
+            self.assertIn('two correct proof drafts are supplied', prompt)
+            self.assertIn('BOTH returned edit IDs', prompt)
+            self.assertIn('150-second deadline', prompt)
+            self.assertNotIn('git diff --binary HEAD', prompt)
+            self.assertEqual('Read .fr/finish-card.txt' in prompt, setup == 'finish-card')
     def test_frozen_clients_survive_removal_of_application_release_storage(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
@@ -310,6 +325,7 @@ class SelectedLocalTests(unittest.TestCase):
         events = [{'type': 'step_finish', 'part': {'messageID': 'msg_example', 'tokens': {'input': 2, 'output': 1}, 'cost': 0}}]
         result = verify_export(saved, profile, 'ses_example', events)
         self.assertTrue(result['model_observed'])
+        self.assertTrue(result['usage_complete'])
         saved['messages'][1]['model'] = {**profile['model'], 'variant': 'low'}
         with self.assertRaisesRegex(ValueError, 'substituted'):
             verify_export(saved, profile, 'ses_example', events)
@@ -317,6 +333,27 @@ class SelectedLocalTests(unittest.TestCase):
         events[0]['part']['tokens']['input'] = 0
         with self.assertRaisesRegex(ValueError, 'usage differ'):
             verify_export(saved, profile, 'ses_example', events)
+
+    def test_missing_final_stream_usage_fails_accounting_even_when_session_succeeded(self):
+        profile = {'model': {'providerID': 'zai-coding-plan', 'id': 'glm-5.3-flash', 'variant': 'low'}}
+        messages = [{'id': identity, 'type': 'assistant', 'agent': 'build', 'model': profile['model'],
+                     'finish': finish, 'tokens': {'input': 2, 'output': 1}, 'cost': 0}
+                    for identity, finish in [('tool', 'tool-calls'), ('final', 'stop')]]
+        saved = {'info': {'id': 'ses_example', 'agent': 'build', 'model': profile['model'], 'outcome': 'succeeded'},
+                 'messages': messages}
+        tool = {'type': 'step_finish', 'part': {'messageID': 'tool', 'tokens': {'input': 2, 'output': 1}, 'cost': 0}}
+        for events in ([tool], [tool, tool]):
+            with self.subTest(events=len(events)), tempfile.TemporaryDirectory() as temporary:
+                output = Path(temporary)
+                report = {'status': 'completed', 'usage': local.usage('opencode2', events)}
+                with mock.patch.object(local, 'elapsed_time', return_value=140), \
+                     mock.patch.object(local, 'export_session', return_value=saved):
+                    local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
+                        output, profile, events, deadline=150)
+                self.assertEqual(report['status'], 'failed')
+                self.assertEqual(report['session_accounting'], {'status': 'incomplete', 'exported': True})
+                self.assertFalse(report['usage']['exported']['usage_complete'])
+                self.assertEqual(json.loads((output / 'session-export.json').read_text()), saved)
 
     def test_interrupted_v2_session_retains_an_absent_final_outcome_and_unknown_usage(self):
         profile = {'model': {'providerID': 'zai-coding-plan', 'id': 'glm-5.3-flash', 'variant': 'high'}}

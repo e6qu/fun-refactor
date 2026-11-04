@@ -252,12 +252,20 @@ any original outcome. These repairs have no measured agent success gain yet.
 Keep the 150-second limit and qualify references and negative controls without
 models. Do not start another paid comparison to seek a better score.
 
-The next development question is whether proof saving and delivery accurately
-explain what has already happened. One Kimi attempt misread a repeated save;
-another proved both claims and passed the package check but wrote the patch outside
-the project. Check explicit save outcomes and delivery of both saved edits without
-a model first. Passing these controls establishes the tool behavior, not an agent
-improvement. Any later paid comparison needs a separate prediction and frozen plan.
+The [supplied-proof delivery comparison](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
+has now run all twelve fixed slots. Eleven delivered correct patches, but only five
+met every completion requirement. Six OpenCode streams omitted the final reply's
+token record; one Kimi attempt saved both proofs, passed the package check and then
+timed out before exporting. The runner now rejects incomplete accounting immediately.
+Keep the original records and failures. Luna tied across setups; GLM/Kimi cannot
+support a guidance conclusion. Correct patch delivery alone cannot validate a
+comparison whose required accounting is incomplete.
+
+The no-model reproducer now fails with OpenCode2 2.0.32 and passes with the explicit
+2.2.5 pin. Its official fix retains completed-step usage after the session becomes idle.
+Require fresh complete native admission before a new study. Then review the original
+page-count obstacle under its unchanged claim. Do not repeat this delivery comparison
+to seek a better score.
 
 The original presentation report's generic invalid-execution sentence mentions
 service, collection and sleep disruptions. That sentence does not describe the

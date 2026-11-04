@@ -58,6 +58,34 @@ class OpenCode2Tests(unittest.TestCase):
         request.assert_not_called()
 
     @patch('agent_eval.opencode2_client.time.sleep')
+    def test_agent_inventory_waits_for_location_plugins_without_resetting_its_deadline(self, sleep):
+        error = OpenCode2ResponseError('GET', '/api/agent', 503, 200, json.dumps({
+            '_tag': 'ServiceUnavailableError', 'service': 'plugin',
+            'message': 'Location plugins did not finish activating'}).encode())
+        catalog = {'data': [{'id': 'build'}]}
+        with patch('agent_eval.opencode2_client.time.monotonic', side_effect=[0, 0.1, 0.4, 0.8]), \
+             patch.object(self.server, 'request', side_effect=[error, {'data': []}, catalog]) as request:
+            self.assertEqual(self.server.wait_agent('build', 1), {'catalog': catalog, 'polls': 3})
+        for actual, expected in zip(request.call_args_list, (0.9, 0.6, 0.2)):
+            self.assertAlmostEqual(actual.args[4], expected)
+        with patch('agent_eval.opencode2_client.time.monotonic', side_effect=[0, 0.1, 0.8, 1.1]), \
+             patch.object(self.server, 'request', side_effect=error) as request:
+            with self.assertRaisesRegex(ValueError, 'agent inventory did not become ready'):
+                self.server.wait_agent('build', 1)
+        self.assertEqual(request.call_count, 2)
+        self.assertAlmostEqual(request.call_args_list[-1].args[4], 0.2)
+
+    def test_agent_inventory_does_not_retry_other_http_errors(self):
+        for status, body in ((401, b''), (503, b'{"_tag":"ServiceUnavailableError","service":"model"}'),
+                             (503, b'not JSON')):
+            with self.subTest(status=status, body=body):
+                error = OpenCode2ResponseError('GET', '/api/agent', status, 200, body)
+                with patch.object(self.server, 'request', side_effect=error) as request:
+                    with self.assertRaises(ValueError):
+                        self.server.wait_agent('build', 1)
+                self.assertEqual(request.call_count, 1)
+
+    @patch('agent_eval.opencode2_client.time.sleep')
     def test_skill_discovery_waits_for_the_required_project_skill(self, sleep):
         responses = [{'data': [{'name': 'OpenCode'}]},
                      {'data': [{'name': 'OpenCode'}, {'name': 'fr'}]}]

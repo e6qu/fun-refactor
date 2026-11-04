@@ -71,7 +71,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /tests/agent-eval/project-edits/${{ inputs.comparison }}/
       - name: Preserve the approved submissions before selecting their auditor
         run: |
           cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
@@ -82,6 +83,10 @@ jobs:
           # language, authoring and complete-delivery regression jobs.
           ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: ./.github/actions/project-edit-checkers
       - name: Validate the requested control run
         env:
@@ -157,7 +162,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /tests/agent-eval/project-edits/${{ inputs.comparison }}/
       - name: Preserve the approved report before selecting its auditor
         run: |
           cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
@@ -166,6 +172,10 @@ jobs:
         with:
           ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

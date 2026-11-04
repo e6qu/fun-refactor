@@ -88,7 +88,7 @@ def opencode(binary, project, env, profile, endpoint, setup, output, version):
     session_id = argv[argv.index('--session') + 1]
     saved = export_session(binary, session_id, project, env, output, timeout_seconds=10)
     observed = verify_export(saved, profile, session_id, [json.loads(line) for line in result.stdout.splitlines()])
-    require(observed['outcome'] == 'succeeded' and observed['exported_assistant_responses'] == 2,
+    require(observed['outcome'] == 'succeeded' and observed['usage_complete'] and observed['exported_assistant_responses'] == 2,
             'scripted CLI did not retain both native assistant responses')
     (output / 'session-export.json').write_text(json.dumps(saved, indent=2) + '\n')
     return {'skills': skills, 'skill_polls': skill_polls, 'shutdown': server.shutdown}

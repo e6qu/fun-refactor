@@ -14,7 +14,7 @@ from . import selected_grading as grading
 from . import selected_local as local
 from . import selected_local_grade as public
 from . import selected_tasks as common
-from .selected_plan import ALGORITHM_STUDIES, ROOT, encoded, prepare, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, ROOT, encoded, prepare, require
 
 CHECKS = {'termination_check_passed', 'termination_saved', 'correctness_check_passed',
           'correctness_saved', 'package_check_passed'}
@@ -32,9 +32,17 @@ def validate_observations(value, seconds):
     return value
 
 
-def complete(row, patch_accepted):
+def complete(row, patch_accepted, study):
+    require(study in ALGORITHM_TASKS, 'choose the proof study explicitly')
     observation = validate_observations(row['algorithm_observations'], row['total_seconds'])
     resources = row['complete_attempt_resources']
+    if study == DELIVERY_STUDY:
+        from .proof_delivery import completion
+        bound = row['delivery_capture_bound_seconds']
+        if not completion(resources, bound, row['reported_usage_complete']):
+            return False
+        if bound != resources['elapsed_seconds'] or resources['elapsed_seconds'] != row['total_seconds']:
+            return False
     return (patch_accepted and row['native_status'] == 'completed' and row['stop_reason'] is None and
             resources['stop_reason'] is None and resources['exit_code'] == 0 and
             resources['sampled_aggregate_rss_bytes'] <= 805306368 and resources['sampled_cpu_seconds'] <= 75 and
@@ -56,7 +64,7 @@ def decisions(summary):
                                if row['setup'] == condition) for condition in (first, second)}
         for row in selected:
             if row['independent_outcome'] == 'passed':
-                require(complete(row, row['independent_check']['patch_accepted']), 'late or incomplete work cannot become success')
+                require(complete(row, row['independent_check']['patch_accepted'], summary['study']), 'late or incomplete work cannot become success')
         key = f'{counts[second]},{counts[first]}'
         usable = all(row['algorithm_observations']['execution_validity'] == 'valid' and
                      not row['collection_error_recorded'] and row['suspended_seconds'] < 1 for row in selected)
@@ -65,19 +73,24 @@ def decisions(summary):
                     'Execution is invalid or unverified in at least one attempt. '
                     'Review its recorded cause before drawing conclusions about guidance or agent ability. '
                     'Preserve every original outcome; do not replace failed slots.')
+        candidate = 'delivery_validation_candidate' if summary['study'] == DELIVERY_STUDY else 'transfer_candidate'
         result[profile] = {'accepted': counts, 'decision': decision, 'execution_usable': usable,
             'total_seconds_including_failures': sum(row['total_seconds'] for row in selected),
-            'transfer_candidate': usable and counts[second] == 2 and counts[first] == 0}
+            candidate: usable and counts[second] == 2 and counts[first] == 0}
     return result
 
 
 def grade(data, artifacts, binary, output, control_run, study):
-    require(os.environ.get('GITHUB_ACTIONS') == 'true' and study in ALGORITHM_STUDIES,
+    require(os.environ.get('GITHUB_ACTIONS') == 'true' and study in ALGORITHM_TASKS,
             'independently grade the chosen algorithm study on GitHub')
     output.mkdir(parents=True, exist_ok=False)
     summary = json.loads((data / 'summary.json').read_text())
     rows = public.verify(summary, study)
-    receipt = algorithms.validate_controls(json.loads((artifacts / 'controls.json').read_text()), study)
+    if study == DELIVERY_STUDY:
+        from .proof_delivery import validate_controls
+        receipt = validate_controls(json.loads((artifacts / 'delivery-controls.json').read_text()), study)
+    else:
+        receipt = algorithms.validate_controls(json.loads((artifacts / 'controls.json').read_text()), study)
     require(receipt['run'] == control_run and receipt == summary['controls'] and common.digest(binary) == receipt['fr_sha256'],
             'use the exact qualified checker and native tool frozen before calls')
     archive = artifacts / 'grader-image.tar.gz'
@@ -108,7 +121,7 @@ def grade(data, artifacts, binary, output, control_run, study):
                             'the submitted patch changed after review')
                 verdict = grading.grade(image, 'euclid', original, prepared, binary, rust, patch,
                                         output / row['id'], milestone=study, tools={})
-                accepted = complete(row, verdict['passed'])
+                accepted = complete(row, verdict['passed'], study)
                 result['attempts'][row['id']] = {'status': 'checked', 'native_status': row['native_status'],
                     'patch_sha256': row['patch_sha256'], 'patch_accepted': verdict['passed'],
                     'outcome': 'passed' if accepted else 'failed', 'check_stage': verdict['verdict']['stage'],
@@ -124,8 +137,11 @@ def grade(data, artifacts, binary, output, control_run, study):
 def markdown(summary):
     result = decisions(summary)
     first, second = prepare(ROOT, summary['study'])['requirements']['setups']
-    lines = ['# Can guidance help the agents prove an executable algorithm?', '', summary['comparison'], '',
-             'The fixed Lean function must terminate and return the correct GCD for every pair of Nat inputs.',
+    delivery = summary['study'] == DELIVERY_STUDY
+    title = '# Can the agents deliver two supplied proofs?' if delivery else '# Can guidance help the agents prove an executable algorithm?'
+    claim = ('Both correct proofs are supplied. This tests saving and delivery, not proof discovery.' if delivery else
+             'The fixed Lean function must terminate and return the correct GCD for every pair of Nat inputs.')
+    lines = [title, '', summary['comparison'], '', claim,
              'Each complete attempt has 150 seconds including tools, checks, patch delivery and session accounting.',
              'These small development comparisons do not close M3 or measure fr overhead against ordinary tools.',
              'Two repetitions cannot establish a general success rate. Keep every failure in the total work.', '',
@@ -137,10 +153,17 @@ def markdown(summary):
     lines.append('')
     for profile, row in result.items():
         lines.append(f'{profile}: {row["decision"]}')
-    lines += ['', 'Guidance size in UTF-8 bytes (not model tokens):', '', '| Condition | Declarations | Plan |',
-              '| --- | ---: | ---: |']
-    for condition, files in summary['guidance_bytes'].items():
-        lines.append(f'| {condition} | {files[".fr/declarations.txt"]} | {files[".fr/proof-plan.txt"]} |')
+    if delivery:
+        lines += ['', 'Supplied file sizes in UTF-8 bytes (not model tokens or evidence that the agent read them):',
+                  '', '| Condition | File | Bytes |', '| --- | --- | ---: |']
+        for condition, files in summary['guidance_bytes'].items():
+            for name, size in sorted(files.items()):
+                lines.append(f'| {condition} | `{name}` | {size} |')
+    else:
+        lines += ['', 'Guidance size in UTF-8 bytes (not model tokens):', '', '| Condition | Declarations | Plan |',
+                  '| --- | ---: | ---: |']
+        for condition, files in summary['guidance_bytes'].items():
+            lines.append(f'| {condition} | {files[".fr/declarations.txt"]} | {files[".fr/proof-plan.txt"]} |')
     lines += ['', 'Only reviewed summaries and submitted patches are public. Raw local records remain private.', '',
               '| Attempt | Complete outcome | Seconds | Failure or missing result | Patch |',
               '| --- | --- | ---: | --- | --- |']
@@ -158,7 +181,7 @@ if __name__ == '__main__':
     for name in ('data', 'artifacts', 'fr', 'output'):
         grading_parser.add_argument('--' + name, type=Path, required=True)
     grading_parser.add_argument('--control-run', required=True)
-    grading_parser.add_argument('--study', choices=tuple(sorted(ALGORITHM_STUDIES)), required=True)
+    grading_parser.add_argument('--study', choices=tuple(sorted(ALGORITHM_TASKS)), required=True)
     report_parser = operations.add_parser('report')
     report_parser.add_argument('--data', type=Path, required=True)
     arguments = parser.parse_args()

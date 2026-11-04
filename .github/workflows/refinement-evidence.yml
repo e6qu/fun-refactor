@@ -658,7 +658,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Fetch the reports and artifacts used by roadmap verification
+        run: |
+          python3 -B - <<'PY'
+          import runpy
+          runpy.run_path('tools/ci-shards.py')['checkout_inputs'](
+              {'sources': [], 'guides': False, 'catalog': True})
+          PY
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -710,7 +720,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/model_comparisons.rs tests/consumer_measurements.rs tests/completion_workflows.rs tests/structural_change.rs tests/python_sdk.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
+          git add --sparse "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/model_comparisons.rs tests/consumer_measurements.rs tests/completion_workflows.rs tests/structural_change.rs tests/python_sdk.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain fresh workflow and recovery reports'
           git push origin "HEAD:refs/heads/$BRANCH"
 
@@ -1934,7 +1944,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Fetch only the fixed source snapshot used by the measurement
+        run: |
+          python3 -B - <<'PY'
+          import json, re, subprocess
+          from pathlib import Path
+          revision = json.loads(Path('tests/agent-eval/index-resolution/task.json').read_text())['baseline']
+          assert re.fullmatch(r'[0-9a-f]{40}', revision)
+          subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', '--no-filter', 'origin', revision],
+                         check=True, timeout=60)
+          PY
       - run: rustup toolchain install stable --profile minimal --component clippy
       - uses: actions/setup-python@v7
         with:

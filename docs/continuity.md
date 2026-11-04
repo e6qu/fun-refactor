@@ -16,21 +16,52 @@ the GCD controls and agent skill checks before merge. There is no remaining work
 on their old branches. M1 and M2 have their complete comparisons. M3 remains open:
 GLM and Kimi still lack accepted page-count proofs within the original 150 seconds.
 
+[PR #595](https://github.com/e6qu/fun-refactor/pull/595) also merged after all 92
+project CI jobs passed. It added and qualified the supplied-proof delivery
+controls and fixed the comparison before native admission or new model calls.
+
 The next concrete question is [delivery of two supplied proofs](../tests/agent-eval/proof-delivery/README.md).
 Both setups receive the same correct GCD drafts, shared skill, source and checks.
 One also receives a short finish card. Test saving both proofs, checking the package
 and delivering both saved edits in one root `change.patch`. The clean receiving
 project must accept that patch; a correct working file is insufficient.
 
-Keep this diagnostic in one PR with its implementation, independent controls,
-examples and tracking. The fixed plan has twelve unstarted slots and keeps the
-existing 150-second complete attempt limit. Live calls remain disabled. Hosted
-controls now pass for both setups, including incomplete delivery and timing
-rejections. The [retained summary](../tests/agent-eval/proof-delivery/qualification/summary.json)
-records zero model calls. Next, qualify the exact local native clients, assisted task
-archive, resource observer and session accounting. Freeze those identities before
-any paid call. Do not run a delivery attempt under an old proof-writing study ID.
-This is assisted delivery, not proof discovery, and cannot close M3.
+Continue on `improve/native-proof-delivery`, [PR #597](https://github.com/e6qu/fun-refactor/pull/597).
+All twelve `M3-delivery` slots ran once after
+[fresh hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41636379313)
+and six reported passing local checks. The tools and inputs stayed fixed during the calls.
+[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41645916940)
+accepted eleven patches. The [complete results](../tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
+retain five complete successes, six incomplete-accounting failures and one Kimi
+timeout without a patch. Do not rerun a slot. Both proofs were supplied; M3 stays open.
+
+The six affected OpenCode sessions have a finished final reply in the saved
+session but no matching final usage event in the JSON stream. The exporter already
+refuses complete usage for them. The runner and native admission now reject this
+mismatch immediately, including duplicate events that could conceal a missing one.
+Rechecking the original four OpenCode admission records found the same missing
+final usage. Their old receipts checked session success, not complete event coverage.
+Keep those original receipts and their recorded defect; they cannot admit new calls.
+The original native statuses remain unchanged. No missing tokens were inferred.
+Luna completed both setups twice; the GLM/Kimi guidance comparison is unusable.
+The finish card has no established success advantage. Keep list reversal reserved.
+
+The no-model reproducer now confirms the cause: OpenCode2 2.0.32 stops ordinary
+event consumption when the session becomes idle, then reconciles text and tools
+without final usage. Both combined and separate usage chunks reproduce it.
+The official 2.2.5 release reconciles completed steps too; both reproductions pass.
+The project now pins that exact release and checksum. The M1 native check uses the
+current client with its current protocol helpers, then restores the original manifest
+for historical grading. No original study record changes client or outcome.
+
+All four [current qualification jobs](https://github.com/e6qu/fun-refactor/actions/runs/41654594443)
+pass, including the six native exchanges and retained-patch replay.
+The release-matched project-change replay also passes. The PR checks own its
+final-head CI status. Require the full gate before marking it ready; leave it unmerged.
+Any later comparison needs fresh complete admission for its selected client.
+Then return to the original page-count proof obstacle under the unchanged
+150-second limit. The roadmap owns the remaining M3 completion conditions.
+Prepared protocols still cannot launch calls.
 
 ## What the merged proof work established
 

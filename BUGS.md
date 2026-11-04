@@ -5,7 +5,85 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Merged repairs and remaining limits
 
-These repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
+The [supplied-proof delivery review](tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
+found six OpenCode2 2.0.32 sessions whose saved final response has token counts but
+whose JSON stream omits that final usage event. Correct patches from those sessions
+remain accepted patches; their complete attempts remain failed. The exporter already
+rejects incomplete usage. The local runner and native admission now reject missing
+or duplicate response accounting immediately, rather than initially reporting native
+completion. A no-model reproducer confirms that the client stops reading ordinary
+events after session completion and restores text and tools without final usage.
+Both stream shapes fail with 2.0.32 and pass with the official 2.2.5 fix.
+The project pins 2.2.5 and requires complete native accounting.
+The evaluator reconstructs no missing usage, and original outcomes remain unchanged.
+
+The same review retains one Kimi timeout after both saved proofs and the package
+passed. It used unsupported `fr history --limit` commands instead of exporting the
+saved IDs. Fr correctly rejected that flag. The failure does not justify a longer
+deadline or adding an unused option to fr.
+
+The 0.88 release changed executable hashes while a current project-change replay
+still recorded the exact 0.87 binaries. The branch now includes the release, and
+the [hosted replay](https://github.com/e6qu/fun-refactor/actions/runs/41651284593)
+passed all 21 saved-findings changes and both deliveries again.
+New retained records match the released build; original records and exact hash
+checks remain intact.
+
+The Python text-flow, structural-change and consumer-scope checkers also hashed
+the SDK release literal as behavior input. They now use the shared release identity rule.
+Structural and scope checks bind the complete SDK tree and packaging metadata too.
+Matching release updates preserve
+input identity; real SDK changes and mismatched SDK/native versions still invalidate it.
+A regression covers all three cases. The
+[fresh language checks](https://github.com/e6qu/fun-refactor/actions/runs/41659946220)
+and [authenticated retention](https://github.com/e6qu/fun-refactor/actions/runs/41661372321)
+pass. New records replace the stale current entries without changing original results.
+
+An earlier [scripted native check](https://github.com/e6qu/fun-refactor/actions/runs/41651295817)
+failed four OpenCode exchanges but retained only a generic outer error.
+CI now retains bounded stderr and all scripted exchange diagnostics.
+A [later failure](https://github.com/e6qu/fun-refactor/actions/runs/41661802399)
+shows that the server can listen before its local plugin service exposes agents.
+It returns a specific 503 response before any model or Lean call.
+The agent-readiness loop now waits for that state within its original deadline.
+It rejects authentication errors, unrelated 503 responses and malformed replies immediately.
+A persistent startup failure still expires; no timeout increased.
+The earlier lost inner error remains unknown, and every failed check stays recorded.
+
+The streaming replay, native-protocol check and configured-result grading
+exhausted their five-minute job limits while checking out about 81,000 repository
+files. Those jobs and the configured-change controls now fetch only the scripts,
+actions and retained fixtures they use. Focused tests and archived-result checks
+pass in actual sparse checkouts. Hosted streaming and native-protocol jobs pass;
+every five-minute limit stays unchanged.
+
+Five Rust and Python test groups exhausted their fifteen-minute limits after long
+full checkouts. Each group now fetches records named by its assigned tests,
+their Python tools and their current catalog entries. SDK checks also retain the
+records used by their Python tool checks.
+A regression fetches required records into a test repository and verifies their bytes.
+It also checks that Git leaves out unrelated archives.
+The complete test inventory and all deadlines remain unchanged.
+CI monitoring must inspect cancelled jobs too: GitHub labels these timeouts cancelled.
+
+The narrow checkouts initially missed JSON file lists, documentation links and
+records that SDK tools read. The checkout now includes these files and the artifacts
+named in catalogue records. A second checkout restores shared task files correctly,
+so patch replay can read its tasks after loading the recorded source revision.
+CI checks old indexing measurements with their original checker in a temporary
+Git checkout. Git fetches the required files together.
+The regression tests build small Git repositories, switch revisions and check the original files.
+The indexing collector also spent eleven minutes fetching all Git history before
+its checks timed out. It now fetches the current checkout and one fixed source snapshot.
+The collector, retention and package replay jobs keep their original time limits.
+
+Repeated native checks failed before any client ran because GitHub returned HTTP
+500 for the pinned Codex companion download. The installer now retries that same
+URL at most three times within its original thirty-second request deadline.
+Authentication errors, missing files and hash mismatches still stop immediately.
+Scripted admission uses the current installer; historical grading restores its original source.
+
+Earlier repairs landed in [PR #592](https://github.com/e6qu/fun-refactor/pull/592) and
 [PR #593](https://github.com/e6qu/fun-refactor/pull/593).
 PR #593 passed its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760).
 The interrupted algorithm batch exposed these defects; their original failed

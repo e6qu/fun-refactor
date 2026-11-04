@@ -70,7 +70,11 @@ def verify_export(saved, profile, session, events):
     require(all(step['messageID'] in by_id and step['tokens'] == by_id[step['messageID']]['tokens'] and
                 step['cost'] == by_id[step['messageID']]['cost'] for step in steps),
             'native stream and exported usage differ')
+    finished = [step['messageID'] for step in steps]
+    complete = (bool(assistants) and len(finished) == len(set(finished)) and set(finished) == set(by_id) and
+                all(message.get('finish') in {'stop', 'tool-calls'} for message in assistants))
     return {'model_observed': bool(assistants), 'session_model': saved['info']['model'],
+            'usage_complete': complete,
             'exported_assistant_responses': len(assistants), 'stream_finished_responses': len(steps),
             'unfinished_assistant_responses': sum(message.get('finish') not in {'stop', 'tool-calls'} for message in assistants),
             'outcome': saved['info'].get('outcome')}

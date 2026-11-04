@@ -10,7 +10,7 @@ on:
         description: Frozen comparison whose original public patches must be checked
         required: true
         type: choice
-        options: [M3-algorithm-facts, M3-algorithm-presentation]
+        options: [M3-algorithm-facts, M3-algorithm-presentation, M3-delivery]
   workflow_call:
     inputs:
       control_run:
@@ -76,6 +76,16 @@ jobs:
           path: ${{ runner.temp }}/algorithm-original/algorithm-controls
           run-id: ${{ inputs.control_run }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v8
+        if: inputs.study == 'M3-delivery'
+        with:
+          name: proof-delivery-controls
+          path: ${{ runner.temp }}/delivery-controls
+          run-id: ${{ inputs.control_run }}
+          github-token: ${{ github.token }}
+      - name: Select the qualified supplied-proof controls
+        if: inputs.study == 'M3-delivery'
+        run: cp "$RUNNER_TEMP/delivery-controls/summary.json" "$RUNNER_TEMP/algorithm-original/algorithm-controls/delivery-controls.json"
       - uses: actions/download-artifact@v8
         with:
           name: algorithm-linux-tool

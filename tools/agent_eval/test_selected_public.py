@@ -79,7 +79,7 @@ class SelectedPublicTests(unittest.TestCase):
         self.assert_private_export('M3-facts', 8)
 
     def test_algorithm_exports_keep_all_records_private_and_all_failures_visible(self):
-        for study, count in [('M3-algorithm-facts', 8), ('M3-algorithm-presentation', 12)]:
+        for study, count in [('M3-algorithm-facts', 8), ('M3-algorithm-presentation', 12), ('M3-delivery', 12)]:
             self.assert_private_export(study, count)
 
     def assert_private_export(self, milestone, count):
@@ -89,9 +89,10 @@ class SelectedPublicTests(unittest.TestCase):
             plan = {'schedule': schedule, 'implementation': {}, 'source': {'native_inputs': {}, 'commit': 'source'},
                     'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {},
                     'binaries': {}, 'components': {}, 'client_finish_seconds': 10, 'formal_inputs': {},
+                    'checkers': {'lake': {'path': '/pinned/lake'}}, 'live_calls_enabled': True,
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
-            if milestone in public.ALGORITHM_STUDIES:
+            if milestone in public.ALGORITHM_TASKS:
                 plan['admission'] = {'profiles': {}, 'receipts_sha256': 'a' * 64}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
@@ -112,6 +113,12 @@ class SelectedPublicTests(unittest.TestCase):
                 (directory / 'result.json').write_text(json.dumps(record))
                 (directory / 'prompt.txt').write_text(canary)
                 (directory / 'native.stdout').write_text('incomplete-json-' + canary)
+                if milestone == 'M3-delivery' and row['profile'] == 'opencode2-glm-flash':
+                    (directory / 'native.stdout').write_text(json.dumps({'type': 'step_finish',
+                        'part': {'tokens': {'input': 2, 'output': 1}}}))
+                    record['usage'] = {'exported': {'outcome': 'succeeded', 'usage_complete': False,
+                        'unfinished_assistant_responses': 0, 'exported_assistant_responses': 1,
+                        'stream_finished_responses': 1, 'model_observed': True}}
                 if milestone == 'M3-feedback':
                     record.update(initial_check_seconds=0.2, initial_check_bytes=100,
                                   initial_check_sha256='a' * 64, initial_feedback_supplied=row['setup'] == 'supplied-feedback',
@@ -120,11 +127,11 @@ class SelectedPublicTests(unittest.TestCase):
                 elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     (directory / 'result.json').write_text(json.dumps(record))
-                elif milestone in public.ALGORITHM_STUDIES:
+                elif milestone in public.ALGORITHM_TASKS:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     resources = {'limits': {'wall_seconds': 150, 'rss_bytes': 805306368, 'cpu_seconds': 75,
                                  'disk_bytes': 536870912, 'transcript_bytes': 1048576},
-                                 'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100}
+                                 'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100, 'elapsed_seconds': 3}
                     monitor = root / 'attempt-monitors' / row['id']
                     monitor.mkdir(parents=True)
                     (monitor / 'resources.json').write_text(json.dumps(resources))
@@ -147,7 +154,7 @@ class SelectedPublicTests(unittest.TestCase):
                         review[row['id']]['proof_observations']['first_proof_check_seconds'] = None
                     if milestone == 'M3-facts':
                         review[row['id']]['proof_observations']['proof_write_seconds'] = None
-                elif milestone in public.ALGORITHM_STUDIES:
+                elif milestone in public.ALGORITHM_TASKS:
                     from agent_eval.algorithm_results import CHECKS, TIMINGS
                     review[row['id']]['algorithm_observations'] = {
                         **{name: None for name in CHECKS | TIMINGS}, 'execution_validity': 'collection-failed'}
@@ -167,6 +174,28 @@ class SelectedPublicTests(unittest.TestCase):
             self.assertTrue(all(row['native_status'] == 'failed' and row['collection_error_recorded']
                                 for row in result['attempts']))
             self.assertNotIn(canary, (destination / 'summary.json').read_text())
+            if milestone == 'M3-delivery':
+                self.assertTrue(all(row['delivery_capture_bound_seconds'] is None for row in result['attempts']))
+                self.assertTrue(all(row['reported_usage_complete'] is False for row in result['attempts']))
+                checks = {'passed': True, 'all_12_checked': True, 'checked_attempts': 12,
+                          'core_checker_sha256': result['core_checker_sha256'], 'control_policy': 'frozen',
+                          'image': 'qualified-image', 'attempts': {row['id']: {
+                              'status': 'checked', 'native_status': 'failed', 'patch_sha256': None,
+                              'outcome': 'failed', 'patch_accepted': False, 'check_stage': 'missing-patch',
+                              'undo_exact': False, 'redo_exact': False} for row in result['attempts']}}
+                result['controls']['private_image'] = 'qualified-image'
+                (destination / 'summary.json').write_text(json.dumps(result))
+                checked_path = root / 'checked.json'
+                checked_path.write_text(json.dumps(checks))
+                run = 'https://github.com/e6qu/fun-refactor/actions/runs/123'
+                public.accept_checks(destination, checked_path, run)
+                accepted = json.loads((destination / 'summary.json').read_text())
+                self.assertTrue(all(row['independent_outcome'] == 'failed' and
+                                    row['independent_check_run'] == run for row in accepted['attempts']))
+                del checks['attempts'][result['attempts'][-1]['id']]
+                checked_path.write_text(json.dumps(checks))
+                with self.assertRaisesRegex(ValueError, 'every original submission'):
+                    public.accept_checks(destination, checked_path, run)
             self.assertEqual([path.name for path in destination.rglob('*') if path.is_file()], ['summary.json'])
             if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                 self.assertIsNone(result['attempts'][0]['proof_observations']['first_passing_proof_seconds'])
