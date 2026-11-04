@@ -150,8 +150,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CONTROL_RUN: ${{ inputs.artifact_run }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CONTROL_RUN" > "$RUNNER_TEMP/feedback-run.json"
-          python3 -c 'import json,os; from pathlib import Path; v=json.loads((Path(os.environ["RUNNER_TEMP"])/"feedback-run.json").read_text()); assert v["status"]=="completed" and v["conclusion"]=="success"'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CONTROL_RUN/attempts/1" > "$RUNNER_TEMP/feedback-run.json"
+          python3 -c 'import json,os; from pathlib import Path; v=json.loads((Path(os.environ["RUNNER_TEMP"])/"feedback-run.json").read_text()); assert v["run_attempt"]==1 and v["status"]=="completed" and v["conclusion"]=="success"'
       - uses: actions/download-artifact@v8
         if: inputs.operation == 'grade'
         with:

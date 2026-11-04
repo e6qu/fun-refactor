@@ -244,7 +244,7 @@ def validate_controls(value, milestone):
         fields |= {'declarations_sha256', 'handout_changes_rejected'}
     if milestone == REPAIR_STUDY:
         fields |= {'repair_instruction_sha256', 'handout_changes_rejected', 'argument_type_error_rejected',
-                   'lean_arguments', 'lean_imports'}
+                   'lean_arguments', 'lean_imports', 'run_attempt'}
     require(value['study'] == milestone and set(value) == fields, 'diagnostic controls need their exact declared fields')
     if milestone == 'M3-facts':
         require(value['declarations_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] / 'fixtures/declarations.txt')
@@ -253,7 +253,8 @@ def validate_controls(value, milestone):
         require(value['repair_instruction_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                 'fixtures/argument-repair.txt') and value['handout_changes_rejected'] is True and
                 value['argument_type_error_rejected'] is True and value['lean_arguments'] == ['-j1'] and
-                value['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'],
+                value['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'] and
+                type(value['run_attempt']) is int and value['run_attempt'] == 1,
                 'qualify the exact repair instruction and protected handout')
     expected = {variant: {'status': 'passed', 'accepted': variant == 'reference'} for variant in VARIANTS}
     require(value['passed'] is True and value['live_model_calls'] == 0 and value['controls'] == expected,
@@ -322,7 +323,7 @@ def controls(binary, output, native, milestone):
             require(local.checking_input_changes(project, protected) == ['.fr/argument-repair.txt'],
                     'reject deleted repair handouts')
         result.update(argument_type_error_rejected=True, lean_arguments=prepared['lean_arguments'],
-                      lean_imports=prepared['lean_imports'],
+                      lean_imports=prepared['lean_imports'], run_attempt=int(os.environ['GITHUB_RUN_ATTEMPT']),
                       repair_instruction_sha256=common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                       'fixtures/argument-repair.txt'), handout_changes_rejected=True)
         common.save(output / 'controls.json', result)

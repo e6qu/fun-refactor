@@ -49,6 +49,7 @@ reference, save it, build the package, deliver a replayable patch and finish
 with complete native accounting. Those scripts receive reference drafts solely
 to test the setup. Live attempts receive none. Freeze the exact clients, tool,
 task archive, admission receipts, checking code and all eight slots afterwards.
+Pin workflow attempt 1 and its exact source when freezing qualification.
 
 The reusable `proof-feedback.yml` workflow can be dispatched with explicit
 `study=M3-argument-repair`, `operation=prepare` and the successful algorithm build

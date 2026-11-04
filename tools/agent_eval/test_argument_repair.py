@@ -149,12 +149,13 @@ class ArgumentRepairTests(unittest.TestCase):
                    'repair_instruction_sha256': local.hash_file(plan.ROOT / plan.CASE_DIRECTORIES[STUDY] /
                        'fixtures/argument-repair.txt'), 'handout_changes_rejected': True,
                    'argument_type_error_rejected': True, 'lean_arguments': ['-j1'],
-                   'lean_imports': ['Init.Data.Int.DivMod.Lemmas']}
+                   'lean_imports': ['Init.Data.Int.DivMod.Lemmas'], 'run_attempt': 1}
         with patch.object(local, 'implementation_bindings', return_value={}), \
                 patch.object(public, 'core_digest', return_value='checker'):
             feedback.validate_controls(receipt, STUDY)
             for change in ({'repair_instruction_sha256': '0' * 64}, {'handout_changes_rejected': False},
-                           {'argument_type_error_rejected': False}, {'lean_arguments': []}, {'lean_imports': ['Init']}):
+                           {'argument_type_error_rejected': False}, {'lean_arguments': []},
+                           {'lean_imports': ['Init']}, {'run_attempt': 2}, {'run_attempt': True}):
                 with self.assertRaises(ValueError):
                     feedback.validate_controls({**receipt, **change}, STUDY)
 
