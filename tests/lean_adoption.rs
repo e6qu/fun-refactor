@@ -44,12 +44,12 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     );
     let model = workspace.path().join("specs/FrSpecs/SrcLibRsKeep.lean");
     let original = std::fs::read_to_string(&model).unwrap();
+    assert!(original.starts_with("prelude\n"));
     std::fs::write(
         &model,
-        format!(
-            "import FrSpecs.Policy\n\n{}",
-            original.replacen("  value\n", "  Policy.choose value\n", 1)
-        ),
+        original
+            .replacen("prelude\n", "prelude\nimport FrSpecs.Policy\n", 1)
+            .replacen("  value\n", "  Policy.choose value\n", 1),
     )
     .unwrap();
     let dependency = workspace.path().join("specs/FrSpecs/Policy.lean");
@@ -63,7 +63,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         .unwrap();
     assert!(
         built.status.success(),
-        "{}",
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&built.stdout),
         String::from_utf8_lossy(&built.stderr)
     );
     assert_eq!(std::fs::read(&lockfile).unwrap(), initialized_lockfile);
