@@ -6,6 +6,14 @@ invalid inputs return `-1`, and valid signed-64 inputs have the original bounds.
 The model still uses mathematical integers. These controls do not prove that the
 Rust implementation matches the model.
 
+Truncating division rounds toward zero: dividing `-11` by `5` gives `-2`,
+with remainder `-1`. Euclidean division uses a nonnegative remainder: the same
+integers give quotient `-3` and remainder `4`. These are arithmetic examples,
+not valid page-counter inputs. In the valid branch, nonnegative items and a
+positive page size make both quotients agree, but Lean needs that connection
+stated explicitly. `omega` is Lean's arithmetic tactic; it does not automatically
+supply every relationship involving division by a changing value.
+
 Lean accepted the reference before and after seven controlled mistakes. Each
 rejection included a location in the submitted draft. No agent was called, and
 no original attempt changed outcome.
