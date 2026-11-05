@@ -79,7 +79,7 @@ The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/
 pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
 The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
 also passes the syntax fixtures and affected project files.
-Fresh measurements are being collected before the final full CI gate.
+Collect and audit fresh measurements before the final full CI gate.
 These are tool checks. We have not measured improved GLM or Kimi success with this interface.
 
 **After those checks pass:** freeze a new comparison before spending model calls.
