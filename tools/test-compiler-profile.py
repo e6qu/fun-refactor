@@ -161,7 +161,13 @@ class CompilerProfile(unittest.TestCase):
 
     def test_shadow_refusal_requires_a_selection_reason(self):
         value, row = self.changed('python-shadow')
-        row['events']['origins']['stderr'] = 'unrelated command failure'
+        self.change_report(row, 'origins', lambda r: r['error'].update(message='unrelated command failure'))
+        self.reject(value)
+
+    def test_shadow_refusal_rejects_stderr_only_errors(self):
+        value, row = self.changed('python-shadow')
+        row['events']['origins']['stdout'] = ''
+        row['events']['origins']['stderr'] = 'no exact semantic IR item'
         self.reject(value)
 
     def test_incomplete_flow_cannot_become_complete(self):
