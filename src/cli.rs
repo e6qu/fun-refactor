@@ -3026,6 +3026,26 @@ fn project_text(report: &serde_json::Value, root: &Path) -> Result<String> {
             })
             .collect()
     }
+    fn field(name: &str, value: &Value, indent: usize, out: &mut String) -> Result<()> {
+        let pad = " ".repeat(indent);
+        let label = text(&name.replace('_', " "));
+        match value {
+            Value::String(value) if !value.contains('\n') => {
+                out.push_str(&format!("{pad}{label}: {}\n", text(value)));
+            }
+            Value::Null | Value::Bool(_) | Value::Number(_) => {
+                out.push_str(&format!("{pad}{label}: {value}\n"));
+            }
+            Value::Array(values) if values.is_empty() => {
+                out.push_str(&format!("{pad}{label}: none\n"));
+            }
+            _ => {
+                out.push_str(&format!("{pad}{label}:\n"));
+                render(value, indent + 2, out)?;
+            }
+        }
+        Ok(())
+    }
     fn render(value: &Value, indent: usize, out: &mut String) -> Result<()> {
         let pad = " ".repeat(indent);
         match value {
@@ -3049,9 +3069,11 @@ fn project_text(report: &serde_json::Value, root: &Path) -> Result<String> {
                     if key == "columns" && table.is_some() {
                         continue;
                     }
-                    out.push_str(&format!("{pad}{}:\n", key.replace('_', " ")));
                     if key == "rows" && table.is_some() {
                         let (columns, rows) = table.context("project table is absent")?;
+                        if rows.is_empty() {
+                            out.push_str(&format!("{pad}No results.\n"));
+                        }
                         for (index, row) in rows.iter().enumerate() {
                             let row = row.as_array().context("project row must be an array")?;
                             anyhow::ensure!(
@@ -3062,12 +3084,11 @@ fn project_text(report: &serde_json::Value, root: &Path) -> Result<String> {
                             for (column, cell) in columns.iter().zip(row) {
                                 let name =
                                     column.as_str().context("project column must be text")?;
-                                out.push_str(&format!("{pad}    {}:\n", name.replace('_', " ")));
-                                render(cell, indent + 6, out)?;
+                                field(name, cell, indent + 4, out)?;
                             }
                         }
                     } else {
-                        render(value, indent + 2, out)?;
+                        field(key, value, indent, out)?;
                     }
                 }
             }
@@ -3086,7 +3107,7 @@ fn project_text(report: &serde_json::Value, root: &Path) -> Result<String> {
         }
         Ok(())
     }
-    let mut result = format!("Scan root: {}\n", root.display());
+    let mut result = format!("Scan root: {}\n", text(&root.display().to_string()));
     render(report, 0, &mut result)?;
     Ok(result.trim_end().to_owned())
 }
@@ -8221,6 +8242,26 @@ fn cmd_spec_compare(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_text_names_columns_preserves_omissions_and_escapes_terminal_controls() {
+        let report = serde_json::json!({
+            "columns": ["path", "name"], "rows": [["source.py", "hi\u{1b}[31m"]],
+            "coverage": {"complete": false, "omitted": ["unsupported input"]},
+            "page": {"next": "next-page"}
+        });
+        let text = project_text(&report, Path::new("sample")).unwrap();
+        assert!(text.contains("path: source.py"));
+        assert!(text.contains("name: hi\\u{1b}[31m"));
+        assert!(!text.contains('\u{1b}'));
+        assert!(text.contains("complete: false") && text.contains("unsupported input"));
+        assert!(text.contains("next: next-page"));
+        assert!(project_text(
+            &serde_json::json!({"columns":["path"],"rows":[[]]}),
+            Path::new(".")
+        )
+        .is_err());
+    }
 
     #[test]
     fn unknown_language_is_rejected_with_guidance() {

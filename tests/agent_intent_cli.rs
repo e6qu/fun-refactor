@@ -671,7 +671,7 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
     let input = tagged(
         proof_anchor,
         "prove",
-        json!({"kind":"proof-submission","obligation":name,
+        json!({"kind":"proof-submission","obligation":name,"bytes":4096,"timeout_seconds":30,
         "tactics":"rfl\n","checks":["syntax"],"delivery":proof_delivery}),
     );
     let mut wrong = input.clone();

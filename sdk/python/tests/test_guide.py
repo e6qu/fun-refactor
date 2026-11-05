@@ -390,7 +390,7 @@ def test_common_guide_review_executes_the_unchanged_native_action():
     ("formalization", "prove", GoalOperation("formalize"),
      FormalPlanOperation((), package="proofs", checks=("syntax",), delivery=TaskDelivery())),
     ("proof", "prove", GoalOperation("proof", {"obligation": "goal"}),
-     ProofSubmissionOperation("goal", "rfl\n", ("syntax",), TaskDelivery())),
+     ProofSubmissionOperation("goal", "rfl\n", 4096, 30, ("syntax",), TaskDelivery())),
 ])
 def test_common_review_type_covers_each_writable_guide_route(
         route, purpose, goal_operation, operation):

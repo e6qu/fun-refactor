@@ -129,6 +129,8 @@ enum Operation {
     ProofSubmission {
         obligation: String,
         tactics: String,
+        bytes: usize,
+        timeout_seconds: u64,
         checks: Vec<String>,
         delivery: task_change::Delivery,
     },
@@ -719,6 +721,8 @@ impl Project<'_> {
             Operation::ProofSubmission {
                 obligation,
                 tactics,
+                bytes,
+                timeout_seconds,
                 checks,
                 delivery,
             } => {
@@ -749,7 +753,13 @@ impl Project<'_> {
                     .and_then(Path::parent)
                     .context("proof target has no package")?;
                 let snapshot = self.stage_intent_proof_package(package, &[])?;
-                let proof = crate::spec::prove(snapshot.path(), &target, scratch.path())?;
+                let proof = crate::spec::prove(
+                    snapshot.path(),
+                    &target,
+                    scratch.path(),
+                    *bytes,
+                    *timeout_seconds,
+                )?;
                 prepared.report["proof"] = json!({"goal_id": proof.goal_id, "obligation": proof.obligation,
                     "proof_digest": proof.proof_digest, "receipt": proof.receipt});
                 prepared.report["claims"]["model_theorem_checked"] = json!(true);
