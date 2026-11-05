@@ -18,7 +18,7 @@ The proof-delivery control checks supplied tactics, reviews the edit, exports a 
 A timed-out attempt still fails. The control makes no model call.
 The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146) pass, including the new reader regression and stalled-process controls.
 The new measurement records and their audits pass.
-PR [#603](https://github.com/e6qu/fun-refactor/pull/603) is merged.
+The repairs shipped in PR [#603](https://github.com/e6qu/fun-refactor/pull/603).
 Its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
 and all companion workflows passed. These checks establish tool behavior, not improved model success.
 
