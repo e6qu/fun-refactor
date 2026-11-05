@@ -48,7 +48,6 @@ proof_goal = AgentGoal(
 proof_file = GuideFile("proof.lean", "rfl\n")
 client.complete_guide(proof_goal, {
     1: GuideInputs({"tactics-file": proof_file}),
-    2: GuideInputs({"tactics-file": proof_file}),
 })
 print(json.dumps({
     "schema": "fr-matched-outcomes-1",

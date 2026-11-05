@@ -57,7 +57,7 @@ const EXIT_CODES_HELP: &str = "Exit codes:\n  \
 #[command(
     name = "fr",
     version,
-    about = "Multi-language refactoring and code intelligence",
+    about = "Find code, make checked changes, and write Lean proofs",
     long_about = None,
     after_long_help = EXIT_CODES_HELP
 )]
@@ -73,10 +73,6 @@ struct Cli {
     /// Workspace root to operate on.
     #[arg(long, short = 'C', global = true, default_value = ".")]
     root: PathBuf,
-
-    /// True where the caller left `root` unstated and the tool had to find it.
-    #[arg(skip)]
-    root_inferred: bool,
 
     /// Read files that .gitignore and friends exclude, and hidden files too.
     #[arg(long, global = true)]
@@ -121,13 +117,20 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(
+        about = "Find proof goals, inspect draft steps, check tactics and save accepted proofs."
+    )]
+    Proof {
+        #[command(subcommand)]
+        command: ProofCommand,
+    },
     #[command(about = "Report the native and Python SDK compatibility contract.")]
     Compatibility,
     #[command(about = "Inspect bounded source-derived support and trust evidence.")]
     Audit(crate::audit::Options),
     #[command(about = "Inspect or execute checks explicitly declared by the project.")]
     Checks(crate::checks::Options),
-    #[command(about = "Author bounded structural changes through project handles.")]
+    #[command(about = "Preview and apply changes to selected code.")]
     Author {
         #[command(subcommand)]
         command: crate::project::author::Command,
@@ -146,14 +149,14 @@ enum Command {
     Intent(crate::project::agent_intent::Options),
     #[command(about = "Choose a bounded language-aware workflow from one structured agent goal.")]
     Guide(crate::project::agent_guide::Options),
-    #[command(about = "Inspect bounded project maps and revision-bound source details.")]
+    #[command(about = "Find code and inspect source, callers and dependencies.")]
     Project {
         #[command(subcommand)]
         command: crate::project::Command,
     },
     #[command(about = "Preview or execute one reviewed agent task change.")]
     TaskChange(crate::project::task_change::Options),
-    #[command(about = "Validate and deliver one reviewed source-history transaction.")]
+    #[command(about = "Run project checks for a saved edit and export its patch.")]
     Workflow(crate::workflow::Options),
     /// List, inspect, apply or reverse workspace transactions.
     History {
@@ -663,6 +666,100 @@ enum RecipeCommand {
 }
 
 #[derive(Subcommand)]
+enum ProofCommand {
+    #[command(
+        about = "Create a fresh skip draft and inspect its actual initial goal; never overwrite a draft."
+    )]
+    Start {
+        target: String,
+        #[arg(
+            long,
+            value_name = "DRAFT",
+            help = "New workspace-relative tactics file to create."
+        )]
+        draft: PathBuf,
+        #[arg(long, value_name = "BYTES")]
+        bytes: usize,
+        #[arg(long, value_name = "SECONDS")]
+        timeout_seconds: u64,
+    },
+
+    #[command(about = "List the exact targets accepted by the proof commands.")]
+    List {
+        #[arg(required = true, num_args = 1.., help = "Lean files or folders to inspect.")]
+        paths: Vec<PathBuf>,
+        #[arg(long, value_name = "DIGEST")]
+        goal: Option<String>,
+        #[arg(long, value_name = "COUNT")]
+        limit: usize,
+        #[arg(long, value_name = "BYTES")]
+        bytes: usize,
+    },
+    #[command(about = "Show a proof's fixed claim, assumptions and next commands.")]
+    Show {
+        #[arg(help = "Copy a target from `fr proof list`: FILE.lean::THEOREM.")]
+        target: String,
+        #[arg(long, value_name = "BYTES")]
+        bytes: usize,
+    },
+    #[command(about = "Inspect the current goal after a step in a draft.")]
+    State {
+        #[arg(help = "Copy a target from `fr proof list`: FILE.lean::THEOREM.")]
+        target: String,
+        #[arg(
+            long,
+            value_name = "DRAFT",
+            help = "Tactics file; omit the leading `by`."
+        )]
+        draft: PathBuf,
+        #[arg(
+            long,
+            value_name = "POSITION",
+            help = "LINE:COLUMN, LINE:end, or end for the last nonempty draft line."
+        )]
+        at: String,
+        #[arg(long, value_name = "BYTES")]
+        bytes: usize,
+        #[arg(
+            long,
+            value_name = "SECONDS",
+            help = "Shared dependency and checker deadline, 1..60 seconds."
+        )]
+        timeout_seconds: u64,
+    },
+    #[command(
+        about = "Check the complete draft without writing source; a rejected proof exits with status 1."
+    )]
+    Check {
+        target: String,
+        #[arg(
+            long,
+            value_name = "DRAFT",
+            help = "Tactics file; omit the leading `by`."
+        )]
+        draft: PathBuf,
+        #[arg(long, value_name = "BYTES")]
+        bytes: usize,
+        #[arg(long, value_name = "SECONDS")]
+        timeout_seconds: u64,
+    },
+    #[command(about = "Check a draft and write its accepted proof through source history.")]
+    Save {
+        target: String,
+        #[arg(
+            long,
+            value_name = "DRAFT",
+            help = "Tactics file; omit the leading `by`."
+        )]
+        draft: PathBuf,
+        #[arg(long, value_name = "BYTES")]
+        bytes: usize,
+        #[arg(long, value_name = "SECONDS")]
+        timeout_seconds: u64,
+    },
+}
+
+#[derive(Subcommand)]
 enum SpecCommand {
     #[command(about = "Capture a bounded Boolean source/model snapshot for comparison.")]
     Snapshot { target: String },
@@ -739,75 +836,6 @@ enum SpecCommand {
             help = "Initialized specification package."
         )]
         package: PathBuf,
-        #[arg(long, help = "Write through source history.")]
-        write: bool,
-    },
-    #[command(about = "Disclose content-addressed Lean proof goals within a byte ceiling.")]
-    Goals {
-        #[arg(help = "Lean spec files or directories; defaults to kernels and specs.")]
-        paths: Vec<PathBuf>,
-        #[arg(long, value_name = "DIGEST")]
-        goal: Option<String>,
-        #[arg(long, default_value_t = 32, value_name = "COUNT")]
-        limit: usize,
-        #[arg(long, default_value_t = 4096, value_name = "BYTES")]
-        token_limit: usize,
-    },
-    #[command(about = "Build a bounded proof task without supplying proof tactics.")]
-    ProofTask {
-        #[arg(help = "Target as spec-path::obligation-name.")]
-        target: String,
-        #[arg(long, default_value_t = 4096, value_name = "BYTES")]
-        token_limit: usize,
-    },
-    #[command(about = "Check agent-written tactics with Lean without changing the workspace.")]
-    ProofCheck {
-        #[arg(help = "Target as spec-path::obligation-name.")]
-        target: String,
-        #[arg(
-            long,
-            value_name = "PROOF",
-            help = "File containing tactics without the leading `by`."
-        )]
-        from: PathBuf,
-        #[arg(long, default_value_t = 4096, value_name = "BYTES")]
-        token_limit: usize,
-    },
-    #[command(about = "Inspect Lean goals and available facts at a position in a proof draft.")]
-    ProofState {
-        #[arg(help = "Target as spec-path::obligation-name.")]
-        target: String,
-        #[arg(
-            long,
-            value_name = "PROOF",
-            help = "Tactics file without the leading `by`."
-        )]
-        from: PathBuf,
-        #[arg(
-            long,
-            value_name = "LINE:COLUMN",
-            help = "One-based line and Unicode character column, including the line end."
-        )]
-        at: String,
-        #[arg(long, value_name = "BYTES")]
-        token_limit: usize,
-        #[arg(
-            long,
-            value_name = "SECONDS",
-            help = "Shared deadline for dependencies and the Lean editor query (1..60)."
-        )]
-        timeout_seconds: u64,
-    },
-    #[command(about = "Replace exactly one generated proof region with Lean tactics.")]
-    Prove {
-        #[arg(help = "Target as spec-path::obligation-name.")]
-        target: String,
-        #[arg(
-            long,
-            value_name = "PROOF",
-            help = "File containing tactics without the leading `by`."
-        )]
-        from: PathBuf,
         #[arg(long, help = "Write through source history.")]
         write: bool,
     },
@@ -978,22 +1006,36 @@ fn completion_script(shell: CompletionShell) -> String {
 }
 
 pub fn run() -> Result<()> {
-    let matches = <Cli as clap::CommandFactory>::command().get_matches();
-    let mut cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
-        .map_err(|e| Fault::invalid_input(e.to_string()))?;
-    if matches.value_source("root") != Some(clap::parser::ValueSource::CommandLine) {
-        if let Some(project) = enclosing_project(&cli.root) {
-            eprintln!(
-                "Reading the whole of {}, the project {} sits in. Pass `-C .` for \
-                 this directory alone.",
-                project.display(),
-                cli.root.display()
+    let matches = match <Cli as clap::CommandFactory>::command().try_get_matches() {
+        Ok(matches) => matches,
+        Err(error) => {
+            let help = matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
             );
-            cli.root = project;
-            cli.root_inferred = true;
+            if help {
+                print!("{error}");
+                std::process::exit(0);
+            }
+            if std::env::args_os()
+                .skip(1)
+                .take_while(|argument| argument != "--")
+                .any(|argument| argument == "--json")
+            {
+                println!(
+                    "{}",
+                    serde_json::to_string(&serde_json::json!({
+                        "error": {"kind": "invalid-input", "message": error.to_string()}
+                    }))?
+                );
+            } else {
+                error.print()?;
+            }
+            std::process::exit(2);
         }
-    }
-    let cli = cli;
+    };
+    let cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
+        .map_err(|e| Fault::invalid_input(e.to_string()))?;
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -1014,9 +1056,9 @@ pub fn run() -> Result<()> {
     };
     if cli.json {
         report_json_error(&error);
+    } else {
+        eprintln!("Error: {}", humanize_paths(&cli, format!("{error:?}")));
     }
-    // The same prose, in the same shape, that returning the error from `main` printed.
-    eprintln!("Error: {}", humanize_paths(&cli, format!("{error:?}")));
     std::process::exit(exit_code(&error));
 }
 
@@ -1088,9 +1130,6 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 | Command::Spec {
                     command: SpecCommand::Sync { .. }
                 }
-                | Command::Spec {
-                    command: SpecCommand::Prove { .. }
-                }
                 | Command::Openapi { out: Some(_), .. }
         )
     {
@@ -1143,6 +1182,40 @@ fn dispatch(cli: &Cli) -> Result<()> {
             println!("{}", serde_json::to_string(&report)?);
             Ok(())
         }),
+        Command::Proof { command } => match command {
+            ProofCommand::Start {
+                target,
+                draft,
+                bytes,
+                timeout_seconds,
+            } => cmd_proof_start(cli, target, draft, *bytes, *timeout_seconds),
+            ProofCommand::List {
+                paths,
+                goal,
+                limit,
+                bytes,
+            } => cmd_spec_goals(cli, paths, goal.as_deref(), *limit, *bytes),
+            ProofCommand::Show { target, bytes } => cmd_spec_proof_task(cli, target, *bytes),
+            ProofCommand::State {
+                target,
+                draft,
+                at,
+                bytes,
+                timeout_seconds,
+            } => cmd_spec_proof_state(cli, target, draft, at, *bytes, *timeout_seconds),
+            ProofCommand::Check {
+                target,
+                draft,
+                bytes,
+                timeout_seconds,
+            } => cmd_spec_proof_check(cli, target, draft, *bytes, *timeout_seconds),
+            ProofCommand::Save {
+                target,
+                draft,
+                bytes,
+                timeout_seconds,
+            } => cmd_proof_save(cli, target, draft, *bytes, *timeout_seconds),
+        },
         Command::Project { command } => cmd_project(cli, command),
         Command::TaskChange(options) => cmd_task_change(cli, options),
         Command::Workflow(options) => {
@@ -1299,33 +1372,6 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 (None, Some(plan)) => cmd_spec_scaffold_formal(cli, plan, package, *write),
                 _ => anyhow::bail!("spec scaffold requires either TARGET or --from PLAN."),
             },
-            SpecCommand::Goals {
-                paths,
-                goal,
-                limit,
-                token_limit,
-            } => cmd_spec_goals(cli, paths, goal.as_deref(), *limit, *token_limit),
-            SpecCommand::ProofTask {
-                target,
-                token_limit,
-            } => cmd_spec_proof_task(cli, target, *token_limit),
-            SpecCommand::ProofCheck {
-                target,
-                from,
-                token_limit,
-            } => cmd_spec_proof_check(cli, target, from, *token_limit),
-            SpecCommand::ProofState {
-                target,
-                from,
-                at,
-                token_limit,
-                timeout_seconds,
-            } => cmd_spec_proof_state(cli, target, from, at, *token_limit, *timeout_seconds),
-            SpecCommand::Prove {
-                target,
-                from,
-                write,
-            } => cmd_spec_prove(cli, target, from, *write),
             SpecCommand::Ci {
                 package,
                 max_debt,
@@ -1595,9 +1641,13 @@ fn cmd_spec_goals(
         );
     } else {
         for item in &report.catalog {
-            println!("{}\t{}::{}", item.id, item.spec.display(), item.name);
+            println!("{}::{}", item.spec.display(), item.name);
         }
-        println!("Commitment: {}", report.commitment.object_root);
+        println!(
+            "Shown {} proof targets; {} omitted. Use --json for their identities.",
+            report.catalog.len(),
+            report.omitted
+        );
     }
     Ok(())
 }
@@ -1607,36 +1657,136 @@ fn cmd_spec_proof_task(cli: &Cli, target: &str, token_limit: usize) -> Result<()
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&task)?);
     } else {
-        println!("Proof task {}", task.object_digest);
-        println!("Goal: {}", task.goal.theorem);
-        println!("Author: {}", task.contract.author);
-        println!("Use --json for templates and exact next actions.");
+        println!("Target: {}", task.goal.target);
+        println!("Claim: {}", task.goal.theorem);
+        for (index, part) in task.claim.parts.iter().enumerate() {
+            println!("\nPart {}", index + 1);
+            for assumption in &part.assumptions {
+                println!("Given: {assumption}");
+            }
+            for conclusion in &part.conclusions {
+                println!("Prove: {conclusion}");
+            }
+        }
+        println!("\nStart with: fr proof start {} --draft .fr/proof-tactics --bytes {} --timeout-seconds 30", shell_arguments(&[target.into()]), token_limit);
     }
     Ok(())
 }
 
-fn cmd_spec_proof_check(cli: &Cli, target: &str, from: &Path, token_limit: usize) -> Result<()> {
+fn cmd_spec_proof_check(
+    cli: &Cli,
+    target: &str,
+    from: &Path,
+    token_limit: usize,
+    timeout_seconds: u64,
+) -> Result<()> {
     let root = workspace_root(cli);
     let proof_path = if from.is_absolute() {
         from.to_path_buf()
     } else {
         root.join(from)
     };
-    let attempt = crate::spec::proof_check(&root, target, &proof_path, token_limit)?;
+    let attempt =
+        crate::spec::proof_check(&root, target, &proof_path, token_limit, timeout_seconds)?;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&attempt)?);
     } else if attempt.passed {
-        println!(
-            "Lean accepted proof {} for goal {}.",
-            attempt.proof_digest, attempt.goal_id
-        );
+        println!("Proof accepted: {target}");
+        if let Some(action) = &attempt.actions.apply {
+            println!("Save with: fr {}", shell_arguments(action));
+        }
     } else {
-        println!("Lean rejected proof {}.", attempt.proof_digest);
+        println!("Proof rejected: {target}");
         for diagnostic in &attempt.diagnostics {
-            println!("{}: {}", diagnostic.severity, diagnostic.message);
+            if let Some(location) = &diagnostic.draft_location {
+                println!(
+                    "{} {}:{}:{}: {}",
+                    diagnostic.severity,
+                    location.path.display(),
+                    location.line,
+                    location.column,
+                    diagnostic.message
+                );
+            } else {
+                println!("{}: {}", diagnostic.severity, diagnostic.message);
+            }
+            for line in &diagnostic.context {
+                println!("  {line}");
+            }
+            if diagnostic.context_omitted_lines > 0 {
+                println!(
+                    "  {} context lines omitted; choose a larger --bytes value.",
+                    diagnostic.context_omitted_lines
+                );
+            }
+        }
+        if attempt.diagnostics_omitted > 0 {
+            println!(
+                "{} diagnostics omitted; choose a larger --bytes value.",
+                attempt.diagnostics_omitted
+            );
         }
     }
+    if !attempt.passed {
+        std::process::exit(1);
+    }
     Ok(())
+}
+
+fn cmd_proof_start(
+    cli: &Cli,
+    target: &str,
+    draft: &Path,
+    bytes: usize,
+    timeout_seconds: u64,
+) -> Result<()> {
+    use std::io::Write;
+    let root = workspace_root(cli);
+    anyhow::ensure!(
+        (1024..=16384).contains(&bytes) && (1..=60).contains(&timeout_seconds),
+        "proof start needs 1024..16384 response bytes and 1..60 checking seconds"
+    );
+    anyhow::ensure!(
+        !draft.as_os_str().is_empty()
+            && draft
+                .components()
+                .any(|part| matches!(part, std::path::Component::Normal(_)))
+            && draft.components().all(|part| matches!(
+                part,
+                std::path::Component::Normal(_) | std::path::Component::CurDir
+            )),
+        "use a workspace-relative draft file without parent-directory steps (..)"
+    );
+    crate::spec::proof_task(&root, target, 16384, !cli.no_ignore)?;
+    let mut component_path = root.clone();
+    for component in draft.components() {
+        component_path.push(component.as_os_str());
+        if let Ok(metadata) = std::fs::symlink_metadata(&component_path) {
+            anyhow::ensure!(
+                !metadata.file_type().is_symlink(),
+                "draft paths cannot traverse a symlink"
+            );
+        }
+    }
+    let path = root.join(draft);
+    let parent = path.parent().context("draft has no parent directory")?;
+    std::fs::create_dir_all(parent)?;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .with_context(|| {
+            format!(
+                "create a new draft {}; existing drafts stay unchanged",
+                draft.display()
+            )
+        })?;
+    file.write_all(b"skip\n")?;
+    file.flush()?;
+    let mut state = crate::spec::proof_state(&root, target, &path, (1, 5), bytes, timeout_seconds)
+        .with_context(|| format!("created draft {}; initial inspection failed; keep the draft and use `fr proof state` to inspect it", draft.display()))?;
+    state.operation = "proof-start";
+    present_proof_state(cli, &state)
 }
 
 fn cmd_spec_proof_state(
@@ -1647,23 +1797,19 @@ fn cmd_spec_proof_state(
     token_limit: usize,
     timeout_seconds: u64,
 ) -> Result<()> {
-    let (line, column) = at
-        .split_once(':')
-        .context("proof cursor needs one-based LINE:COLUMN")?;
-    let at = (
-        line.parse::<usize>().context("invalid proof cursor line")?,
-        column
-            .parse::<usize>()
-            .context("invalid proof cursor column")?,
-    );
     let root = workspace_root(cli);
     let proof_path = if from.is_absolute() {
         from.to_path_buf()
     } else {
         root.join(from)
     };
+    let at = crate::spec::proof_cursor(&crate::vfs::read_to_string(&proof_path)?, at)?;
     let state =
         crate::spec::proof_state(&root, target, &proof_path, at, token_limit, timeout_seconds)?;
+    present_proof_state(cli, &state)
+}
+
+fn present_proof_state(cli: &Cli, state: &crate::spec::ProofState) -> Result<()> {
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&state)?);
     } else {
@@ -1671,14 +1817,14 @@ fn cmd_spec_proof_state(
             "{} at {}:{}:{}",
             state.target,
             state.draft_location.path.display(),
-            at.0,
-            at.1
+            state.draft_location.line,
+            state.draft_location.column
         );
         println!("Claim: {}", state.theorem);
         match state.status {
             crate::spec::ProofStateStatus::Goals => {
                 for (index, goal) in state.goals.iter().enumerate() {
-                    println!("\nGoal {}:\n{goal}", index + 1);
+                    println!("\nGoal {}:\n{}\n⊢ {}", index + 1, goal.context, goal.goal);
                 }
             }
             crate::spec::ProofStateStatus::ClosedAtPosition => {
@@ -1688,78 +1834,72 @@ fn cmd_spec_proof_state(
                 println!("No tactic proof at this position.")
             }
         }
-        println!("Run proof-check on the complete draft before saving.");
+        println!(
+            "This position does not accept the whole proof.\nComplete draft check: fr {}",
+            shell_arguments(&state.check)
+        );
     }
     Ok(())
 }
 
-fn cmd_spec_prove(cli: &Cli, target: &str, from: &Path, write: bool) -> Result<()> {
+fn cmd_proof_save(
+    cli: &Cli,
+    target: &str,
+    from: &Path,
+    token_limit: usize,
+    timeout_seconds: u64,
+) -> Result<()> {
     let root = workspace_root(cli);
     let proof_path = if from.is_absolute() {
         from.to_path_buf()
     } else {
         root.join(from)
     };
-    let plan = crate::spec::prove(&root, target, &proof_path)?;
+    let plan = crate::spec::prove(&root, target, &proof_path, token_limit, timeout_seconds)?;
+    let shown = shown_path(&root, &plan.spec);
+    let status = if plan.original == plan.updated {
+        "already-present"
+    } else {
+        "written"
+    };
+    let mut report = serde_json::json!({
+        "schema": 1, "operation": "proof-save", "status": status,
+        "proof_checked": true,
+        "scope": "Lean accepted this target proof. Check the complete package before delivery.",
+        "spec": shown, "obligation": plan.obligation, "goal_id": plan.goal_id,
+        "proof_digest": plan.proof_digest, "receipt": plan.receipt,
+        "transaction": u64::MAX, "applied": true,
+        "verify": ["spec", "verify", shown],
+    });
+    let response_bytes = serde_json::to_vec_pretty(&report)?.len() + 1;
+    anyhow::ensure!(
+        response_bytes <= token_limit,
+        "proof save result exceeds --bytes {token_limit}; fr wrote no source"
+    );
     let change = crate::edit::FileChange {
         path: &plan.spec,
         original: &plan.original,
         updated: &plan.updated,
     };
-    let transaction = persist_changes(cli, &[change], write, "lean-proof-v1")?;
-    let shown = shown_path(&root, &plan.spec);
-    let diff = crate::edit::unified_diff(&plan.original, &plan.updated, &shown);
-    let status = if plan.original == plan.updated {
-        "already-present"
-    } else if write {
-        "written"
-    } else if cli.save_plan {
-        "planned"
-    } else {
-        "preview"
-    };
+    let transaction = persist_changes(cli, &[change], true, "lean-proof-v1")?;
+    report["transaction"] = serde_json::to_value(transaction)?;
+    report["applied"] = serde_json::json!(transaction.is_some());
     if cli.json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "schema": 1,
-                "operation": "spec_prove",
-                "status": status,
-                "proof_checked": true,
-                "scope": "Lean accepted this target proof. Check the complete package before delivery.",
-                "spec": shown,
-                "obligation": plan.obligation,
-                "goal_id": plan.goal_id,
-                "proof_digest": plan.proof_digest,
-                "receipt": plan.receipt,
-                "diff": diff,
-                "transaction": transaction,
-                "applied": write && transaction.is_some(),
-                "saved": cli.save_plan && transaction.is_some(),
-                "verify": ["spec", "verify", shown],
-            }))?
-        );
+        println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        if !write {
-            print!("{diff}");
-        }
         println!(
-            "{} proof {} in {}.",
-            if status == "already-present" {
-                "Lean accepted the already-present"
-            } else if write {
-                "Wrote the Lean-checked"
-            } else if cli.save_plan {
-                "Saved a plan for the Lean-checked"
+            "{}: {}",
+            if status == "written" {
+                "Saved checked proof"
             } else {
-                "Would write the Lean-checked"
+                "Checked proof already present"
             },
-            plan.obligation,
-            shown
+            target
         );
-        if status == "preview" {
-            println!("Nothing written. Re-run with --write to apply.");
+        if let Some(id) = transaction {
+            println!("Saved edit: {id}");
         }
+        println!("Before delivery, run the package checks and export the selected saved edits with fr history patch.");
     }
     Ok(())
 }
@@ -2561,33 +2701,6 @@ fn write_patch_artifact(root: &Path, requested: &Path, patch: &str) -> Result<()
     Ok(())
 }
 
-/// The project `start` sits inside, when that is somewhere above `start`.
-fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
-    const MARKERS: &[&str] = &[
-        ".git",
-        "Cargo.toml",
-        "go.mod",
-        "package.json",
-        "pyproject.toml",
-        "setup.py",
-        "build.zig",
-        "pom.xml",
-        "build.gradle",
-        "build.gradle.kts",
-    ];
-    let from = start.canonicalize().ok()?;
-    if !from.is_dir() {
-        return None;
-    }
-    let found = from.ancestors().find(|dir| {
-        MARKERS
-            .iter()
-            .any(|marker| crate::vfs::exists(dir.join(marker).as_path()))
-    })?;
-    // Already at the project root: the default is right and needs no note.
-    (found != from).then(|| found.to_path_buf())
-}
-
 /// The canonical workspace root, the spelling the index writes into every path.
 fn workspace_root(cli: &Cli) -> PathBuf {
     cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone())
@@ -2899,6 +3012,126 @@ fn with_project(
     action(&project, &root)
 }
 
+fn shell_arguments(arguments: &[String]) -> String {
+    arguments
+        .iter()
+        .map(|argument| {
+            if !argument.is_empty()
+                && argument.chars().all(|character| {
+                    character.is_ascii_alphanumeric() || "_-/.:=@%+,".contains(character)
+                })
+            {
+                argument.clone()
+            } else {
+                format!("'{}'", argument.replace('\'', "'\\''"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn project_text(report: &serde_json::Value, root: &Path) -> Result<String> {
+    use serde_json::Value;
+    fn text(value: &str) -> String {
+        value
+            .chars()
+            .map(|character| {
+                if character.is_control() && !matches!(character, '\n' | '\t') {
+                    character.escape_default().to_string()
+                } else {
+                    character.to_string()
+                }
+            })
+            .collect()
+    }
+    fn field(name: &str, value: &Value, indent: usize, out: &mut String) -> Result<()> {
+        let pad = " ".repeat(indent);
+        let label = text(&name.replace('_', " "));
+        match value {
+            Value::String(value) if !value.contains('\n') => {
+                out.push_str(&format!("{pad}{label}: {}\n", text(value)));
+            }
+            Value::Null | Value::Bool(_) | Value::Number(_) => {
+                out.push_str(&format!("{pad}{label}: {value}\n"));
+            }
+            Value::Array(values) if values.is_empty() => {
+                out.push_str(&format!("{pad}{label}: none\n"));
+            }
+            _ => {
+                out.push_str(&format!("{pad}{label}:\n"));
+                render(value, indent + 2, out)?;
+            }
+        }
+        Ok(())
+    }
+    fn render(value: &Value, indent: usize, out: &mut String) -> Result<()> {
+        let pad = " ".repeat(indent);
+        match value {
+            Value::Object(object) => {
+                let table = match (object.get("columns"), object.get("rows")) {
+                    (Some(Value::Array(columns)), Some(Value::Array(rows))) => {
+                        Some((columns, rows))
+                    }
+                    _ => None,
+                };
+                for key in
+                    ["query", "match", "rows", "tables", "page"]
+                        .into_iter()
+                        .chain(object.keys().map(String::as_str).filter(|key| {
+                            !["query", "match", "rows", "tables", "page"].contains(key)
+                        }))
+                {
+                    let Some(value) = object.get(key) else {
+                        continue;
+                    };
+                    if key == "columns" && table.is_some() {
+                        continue;
+                    }
+                    if key == "rows" && table.is_some() {
+                        let (columns, rows) = table.context("project table is absent")?;
+                        if rows.is_empty() {
+                            out.push_str(&format!("{pad}No results.\n"));
+                        } else {
+                            out.push_str(&format!("{pad}Results:\n"));
+                        }
+                        for (index, row) in rows.iter().enumerate() {
+                            let row = row.as_array().context("project row must be an array")?;
+                            anyhow::ensure!(
+                                row.len() == columns.len(),
+                                "project row differs from its columns"
+                            );
+                            out.push_str(&format!("{pad}  Result {}:\n", index + 1));
+                            for (column, cell) in columns.iter().zip(row) {
+                                let name =
+                                    column.as_str().context("project column must be text")?;
+                                field(name, cell, indent + 4, out)?;
+                            }
+                        }
+                    } else {
+                        field(key, value, indent, out)?;
+                    }
+                }
+            }
+            Value::Array(values) => {
+                for (index, value) in values.iter().enumerate() {
+                    out.push_str(&format!("{pad}Item {}:\n", index + 1));
+                    render(value, indent + 2, out)?;
+                }
+            }
+            Value::String(value) => {
+                for line in text(value).lines() {
+                    out.push_str(&format!("{pad}{line}\n"));
+                }
+            }
+            _ => out.push_str(&format!("{pad}{value}\n")),
+        }
+        Ok(())
+    }
+    let mut result = format!("Scan root: {}\n", text(&root.display().to_string()));
+    render(report, 0, &mut result)?;
+    Ok(result.trim_end().to_owned())
+}
+
 fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
@@ -2906,7 +3139,11 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
         project.verify(root)?;
         context.apply(&mut report)?;
         crate::project::minimize_semantic_report(command, &mut report);
-        println!("{}", serde_json::to_string(&report)?);
+        if cli.json {
+            println!("{}", serde_json::to_string(&report)?);
+        } else {
+            println!("{}", project_text(&report, root)?);
+        }
         Ok(())
     })
 }
@@ -3963,7 +4200,7 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     // An absolute path is already where it says.
-    let as_typed = path.is_absolute() || (cli.root_inferred && crate::vfs::exists(path));
+    let as_typed = path.is_absolute();
     let joined = match as_typed {
         true => path.to_path_buf(),
         false => root.join(path),
@@ -5029,7 +5266,7 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
     if baseline.routes.is_empty() {
         anyhow::bail!(
             "no API under {}. A Next.js route is `app/**/api/**/route.ts` or anything \
-             under `pages/api/`, with the URL coming from where the file sits; a FastAPI \
+             under `pages/api/`. Its URL follows the file location. A FastAPI \
              one is a `@router.get(\"…\")` on an `async def`.",
             root.display()
         );
@@ -5931,7 +6168,7 @@ fn cmd_flow(
     if !inputs.is_empty() && !matches!(symbol.language, Language::Helm | Language::Yaml) {
         anyhow::bail!(
             "-f/--set describe a helm invocation, but '{}' is {}, whose values have no Helm \
-             precedence to decide; drop the flags or point at a chart's values",
+             precedence to decide. Drop the flags or point at a chart's values",
             symbol.name,
             symbol.language
         );
@@ -7237,8 +7474,7 @@ fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
         println!("fallback  {}", cache.is_fallback());
         println!(
             "\nAn entry takes its key from every workspace file, the query set and the analysis \n\
-             code, so an edit makes every stale answer unreachable rather than serving a \n\
-             result that described an earlier tree."
+             code. An edit makes stale answers unreachable."
         );
     }
     Ok(())
@@ -8025,6 +8261,26 @@ fn cmd_spec_compare(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_text_names_columns_preserves_omissions_and_escapes_terminal_controls() {
+        let report = serde_json::json!({
+            "columns": ["path", "name"], "rows": [["source.py", "hi\u{1b}[31m"]],
+            "coverage": {"complete": false, "omitted": ["unsupported input"]},
+            "page": {"next": "next-page"}
+        });
+        let text = project_text(&report, Path::new("sample")).unwrap();
+        assert!(text.contains("path: source.py"));
+        assert!(text.contains("name: hi\\u{1b}[31m"));
+        assert!(!text.contains('\u{1b}'));
+        assert!(text.contains("complete: false") && text.contains("unsupported input"));
+        assert!(text.contains("next: next-page"));
+        assert!(project_text(
+            &serde_json::json!({"columns":["path"],"rows":[[]]}),
+            Path::new(".")
+        )
+        .is_err());
+    }
 
     #[test]
     fn unknown_language_is_rejected_with_guidance() {

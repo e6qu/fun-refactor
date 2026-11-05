@@ -119,7 +119,8 @@ def command(argv, root):
 
 
 def report(event):
-    require(event['exit_code'] == 0, 'fr command failed: ' + event['stderr'])
+    require(event['exit_code'] == 0,
+            'fr command failed: stdout=' + event['stdout'] + ' stderr=' + event['stderr'])
     return json.loads(event['stdout'])
 
 
@@ -238,6 +239,13 @@ def audit_case(row, case):
                 'profile command identity changed')
         if events[name]['exit_code'] == 0:
             require(report(events[name]).get('revision') == found['revision'], 'profile source revision changed between queries')
+        else:
+            refusal = json.loads(events[name]['stdout'])
+            require(not events[name]['stderr'] and isinstance(refusal, dict)
+                    and isinstance(refusal.get('error'), dict)
+                    and isinstance(refusal['error'].get('kind'), str)
+                    and isinstance(refusal['error'].get('message'), str),
+                    'profile refusal must be one JSON error on stdout with empty stderr')
     oracle = row['oracle']
     if case['language'] == 'python':
         require(oracle == python_oracle(case) and oracle['runtime'] == case['expected_runtime'], 'Python AST or runtime disagreement')
@@ -249,7 +257,7 @@ def audit_case(row, case):
                 and oracle['calls'] == rust_call_spans(case), 'Rust compiler/runtime disagreement')
         spans = oracle['calls']
         require(events['flow']['exit_code'] != 0 and 'Python scalar subset only' in
-                (events['flow']['stdout'] + events['flow']['stderr']), 'Rust flow boundary was lost')
+                json.loads(events['flow']['stdout'])['error']['message'], 'Rust flow boundary was lost')
     if case['callee']:
         calls = report(events['calls'])
         selected = [item for item in calls['items'] if item['kind'] == 'call' and
@@ -268,7 +276,8 @@ def audit_case(row, case):
                 require(item['callee']['name'] == case['callee'], 'named call resolution changed')
     if case['feature'] == 'python-shadow':
         event = events['origins']
-        require(event['exit_code'] != 0 and 'no exact semantic IR item' in event['stderr'],
+        require(event['exit_code'] != 0 and 'no exact semantic IR item' in
+                json.loads(event['stdout'])['error']['message'],
                 'ambiguous declaration returned a guessed semantic body')
     elif 'origins' in events:
         origins = report(events['origins'])['origins']

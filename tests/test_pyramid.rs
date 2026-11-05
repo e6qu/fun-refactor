@@ -144,6 +144,10 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("entrypoints", vec!["entrypoints"]),
         ("recipe", vec!["recipe", "tidy.recipe"]),
         ("spec", vec!["spec", "check", "specs"]),
+        (
+            "proof",
+            vec!["proof", "list", "specs", "--limit", "8", "--bytes", "4096"],
+        ),
         // The fixture has no Next.js route, so this exercises the refusal.
         ("openapi", vec!["openapi"]),
     ]
@@ -181,7 +185,7 @@ fn every_command_runs_without_panicking() {
 
 #[test]
 fn every_command_writes_nothing_unless_asked() {
-    // The promise the whole CLI rests on: a command without --write is a question.
+    // These representative read-only invocations must leave the workspace intact.
     let tmp = workspace();
     let cache = tempfile::tempdir().unwrap();
 
@@ -193,7 +197,7 @@ fn every_command_writes_nothing_unless_asked() {
 
     assert_eq!(
         before, after,
-        "a command changed the workspace without --write"
+        "a read-only invocation changed the workspace"
     );
 }
 

@@ -66,7 +66,7 @@ class AuthoredClient(FakeClient):
             report = super().call(*arguments, input_bytes=input_bytes)
             value = report._value
             value["actions"] = [{"id": "proof-check",
-                                 "arguments": ["spec", "proof-check", "target", "--from", "<tactics-file>"],
+                                 "arguments": ["proof", "check", "target", '--draft', "<tactics-file>", '--bytes', '4096', '--timeout-seconds', '30'],
                                  "output_schema": "fr-proof-attempt-1", "schema_field": "schema",
                                  "input": None, "author_fields": [{"name": "tactics-file", "shape": "Lean tactics"}],
                                  "writes": False, "ready": False, "max_output_bytes": 16384}]
@@ -78,7 +78,7 @@ class AuthoredClient(FakeClient):
                 value["serialized_bytes"] = len(_canonical(value))
             return report
         self.calls.append((arguments, input_bytes))
-        assert arguments[:4] == ("spec", "proof-check", "target", "--from")
+        assert arguments[:4] == ("proof", "check", "target", "--draft")
         supplied = open(arguments[4], encoding="utf-8").read()
         assert supplied == "rfl\n"
         return FrReport({"schema": "fr-proof-attempt-1", "accepted": True}, arguments)
@@ -272,7 +272,8 @@ def test_authored_guide_files_are_exact_bounded_and_temporary():
         "tactics-file": GuideFile("proof.lean", "rfl\n"),
     }))
     assert report.schema == "fr-proof-attempt-1"
-    assert not Path(client.calls[-1][0][-1]).exists()
+    arguments = client.calls[-1][0]
+    assert not Path(arguments[arguments.index("--draft") + 1]).exists()
 
 
 def test_complete_guide_keeps_intermediate_reports_inside_one_sdk_call():
@@ -390,7 +391,7 @@ def test_common_guide_review_executes_the_unchanged_native_action():
     ("formalization", "prove", GoalOperation("formalize"),
      FormalPlanOperation((), package="proofs", checks=("syntax",), delivery=TaskDelivery())),
     ("proof", "prove", GoalOperation("proof", {"obligation": "goal"}),
-     ProofSubmissionOperation("goal", "rfl\n", ("syntax",), TaskDelivery())),
+     ProofSubmissionOperation("goal", "rfl\n", 4096, 30, ("syntax",), TaskDelivery())),
 ])
 def test_common_review_type_covers_each_writable_guide_route(
         route, purpose, goal_operation, operation):
@@ -512,3 +513,21 @@ def test_capability_byte_range_matches_the_public_span_shape():
     goal = AgentGoal("change", selector=GoalSelector(name="caller"),
         operation=GoalOperation("capability", {"capability":"inline-call", "range":span}))
     assert goal.to_data()["operation"]["range"] == span
+
+
+@pytest.mark.parametrize("arguments", [
+    ["proof", "save", "target", "--draft", "draft.tactics"],
+    ["proof", "start", "target", "--draft", "draft.tactics"],
+    ["--json", "proof", "save", "target", "--draft", "draft.tactics"],
+    ["proof", "--json", "save", "target", "--draft", "draft.tactics"],
+])
+def test_proof_writing_commands_are_not_read_only_guide_actions(arguments):
+    def recommend_write(value):
+        value["actions"][0]["arguments"] = arguments
+        identity = {key: item for key, item in value.items()
+                    if key not in ("object_root", "basis", "serialized_bytes")}
+        value["object_root"] = merkle_object_digest(identity)
+    client = FakeClient(recommend_write)
+    with pytest.raises(FrRuntimeError, match="writing action"):
+        guide_goal(client, AgentGoal("prove"))
+    assert len(client.calls) == 1

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 import json
 from pathlib import Path
@@ -30,7 +31,7 @@ OBLIGATION = "renderModel_identity"
 PATCH = "artifacts/proof.patch"
 CHECK_NAMES = ("lean",)
 DELIVERY = TaskDelivery(patch=PATCH, check_output_bytes=4096)
-STEPS = ("guide", "task", "check", "preview", "review", "execute", "finish")
+STEPS = ("guide", "task", "check", "review", "execute", "finish")
 FILES = ("session.json", "prompt.txt", "events.jsonl", "codex-events.jsonl",
          "codex-stderr.txt", "codex-final.txt", "codex-run.json", "result.json")
 SOURCE_TEXT = "pub fn render(value: bool) -> bool { value }\n"
@@ -42,8 +43,19 @@ defaultTargets = ["FrSpecs"]
 
 [[lean_lib]]
 name = "FrSpecs"
+moreLeanArgs = ["-j1"]
 '''
-ROOT_LEAN = '''import FrSpecs.SrcLibRsRender
+LAKE_MANIFEST = '''{
+  "version": "1.1.0",
+  "packagesDir": ".lake/packages",
+  "packages": [],
+  "name": "«fr-specs»",
+  "lakeDir": ".lake"
+}
+'''
+ROOT_LEAN = '''prelude
+import FrSpecs.SrcLibRsRender
+
 /-
 This is the checked root of the project's Lean specification package.
 Import each model here so `fr spec verify` builds it.
@@ -53,12 +65,15 @@ namespace FrSpecs
 
 end FrSpecs
 '''
-MODEL_BASELINE = '''namespace FrSpecs
+MODEL_BASELINE = '''prelude
+import Init.Data.Int.DivMod.Lemmas
+namespace FrSpecs
 
 -- fr:generated-begin formal-kernel
--- fr:plan e7c05c680d52d54ce9300f1c037f1fe482a5fb2733ba99853a9c93c2fb022d14
+-- fr:plan e8a70ed218853168bc12d444aa2199bbb1538f951a2c6827a28a5f838262ca0f
 -- fr:spec src/lib.rs::render @ dbb8f9aafedfeafffa7cfe33630e69a4a67d63b6a08db38688cb157dc583b8ac
 -- fr:signature value: bool => value: Bool; return: bool => return: Bool
+set_option linter.unusedVariables false in
 def renderModel (value : Bool) : Bool :=
   value
 
@@ -131,6 +146,7 @@ def fixture_revision() -> str:
         SPEC: MODEL_BASELINE,
         "specs/FrSpecs.lean": ROOT_LEAN,
         "specs/lakefile.toml": LAKEFILE,
+        "specs/lake-manifest.json": LAKE_MANIFEST,
         "specs/lean-toolchain": LEAN_TOOLCHAIN,
         ".gitignore": GITIGNORE,
     }))
@@ -161,12 +177,15 @@ def goal() -> AgentGoal:
         operation=GoalOperation("proof", {"obligation": OBLIGATION}),
         checks=CHECK_NAMES,
         delivery=DELIVERY,
-        context=GoalLimits(packet_limit=16384),
+        context=GoalLimits(token_limit=4096, packet_limit=16384),
     )
 
 
 def action(tactics: str) -> TaggedIntentAction:
-    operation = ProofSubmissionOperation(OBLIGATION, tactics, CHECK_NAMES, DELIVERY)
+    operation = ProofSubmissionOperation(
+        obligation=OBLIGATION, tactics=tactics, bytes=16384, timeout_seconds=30,
+        checks=CHECK_NAMES, delivery=DELIVERY,
+    )
     return TaggedIntentAction(operation, diff_bytes=65536, report_bytes=65536)
 
 
@@ -207,17 +226,22 @@ def populate(project: Path, binary: Path) -> None:
         SPEC: MODEL_BASELINE,
         "specs/FrSpecs.lean": ROOT_LEAN,
         "specs/lakefile.toml": LAKEFILE,
+        "specs/lake-manifest.json": LAKE_MANIFEST,
         "specs/lean-toolchain": LEAN_TOOLCHAIN,
     }
     for name, text in expected.items():
-        if (project / name).read_text() != text:
-            raise RuntimeError(f"prepared proof fixture changed: {name}")
+        actual = (project / name).read_text()
+        if actual != text:
+            difference = ''.join(difflib.unified_diff(
+                text.splitlines(keepends=True), actual.splitlines(keepends=True),
+                fromfile='expected/' + name, tofile='actual/' + name))
+            raise RuntimeError(f"prepared proof fixture changed: {name}\n{difference}")
 
 
 def prompt(session: Path) -> str:
     return f"""You are an acceptance agent in an unfamiliar checked Lean proof workspace.
 
-Task: prove `{OBLIGATION}` in `{SPEC}`. Use the source-free proof task to inspect the exact theorem and proof contract, author a Lean tactic without a leading `by`, check it, preview the unchanged accepted tactic, review the complete proof submission and execute that unchanged review. Report success only after every check and reversible delivery stage passes. Keep the stated implementation-correspondence boundary unchanged.
+Task: prove `{OBLIGATION}` in `{SPEC}`. Use the source-free proof task to inspect the exact theorem and proof contract, author a Lean tactic without a leading `by`, check it, review the complete proof submission and execute that unchanged review. Report success only after every check and reversible delivery stage passes. Keep the stated implementation-correspondence boundary unchanged.
 
 Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
 python3 {ROOT / 'tools/proof-authoring-agent.py'} step {session} --request-stdin <<'FRJSON'
@@ -228,10 +252,9 @@ Allowed requests, in order:
 1. {{"tool":"guide"}} selects the source-free proof route.
 2. {{"tool":"task"}} reveals the exact theorem, proof contract and claim parts.
 3. {{"tool":"check","tactics":"<agent-authored Lean tactics without leading by>"}} checks one authored proof attempt.
-4. {{"tool":"preview"}} previews the unchanged accepted tactics.
-5. {{"tool":"review"}} binds those tactics, the declared Lean check and patch delivery to one immutable review.
-6. {{"tool":"execute"}} executes the unchanged review once.
-7. {{"tool":"finish","answer":{{"obligation":"{OBLIGATION}","proved":true,"model_theorem_checked":true,"implementation_correspondence":false,"check":"lean"}}}} finishes after execution passes.
+4. {{"tool":"review"}} shows the diff and binds those tactics, the declared Lean check and patch delivery to one immutable review.
+5. {{"tool":"execute"}} executes the unchanged review once.
+6. {{"tool":"finish","answer":{{"obligation":"{OBLIGATION}","proved":true,"model_theorem_checked":true,"implementation_correspondence":false,"check":"lean"}}}} finishes after execution passes.
 
 The evaluator independently recreates the unproved package, replays the reviewed patch, runs strict `fr spec verify`, requires a fresh source anchor with zero obligations and zero proof debt, and confirms that only the named proof region changed. Do not claim success if any stage fails.
 """
@@ -316,7 +339,7 @@ def step(session: Path, request: dict[str, Any]) -> dict[str, Any]:
     elif kind == "task":
         guide = client.guide(goal())
         full = dict(client.follow_guide(guide.actions()[0]).to_data())
-        visible = {key: full[key] for key in ("schema", "goal", "contract", "templates",
+        visible = {key: full[key] for key in ("schema", "goal", "contract", "claim",
                                                "object_digest", "token_budget")}
     elif kind == "check":
         tactics = request.get("tactics")
@@ -328,18 +351,10 @@ def step(session: Path, request: dict[str, Any]) -> dict[str, Any]:
             guide.actions()[1], GuideInputs({"tactics-file": proof})).to_data())
         visible = {key: full[key] for key in ("schema", "goal_id", "proof_digest", "checker",
                                                "passed", "diagnostics", "receipt", "token_budget")}
-    elif kind == "preview":
-        tactics = authored_tactics(prior)
-        if prior[2]["full"] is None or prior[2]["full"].get("passed") is not True:
-            raise ValueError("proof attempt must pass before preview")
-        guide = client.guide(goal())
-        proof = GuideFile("proof.lean", tactics)
-        full = dict(client.follow_guide(
-            guide.actions()[2], GuideInputs({"tactics-file": proof})).to_data())
-        visible = {key: full[key] for key in ("applied", "diff", "goal_id", "obligation",
-                                               "proof_digest", "receipt", "schema")}
     elif kind in ("review", "execute"):
         tactics = authored_tactics(prior)
+        if prior[2]["full"] is None or prior[2]["full"].get("passed") is not True:
+            raise ValueError("proof attempt must pass before review")
         guide = client.guide(goal())
         review = client.review_guide(guide, action(tactics))
         operation = dict(review.at())
@@ -356,7 +371,7 @@ def step(session: Path, request: dict[str, Any]) -> dict[str, Any]:
                 "review_sha256": review.review_sha256,
             }
         else:
-            if review.review_sha256 != prior[4]["visible"]["review_sha256"]:
+            if review.review_sha256 != prior[3]["visible"]["review_sha256"]:
                 raise ValueError("review changed before execution")
             full = dict(client.execute_guide(review).to_data())
             visible = {
@@ -502,14 +517,13 @@ def score(session: Path) -> dict[str, Any]:
     guide = object_map(rows[0]["full"] if rows else {}, "guide")
     task = object_map(rows[1]["full"] if len(rows) > 1 else {}, "task")
     checked = object_map(rows[2]["full"] if len(rows) > 2 else {}, "checked proof")
-    preview = object_map(rows[3]["full"] if len(rows) > 3 else {}, "preview")
-    review = object_map(rows[4]["full"] if len(rows) > 4 else {}, "review")
-    execution = object_map(rows[5]["full"] if len(rows) > 5 else {}, "execution")
+    review = object_map(rows[3]["full"] if len(rows) > 3 else {}, "review")
+    execution = object_map(rows[4]["full"] if len(rows) > 4 else {}, "execution")
     tactics = rows[2]["request"].get("tactics", "") if len(rows) > 2 else ""
     stages = execution.get("workflow", {}).get("stages", []) if execution else []
     expected_stages = ["check-original", "apply", "check-applied", "undo", "check-restored",
                        "redo", "check-applied", "deliver-patch"]
-    answer = rows[6]["request"].get("answer", {}) if len(rows) > 6 else {}
+    answer = rows[5]["request"].get("answer", {}) if len(rows) > 5 else {}
     patch = session / "project" / PATCH
     oracle = independent_oracle(session / "project", selected["source_files"], patch,
                                 Path(selected["binary"]), tactics) \
@@ -551,10 +565,9 @@ def score(session: Path) -> dict[str, Any]:
         and task.get("contract", {}).get("checker") == LEAN_TOOLCHAIN.strip()
         and isinstance(tactics, str) and bool(tactics.strip())
         and checked.get("passed") is True and checked.get("diagnostics") == []
-        and checked.get("proof_digest") == preview.get("proof_digest")
-        and checked.get("receipt") == preview.get("receipt")
-        and preview.get("applied") is False
-        and preview.get("diff") == review.get("diff")
+        and checked.get("proof_digest") == review.get("proof", {}).get("proof_digest")
+        and checked.get("receipt") == review.get("proof", {}).get("receipt")
+        and review.get("executed") is False
         and review.get("ready") is True
         and review.get("checks", {}).get("names") == list(CHECK_NAMES)
         and review.get("claims", {}).get("model_theorem_checked") is True

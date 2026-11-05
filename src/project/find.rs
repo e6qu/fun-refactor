@@ -4,7 +4,11 @@ use anyhow::ensure;
 #[derive(clap::Args)]
 pub struct Options {
     name: String,
-    #[arg(long = "in", default_value = ".")]
+    #[arg(
+        long = "in",
+        default_value = ".",
+        help = "Filter returned code under a path or handle; use -C to limit the scan itself."
+    )]
     scope: String,
     #[arg(long)]
     revision: Option<String>,
@@ -19,7 +23,12 @@ pub struct Options {
     signature: bool,
     #[arg(long, help = "Include source slices within a shared page byte budget.")]
     source: bool,
-    #[arg(long, default_value_t = 2048, requires = "source")]
+    #[arg(
+        long,
+        default_value_t = 2048,
+        requires = "source",
+        help = "Maximum source bytes across this page; requires --source."
+    )]
     bytes: usize,
     #[arg(long, default_value_t = 12)]
     limit: usize,
@@ -35,7 +44,11 @@ pub struct SelectOptions {
         help = "Exact declaration names or full revision-bound project handles."
     )]
     selectors: Vec<String>,
-    #[arg(long = "in", default_value = ".")]
+    #[arg(
+        long = "in",
+        default_value = ".",
+        help = "Filter returned code under a path or handle; use -C to limit the scan itself."
+    )]
     scope: String,
     #[arg(long)]
     revision: Option<String>,
@@ -45,7 +58,12 @@ pub struct SelectOptions {
     signature: bool,
     #[arg(long, help = "Include source slices within a shared page byte budget.")]
     source: bool,
-    #[arg(long, default_value_t = 2048, requires = "source")]
+    #[arg(
+        long,
+        default_value_t = 2048,
+        requires = "source",
+        help = "Maximum source bytes across this page; requires --source."
+    )]
     bytes: usize,
     #[arg(long, default_value_t = 24)]
     limit: usize,

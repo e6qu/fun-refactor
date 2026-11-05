@@ -1327,7 +1327,7 @@ fn the_language_filter_has_one_name() {
     assert_eq!(short, long);
 }
 
-/// Asked from a subdirectory, `fr` used to answer about that subdirectory.
+/// An unstated root stays inside the working directory.
 mod from_a_subdirectory {
     use super::*;
 
@@ -1361,33 +1361,55 @@ mod from_a_subdirectory {
     }
 
     #[test]
-    fn a_use_one_directory_up_is_found() {
+    fn an_explicit_parent_root_finds_the_caller() {
         let tmp = project();
         let cache = tempfile::tempdir().unwrap();
         let deep = tmp.path().join("pkg/deep");
-        let (out, ok) = run_in(&deep, cache.path(), &["usages", "h.py:1:5"]);
+        let (out, ok) = run_in(
+            &deep,
+            cache.path(),
+            &["-C", "../..", "usages", "pkg/deep/h.py:1:5"],
+        );
         assert!(ok, "the command should succeed.\n{out}");
         assert!(
             out.contains("2 use(s)"),
             "the caller above is a use.\n{out}"
         );
         assert!(
-            out.contains("the project"),
-            "widening the root is said out loud.\n{out}"
+            !out.contains("the project"),
+            "an explicit root needs no inference warning.\n{out}"
         );
     }
 
     #[test]
-    fn delete_refuses_what_the_file_above_still_calls() {
+    fn explicit_parent_scope_protects_the_external_caller() {
         let tmp = project();
         let cache = tempfile::tempdir().unwrap();
         let deep = tmp.path().join("pkg/deep");
-        let (out, ok) = run_in(&deep, cache.path(), &["delete", "h.py:1:5"]);
+        let (out, ok) = run_in(
+            &deep,
+            cache.path(),
+            &["-C", "../..", "delete", "pkg/deep/h.py:1:5"],
+        );
         assert!(!ok, "a used symbol is not deletable.\n{out}");
         assert!(
             out.contains("main.py"),
             "the refusal names the caller, so a reader can deal with it.\n{out}"
         );
+    }
+
+    #[test]
+    fn an_unstated_root_does_not_read_parent_callers() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let (out, ok) = run_in(
+            &tmp.path().join("pkg/deep"),
+            cache.path(),
+            &["usages", "h.py:1:5"],
+        );
+        assert!(ok, "{out}");
+        assert!(out.contains("0 use(s)"), "{out}");
+        assert!(!out.contains("main.py"), "{out}");
     }
 
     #[test]

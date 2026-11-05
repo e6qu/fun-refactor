@@ -92,7 +92,7 @@ def prepare_inputs(binary, project, output, milestone):
     obligation = plan['properties'][0]['name']
     built = common.command(['lake', 'build'], project / 'specs', output / 'build.json')
     require(built['returncode'] == 0, 'the original diagnostic package must build')
-    goals = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
+    goals = common.fr(binary, project, ['proof', 'list', 'specs', '--bytes', '4096', '--limit', '32'], output / 'goals.json')
     require(len(goals['catalog']) == 1 and goals['omitted'] == 0, 'the diagnostic must have one fixed goal')
     for name in common.sources(project):
         (project / name).chmod(0o644)
@@ -182,18 +182,18 @@ def repair_admission_script(lean_root, search_path, condition):
     lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
              'cat .agents/skills/fr/SKILL.md .fr/argument-repair.txt > /dev/null',
              'proof_target=$(cat .fr/admission-target.txt)',
-             'fr --json spec proof-state "$proof_target" --from .fr/admission-start.lean --at 1:5 --token-limit 4096 --timeout-seconds 30 > .fr/admission-state.json',
+             'fr --json proof state "$proof_target" --draft .fr/admission-start.lean --at end --bytes 4096 --timeout-seconds 30 > .fr/admission-state.json',
              shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-state.json")); '
                  'assert r["goals"] and r["acceptance"] == "not-checked"']),
-             'fr --json spec proof-check "$proof_target" --from .fr/admission-bad.lean --token-limit 4096 > .fr/admission-rejected.json',
+             'if fr --json proof check "$proof_target" --draft .fr/admission-bad.lean --bytes 4096 --timeout-seconds 30 > .fr/admission-rejected.json; then exit 1; else test $? = 1; fi',
              shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-rejected.json")); '
                 'assert r["passed"] is False and r["receipt"] is None; '
                 'assert any(d["draft_location"] and "Int" in str(d["context"]) '
                 'and "0 ≤" in str(d["context"]) for d in r["diagnostics"])'])]
-    for operation, field in [('proof-check', 'passed'), ('prove', 'applied')]:
+    for operation, field in [('check', 'passed'), ('save', 'applied')]:
         report = '.fr/admission-' + operation + '.json'
-        lines += ['fr --json spec ' + operation + ' "$proof_target" --from .fr/admission-reference.lean ' +
-                  ('--token-limit 4096' if operation == 'proof-check' else '--write') + ' > ' + report,
+        lines += ['fr --json proof ' + operation + ' "$proof_target" --draft .fr/admission-reference.lean ' +
+                  '--bytes 4096 --timeout-seconds 30' + ' > ' + report,
                   shlex.join(['python3', '-c', 'import json; assert json.load(open(' + repr(report) + '))[' + repr(field) + '] is True'])]
     lines += [shlex.join([str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail']) +
               ' > .fr/admission-package.log 2>&1', 'git diff --binary HEAD > change.patch',
@@ -226,10 +226,9 @@ def qualify_declarations(output):
 
 
 def initial_check(binary, project, prepared, env, output, seconds):
-    result = subprocess.run([str(binary), '-C', str(project), '--json', 'spec', 'proof-check', prepared['target'],
-                             '--from', 'initial-tactics.txt', '--token-limit', '4096'],
+    result = subprocess.run([str(binary), '-C', str(project), '--json', 'proof', 'check', prepared['target'], '--draft', 'initial-tactics.txt', '--bytes', '4096', '--timeout-seconds', '30'],
                             cwd=project, env=env, capture_output=True, text=True, timeout=seconds)
-    require(result.returncode == 0, 'initial fr check did not return its JSON report: ' + result.stderr[:2048])
+    require(result.returncode == 1, 'initial fr check must return a rejected proof with exit 1: ' + result.stderr[:2048])
     value = json.loads(result.stdout)
     common.save(output, value)
     require(value['passed'] is False and value['receipt'] is None and value['diagnostics'] and
@@ -288,8 +287,7 @@ def controls(binary, output, native, milestone):
         initial_check(binary, original, prepared, dict(os.environ), output / 'initial-check.json', 120)
     else:
         unfinished = output / 'unfinished.lean'; unfinished.write_text('refine ?_\n')
-        rejected = common.fr(binary, original, ['spec', 'proof-check', prepared['target'], '--from',
-                             str(unfinished.resolve()), '--token-limit', '4096'], output / 'initial-check.json')
+        rejected = common.fr(binary, original, ['proof', 'check', prepared['target'], '--draft', str(unfinished.resolve()), '--bytes', '4096', '--timeout-seconds', '30'], output / 'initial-check.json')
         require(rejected['passed'] is False and rejected['receipt'] is None, 'the empty construction proof must fail')
     profiles = prepare(ROOT, milestone)['profiles']
     require(native['passed'] is True and native['live_model_calls'] == 0 and native['profiles'] == profiles and
@@ -310,8 +308,7 @@ def controls(binary, output, native, milestone):
         from .page_count_diagnosis import drafts, REFERENCE
         bad = output / 'argument-type-error.lean'
         bad.write_text(drafts(REFERENCE.read_text())['integer-instead-of-proof'])
-        rejected = common.fr(binary, original, ['spec', 'proof-check', prepared['target'], '--from',
-                            str(bad.resolve()), '--token-limit', '4096'], output / 'argument-type-error.json')
+        rejected = common.fr(binary, original, ['proof', 'check', prepared['target'], '--draft', str(bad.resolve()), '--bytes', '4096', '--timeout-seconds', '30'], output / 'argument-type-error.json')
         require(rejected['passed'] is False and rejected['receipt'] is None and
                 any(d['draft_location'] and 'Int' in str(d['context']) and '0 ≤' in str(d['context'])
                     for d in rejected['diagnostics']), 'require the mapped actual and expected argument types')
@@ -337,7 +334,7 @@ def controls(binary, output, native, milestone):
         if variant in {'reference', 'changed-source', 'missing-patch', 'wrong-patch'}:
             tactics = (ROOT / proof.DIRECTORY / 'controls/page-count.lean' if milestone in {'M3-page-count', REPAIR_STUDY} else
                        ROOT / details['directory'] / 'controls/reference.lean')
-            common.fr(binary, candidate, ['spec', 'prove', prepared['target'], '--from', str(tactics), '--write'],
+            common.fr(binary, candidate, ['proof', 'save', prepared['target'], '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'],
                       output / (variant + '-write.json'))
         if variant == 'changed-source':
             source = candidate / prepared['source']

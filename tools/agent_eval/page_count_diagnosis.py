@@ -60,8 +60,7 @@ def run(binary, output):
     for name, text in drafts(REFERENCE.read_text()).items():
         draft = output / (name + '.lean')
         draft.write_text(text)
-        value = common.fr(binary, project, ['spec', 'proof-check', prepared['target'],
-            '--from', str(draft), '--token-limit', '4096'], output / (name + '-check.json'))
+        value = common.fr(binary, project, ['proof', 'check', prepared['target'], '--draft', str(draft), '--bytes', '4096', '--timeout-seconds', '30'], output / (name + '-check.json'))
         validate(name, value)
         require(common.sources(project) == baseline, 'a diagnostic changed the prepared project')
         report['controls'][name] = {'accepted': value['passed'], 'draft_sha256': common.digest(draft),

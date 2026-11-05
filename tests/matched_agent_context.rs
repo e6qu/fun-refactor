@@ -68,8 +68,28 @@ fn matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence() 
         .lines()
         .collect::<Vec<_>>();
     let sdk = step(root, &fr, json!({"tool":"sdk","program_lines":program}));
-    assert_eq!(sdk["exit_code"], 0);
+    assert_eq!(sdk["exit_code"], 0, "{sdk}");
     assert_eq!(sdk["answers"]["workflows"].as_array().unwrap().len(), 7);
+    let fr_config: Value =
+        serde_json::from_slice(&std::fs::read(fr.join("session.json")).unwrap()).unwrap();
+    let proof_target = format!(
+        "{}::{}",
+        fr_config["proof_path"].as_str().unwrap(),
+        fr_config["obligation"].as_str().unwrap()
+    );
+    for operation in ["start", "save"] {
+        let refused = Command::new("python3")
+            .arg(fr_config["wrapper"].as_str().unwrap())
+            .args(["--json", "-C"])
+            .arg(fr.join("project"))
+            .args(["proof", operation, &proof_target, "--draft", "proof.lean"])
+            .args(["--bytes", "4096", "--timeout-seconds", "30"])
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        assert!(refused.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("only show or check drafts"));
+    }
     step(
         root,
         &fr,
@@ -114,7 +134,7 @@ fn matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence() 
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["passed"], true);
+    assert_eq!(report["passed"], true, "{report}");
     assert_eq!(report["context_saving_observed"], true);
     assert_eq!(report["results"][0]["coverage"]["route_coverage"], true);
     assert_eq!(report["results"][0]["coverage"]["action_coverage"], true);
@@ -137,6 +157,33 @@ fn matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence() 
     let replay: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(replay["verified"], true);
     assert_eq!(replay["acceptance_evidence"], true);
+
+    let evidence = fr.join("sdk-events.jsonl");
+    let original = std::fs::read_to_string(&evidence).unwrap();
+    let mut removed = false;
+    let kept = original
+        .lines()
+        .filter(|line| {
+            let event: Value = serde_json::from_str(line).unwrap();
+            if event["arguments"]
+                .as_array()
+                .unwrap()
+                .starts_with(&[json!("proof"), json!("check")])
+            {
+                removed = true;
+                false
+            } else {
+                true
+            }
+        })
+        .collect::<Vec<_>>();
+    assert!(removed);
+    std::fs::write(evidence, kept.join("\n") + "\n").unwrap();
+    let output = script(root).arg("score").arg(&sessions).output().unwrap();
+    assert!(output.status.success());
+    let missing: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(missing["passed"], false);
+    assert_eq!(missing["results"][0]["coverage"]["action_coverage"], false);
 }
 
 #[test]

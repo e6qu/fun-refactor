@@ -11,13 +11,24 @@ fn run(root: &Path, args: &[&str]) -> serde_json::Value {
         .args(args)
         .output()
         .unwrap();
-    assert!(
-        output.status.success(),
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    if let Some(budget) = value.get("token_budget") {
+        assert!(output.stdout.len() <= budget["used_upper_bound"].as_u64().unwrap() as usize);
+        assert!(output.stdout.len() <= budget["limit"].as_u64().unwrap() as usize);
+    }
+    let expected_code = if args.starts_with(&["proof", "check"]) && value["passed"] == false {
+        1
+    } else {
+        0
+    };
+    assert_eq!(
+        output.status.code(),
+        Some(expected_code),
         "{}\n{}",
-        String::from_utf8_lossy(&output.stdout),
+        value,
         String::from_utf8_lossy(&output.stderr)
     );
-    serde_json::from_slice(&output.stdout).unwrap()
+    value
 }
 
 fn setup(root: &Path) -> (PathBuf, String) {
@@ -56,14 +67,14 @@ fn inspect(root: &Path, target: &str, draft: &str, line: usize) -> serde_json::V
     run(
         root,
         &[
-            "spec",
-            "proof-state",
+            "proof",
+            "state",
             target,
-            "--from",
+            "--draft",
             draft,
             "--at",
             &format!("{line}:{column}"),
-            "--token-limit",
+            "--bytes",
             "8192",
             "--timeout-seconds",
             "30",
@@ -79,14 +90,17 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     let original = std::fs::read(&module).unwrap();
     let draft = "have pair : keepModel x = x ∧ keepModel x = x := by\n  constructor\n  · rfl\n  · skip\nexact pair.1\n";
     std::fs::write(root.join("draft.tactics"), draft).unwrap();
-    let task = run(&root, &["spec", "proof-task", &target]);
-    assert_eq!(task["actions"]["inspect"][1], "proof-state");
+    let task = run(&root, &["proof", "show", &target, "--bytes", "4096"]);
+    assert_eq!(task["actions"]["inspect"][1], "state");
 
     let split = inspect(&root, &target, "draft.tactics", 2);
     assert_eq!(split["operation"], "proof-state");
     assert_eq!(split["status"], "goals");
     assert_eq!(split["goals"].as_array().unwrap().len(), 2);
-    assert!(split["goals"][0].as_str().unwrap().contains("x : Bool"));
+    assert!(split["goals"][0]["context"]
+        .as_str()
+        .unwrap()
+        .contains("x : Bool"));
     assert_eq!(split["goal_id"], task["goal"]["id"]);
     assert_eq!(split["draft_location"]["line"], 2);
     assert_eq!(split["acceptance"], "not-checked");
@@ -95,20 +109,55 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
             <= split["token_budget"]["limit"].as_u64().unwrap() as usize
     );
 
+    let exact_bytes = split["token_budget"]["used_upper_bound"]
+        .as_u64()
+        .unwrap()
+        .to_string();
+    let exact = run(
+        &root,
+        &[
+            "proof",
+            "state",
+            &target,
+            "--draft",
+            "draft.tactics",
+            "--at",
+            "2:end",
+            "--bytes",
+            &exact_bytes,
+            "--timeout-seconds",
+            "30",
+        ],
+    );
+    assert_eq!(exact["goals"], split["goals"]);
+
     let closed_branch = inspect(&root, &target, "draft.tactics", 3);
     assert_eq!(closed_branch["status"], "closed-at-position");
     assert_eq!(closed_branch["acceptance"], "not-checked");
     let right_branch = inspect(&root, &target, "draft.tactics", 4);
     assert_eq!(right_branch["status"], "goals");
     assert_eq!(right_branch["goals"].as_array().unwrap().len(), 1);
-    assert!(right_branch["goals"][0].as_str().unwrap().contains("right"));
+    assert!(right_branch["goals"][0]["context"]
+        .as_str()
+        .unwrap()
+        .contains("right"));
     let rejected = run(
         &root,
-        &["spec", "proof-check", &target, "--from", "draft.tactics"],
+        &[
+            "proof",
+            "check",
+            &target,
+            "--draft",
+            "draft.tactics",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert_eq!(rejected["passed"], false);
     assert!(rejected["receipt"].is_null());
-    assert_eq!(rejected["actions"]["inspect"][1], "proof-state");
+    assert_eq!(rejected["actions"]["inspect"][1], "state");
     assert_eq!(std::fs::read(&module).unwrap(), original);
 
     std::fs::write(root.join("draft.tactics"), draft.replace("skip", "rfl")).unwrap();
@@ -118,7 +167,17 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     assert_ne!(closed["proof_digest"], split["proof_digest"]);
     let accepted = run(
         &root,
-        &["spec", "proof-check", &target, "--from", "draft.tactics"],
+        &[
+            "proof",
+            "check",
+            &target,
+            "--draft",
+            "draft.tactics",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert_eq!(accepted["passed"], true);
     assert!(accepted["receipt"].is_string());
@@ -131,7 +190,7 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     context.push_str("skip\n");
     std::fs::write(root.join("context.tactics"), &context).unwrap();
     let state = inspect(&root, &target, "context.tactics", 13);
-    let goal = state["goals"][0].as_str().unwrap();
+    let goal = state["goals"][0]["context"].as_str().unwrap();
     assert!(goal.contains("fact0") && goal.contains("fact11"), "{goal}");
     let budget = fun_refactor::spec::proof_state(
         &root,
@@ -160,12 +219,15 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     let applied = run(
         &root,
         &[
-            "spec",
-            "prove",
+            "proof",
+            "save",
             &target,
-            "--from",
+            "--draft",
             "draft.tactics",
-            "--write",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
         ],
     );
     assert_eq!(applied["applied"], true);
@@ -180,16 +242,16 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
 #[test]
 fn cursor_and_deadline_settings_are_explicit_cli_requirements() {
     let temporary = tempfile::tempdir().unwrap();
-    for missing in ["--at", "--token-limit", "--timeout-seconds"] {
+    for missing in ["--at", "--bytes", "--timeout-seconds"] {
         let mut arguments = vec![
-            "spec",
-            "proof-state",
+            "proof",
+            "state",
             "specs/Demo.lean::demo",
-            "--from",
+            "--draft",
             "draft",
             "--at",
             "1:1",
-            "--token-limit",
+            "--bytes",
             "4096",
             "--timeout-seconds",
             "20",

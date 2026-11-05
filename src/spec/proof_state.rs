@@ -21,6 +21,12 @@ pub enum ProofStateStatus {
     NoTacticAtPosition,
 }
 
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct ProofGoal {
+    pub context: String,
+    pub goal: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ProofState {
     pub operation: &'static str,
@@ -31,11 +37,46 @@ pub struct ProofState {
     pub theorem: String,
     pub draft_location: ProofDiagnosticLocation,
     pub status: ProofStateStatus,
-    pub goals: Vec<String>,
+    pub goals: Vec<ProofGoal>,
     pub acceptance: &'static str,
     pub scope: &'static str,
     pub check: Vec<String>,
     pub token_budget: FormalGoalBudget,
+}
+
+pub fn proof_cursor(source: &str, position: &str) -> Result<(usize, usize)> {
+    if position == "end" {
+        let (index, text) = source
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| !line.trim().is_empty())
+            .last()
+            .context("proof draft has no nonempty line")?;
+        return Ok((index + 1, text.chars().count() + 1));
+    }
+    let (line, column) = position
+        .split_once(':')
+        .context("proof cursor needs LINE:COLUMN or LINE:end")?;
+    let line = line.parse::<usize>().context("invalid proof cursor line")?;
+    let text = source
+        .lines()
+        .nth(
+            line.checked_sub(1)
+                .context("proof cursor lines start at 1")?,
+        )
+        .context("proof cursor line is outside the draft")?;
+    let end = text.chars().count() + 1;
+    let column = if column == "end" {
+        end
+    } else {
+        column
+            .parse::<usize>()
+            .context("invalid proof cursor column")?
+    };
+    if column == 0 || column > end {
+        bail!("proof cursor column is outside its line; use {line}:end to inspect the line end.");
+    }
+    Ok((line, column))
 }
 
 pub fn proof_state(
@@ -105,7 +146,7 @@ pub fn proof_state(
         checker: super::LEAN_TOOLCHAIN,
         theorem: task.goal.theorem,
         draft_location: ProofDiagnosticLocation {
-            path: proof_path.into(),
+            path: proof_path.strip_prefix(&root).unwrap_or(proof_path).into(),
             line: at.0,
             column: at.1,
             source_excerpt: super::proof_source_excerpt(&prepared.proof_source, at.0, at.1),
@@ -113,23 +154,15 @@ pub fn proof_state(
         status,
         goals,
         acceptance: "not-checked",
-        scope: "Editor goals at this draft position. A closed branch does not accept the whole proof; run proof-check before saving.",
-        check: vec![
-            "spec".into(),
-            "proof-check".into(),
-            target.into(),
-            "--from".into(),
-            proof_path.display().to_string(),
-            "--token-limit".into(),
-            token_limit.to_string(),
-        ],
+        scope: "Editor goals at this draft position. A closed branch does not accept the whole proof; use fr proof check for acceptance or fr proof save to check and write.",
+        check: vec!["proof".into(), "check".into(), target.into(), "--draft".into(), proof_path.strip_prefix(&root).unwrap_or(proof_path).display().to_string(), "--bytes".into(), token_limit.to_string(), "--timeout-seconds".into(), timeout_seconds.to_string()],
         token_budget: FormalGoalBudget {
             limit: token_limit,
             used_upper_bound: token_limit,
             measurement: "serialized_utf8_bytes",
         },
     };
-    let upper_bound = serde_json::to_vec_pretty(&report)?.len();
+    let upper_bound = serde_json::to_vec_pretty(&report)?.len() + 1;
     if upper_bound > token_limit {
         bail!(
             "complete proof state needs {upper_bound} response bytes; the selected ceiling is {token_limit}. No goals or assumptions were silently removed."
@@ -205,7 +238,7 @@ fn file_uri(path: &Path) -> Result<String> {
     Ok(uri)
 }
 
-fn decode_goals(reply: Value) -> Result<(ProofStateStatus, Vec<String>)> {
+fn decode_goals(reply: Value) -> Result<(ProofStateStatus, Vec<ProofGoal>)> {
     if reply.is_null() {
         return Ok((ProofStateStatus::NoTacticAtPosition, Vec::new()));
     }
@@ -216,14 +249,22 @@ fn decode_goals(reply: Value) -> Result<(ProofStateStatus, Vec<String>)> {
     let goals = rows
         .iter()
         .map(|row| {
-            row.as_str()
-                .map(String::from)
-                .context("Lean editor goal must be text")
+            let text = row.as_str().context("Lean editor goal must be text")?;
+            let (context, goal) = if let Some(goal) = text.strip_prefix("⊢ ") {
+                ("", goal)
+            } else {
+                text.split_once("\n⊢ ")
+                    .context("Lean editor goal needs a context and a goal marker")?
+            };
+            if goal.trim().is_empty() {
+                bail!("Lean editor returned an empty goal.");
+            }
+            Ok(ProofGoal {
+                context: context.into(),
+                goal: goal.into(),
+            })
         })
         .collect::<Result<Vec<_>>>()?;
-    if goals.iter().any(|goal| goal.is_empty()) {
-        bail!("Lean editor returned an empty goal entry.");
-    }
     Ok((
         if goals.is_empty() {
             ProofStateStatus::ClosedAtPosition
@@ -568,7 +609,10 @@ mod tests {
         assert!(decode_goals(json!({"goals":[""]})).is_err());
         assert_eq!(
             decode_goals(json!({"goals":["h : P\n⊢ Q"]})).unwrap().1,
-            ["h : P\n⊢ Q"]
+            [ProofGoal {
+                context: "h : P".into(),
+                goal: "Q".into()
+            }]
         );
     }
 
@@ -699,5 +743,17 @@ sys.stdout.buffer.flush()
         .unwrap_err();
         assert!(error.to_string().contains("deadline"), "{error:#}");
         assert!(started.elapsed() < Duration::from_secs(3));
+    }
+}
+#[test]
+fn explicit_line_ends_count_unicode_and_do_not_guess_outside_the_draft() {
+    assert_eq!(
+        proof_cursor("have h : α := by\r\n  skip\r\n", "1:end").unwrap(),
+        (1, 17)
+    );
+    assert_eq!(proof_cursor("skip\n\n", "end").unwrap(), (1, 5));
+    assert_eq!(proof_cursor("skip\n  exact h\n", "2:end").unwrap(), (2, 10));
+    for position in ["0:end", "3:end", "1:0", "1:100", "missing"] {
+        assert!(proof_cursor("skip\n", position).is_err(), "{position}");
     }
 }

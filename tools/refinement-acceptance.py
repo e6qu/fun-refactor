@@ -80,9 +80,9 @@ def finish(binary, root, output, snapshot_root):
         save(output/f"{comparison.name}-review.json", review.to_data())
         comparison.execute(client, review)
         target = f"specs/FrSpecs/{comparison.name}.lean::preserves"
-        checked = client.call("spec", "proof-check", target, "--from", str(tactics))
+        checked = client.call("proof", "check", target, "--draft", str(tactics), "--bytes", "4096", "--timeout-seconds", "30")
         save(output/f"{comparison.name}-proof.json", checked.to_data())
-        client.call("spec", "prove", target, "--from", str(tactics), "--write")
+        client.call("proof", "save", target, "--draft", str(tactics), "--bytes", "4096", "--timeout-seconds", "30")
     plan = TaskPlan("Check retained Boolean relations", ("three model relations",), (
         TaskStep.proved("models", "Do the retained models satisfy the three requested relations?",
             proofs=tuple(c.requirement() for c in comparisons), satisfies=("three model relations",)),))
@@ -162,9 +162,14 @@ def measure(binary, output):
         before = ModelSnapshot.capture(client, "subject.rs::allowed")
         wrong = ModelComparison("WrongMap", before, "translation.py::permits", (0, 1))
         wrong.execute(client, wrong.review(client))
-        failed = client.call("spec", "proof-check", "specs/FrSpecs/WrongMap.lean::preserves", "--from", str(output/"tactics.txt"))
-        assert failed.at("/passed") is False
-        save(output/"false-claim.json", {"refused": True, "report": failed.to_data()})
+        try:
+            client.call("proof", "check", "specs/FrSpecs/WrongMap.lean::preserves", "--draft", str(output/"tactics.txt"), "--bytes", "4096", "--timeout-seconds", "30")
+        except FrRuntimeError as error:
+            assert error.exit_code == 1 and error.report is not None
+            assert error.report["passed"] is False
+            save(output/"false-claim.json", {"refused": True, "report": error.report})
+        else:
+            raise AssertionError("the false claim passed proof checking")
     assert result["ordinary"]["source_sha256"] == result["native"]["source_sha256"]
     result["passed"] = True
     result["limits"] = "Prescribed deterministic edits with a shared independent truth-table oracle. Lean proves the requested generated Boolean model relations. Parsing and source correspondence remain trusted or unproved. No live-agent or token-saving claim. Nested rustc identity is recorded separately."

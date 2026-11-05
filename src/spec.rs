@@ -1,7 +1,7 @@
 mod proof_claim;
 mod proof_state;
 
-pub use proof_state::{proof_state, ProofState, ProofStateStatus};
+pub use proof_state::{proof_cursor, proof_state, ProofGoal, ProofState, ProofStateStatus};
 pub mod refinement;
 pub mod retained;
 
@@ -1218,7 +1218,15 @@ pub(crate) fn formal_plan_from_agent_specs(
                 "--from".into(),
                 "<PLAN_FILE>".into(),
             ],
-            goals: vec!["spec".into(), "goals".into(), "specs".into()],
+            goals: vec![
+                "proof".into(),
+                "list".into(),
+                "specs".into(),
+                "--bytes".into(),
+                "4096".into(),
+                "--limit".into(),
+                "32".into(),
+            ],
             verify: vec!["spec".into(), "verify".into(), "specs".into()],
         },
     })
@@ -1448,11 +1456,15 @@ fn formal_goal_details(
             proof_region: name.clone(),
             object_digest: id,
             prove_template: vec![
-                "spec".into(),
-                "prove".into(),
+                "proof".into(),
+                "save".into(),
                 format!("{}::{name}", spec.display()),
-                "--from".into(),
+                "--draft".into(),
                 "<PROOF_FILE>".into(),
+                "--bytes".into(),
+                "4096".into(),
+                "--timeout-seconds".into(),
+                "30".into(),
             ],
             verify: vec!["spec".into(), "verify".into(), spec.display().to_string()],
         });
@@ -1470,10 +1482,10 @@ pub fn formal_goals(
     respect_ignore: bool,
 ) -> Result<FormalGoals> {
     if !(1..=64).contains(&limit) {
-        bail!("formal goal limit must be between 1 and 64.");
+        bail!("proof list needs a result limit between 1 and 64.");
     }
     if !(1_024..=16_384).contains(&token_limit) {
-        bail!("formal goal token limit must be between 1024 and 16384.");
+        bail!("proof list needs 1024..16384 UTF-8 response bytes.");
     }
     let root = root.canonicalize()?;
     let report = check(&root, inputs, respect_ignore)?;
@@ -1505,13 +1517,15 @@ pub fn formal_goals(
             line: detail.line,
             object_digest: detail.object_digest.clone(),
             reveal: vec![
-                "spec".into(),
-                "goals".into(),
+                "proof".into(),
+                "list".into(),
                 detail.spec.display().to_string(),
                 "--goal".into(),
                 detail.id.clone(),
-                "--token-limit".into(),
+                "--bytes".into(),
                 token_limit.to_string(),
+                "--limit".into(),
+                "32".into(),
             ],
         })
         .collect::<Vec<_>>();
@@ -1525,7 +1539,7 @@ pub fn formal_goals(
             "revealed": revealed,
             "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
         });
-        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
         if upper_bound <= token_limit {
             return Ok(FormalGoals {
                 schema: FORMAL_GOALS_SCHEMA,
@@ -1557,7 +1571,7 @@ pub fn proof_task(
     respect_ignore: bool,
 ) -> Result<ProofTask> {
     if !(1_024..=16_384).contains(&token_limit) {
-        bail!("proof task token limit must be between 1024 and 16384.");
+        bail!("proof task response must allow 1024..16384 UTF-8 bytes.");
     }
     let root = root.canonicalize()?;
     let (spec, obligation) = proof_target(target)?;
@@ -1593,21 +1607,28 @@ pub fn proof_task(
     });
     let object_digest = crate::project::object_merkle(&core)?;
     let actions = ProofTaskActions {
-        inspect: proof_inspection_action(target, "<PROOF_FILE>", token_limit),
+        inspect: proof_inspection_action(target, "<PROOF_FILE>", token_limit, "<SECONDS>"),
         check: vec![
-            "spec".into(),
-            "proof-check".into(),
+            "proof".into(),
+            "check".into(),
             target.into(),
-            "--from".into(),
+            "--draft".into(),
             "<PROOF_FILE>".into(),
+            "--bytes".into(),
+            token_limit.to_string(),
+            "--timeout-seconds".into(),
+            "<SECONDS>".into(),
         ],
         apply: vec![
-            "spec".into(),
-            "prove".into(),
+            "proof".into(),
+            "save".into(),
             target.into(),
-            "--from".into(),
+            "--draft".into(),
             "<PROOF_FILE>".into(),
-            "--write".into(),
+            "--bytes".into(),
+            token_limit.to_string(),
+            "--timeout-seconds".into(),
+            "<SECONDS>".into(),
         ],
         verify: vec!["spec".into(), "verify".into(), spec.display().to_string()],
     };
@@ -1620,7 +1641,7 @@ pub fn proof_task(
         "actions": &actions,
         "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
     });
-    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
     if upper_bound > token_limit {
         bail!("proof task cannot fit the selected response ceiling.");
     }
@@ -1639,18 +1660,23 @@ pub fn proof_task(
     })
 }
 
-fn proof_inspection_action(target: &str, proof: &str, token_limit: usize) -> Vec<String> {
+fn proof_inspection_action(
+    target: &str,
+    proof: &str,
+    token_limit: usize,
+    seconds: &str,
+) -> Vec<String> {
     vec![
-        "spec".into(),
-        "proof-state".into(),
+        "proof".into(),
+        "state".into(),
         target.into(),
-        "--from".into(),
+        "--draft".into(),
         proof.into(),
         "--at".into(),
-        "<LINE:COLUMN>".into(),
+        "end".into(),
         "--timeout-seconds".into(),
-        "<SECONDS>".into(),
-        "--token-limit".into(),
+        seconds.into(),
+        "--bytes".into(),
         token_limit.to_string(),
     ]
 }
@@ -1660,19 +1686,40 @@ pub fn proof_check(
     target: &str,
     proof_path: &Path,
     token_limit: usize,
+    timeout_seconds: u64,
 ) -> Result<ProofAttempt> {
     if !(1_024..=16_384).contains(&token_limit) {
-        bail!("proof check token limit must be between 1024 and 16384.");
+        bail!("proof check response must allow 1024..16384 UTF-8 bytes.");
     }
     let root = root.canonicalize()?;
     let prepared = prepare_proof(&root, target, proof_path)?;
-    check_prepared_proof(&root, target, proof_path, &prepared, token_limit)
+    check_prepared_proof(
+        &root,
+        target,
+        proof_path,
+        &prepared,
+        token_limit,
+        timeout_seconds,
+    )
 }
 
-pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
+pub fn prove(
+    root: &Path,
+    target: &str,
+    proof_path: &Path,
+    token_limit: usize,
+    timeout_seconds: u64,
+) -> Result<ProofPlan> {
     let root = root.canonicalize()?;
     let mut prepared = prepare_proof(&root, target, proof_path)?;
-    let attempt = check_prepared_proof(&root, target, proof_path, &prepared, 4_096)?;
+    let attempt = check_prepared_proof(
+        &root,
+        target,
+        proof_path,
+        &prepared,
+        token_limit,
+        timeout_seconds,
+    )?;
     if !attempt.passed {
         let reason = attempt
             .diagnostics
@@ -1764,7 +1811,7 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
         let position = crate::span::LineIndex::new(&updated).line_col(span.start, &updated);
         let (_, checked_start) = proof_region_span(&updated, &obligation)?;
         if let Some(location) = proof_draft_location(
-            proof_path,
+            proof_path.strip_prefix(root).unwrap_or(proof_path),
             &proof_source,
             position.line,
             position.col,
@@ -1804,15 +1851,20 @@ fn check_prepared_proof(
     proof_path: &Path,
     prepared: &ProofPlan,
     token_limit: usize,
+    timeout_seconds: u64,
 ) -> Result<ProofAttempt> {
+    if !(1024..=16384).contains(&token_limit) || !(1..=60).contains(&timeout_seconds) {
+        bail!("proof checking needs 1024..16384 response bytes and 1..60 shared checking seconds.");
+    }
+    let deadline = Instant::now() + Duration::from_secs(timeout_seconds);
     let package = checked_proof_package(root, &prepared.spec)?;
     let checker_source = reviewed_kernel_context(&package, &prepared.updated)?;
     let dependency_target = format!("{}:deps", prepared.spec.strip_prefix(&package)?.display());
-    let mut output = Command::new("lake")
+    let mut dependencies = Command::new("lake");
+    dependencies
         .args(["build", &dependency_target])
-        .current_dir(&package)
-        .output()
-        .context("building the proof module's dependencies")?;
+        .current_dir(&package);
+    let mut output = crate::checks::bounded_process(dependencies, deadline, 1024 * 1024, false)?;
     let package_inputs =
         proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?;
     if proof_task(root, target, 16_384, true)?.goal.id != prepared.goal_id {
@@ -1826,23 +1878,41 @@ fn check_prepared_proof(
         .tempfile()?;
     scratch.as_file_mut().write_all(checker_source.as_bytes())?;
     scratch.as_file_mut().flush()?;
-    if output.status.success() {
-        // Pin the compiler pool, as the interactive proof worker already does.
-        output = Command::new("lake")
+    if output["passed"] == true {
+        let mut checker = Command::new("lake");
+        checker
             .args(["env", "lean", "-j", "1"])
             .arg(scratch.path())
-            .current_dir(&package)
-            .output()
-            .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+            .current_dir(&package);
+        output = crate::checks::bounded_process(checker, deadline, 1024 * 1024, false)?;
     }
+    if output["timed_out"] == true {
+        bail!("proof checking exceeded its {timeout_seconds}-second shared deadline; no proof receipt was issued.");
+    }
+    if output["output_limit_exceeded"] == true
+        || output["error"].is_string()
+        || output
+            .get("termination_error")
+            .is_some_and(|value| !value.is_null())
+    {
+        bail!("proof checker could not finish safely: {output}");
+    }
+    let checker_passed = output["passed"] == true;
     if proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?
         != package_inputs
         || crate::vfs::read_to_string(&prepared.spec)? != prepared.original
     {
         bail!("proof package inputs changed during checking; no receipt was issued.");
     }
-    let mut raw = String::from_utf8_lossy(&output.stdout).to_string();
-    raw.push_str(&String::from_utf8_lossy(&output.stderr));
+    let mut raw = output["stdout"]["text"]
+        .as_str()
+        .context("proof checker stdout must be text")?
+        .to_owned();
+    raw.push_str(
+        output["stderr"]["text"]
+            .as_str()
+            .context("proof checker stderr must be text")?,
+    );
     let mut diagnostics = lean_diagnostics(
         &raw,
         scratch.path(),
@@ -1850,9 +1920,9 @@ fn check_prepared_proof(
         &checker_source,
         prepared,
         proof_path,
-        output.status.success(),
+        checker_passed,
     )?;
-    if output.status.success() {
+    if checker_passed {
         // Other proof regions may still contain disclosed debt. Reject warnings
         // in this draft without making every other theorem a prerequisite.
         diagnostics.retain(|diagnostic| diagnostic.draft_location.is_some());
@@ -1864,7 +1934,7 @@ fn check_prepared_proof(
         true,
         true,
         true,
-        output.status.success() && diagnostics.is_empty(),
+        checker_passed && diagnostics.is_empty(),
     );
     let all_diagnostics = diagnostics.len();
     let checker_context_digest = crate::project::object_merkle(&serde_json::json!({
@@ -1882,23 +1952,40 @@ fn check_prepared_proof(
             }))
         })
         .transpose()?;
+    let shown_proof = proof_path
+        .strip_prefix(root)
+        .unwrap_or(proof_path)
+        .display()
+        .to_string();
     let actions = ProofAttemptActions {
-        inspect: proof_inspection_action(target, &proof_path.display().to_string(), token_limit),
+        inspect: proof_inspection_action(
+            target,
+            &shown_proof,
+            token_limit,
+            &timeout_seconds.to_string(),
+        ),
         revise: vec![
-            "spec".into(),
-            "proof-check".into(),
+            "proof".into(),
+            "check".into(),
             target.into(),
-            "--from".into(),
-            proof_path.display().to_string(),
+            "--draft".into(),
+            shown_proof.clone(),
+            "--bytes".into(),
+            token_limit.to_string(),
+            "--timeout-seconds".into(),
+            timeout_seconds.to_string(),
         ],
         apply: passed.then(|| {
             vec![
-                "spec".into(),
-                "prove".into(),
+                "proof".into(),
+                "save".into(),
                 target.into(),
-                "--from".into(),
-                proof_path.display().to_string(),
-                "--write".into(),
+                "--draft".into(),
+                shown_proof.clone(),
+                "--bytes".into(),
+                token_limit.to_string(),
+                "--timeout-seconds".into(),
+                timeout_seconds.to_string(),
             ]
         }),
         verify: vec![
@@ -1921,7 +2008,7 @@ fn check_prepared_proof(
             "actions": &actions,
             "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
         });
-        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
         if upper_bound <= token_limit {
             return Ok(ProofAttempt {
                 schema: PROOF_ATTEMPT_SCHEMA,
@@ -2218,7 +2305,7 @@ fn lean_diagnostics(
                 .filter(|location| location.path == Path::new("<PROOF_CHECK>"))
                 .and_then(|location| {
                     proof_draft_location(
-                        proof_path,
+                        proof_path.strip_prefix(root).unwrap_or(proof_path),
                         &prepared.proof_source,
                         location.line,
                         location.column,
@@ -3247,7 +3334,7 @@ fn property_task_for_formal(formal: &FormalFunction, token_limit: usize) -> Resu
         "actions": &actions,
         "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
     });
-    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
     if upper_bound > token_limit {
         bail!("property task cannot fit the selected response ceiling.");
     }

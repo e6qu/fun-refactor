@@ -153,6 +153,8 @@ class FormalPlanOperation:
 class ProofSubmissionOperation:
     obligation: str
     tactics: str
+    bytes: int
+    timeout_seconds: int
     checks: tuple[str, ...]
     delivery: TaskDelivery = TaskDelivery()
 
@@ -160,11 +162,14 @@ class ProofSubmissionOperation:
         _checks(self.checks, self.delivery)
         if (not isinstance(self.obligation, str) or not self.obligation
                 or not isinstance(self.tactics, str) or not self.tactics.strip()
-                or len(self.tactics.encode()) > 65_536):
+                or len(self.tactics.encode()) > 65_536
+                or type(self.bytes) is not int or not 1024 <= self.bytes <= 16384
+                or type(self.timeout_seconds) is not int or not 1 <= self.timeout_seconds <= 60):
             raise FrRuntimeError("proof submission requires an obligation and bounded agent-authored tactics")
 
     def to_data(self) -> dict[str, Any]:
         return {"kind": "proof-submission", "obligation": self.obligation, "tactics": self.tactics,
+                "bytes": self.bytes, "timeout_seconds": self.timeout_seconds,
                 "checks": list(self.checks), "delivery": self.delivery.to_data()}
 
 

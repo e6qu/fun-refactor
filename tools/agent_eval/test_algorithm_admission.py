@@ -16,8 +16,8 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
         self.assertIn('Possibly looping simp theorem', script)
         self.assertIn('/pinned-lean/bin/lake -d specs build --wfail', script)
         self.assertIn('git diff --binary HEAD > change.patch', script)
-        self.assertEqual(script.count(' spec proof-check '), 3)
-        self.assertEqual(script.count(' spec prove '), 2)
+        self.assertEqual(script.count(' proof check '), 3)
+        self.assertEqual(script.count(' proof save '), 2)
         for name in admission.algorithms.OBLIGATIONS:
             self.assertIn(str(admission.ROOT / admission.algorithms.DIRECTORY / 'controls' /
                               (name.replace('_', '-') + '.lean')), script)
@@ -96,8 +96,8 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
             script = admission.script(Path('/pinned-lean'), '/pinned-tools:/usr/bin:/bin', admission.DELIVERY_STUDY, setup)
             self.assertIn('.fr/euclid_decreases.tactics', script)
             self.assertIn('.fr/euclid_correct.tactics', script)
-            self.assertEqual(script.count(' spec proof-check '), 2)
-            self.assertEqual(script.count(' spec prove '), 2)
+            self.assertEqual(script.count(' proof check '), 2)
+            self.assertEqual(script.count(' proof save '), 2)
             self.assertIn('"history","patch"', script)
             self.assertNotIn('git diff', script)
             self.assertEqual('.fr/finish-card.txt' in script, setup == 'finish-card')

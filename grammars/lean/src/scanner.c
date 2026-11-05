@@ -43,6 +43,10 @@ enum TokenType {
   TACTIC_LABEL_COLON,
   CONTINUATION_BODY_START,
   DO_BODY_START,
+  TACTIC_BRANCH_START,
+  TACTIC_CASES_START,
+  TACTIC_PATTERN_SEPARATOR,
+  IF_LET_START,
   TACTIC_SUBJECT_SEPARATOR,
 };
 
@@ -51,7 +55,7 @@ enum TokenType {
 
 typedef struct {
   uint32_t indents[MAX_DEPTH];
-  uint8_t bindings[MAX_DEPTH];
+  uint8_t bindings[MAX_DEPTH]; // 0 block, 1 binding, 2 constructor body, 3 constructor list
   uint8_t  depth;
   uint32_t queued_indent; // indent of next non-blank line, or NO_QUEUED
 } Scanner;
@@ -106,7 +110,7 @@ static inline uint32_t top_indent(Scanner *s) {
   return s->depth > 0 ? s->indents[s->depth - 1] : 0;
 }
 
-static inline void push(Scanner *s, uint32_t indent, bool binding) {
+static inline void push(Scanner *s, uint32_t indent, uint8_t binding) {
   if (s->depth < MAX_DEPTH) {
     s->indents[s->depth] = indent;
     s->bindings[s->depth++] = binding;
@@ -317,6 +321,20 @@ bool tree_sitter_lean_external_scanner_scan(
     return true;
   }
 
+  if (valid_symbols[TACTIC_BRANCH_START]) {
+    push_layout_indent(s, lexer);
+    if (s->depth > 0) s->bindings[s->depth - 1] = 2;
+    lexer->result_symbol = TACTIC_BRANCH_START;
+    return true;
+  }
+
+  if (valid_symbols[TACTIC_CASES_START]) {
+    push_layout_indent(s, lexer);
+    if (s->depth > 0) s->bindings[s->depth - 1] = 3;
+    lexer->result_symbol = TACTIC_CASES_START;
+    return true;
+  }
+
   if (valid_symbols[CONTINUATION_BODY_START]) {
     skip_spaces(lexer);
     if (is_nl(lexer->lookahead)) {
@@ -349,7 +367,18 @@ bool tree_sitter_lean_external_scanner_scan(
     uint32_t qi = s->queued_indent;
     uint32_t ci = top_indent(s);
 
-    bool binding = s->bindings[s->depth - 1];
+    bool binding = s->bindings[s->depth - 1] == 1;
+    if (qi == ci && s->bindings[s->depth - 1] == 3 && valid_symbols[LAYOUT_END]) {
+      lexer->mark_end(lexer);
+      Indent next = measure_indent(lexer, false);
+      if (next.first != '|') {
+        pop(s);
+        lexer->result_symbol = LAYOUT_END;
+        return true;
+      }
+      s->queued_indent = NO_QUEUED;
+      return false;
+    }
     if ((qi < ci || (binding && qi == ci)) && valid_symbols[LAYOUT_END]) {
       lexer->mark_end(lexer);
       if (binding) {
@@ -394,6 +423,12 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->mark_end(lexer);
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
+        if (valid_symbols[TACTIC_PATTERN_SEPARATOR] && lexer->lookahead == '|') {
+          lexer->advance(lexer, false);
+          lexer->mark_end(lexer);
+          lexer->result_symbol = TACTIC_PATTERN_SEPARATOR;
+          return true;
+        }
         return false;
       }
       s->queued_indent = NO_QUEUED;
@@ -427,7 +462,15 @@ bool tree_sitter_lean_external_scanner_scan(
     Indent indent = measure_indent(lexer, false);
     uint32_t next = indent.column;
     uint32_t ci   = top_indent(s);
-    bool binding = s->bindings[s->depth - 1];
+    bool binding = s->bindings[s->depth - 1] == 1;
+
+    if (next == ci && s->bindings[s->depth - 1] == 3 &&
+        indent.first != '|' && valid_symbols[LAYOUT_END]) {
+      pop(s);
+      s->queued_indent = next;
+      lexer->result_symbol = LAYOUT_END;
+      return true;
+    }
 
     if ((next < ci || (binding && next == ci)) && valid_symbols[LAYOUT_END]) {
       if (binding && ((next == ci && starts_with_infix(lexer, indent.first)) ||
@@ -447,12 +490,25 @@ bool tree_sitter_lean_external_scanner_scan(
       // Suppress semicolon before `|`
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
+        if (valid_symbols[TACTIC_PATTERN_SEPARATOR] && lexer->lookahead == '|') {
+          lexer->advance(lexer, false);
+          lexer->mark_end(lexer);
+          lexer->result_symbol = TACTIC_PATTERN_SEPARATOR;
+          return true;
+        }
         return false;
       }
       s->queued_indent = NO_QUEUED;
       lexer->result_symbol = LAYOUT_SEMICOLON;
       return true;
     }
+  }
+
+  if (valid_symbols[TACTIC_PATTERN_SEPARATOR] && lexer->lookahead == '|') {
+    lexer->advance(lexer, false);
+    lexer->mark_end(lexer);
+    lexer->result_symbol = TACTIC_PATTERN_SEPARATOR;
+    return true;
   }
 
   /* 5. EOF while in layout — emit LAYOUT_END to close all open blocks. */
@@ -465,6 +521,16 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 6. Closing delimiters and tuple separators end one nested layout level. */
   if (valid_symbols[LAYOUT_END] && s->depth > 0) {
     int32_t c = lexer->lookahead;
+    if (c == '|' && s->bindings[s->depth - 1] == 2) {
+      lexer->mark_end(lexer);
+      lexer->advance(lexer, true);
+      if (lexer->lookahead != '|' && lexer->lookahead != '>') {
+        pop(s);
+        lexer->result_symbol = LAYOUT_END;
+        return true;
+      }
+      return false;
+    }
     if (c == ':') {
       lexer->mark_end(lexer);
       lexer->advance(lexer, true);
@@ -476,7 +542,7 @@ bool tree_sitter_lean_external_scanner_scan(
       return false;
     }
     if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9 ||
-        (c == ';' && s->bindings[s->depth - 1])) {
+        (c == ';' && s->bindings[s->depth - 1] == 1)) {
       pop(s);
       lexer->result_symbol = LAYOUT_END;
       return true;
@@ -490,6 +556,17 @@ bool tree_sitter_lean_external_scanner_scan(
     lexer->advance(lexer, true);
     if (identifier_continues(lexer->lookahead)) return false;
     lexer->result_symbol = DO_BODY_START;
+    return true;
+  }
+
+  if (valid_symbols[IF_LET_START]) {
+    lexer->mark_end(lexer);
+    for (const char *word = "let"; *word; word++) {
+      if (lexer->lookahead != *word) return false;
+      lexer->advance(lexer, true);
+    }
+    if (identifier_continues(lexer->lookahead)) return false;
+    lexer->result_symbol = IF_LET_START;
     return true;
   }
 

@@ -167,7 +167,6 @@ client.complete_guide(AgentGoal("prove",
     selector=GoalSelector(path={json.dumps(proof_path)}),
     operation=GoalOperation("proof", {{"obligation":{json.dumps(obligation)}}})), {{
     1: GuideInputs({{"tactics-file": tactics}}),
-    2: GuideInputs({{"tactics-file": tactics}}),
 }})
 '''
 
@@ -191,7 +190,7 @@ name="calculate"`, `  expect matched = 1`, `  expect changed = 1 files`,
 `  expect refusals = 0`, `}}`. Build goals with `AgentGoal`, `GoalSelector`, `GoalOperation`,
 `GuideInputs`, and `GuideFile`. `complete_guide` returns a guide and reports; the migration guide's
 actions are followed with `client.follow_guide`. Recipe input belongs to action 0. Migration inputs
-belong to action 1. The proof tactics file belongs unchanged to actions 1 and 2.
+belong to action 1. The proof tactics file belongs to action 1.
 
 Use this complete tested program shape. Preserve the constructor names, field types, operation
 fields and indexed input maps. You may reformat it, but do not add fields or calls:
@@ -241,8 +240,10 @@ if len(argv) < 4 or argv[0] != "--json" or argv[1] != "-C" or pathlib.Path(argv[
 arguments = argv[3:]
 if not arguments or any(value.split("=", 1)[0] in ("--write", "--save-plan") for value in arguments):
     raise SystemExit("SDK comparison admits previews only")
-if arguments[0] not in ("guide", "intent", "rename", "recipe", "project", "author", "migrate", "spec"):
+if arguments[0] not in ("guide", "intent", "rename", "recipe", "project", "author", "migrate", "spec", "proof"):
     raise SystemExit("SDK comparison command is outside the guided surface")
+if arguments[0] == "proof" and (len(arguments) < 2 or arguments[1] not in ("show", "check")):
+    raise SystemExit("SDK comparison proof commands must only show or check drafts")
 input_bytes = sys.stdin.buffer.read(65537)
 if len(input_bytes) > 65536:
     raise SystemExit("SDK input exceeds 64 KiB")
@@ -558,9 +559,8 @@ def sdk_coverage(session: Path) -> dict[str, object]:
         lambda args: args[:2] == ["author", "edit-body-scalar"],
         lambda args: args[:2] == ["project", "features"],
         lambda args: args[:2] == ["migrate", "feature"],
-        lambda args: args[:2] == ["spec", "proof-task"],
-        lambda args: args[:2] == ["spec", "proof-check"],
-        lambda args: args[:2] == ["spec", "prove"],
+        lambda args: args[:2] == ["proof", "show"],
+        lambda args: args[:2] == ["proof", "check"],
     ]
     return {"calls": len(rows), "failed_calls": sum(row.get("exit_code") != 0 for row in rows),
             "observed_routes": routes, "route_coverage": all(route in routes for route in ROUTES),

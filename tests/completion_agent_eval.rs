@@ -132,28 +132,26 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
             "context":{"token_limit":4096,"packet_limit":65536}}}),
     );
     assert_eq!(proof["route"]["id"], "proof");
+    assert_eq!(proof["actions"].as_array().unwrap().len(), 2);
     step(
         root,
         &structured,
         json!({"tool":"follow","guide":0,"action":0}),
     );
-    step(
+    let checked = step(
         root,
         &structured,
         json!({"tool":"follow","guide":0,"action":1,
             "replace":{"<tactics-file>":"proof.lean"},"file_lines":{"proof.lean":["rfl"]}}),
     );
-    let reused = step(
-        root,
-        &structured,
-        json!({"tool":"follow","guide":0,"action":2,
-            "replace":{"<tactics-file>":"proof.lean"}}),
-    );
-    assert_eq!(
-        reused["arguments"].as_array().unwrap().last().unwrap(),
-        "proof.lean"
-    );
-    assert_eq!(reused["response"]["schema"], 1);
+    assert!(checked["arguments"]
+        .as_array()
+        .unwrap()
+        .windows(2)
+        .any(|pair| pair == [json!("--draft"), json!("proof.lean")]));
+    assert_eq!(checked["response"]["schema"], "fr-proof-attempt-1");
+    assert_eq!(checked["response"]["passed"], true);
+    assert!(!structured.join("project/.fr-history").exists());
     std::fs::write(
         structured.join("codex-events.jsonl"),
         "{\"type\":\"turn.completed\",\"usage\":{}}\n",

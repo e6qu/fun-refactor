@@ -1,73 +1,80 @@
-# Write a proof with feedback after each step
+# Write and deliver a checked proof
 
-Keep the theorem (claim), model, assumptions and program fixed. Tactics are proof
-steps. Copy `spec goals specs`’s Lean `target` as `<LEAN_TARGET>`:
+Keep the program, definitions, claim, assumptions and imports fixed.
+Tactics are proof steps. Proving this model does not prove its source connection.
 
-```sh
-fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
-```
-
-Read `claim.parameters` and `claim.parts`: assumptions and conclusions. Parameters may already be in scope: if the goal shows `x : Bool`,
-use `x`; do not `intro x` again. `intro` is for an implication or quantified input
-still to the right of `⊢`.
-
-## The interactive loop
-
-Write `skip` in `.fr/proof-tactics` without `by`. It leaves the goal open.
-Keep indentation for nested steps.
+## Start with an actual goal
 
 ```sh
-fr --json spec proof-state '<LEAN_TARGET>' --from .fr/proof-tactics --at 1:5 --token-limit 4096 --timeout-seconds 30
+fr proof list specs --limit 8 --bytes 4096
+fr proof show '<TARGET>' --bytes 8192
+fr --json proof start '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
 ```
 
-`--at` is a one-based line and character column in your draft. Column 5 is just
-after `skip`. Count Unicode characters, not bytes. Query the end of the step
-you just wrote; before it you may see the previous state. Each query reads the draft. `goal_id` names the obligation; `proof_digest` identifies draft content.
-Keep the source, imports and full draft together. `theorem` retains the original objective.
-
-In each `goals` entry, `h : P` means a named proof of statement `P` is available;
-`⊢ Q` means you must prove `Q`. Read all entries after a split. For `P ∧ Q`,
-`constructor` creates two goals. A bullet `·` focuses a branch. Inspect the next branch after solving the first.
-
-- `goals`: Lean's goals and available assumptions at that cursor, without clipping.
-- `closed-at-position`: this branch has no goals there; another branch may be open.
-- `no-tactic-at-position`: move the cursor into a tactic or run a complete check.
-
-All have `acceptance: "not-checked"`. Insufficient response space fails explicitly. `--token-limit` measures UTF-8 response bytes, not model
-tokens; choose it and the shared dependency/editor deadline explicitly.
-
-Inspect each edited step. Read [Algorithms](lean-algorithms.md) for recursion or
-[Arithmetic](lean-arithmetic.md) for comparisons and division. For a missing fact,
-run `lean --print-prefix` from `specs/` to select its toolchain. Under that prefix,
-choose a folder in `src/lean/Init/Data` as `<LEAN_LIBRARY_DIR>` and a name fragment
-as `<LIBRARY_QUERY>`. Return to the project root for proof commands.
+Copy `<TARGET>` from the list: `FILE.lean::THEOREM`. A theorem name alone is
+invalid. `start` creates `skip` and shows the actual goal; it never overwrites.
+To resume a draft after changing a step:
 
 ```sh
-fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --limit 4
+fr --json proof state '<TARGET>' --draft .fr/proof-tactics --at end --bytes 8192 --timeout-seconds 30
 ```
 
-Read argument types and order; an empty search with gaps cannot establish absence.
+`end` selects the last nonempty draft line. `4:end` selects line four's end;
+`LINE:COLUMN` uses one-based Unicode character positions. No column counting
+is needed for an end position. `--bytes` bounds the UTF-8 JSON response.
+`--timeout-seconds` shares one deadline across dependencies and checking.
 
-## Check the complete draft before saving
+Each `goals` item has two text fields:
+
+```json
+{"context":"n : Int\nhn : 0 ≤ n", "goal":"0 ≤ n + 1"}
+```
+
+Here `n` is a number, `hn` an available proof, and `0 ≤ n + 1` the objective.
+Read `item["context"]` and `item["goal"]`; the items are not strings.
+Read every goal after a split. `closed-at-position` closes only this branch;
+`no-tactic-at-position` means the cursor selected no tactic.
+All inspection states retain `acceptance: "not-checked"`.
+
+Write tactics without leading `by`, preserving nested indentation.
+Parameters in `context` already exist. Use `intro` for an implication or
+quantifier still in the goal, not for a variable already in scope.
+For `P ∧ Q`, `constructor` creates two goals. Bullets `·` focus branches.
+For `h : P ∧ Q`, `rcases h with ⟨hp, hq⟩` names two proofs.
+An implication `h : P → Q` instead needs a proof of `P` to yield `Q`.
+See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
+
+For a missing fact, obtain `lean --print-prefix` from `specs/`, choose a narrow
+folder such as `<PREFIX>/src/lean/Init/Data/Int`, and search its declarations:
 
 ```sh
-fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
+fr -C '<LIBRARY_FOLDER>' project find '<NAME_FRAGMENT>' --contains --signature --limit 4
 ```
 
-`--timeout-seconds` belongs to `proof-state`, not `proof-check` or `prove`.
-`prove` has no `--token-limit`. Read the complete response; `tail` can hide errors.
-Inspect `passed`, not process exit. `draft_location` points into your tactics;
-`checked_location` can include generated lines. Diagnostic `context` retains `⊢`;
-`context_omitted_lines` counts omissions. Fix errors, warnings and all open goals.
-Only `passed: true` supplies a checked receipt. Then save:
+Text mode labels results. For a program, use `--json` and its actual `columns`
+and `rows`, or the SDK decoder. Empty results with omissions prove no absence.
+
+## Check, save, deliver
 
 ```sh
-fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
+fr --json proof check '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
+fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
 ```
 
-`status: written` saved a checked proof. Keep its `transaction` (saved edit ID).
-`already-present` needs no repeated save. Preserve `.fr/checks.json`.
-Run the package check, review the diff, then from the project root write
-`git diff --binary HEAD > change.patch` and finish. Keep failed diagnostics.
+A rejected check exits 1 with `passed: false` and diagnostics. Inspect
+`draft_location`, `context`, warnings and omission counts; `tail` can hide errors.
+`save` checks and writes in one call; a separate final check is unnecessary.
+`written` supplies the saved edit's `transaction` ID as `<EDIT_ID>`.
+`already-present` creates no new edit. Neither accepts other unfinished proofs.
 
-For a missing model or theorem, read [Create a claim](lean-claims.md).
+Run the supplied package check once and export the selected saved edit:
+
+```sh
+lake -d specs build --wfail
+fr history patch '<EDIT_ID>' --output change.patch
+```
+
+For two saved proofs, pass both IDs in save order. Review the complete patch.
+Preserve `.fr/checks.json`. A passing draft, a saved proof, a passing package
+and a delivered patch are separate stages. Combine known serial commands in one shell call; stop on failure.
+For claims, read [Create a claim](lean-claims.md).

@@ -361,12 +361,24 @@ fn git_environment_cannot_redirect_checks_and_git_is_optional_for_other_modes() 
             .output()
             .unwrap(),
     );
-    for flags in [vec!["--check", "--git-check"], vec!["--index"]] {
+    for (flags, reason) in [
+        (vec!["--check", "--git-check"], "cannot be used with"),
+        (vec!["--index"], "required arguments"),
+    ] {
         let mut args = vec!["history", "patch", "1"];
         args.extend(flags);
         let rejected = fr(root, &args).output().unwrap();
         assert_eq!(rejected.status.code(), Some(2));
-        assert!(rejected.stdout.is_empty());
+        assert!(rejected.stderr.is_empty());
+        let report: Value = serde_json::from_slice(&rejected.stdout).unwrap();
+        assert_eq!(report["error"]["kind"], "invalid-input");
+        assert!(
+            report["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains(reason),
+            "{report}"
+        );
     }
 }
 

@@ -776,37 +776,44 @@ fn tactic_locations_preserve_later_source_declarations() {
 }
 
 #[test]
-fn agent_proof_forms_parse_structurally() {
+fn literal_braces_keep_later_functions_visible_without_string_references() {
     let source = r#"
-def allowed (purpose : Nat) : Bool :=
-  match purpose with
-  | 2 | 3 | 4 => true
-  | _ => false
-
-def masked (mode before after : UInt32) : Bool :=
-  mode &&& ~~~before == after ||| (mode ^^^ before) == after
-
-theorem admitted (state : Nat) (ready : Bool)
-    (values : List Nat) (member : ∀ value ∈ values, value ∈ values) : True := by
-  by_cases s0 : state = 0 <;> cases ready <;> simp_all [*]
-
-theorem branches (values : List Nat) (pair : Nat × Nat) : True := by
-  induction values with
-  | nil => simp
-  | cons head tail ih => simp_all
-  rcases pair with ⟨left, right⟩
-  simp
-
-theorem alternatives (invalid : 0 < 1 ∨ 1 < 2) : True := by
-  rcases invalid with left | right
-  · trivial
-  · trivial
+def samples : List String := ["mod target {\r\n  ", "/* } */", "formal-plan-admission"]
+def main (args : List String) : IO Unit := do
+  IO.println args.length
 "#;
+    let (_directory, index) = common::workspace(&[("Source.lean", source)]);
+    let functions: BTreeSet<_> = index
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    assert_eq!(functions, BTreeSet::from(["samples", "main"]));
+    let false_reads: Vec<_> = index
+        .references
+        .iter()
+        .map(|reference| reference.name.as_str())
+        .filter(|name| ["target", "formal", "plan", "admission", "r", "n"].contains(name))
+        .collect();
+    assert!(
+        false_reads.is_empty(),
+        "string data became code: {false_reads:?}"
+    );
+}
+
+#[test]
+fn agent_proof_forms_parse_structurally() {
+    let source = include_str!("fixtures/lean-agent-proof-forms.lean");
 
     let tree = Parsers::new()
         .parse(Language::Lean, source)
         .expect("the Lean parser loads");
-    assert!(!tree.has_errors(), "agent proof forms must parse cleanly");
+    assert!(
+        !tree.has_errors(),
+        "agent proof forms must parse cleanly: {}",
+        tree.root().to_sexp()
+    );
     let structure = tree.root().to_sexp();
     assert!(structure.contains("tactic_cases"), "{structure}");
     assert!(
@@ -864,4 +871,40 @@ fn multiline_lambda_keeps_its_argument_and_following_tactic() {
         assert_eq!(&source[following.byte_range()], "exact main b a");
     }
     assert!(found);
+}
+
+#[test]
+fn project_kernels_remain_readable_as_lean_source() {
+    let mut failures = Vec::new();
+    for (name, source) in [
+        (
+            "LayoutForms",
+            include_str!("fixtures/lean-project-layout.lean"),
+        ),
+        (
+            "AgentSession",
+            include_str!("../kernels/FrKernels/AgentSession.lean"),
+        ),
+        (
+            "SemanticIntent",
+            include_str!("../kernels/FrKernels/SemanticIntent.lean"),
+        ),
+        ("ProjectMain", include_str!("../kernels/ProjectMain.lean")),
+    ] {
+        let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+        if parsed.has_errors() {
+            for span in parsed.error_spans().iter().take(4) {
+                let node = parsed
+                    .root()
+                    .descendant_for_byte_range(span.start, span.end)
+                    .unwrap();
+                let parent = node.parent().unwrap_or(node);
+                let sexp = parent.to_sexp();
+                let diagnostic: String = sexp.chars().take(6000).collect();
+                eprintln!("{name} {}..{}: {diagnostic}", span.start, span.end);
+            }
+            failures.push(name);
+        }
+    }
+    assert!(failures.is_empty(), "Lean kernel parse gaps: {failures:?}");
 }

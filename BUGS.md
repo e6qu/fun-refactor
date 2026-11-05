@@ -3,6 +3,23 @@
 Use this page when fr refuses a command, gives a wrong answer, or cannot finish your task.
 The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and an incorrect answer need different reports.
 
+## Command and reader repairs in PR #603
+
+A rejected `fr proof check` now exits 1.
+With `--json`, errors use one JSON report on stdout, the normal output stream.
+Stderr, the error stream, stays empty.
+`fr proof start` shows Lean's actual initial goal. Each later inspection separates available facts from the claim still to prove.
+Dependency preparation and checking share one deadline. Stalled processes stop within the existing limits.
+
+Lean strings such as `"mod target {"` previously hid later functions from fr.
+The reader now finds those functions without treating the quoted sample as code.
+Scripted comparisons use the two read-only proof actions. They reject proof writes and missing check evidence.
+The proof-delivery control checks supplied tactics, reviews the edit, exports a patch and verifies it independently.
+A timed-out attempt still fails. The control makes no model call.
+The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146) pass, including the new reader regression and stalled-process controls.
+The new measurement records and their audits pass.
+Read the complete [PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
+
 ## Merged repairs and remaining limits
 
 The [supplied-proof delivery review](tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
@@ -163,7 +180,7 @@ before the earlier complete comparison. Those counts do not qualify the current 
 
 | Earlier problem | Current branch behavior |
 | --- | --- |
-| Agents could not inspect progress between proof steps | Adds `proof-state` with the original claim, available assumptions, goals and draft cursor; distinguishes a solved branch from whole-proof acceptance. [Hosted branch tests](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004157) and the packaged skill examples pass; inspection cannot issue a proof receipt |
+| Agents could not inspect progress between proof steps | `fr proof state` returns the original claim, available assumptions, goals and draft cursor; it distinguishes a solved branch from whole-proof acceptance. [Hosted branch tests](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004157) and the packaged skill examples pass; inspection cannot issue a proof receipt |
 | A short proof-inspection deadline could expire immediately | Dependency preparation and editor inspection now share an absolute deadline. Fractional time remains usable; expired work cannot start or report success. [Hosted deadline checks](https://github.com/e6qu/fun-refactor/actions/runs/41348371660/job/124973004148) pass without increasing any limit |
 | The filesystem check treated a Unix-only test module as runtime code | Recognizes `all(test, ...)` conditions while keeping runtime alternatives checked. [All six filesystem checks](https://github.com/e6qu/fun-refactor/actions/runs/41347972509/job/124971785531) pass, including the runtime-alternative regression |
 | Valid Lean proof forms were rejected before checking | Accepts discarded assumptions such as `rintro ⟨h, -, -⟩`, simplifier phase markers, Unicode lambda arrows, branching bindings and dated attributes; checks later declarations too |
@@ -205,7 +222,7 @@ The preceding comparison's nine checking groups accepted all 27 submitted patche
 The new complete comparison retained eight timeouts and 28 independently accepted patches.
 Its accepted access and range proofs use actual fr checks and writes. M3 still lacks GLM and Kimi page-count proofs.
 The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) records the exact mistakes and timing.
-The root skill now links arithmetic directly and starts by checking an unfinished draft.
+The root skill links arithmetic directly and starts from Lean's actual initial goal.
 The lesson explains Boolean comparisons, proof-valued arguments and a search for a missing fact.
 All four examples compile with pinned Lean; the complete skill passes hosted M2 checks.
 The [small diagnostic](tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) retained eight valid proof patches and six completed attempts.

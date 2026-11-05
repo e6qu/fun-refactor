@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-REPORT = ROOT / 'tests/agent-eval/results/2026-11-04-focused-proof-imports-compiler-profile/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-05-checked-proof-reader-compiler-profile/result.json'
 
 
 def retained_report(path):
@@ -161,7 +161,13 @@ class CompilerProfile(unittest.TestCase):
 
     def test_shadow_refusal_requires_a_selection_reason(self):
         value, row = self.changed('python-shadow')
-        row['events']['origins']['stderr'] = 'unrelated command failure'
+        self.change_report(row, 'origins', lambda r: r['error'].update(message='unrelated command failure'))
+        self.reject(value)
+
+    def test_shadow_refusal_rejects_stderr_only_errors(self):
+        value, row = self.changed('python-shadow')
+        row['events']['origins']['stdout'] = ''
+        row['events']['origins']['stderr'] = 'no exact semantic IR item'
         self.reject(value)
 
     def test_incomplete_flow_cannot_become_complete(self):

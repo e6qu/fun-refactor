@@ -107,6 +107,11 @@ The project-change work adds Rust path, attribute and conditional-declaration ru
 Current runs therefore keep exact comparisons for the smaller unchanged workloads, retain the repository's declaration/reference counts, and require its complete answers to repeat exactly.
 Their timings include the new language support. They cannot isolate the cost of the earlier optimization.
 
+The Lean reader fixes also change repository answers.
+For example, a string containing `"mod target {"` used to hide later functions from the reader.
+The [reviewed inventory](../tests/agent-eval/index-consumers/lean-reader-current.json) records every changed declaration and reference on both fixed repositories.
+Current timing includes finding those extra functions; it does not measure identical work against the old reader.
+
 These measurements concern the tool reading code. Measuring translated-program overhead requires running the original and generated functions on equivalent inputs, with the same declared build settings and matching outputs.
 
 ## Faster parts can still make the whole operation slower

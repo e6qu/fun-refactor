@@ -365,7 +365,7 @@ def test_tagged_operation_mirrors_and_purpose_admission():
         (FrameworkMigrationOperation("feature","fastapi","server.py",("unit",)),"migrate","framework-migration"),
         (ApplicationMigrationOperation("express","generated",("unit",)),"migrate","application-migration"),
         (FormalPlanOperation(("identity",)),"prove","formal-plan"),
-        (ProofSubmissionOperation("identity","rfl",("unit",)),"prove","proof-submission"),
+        (ProofSubmissionOperation("identity","rfl",4096,30,("unit",)),"prove","proof-submission"),
         (ProjectQueryOperation((ProjectRequest("map",["code-map","target"]),)),"understand","project-query"),
         (SurfaceEditOperation("frse1:"+"0"*32,"panel",("unit",)),"change","surface-edit"),
         (PropertyTaskOperation(),"prove","property-task"),

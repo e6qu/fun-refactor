@@ -81,8 +81,8 @@ retains both source texts and generated models. Native validation regenerates ea
 retained source, then compares the new snapshot with current workspace source. Changes to generated
 definitions, the relation or argument map refuse. A missing manifest also refuses.
 
-The module starts with visible proof debt. Use the existing `spec proof-task`, `spec proof-check` and
-`spec prove` commands to author and check the `preserves` theorem. Finite Boolean claims can use
+The module starts with visible proof debt. Use the existing `proof show`, `proof check` and
+`proof save` commands to author and check the `preserves` theorem. Finite Boolean claims can use
 agent-authored `decide` tactics. A false claim fails Lean checking. Generated model definitions alone
 disable the unused-variable linter, allowing historical unused parameters. Proof warnings remain fatal.
 

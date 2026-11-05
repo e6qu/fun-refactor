@@ -53,6 +53,10 @@ module.exports = grammar({
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
     $._continuation_body_start,         // Inline terms continue inside the enclosing layout
     $._do_body_start,           // The following `do` opens a statement body
+    $._tactic_branch_start,     // Constructor branch body, closed before its next pipe
+    $._tactic_cases_start,      // Constructor list, closed before a following peer tactic
+    $._tactic_pattern_separator, // A pipe here extends an rcases pattern, not a constructor list
+    $._if_let_start,           // Keep conditional bindings separate from ordinary let expressions
     $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
 
@@ -869,7 +873,9 @@ module.exports = grammar({
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
+        $._tactic_cases_start,
         repeat1($.tactic_constructor_branch),
+        $._layout_end,
       )),
     )),
 
@@ -878,9 +884,9 @@ module.exports = grammar({
       field('constructor', $.qualified_name),
       repeat(field('binder', choice($.identifier, $.hole))),
       '=>',
-      $._layout_start,
+      $._tactic_branch_start,
       field('body', $._tactic_seq),
-      optional($._layout_end),
+      $._layout_end,
     )),
 
     // `rcases` has a pattern tree rather than tactic bodies. Alternatives and
@@ -921,11 +927,11 @@ module.exports = grammar({
     rcases_alternative_pattern: $ => prec.right(1, choice(
       seq(
         choice($._rcases_atom, $.rcases_tuple_pattern),
-        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))),
+        repeat1(seq($._tactic_pattern_separator, choice($._rcases_atom, $.rcases_tuple_pattern))),
       ),
       seq(
         '(', choice($._rcases_atom, $.rcases_tuple_pattern),
-        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
+        repeat1(seq($._tactic_pattern_separator, choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
       ),
     )),
 
@@ -1065,8 +1071,9 @@ module.exports = grammar({
     // Parsed as do-element or standalone, uses `let` keyword after `if`
     if_let: $ => prec.right(seq(
       'if',
+      $._if_let_start,
       'let',
-      field('pattern', $._pattern),
+      field('pattern', $._binding_pattern),
       choice(':=', '<-', '←'),
       field('value', $._expression),
       $._then_else,
@@ -1091,9 +1098,16 @@ module.exports = grammar({
       ')',
     ),
 
-    // List pattern: `[x]`, `[x, y]` — only in do_let to avoid
-    // GLR conflict with instance_binder in fun binders.
-    list_pattern: $ => seq('[', commaSep1($._pattern), ']'),
+    _binding_pattern: $ => choice(
+      $._pattern, $.list_pattern, $.cons_pattern,
+      $.string, $.number, $.true, $.false,
+    ),
+
+    list_pattern: $ => seq('[', commaSep($._binding_pattern), ']'),
+
+    cons_pattern: $ => prec.right(PREC.add, seq(
+      field('head', $._binding_pattern), '::', field('tail', $._binding_pattern),
+    )),
 
     // Constructor pattern: `some x`, `none`, `Foo.bar x y`
     // An identifier alone is just an identifier, not a constructor_pattern
@@ -1179,7 +1193,7 @@ module.exports = grammar({
     do_let: $ => prec.dynamic(2, prec.right(2, seq(
       $._binding_start,
       'let',
-      field('pattern', choice($._pattern, $.list_pattern)),
+      field('pattern', $._binding_pattern),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
@@ -1191,7 +1205,7 @@ module.exports = grammar({
     let_bind: $ => seq(
       $._binding_start,
       'let',
-      field('name', $._pattern),
+      field('name', $._binding_pattern),
       optional($._type_spec),
       choice('<-', '←'),
       field('value', $._expression),
@@ -1284,8 +1298,9 @@ module.exports = grammar({
     // If-let in do-block: `if let some x := e then ...`
     do_if_let: $ => prec.right(1, seq(
       'if',
+      $._if_let_start,
       'let',
-      field('pattern', $._pattern),
+      field('pattern', $._binding_pattern),
       choice(':=', '<-', '←'),
       field('value', $._expression),
       $._do_then_else,
@@ -1405,16 +1420,15 @@ module.exports = grammar({
     // (extends, fields, type) inside the braces.
     _structure_body: $ => choice(
       seq(field('extends', $._expression), 'with',
-        optional(seq(
-          choice($.field_assignment, $.ellipsis),
-          repeat(seq(choice(',', /\n/), choice($.field_assignment, $.ellipsis))),
-        )),
-        optional($._type_spec)),
-      seq(
-        choice($.field_assignment, $.ellipsis),
-        repeat(seq(choice(',', /\n/), choice($.field_assignment, $.ellipsis))),
-        optional($._type_spec)),
+        optional($._structure_fields), optional($._type_spec)),
+      seq($._structure_fields, optional($._type_spec)),
       $._type_spec,
+    ),
+
+    _structure_fields: $ => seq(
+      choice($.field_assignment, $.ellipsis),
+      repeat(seq(choice(',', /\n/), choice($.field_assignment, $.ellipsis))),
+      optional(choice(',', /\n/)),
     ),
 
     field_assignment: $ => choice(
@@ -1469,17 +1483,23 @@ module.exports = grammar({
       repeat(choice(
         $._string_content,
         $.escape_sequence,
-        $.interpolation,
       )),
       '"',
     ),
 
     interpolated_string: $ => seq(
       field('prefix', choice('s!', 'r!', 'm!')),
-      $.string,
+      alias($._interpolated_string_body, $.string),
     ),
 
-    _string_content: _ => token.immediate(prec(1, /[^"\\{]+/)),
+    _interpolated_string_body: $ => seq(
+      '"',
+      repeat(choice($._interpolated_string_content, $.escape_sequence, '{{', $.interpolation)),
+      '"',
+    ),
+
+    _string_content: _ => token.immediate(prec(1, /[^"\\]+/)),
+    _interpolated_string_content: _ => token.immediate(prec(1, /[^"\\{]+/)),
 
     escape_sequence: _ => token.immediate(seq(
       '\\',

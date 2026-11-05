@@ -63,8 +63,8 @@ def request():
         'Use targets specs/FrSpecs/Euclid.lean::euclid_decreases and specs/FrSpecs/Euclid.lean::euclid_correct. '
         'Read .fr/declarations.txt and .fr/proof-plan.txt and the fr skill. '
         'Read .agents/skills/fr/references/lean-algorithms.md before drafting. '
-        'Use fr proof-task and proof-state to inspect each target, proof-check to accept tactics, '
-        'and prove --write to save each checked proof. Read passed in the JSON. '
+        'Use fr proof show and proof state to inspect each target, proof check to accept tactics, '
+        'and proof save to check and save each complete proof. Read passed in check JSON. '
         'A receipt for one region does not finish the other. Run the supplied package check '
         'once after both proofs pass, deliver git diff --binary HEAD as change.patch and finish. '
         'This proves the actual Lean function; no translation from Rust or Python is involved.')

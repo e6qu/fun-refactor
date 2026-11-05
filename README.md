@@ -69,7 +69,8 @@ You need an installed `fr` binary and Python 3 to follow that lesson.
 
 A project root is the folder containing the project you want to inspect.
 Run `fr` there. Add `--json` to return structured data for another program.
-A preview shows proposed changes without applying them. Commands that edit source preview by default.
+A preview shows proposed changes without applying them. Refactoring commands preview before a write.
+`proof save` checks and writes a complete proof in one call; its name explicitly requests the save.
 For an existing project, these commands list files, check readable syntax and find functions:
 
 ```sh
@@ -266,11 +267,11 @@ fr --json spec candidates src
 fr --json spec property-task src/lib.rs::allowed
 fr --json spec plan src/lib.rs::allowed --property-from property.json
 fr --json spec scaffold --from formal-plan.json --write
-fr --json spec goals specs
-fr --json spec proof-task specs/FrSpecs/Model.lean::obligation
-fr --json spec proof-state specs/FrSpecs/Model.lean::obligation --from proof.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
-fr --json spec proof-check specs/FrSpecs/Model.lean::obligation --from proof.lean
-fr --json spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
+fr --json proof list specs --bytes 4096 --limit 8
+fr --json proof show specs/FrSpecs/Model.lean::obligation --bytes 4096
+fr --json proof state specs/FrSpecs/Model.lean::obligation --draft proof.lean --at 1:5 --bytes 4096 --timeout-seconds 30
+fr --json proof check specs/FrSpecs/Model.lean::obligation --draft proof.lean --bytes 4096 --timeout-seconds 30
+fr --json proof save specs/FrSpecs/Model.lean::obligation --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr --json spec verify specs
 ```
 

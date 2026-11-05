@@ -50,8 +50,7 @@ fn a_missing_symbol_becomes_a_json_error_object() {
     assert_eq!(printed["error"]["kind"], "not-found");
     let message = printed["error"]["message"].as_str().expect("a message");
     assert!(message.contains("no symbol named 'nosuch'"), "{message}");
-    // The prose stays on stderr for a human reading the same run.
-    assert!(stderr.contains("no symbol named 'nosuch'"), "{stderr}");
+    assert!(stderr.is_empty(), "JSON errors use stdout only: {stderr}");
 }
 
 #[test]
@@ -89,7 +88,7 @@ fn a_target_shaped_like_a_position_is_refused_as_one() {
         message.contains("'abc'"),
         "the wrong part is named: {message}"
     );
-    assert!(stderr.contains("that looks like a position"), "{stderr}");
+    assert!(stderr.is_empty(), "JSON errors use stdout only: {stderr}");
 
     // A name that never resembled a position still resolves as a name.
     Command::cargo_bin("fr")

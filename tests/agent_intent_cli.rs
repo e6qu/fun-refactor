@@ -645,7 +645,11 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
     let asset = root.path().join("specs/asset.bin");
     std::fs::write(&asset, [0, 255, 128, 10]).unwrap();
     let before = std::fs::read_to_string(&model).unwrap();
-    let (success, goals) = run(root.path(), &["spec", "goals", "specs"], None);
+    let (success, goals) = run(
+        root.path(),
+        &["proof", "list", "specs", "--bytes", "4096", "--limit", "32"],
+        None,
+    );
     assert!(success, "{goals}");
     let name = goals["catalog"][0]["name"].as_str().unwrap();
     let (success, found) = run(root.path(), &["project", "find", name, "--signature"], None);
@@ -667,7 +671,7 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
     let input = tagged(
         proof_anchor,
         "prove",
-        json!({"kind":"proof-submission","obligation":name,
+        json!({"kind":"proof-submission","obligation":name,"bytes":4096,"timeout_seconds":30,
         "tactics":"rfl\n","checks":["syntax"],"delivery":proof_delivery}),
     );
     let mut wrong = input.clone();

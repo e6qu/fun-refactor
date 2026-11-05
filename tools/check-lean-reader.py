@@ -15,7 +15,8 @@ def check(binary, diagnostics, integer_library):
     failures = []
     for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean',
                     'lean-nested-assumptions.lean', 'lean-recursive-algorithms.lean',
-                    'lean-lambda-continuations.lean']:
+                    'lean-lambda-continuations.lean', 'lean-project-layout.lean',
+                    'lean-agent-proof-forms.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
@@ -234,6 +235,18 @@ def check(binary, diagnostics, integer_library):
                        node.find("string[@field='value']") is not None
                        for node in tree.findall('.//attribute_entry/named_argument')):
                 failures.append(fixture + ': missing named attribute argument')
+        if fixture == 'lean-project-layout.lean':
+            expected = re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text())
+            definitions = tree.findall('./source/module/definition')
+            names = [''.join(''.join(node.find('qualified_name').itertext()).split()) for node in definitions]
+            if names != expected:
+                failures.append(fixture + ': top-level declaration ownership changed: ' + str(names))
+            classified = [node for node in definitions
+                          if ''.join(''.join(node.find('qualified_name').itertext()).split()) == 'classifyCommand']
+            if len(classified) != 1 or (len(list(classified[0].iter('do_if_let'))),
+                                       len(list(classified[0].iter('list_pattern'))),
+                                       len(list(classified[0].iter('cons_pattern')))) != (2, 1, 1):
+                failures.append(fixture + ': retain both conditional bindings and their list/cons patterns')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -245,6 +258,28 @@ def check(binary, diagnostics, integer_library):
             if names != expected:
                 failures.append(fixture + ': declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)}))
         print('Checked', fixture, flush=True)
+    for relative in ('kernels/FrKernels/AgentSession.lean',
+                     'kernels/FrKernels/SemanticIntent.lean', 'kernels/ProjectMain.lean'):
+        source = ROOT / relative
+        result = subprocess.run([str(binary), 'parse', '--xml', str(source)],
+                                cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
+        name = 'project-' + source.stem
+        (diagnostics / (name + '.xml')).write_text(result.stdout)
+        (diagnostics / (name + '.stderr')).write_text(result.stderr)
+        assert result.returncode in {0, 1}, result.stderr
+        if result.returncode != 0:
+            failures.append(relative + ': syntax errors')
+        start = result.stdout.index('<sources>')
+        end = result.stdout.index('</sources>', start) + len('</sources>')
+        tree = ET.fromstring(result.stdout[start:end])
+        expected = re.findall(r'(?m)^(?:def|theorem)\s+(\w+(?:\.\w+)*)', source.read_text())
+        names = [''.join(''.join(node.find('qualified_name').itertext()).split())
+                 for node in tree.findall('./source/module/definition')]
+        if names != expected:
+            failures.append(relative + ': top-level declarations moved or disappeared: ' +
+                            repr({'expected': expected, 'actual': names}))
+        print('Checked project source:', relative, result.returncode,
+              [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
     library_source = integer_library.read_bytes()
     assert hashlib.sha256(library_source).hexdigest() == '2e8bc644e6198a9fdd14c99558a77c459c0c5c6e6414dea2af0d3ef19704d8f2'
     result = subprocess.run([str(binary), 'parse', '--xml', str(integer_library)],
@@ -291,6 +326,8 @@ def check(binary, diagnostics, integer_library):
         ('termination-measure', 'def bad (n : Nat) := n\ntermination_by'),
         ('decreasing-proof', 'def bad (n : Nat) := n\ndecreasing_by'),
         ('local-helper-value', 'def bad : Nat := go\nwhere\n  go : Nat :='),
+        ('cons-pattern-tail', 'def bad (args : List String) := if let "page" :: := args then 1 else 0'),
+        ('conditional-binding-value', 'def bad (args : List String) := if let ["page", value] := then 1 else 0'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

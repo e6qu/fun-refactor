@@ -100,13 +100,13 @@ python3 make-property.py
 fr -C . --json spec plan src/lib.rs::allowed --property-from property.json > formal-plan.json
 fr -C . --json spec scaffold --from formal-plan.json --package specs
 fr -C . --json spec scaffold --from formal-plan.json --package specs --write
-fr -C . --json spec goals specs
-fr -C . --json spec proof-task specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule
+fr -C . --json proof list specs --bytes 4096 --limit 8
+fr -C . --json proof show specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --bytes 4096
 ```
 
 The plan describes the selected source, generated definition, claim and assumptions. Review it before
 scaffolding, which creates the Lean definition and an unfinished theorem. The goals report lists the
-one claim. `proof-task` reveals its context, parameters and the claim's parts. An unfinished theorem contains
+one claim. `proof show` reveals its context, parameters and the claim's parts. An unfinished theorem contains
 `sorry`, a visible proof gap; it is not an accepted proof.
 
 Each `claim.parts` entry lists `assumptions` and `conclusions` copied from the theorem's syntax.
@@ -135,12 +135,12 @@ exact false
 ```
 
 ```sh
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from bad-proof.lean
+fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft bad-proof.lean --bytes 4096 --timeout-seconds 30
 ```
 
 The report should say `passed: false` and include Lean's explanation: a Boolean value is not a proof
-of the requested equality. A successful process exit means a report was produced; inspect `passed`
-to find out whether the proof worked. A rejected attempt has no checked receipt and changes no source.
+of the requested equality. A rejected proof exits with status 1 and reports `passed: false`;
+an accepted proof exits with status 0 and reports `passed: true`. Rejection produces no checked receipt and changes no source.
 
 Each diagnostic's `draft_location` points into your tactics file and includes a short source excerpt.
 For example, an unknown tactic on line 2 of `bad-proof.lean` points to that file's line 2.
@@ -151,21 +151,22 @@ A location is `null` when the error cannot be assigned to that file, such as an 
 ## Inspect your progress after each step
 
 You can ask Lean where you are before the whole proof is finished.
-Save `initial.lean` with this one tactic, which deliberately does nothing:
+`proof start` creates a new tactics file containing `skip`, which deliberately does nothing:
 
 ```lean
 skip
 ```
 
 ```sh
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from initial.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
+fr -C . --json proof start specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft initial.lean --bytes 4096 --timeout-seconds 30
 ```
 
-`--at 1:5` means line 1, character column 5: immediately after `skip`.
-Lines and columns start at one. Count Unicode characters rather than bytes.
+The initial cursor is immediately after `skip`, at line 1, character column 5.
+To resume after an edit, use `proof state --at end` with the same target, draft, byte limit and timeout.
+For a specific branch, use `--at LINE:end` or `--at LINE:COLUMN`. Lines and columns start at one; count Unicode characters rather than bytes.
 The report identifies the original `theorem`, the checked draft fingerprint and `draft_location`.
-In `goals`, lines such as `staff owner : Bool` are available inputs.
-The statement after `⊢` is the current objective: prove the access rule.
+Each `goals` item separates `context` from `goal`. In `context`, `staff owner : Bool` names available inputs.
+The `goal` field is the current objective: prove the access rule. Text mode prints it after `⊢`.
 The parameters are already available; introducing `staff` again would be a mistake.
 
 Now save `partial.lean`:
@@ -182,10 +183,10 @@ Here the false case reduces to `owner = owner`; the true case reduces to `true =
 We leave the second case open deliberately. Inspect three positions:
 
 ```sh
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 1:12 --token-limit 4096 --timeout-seconds 30
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 2:6 --token-limit 4096 --timeout-seconds 30
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 3:7 --token-limit 4096 --timeout-seconds 30
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --token-limit 4096
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --at 1:12 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --at 2:6 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --at 3:7 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --bytes 4096 --timeout-seconds 30
 ```
 
 After the split, `status: "goals"` includes both cases and their available facts.
@@ -195,7 +196,7 @@ This is why an empty local goal list is never a proof receipt.
 A cursor outside a tactic reports `no-tactic-at-position`; move into a tactic to inspect progress.
 Every inspection has `acceptance: "not-checked"`.
 
-The selected `--token-limit` bounds UTF-8 response bytes, not model tokens. If the complete
+The selected `--bytes` bounds UTF-8 response bytes, not model tokens. If the complete
 state does not fit, fr refuses rather than silently removing a goal or assumption.
 The explicit 30-second deadline covers dependency preparation and the editor query together.
 Inspect after each new step and use its actual goal to choose the next one.
@@ -209,19 +210,18 @@ cases staff
 ```
 
 The tactics file omits `by`: fr inserts these steps inside the existing proof region.
-Only a complete check with `passed: true` establishes acceptance. Then preview and save:
+Only a complete check with `passed: true` establishes acceptance. Then check and save:
 
 ```sh
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean
-fr -C . --json spec prove specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean
-fr -C . --json spec prove specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean --write
+fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
+fr -C . --json proof save specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr -C . --json spec check specs --strict --max-debt 0
 fr -C . --json spec evidence specs
 ```
 
 The corrected check must report `passed: true`. It leaves source unchanged and returns a receipt,
-which identifies this checked goal, proof, checker and package inputs. `prove` previews the edit;
-`prove --write` checks again, inserts the proof and records an undoable change. Other source and
+which identifies this checked goal, proof, checker and package inputs. `proof save` checks
+the complete draft, inserts the proof and records an undoable change. Other source and
 proof regions retain their bytes. The strict check requires current source/signature references and
 zero unfinished proof gaps. `evidence` builds the owning package and reports its claims and assumptions.
 

@@ -138,11 +138,11 @@ def prepare(case, binary, project, output):
                 'fr must generate the explicit proof imports and package entry without setup rewrites')
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
     require(built['returncode'] == 0, 'the prepared Lean package must build before a live attempt')
-    catalog = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
+    catalog = common.fr(binary, project, ['proof', 'list', 'specs', '--bytes', '4096', '--limit', '32'], output / 'goals.json')
     require(len(catalog['catalog']) == 1 and catalog['omitted'] == 0, 'disclose exactly the one fixed proof goal')
     goal = catalog['catalog'][0]
-    common.fr(binary, project, ['spec', 'goals', 'specs', '--goal', goal['id']], output / 'goal.json')
-    proof_task = common.fr(binary, project, ['spec', 'proof-task', spec + '::' + obligation], output / 'proof-task.json')
+    common.fr(binary, project, ['proof', 'list', 'specs', '--goal', goal['id'], '--bytes', '4096', '--limit', '32'], output / 'goal.json')
+    proof_task = common.fr(binary, project, ['proof', 'show', spec + '::' + obligation, '--bytes', '4096'], output / 'proof-task.json')
     if case == 'page-count':
         parts = proof_task['claim']['parts']
         require(len(parts) == 3 and len(parts[0]['assumptions']) == 1 and

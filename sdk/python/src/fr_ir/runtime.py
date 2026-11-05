@@ -857,7 +857,9 @@ class FrClient:
             detail = completed.stderr.decode("utf-8", "replace").strip()
             if report is not None:
                 candidate = report.get("error") or report.get("message")
-                if isinstance(candidate, str):
+                if isinstance(candidate, Mapping) and isinstance(candidate.get("message"), str):
+                    detail = candidate["message"]
+                elif isinstance(candidate, str):
                     detail = candidate
             raise FrRuntimeError(detail or "fr command failed", arguments=args,
                                  exit_code=completed.returncode, report=report)

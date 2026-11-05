@@ -109,7 +109,12 @@ fn recomputed_digest_does_not_admit_a_forged_assignment_contract() {
         ],
     );
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("inconsistent assignment control"));
+    assert!(result.stderr.is_empty(), "{result:?}");
+    let error: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("inconsistent assignment control"));
 }
 
 #[test]

@@ -54,11 +54,11 @@ def observed_fr(events):
                     arguments.pop(0)
             if arguments:
                 verb = arguments[0]
-                if verb in {'project', 'history', 'spec', 'author', 'file', 'audit'}:
+                if verb in {'project', 'history', 'spec', 'proof', 'author', 'file', 'audit'}:
                     subverb = arguments[1] if len(arguments) > 1 else ''
                     operations.add(verb + ' ' + subverb if subverb in {'find', 'show', 'map', 'apply', 'undo', 'redo',
                         'list', 'proof-task', 'proof-state', 'proof-check', 'prove', 'check', 'evidence', 'task', 'batch', 'replace', 'read',
-                        'capabilities'} else verb)
+                        'capabilities', 'show', 'start', 'state', 'save'} else verb)
                 else:
                     operations.add(verb if verb in {'rename', 'refs', 'def', 'symbols', 'checks', 'check',
                         'callers', 'callees', 'workflow'} else 'other fr command')

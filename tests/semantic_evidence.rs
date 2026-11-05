@@ -115,7 +115,11 @@ fn semantic_selection_refuses_ambiguous_declarations_before_queries_or_edits() {
                     args.extend(flags);
                     let result = output(dir.path(), &args);
                     assert!(!result.status.success(), "{source}");
-                    assert!(String::from_utf8_lossy(&result.stderr)
+                    assert!(result.stderr.is_empty(), "{result:?}");
+                    let error: Value = serde_json::from_slice(&result.stdout).unwrap();
+                    assert!(error["error"]["message"]
+                        .as_str()
+                        .unwrap()
                         .contains("no exact semantic IR item"));
                 }
                 if callable {
@@ -131,7 +135,11 @@ fn semantic_selection_refuses_ambiguous_declarations_before_queries_or_edits() {
                         ],
                     );
                     assert!(!result.status.success(), "{source}");
-                    assert!(String::from_utf8_lossy(&result.stderr)
+                    assert!(result.stderr.is_empty(), "{result:?}");
+                    let error: Value = serde_json::from_slice(&result.stdout).unwrap();
+                    assert!(error["error"]["message"]
+                        .as_str()
+                        .unwrap()
                         .contains("no exact semantic function model"));
                     assert_eq!(fs::read_to_string(&file).unwrap(), source);
                 }
@@ -165,7 +173,12 @@ fn semantic_selection_never_substitutes_a_free_function_for_an_unsupported_metho
         &["project", "semantic", method[0].as_str().unwrap(), "--body"],
     );
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("no exact semantic IR item"));
+    assert!(result.stderr.is_empty(), "{result:?}");
+    let error: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("no exact semantic IR item"));
 }
 
 #[test]

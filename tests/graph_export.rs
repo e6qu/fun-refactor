@@ -138,11 +138,18 @@ fn a_language_with_no_call_graph_refuses_instead_of_answering_nothing() {
 #[test]
 fn asking_for_dot_and_json_together_is_refused() {
     let tmp = workspace(&[("a.rs", CALLS_RS)]);
-    Command::cargo_bin("fr")
+    let output = Command::cargo_bin("fr")
         .expect("the binary")
         .args(["graph", "--dot", "--json", "-C"])
         .arg(tmp.path())
-        .assert()
-        .failure()
-        .stderr(contains("one format at a time"));
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(output.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["error"]["kind"], "error");
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("one format at a time"));
 }

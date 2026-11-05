@@ -1,0 +1,83 @@
+{
+  "schema": "fr-refinement-acceptance-1",
+  "ordinary": {
+    "passed": true,
+    "oracle": "8 Rust outputs, 8 translated outputs, 8 refinement outcomes passed",
+    "source_sha256": {
+      "subject.rs": "b6d9a5322e71b39c91cd4ae8534906a46db0b17a5b5a9a6fe5515145f47d079f",
+      "main.rs": "5cf85d5b950896cd9aec2e5364e5d7ce4fc72408ed89ea7c1b87452ebd1a2002",
+      "translation.py": "9e05442c1c743f8a780f643952ae405b30e469f71a19721a19a920ce49067bf8"
+    }
+  },
+  "native": {
+    "passed": true,
+    "oracle": "8 Rust outputs, 8 translated outputs, 8 refinement outcomes passed",
+    "source_sha256": {
+      "subject.rs": "b6d9a5322e71b39c91cd4ae8534906a46db0b17a5b5a9a6fe5515145f47d079f",
+      "main.rs": "5cf85d5b950896cd9aec2e5364e5d7ce4fc72408ed89ea7c1b87452ebd1a2002",
+      "translation.py": "9e05442c1c743f8a780f643952ae405b30e469f71a19721a19a920ce49067bf8"
+    }
+  },
+  "models": {
+    "passed": true,
+    "plan_root": "5980c5d02b9b85a3820ed2d3cdf6b1e8cded6fefea8c764aa2ee1de5779e4df5",
+    "report_root": "4bc09107e1e0a61fdaa586fdec438835a05afa775954009ec3c534c52626fbd1",
+    "snapshot_root": "933704a76fb4904ada005a893610c3594d9c1797db6fd5f17e83b6efcad0af47",
+    "relations": [
+      {
+        "after_digest": "93365e369a15f9349217c5ef27d84e0ecbb37aa1cf23a4b748e5ea0579dcf84a",
+        "after_target": "translation.py::restricted",
+        "arguments": [
+          0,
+          1,
+          2
+        ],
+        "before_digest": "5388c9d3ef9357070315f34c58e5b1c9af720e19ae27b1072954be8a3ad5c4b9",
+        "before_target": "subject.rs::allowed",
+        "domain": "pure Boolean models; at most eight old parameters.",
+        "relation": "refines",
+        "source_implementation_proved": false,
+        "spec": "/tmp/fr-refinement-eval-6hj7yjlt/native/specs/FrSpecs/Restriction.lean",
+        "status": "checked_by_lean",
+        "theorem": "preserves"
+      },
+      {
+        "after_digest": "acbc3e043e1dc36cdb9be1e190d643369fd57593874060ac8575fb51e1245081",
+        "after_target": "subject.rs::permits",
+        "arguments": [
+          0,
+          1
+        ],
+        "before_digest": "5388c9d3ef9357070315f34c58e5b1c9af720e19ae27b1072954be8a3ad5c4b9",
+        "before_target": "subject.rs::allowed",
+        "domain": "pure Boolean models; at most eight old parameters.",
+        "relation": "equivalent",
+        "source_implementation_proved": false,
+        "spec": "/tmp/fr-refinement-eval-6hj7yjlt/native/specs/FrSpecs/RustPreservation.lean",
+        "status": "checked_by_lean",
+        "theorem": "preserves"
+      },
+      {
+        "after_digest": "a36fd338f3a6883d8dbf9d5e537aaa340ec42b6b4adfb3fac71790a0e0b20111",
+        "after_target": "translation.py::permits",
+        "arguments": [
+          1,
+          0
+        ],
+        "before_digest": "5388c9d3ef9357070315f34c58e5b1c9af720e19ae27b1072954be8a3ad5c4b9",
+        "before_target": "subject.rs::allowed",
+        "domain": "pure Boolean models; at most eight old parameters.",
+        "relation": "equivalent",
+        "source_implementation_proved": false,
+        "spec": "/tmp/fr-refinement-eval-6hj7yjlt/native/specs/FrSpecs/Translation.lean",
+        "status": "checked_by_lean",
+        "theorem": "preserves"
+      }
+    ],
+    "fresh_process": true
+  },
+  "changed_source_invalidated": true,
+  "passed": true,
+  "limits": "Prescribed deterministic edits with a shared independent truth-table oracle. Lean proves the requested generated Boolean model relations. Parsing and source correspondence remain trusted or unproved. No live-agent or token-saving claim. Nested rustc identity is recorded separately.",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n"
+}

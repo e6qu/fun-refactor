@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-11-04-focused-proof-imports-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-05-checked-proof-reader-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):
@@ -451,7 +451,7 @@ class PythonContract(unittest.TestCase):
         self.reject(value)
 
     def test_refusal_exit_status_and_diagnostic(self):
-        for field, replacement in [('exit_code', 0), ('exit_code', True), ('stderr', '')]:
+        for field, replacement in [('exit_code', 0), ('exit_code', True), ('stderr', 'unexpected duplicate diagnostic')]:
             value, row = self.changed('refuse-import-entry/moved')
             row['invocations'][1][field] = replacement
             self.reject(value)

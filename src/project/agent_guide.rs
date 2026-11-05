@@ -1416,10 +1416,10 @@ impl Project<'_> {
                 actions.push(action(
                     "proof-task",
                     args(&[
-                        "spec",
-                        "proof-task",
+                        "proof",
+                        "show",
                         &target,
-                        "--token-limit",
+                        "--bytes",
                         &goal.context.token_limit.to_string(),
                     ]),
                     "fr-proof-task-1",
@@ -1429,29 +1429,21 @@ impl Project<'_> {
                 actions.push(action(
                     "proof-check",
                     args(&[
-                        "spec",
-                        "proof-check",
+                        "proof",
+                        "check",
                         &target,
-                        "--from",
+                        "--draft",
                         "<tactics-file>",
-                        "--token-limit",
+                        "--bytes",
                         &goal.context.token_limit.to_string(),
+                        "--timeout-seconds",
+                        "30",
                     ]),
                     "fr-proof-attempt-1",
                     None,
                     vec![author(
                         "tactics-file",
                         "agent-authored Lean tactics without leading by.",
-                    )],
-                ));
-                actions.push(action(
-                    "proof-preview",
-                    args(&["spec", "prove", &target, "--from", "<tactics-file>"]),
-                    "1",
-                    None,
-                    vec![author(
-                        "tactics-file",
-                        "unchanged tactics accepted by proof-check.",
                     )],
                 ));
             }

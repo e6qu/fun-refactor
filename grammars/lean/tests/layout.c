@@ -54,6 +54,66 @@ static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
 
 int main(void) {
   Scanner *scanner = tree_sitter_lean_external_scanner_create();
+  bool conditional_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
+  conditional_tokens[IF_LET_START] = conditional_tokens[BINDING_START] = true;
+  Input conditional = input("let some value := input then");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &conditional.lexer, conditional_tokens));
+  assert(conditional.lexer.result_symbol == IF_LET_START && scanner->depth == 0);
+  Input ordinary_name = input("letterFlag then");
+  assert(!tree_sitter_lean_external_scanner_scan(scanner, &ordinary_name.lexer, conditional_tokens));
+  assert(scanner->depth == 0);
+
+  Input cases = input("\n  | nil => simp");
+  assert(scan(scanner, &cases, TACTIC_CASES_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 3 && top_indent(scanner) == 2);
+  Input after_constructor_list = input("\n  rcases pair with left | right");
+  assert(scan(scanner, &after_constructor_list, LAYOUT_END));
+  assert(scanner->depth == 0 && after_constructor_list.offset == 0);
+
+  assert(scan(scanner, &cases, TACTIC_CASES_START));
+  Input peer_branch = input("\n  | cons head tail => simp");
+  assert(!scan(scanner, &peer_branch, LAYOUT_END));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 3);
+  Input cases_end = input("");
+  assert(scan(scanner, &cases_end, LAYOUT_END));
+
+  Input enclosing_proof = input("  induction values with");
+  assert(scan(scanner, &enclosing_proof, LAYOUT_START));
+  assert(scan(scanner, &cases, TACTIC_CASES_START));
+  Input last_branch = input("    simp");
+  assert(scan(scanner, &last_branch, TACTIC_BRANCH_START));
+  assert(scan(scanner, &after_constructor_list, LAYOUT_END));
+  assert(scanner->depth == 2 && scanner->queued_indent == 2);
+  char cases_state[TREE_SITTER_SERIALIZATION_BUFFER_SIZE];
+  unsigned cases_size = tree_sitter_lean_external_scanner_serialize(scanner, cases_state);
+  tree_sitter_lean_external_scanner_deserialize(scanner, cases_state, cases_size);
+  assert(scanner->bindings[1] == 3 && scanner->queued_indent == 2);
+  assert(scan(scanner, &after_constructor_list, LAYOUT_END));
+  assert(scanner->depth == 1 && scanner->queued_indent == 2);
+  assert(scan(scanner, &after_constructor_list, LAYOUT_SEMICOLON));
+  assert(scanner->depth == 1 && scanner->queued_indent == NO_QUEUED);
+  assert(scan(scanner, &cases_end, LAYOUT_END));
+
+  Input constructor = input("  rfl");
+  assert(scan(scanner, &constructor, TACTIC_BRANCH_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 2);
+  bool alternative_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
+  alternative_tokens[LAYOUT_END] = alternative_tokens[TACTIC_PATTERN_SEPARATOR] = true;
+  Input pattern_pipe = input("| right");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &pattern_pipe.lexer, alternative_tokens));
+  assert(pattern_pipe.lexer.result_symbol == TACTIC_PATTERN_SEPARATOR);
+  assert(scanner->depth == 1 && scanner->bindings[0] == 2);
+  Input next_constructor = input("| succ n => rfl");
+  assert(scan(scanner, &next_constructor, LAYOUT_END));
+  assert(scanner->depth == 0 && next_constructor.offset == 0);
+  assert(scan(scanner, &constructor, TACTIC_BRANCH_START));
+  Input boolean_or = input("|| other");
+  assert(!scan(scanner, &boolean_or, LAYOUT_END));
+  assert(scanner->depth == 1);
+  Input constructor_end = input("");
+  assert(scan(scanner, &constructor_end, LAYOUT_END));
+  assert(scanner->depth == 0);
+
   Input blank_lines = input("\n  \n\t\n    rfl");
   assert(scan(scanner, &blank_lines, LAYOUT_START));
   assert(scanner->depth == 1 && top_indent(scanner) == 4);

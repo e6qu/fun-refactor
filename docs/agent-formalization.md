@@ -191,8 +191,8 @@ generated content.
 List compact proof commitments, then reveal one exact goal:
 
 ```sh
-fr --json spec goals specs --token-limit 4096
-fr --json spec goals specs --goal DIGEST --token-limit 4096
+fr --json proof list specs --bytes 4096 --limit 8
+fr --json proof list specs --goal DIGEST --bytes 4096 --limit 8
 ```
 
 The catalog carries stable content addresses and reveal vectors. A selected detail discloses the
@@ -203,13 +203,12 @@ digest in the same object-storage pattern as project disclosure.
 Create a proof task without reading or reproducing the model file:
 
 ```sh
-fr --json spec proof-task \
-  specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --token-limit 4096
+fr --json proof show specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --bytes 4096
 ```
 
 An exact target also works after a direct proof edit removed its unfinished marker.
 For example, replacing `sorry` with an incorrect `exact false` still leaves the named theorem available
-to `proof-task` and `proof-check`. The unfinished-goal catalog lists pending work; an empty catalog
+to `proof show` and `proof check`. The unfinished-goal catalog lists pending work; an empty catalog
 does not establish that an edited proof passed Lean. Keep the named proof-region markers for repair.
 
 `fr-proof-task-1` binds the selected goal, input contract, checker and exact actions to one content
@@ -218,7 +217,7 @@ They do not contain a proof. To work interactively, start `proof.lean` with `ski
 (no `by`) and inspect after it:
 
 ```sh
-fr --json spec proof-state specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
+fr --json proof state specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --draft proof.lean --at 1:5 --bytes 4096 --timeout-seconds 30
 ```
 
 The report contains the original `theorem`, current `goals` with available assumptions,
@@ -234,14 +233,12 @@ Replace `skip` with tactics that solve the actual goal, then check the whole dra
 
 ```sh
 printf 'rfl\n' > proof.lean
-fr --json spec proof-check \
-  specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean
-fr --json spec prove specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity \
-  --from proof.lean --write
+fr --json proof check specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --draft proof.lean --bytes 4096 --timeout-seconds 30
+fr --json proof save specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr --json spec verify specs
 ```
 
-`proof-check` returns `fr-proof-attempt-1`. A successful receipt binds the current goal, normalized
+`proof check` returns `fr-proof-attempt-1`. A successful receipt binds the current goal, normalized
 inserted tactics, pinned Lean checker and exact local package inputs through `checker_context_digest`.
 For example, changing an imported access-policy definition expires the old task and receipt even when
 the theorem's own file has not changed. The checker builds that module's current dependencies before
@@ -255,7 +252,7 @@ External dependency contents and the installed compiler remain declared trusted 
 fingerprint alone does not prove their correctness.
 
 A failed attempt returns structured diagnostics within the selected
-byte ceiling and no apply action. `spec prove` repeats that Lean check before it prepares history.
+byte ceiling and no apply action. `proof save` repeats that Lean check before it prepares history.
 It rejects a leading `by`, admissions such as `sorry`, debt markers and ambiguous proof regions.
 Temporary goals such as `refine ?_` are allowed when later tactics solve them; Lean rejects any goal left open. The
 transaction supports `history undo`, `history redo`, plan review and Git patch export. `spec verify`

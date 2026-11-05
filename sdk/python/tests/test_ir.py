@@ -63,9 +63,9 @@ class TestIr:
             "checker": "leanprover/lean4:v4.28.0", "theorem": "P ∧ Q",
             "draft_location": {"path": "draft.tactics", "line": 3, "column": 8,
                                "source_excerpt": "  · exact hP"},
-            "status": "goals", "goals": ["case right\nhQ : Q\n⊢ Q"],
+            "status": "goals", "goals": [{"context": "case right\nhQ : Q", "goal": "Q"}],
             "acceptance": "not-checked", "scope": "Editor goals at this position",
-            "check": ["spec", "proof-check", target, "--from", "draft.tactics"],
+            "check": ["proof", "check", target, '--draft', "draft.tactics", '--bytes', '4096', '--timeout-seconds', '30'],
             "token_budget": {"limit": 4096, "used_upper_bound": 1100,
                              "measurement": "serialized_utf8_bytes"},
         }
@@ -76,7 +76,7 @@ class TestIr:
         for mutation in (
             {"acceptance": "accepted"}, {"status": "closed-at-position"},
             {"goals": [""]}, {"status": "accepted"}, {"status": []},
-            {"check": ["spec", "prove", target]}, {"receipt": "c" * 64},
+            {"check": ["proof", "save", target]}, {"receipt": "c" * 64},
             {"draft_location": {**state["draft_location"], "line": 0}},
         ):
             with pytest.raises(IrError):
@@ -194,7 +194,7 @@ class TestIr:
             "source_anchor": "-- fr:spec src/lib.rs::keep @ " + "b" * 64,
             "signature_map": "-- fr:signature value: bool => value: Bool",
             "proof_region": "keep_identity", "object_digest": "a" * 64,
-            "prove_template": ["spec", "prove", "specs/Keep.lean::keep_identity"],
+            "prove_template": ["proof", "save", "specs/Keep.lean::keep_identity"],
             "verify": ["spec", "verify", "specs/Keep.lean"],
             "model_context_digest": merkle_object_digest("fixed model and package inputs"),
         }
@@ -216,8 +216,8 @@ class TestIr:
                 "claim": claim,
             }),
             "actions": {
-                "inspect": ["spec", "proof-state"],
-                "check": ["spec", "proof-check"], "apply": ["spec", "prove"],
+                "inspect": ["proof", "state"],
+                "check": ["proof", "check"], "apply": ["proof", "save"],
                 "verify": ["spec", "verify"],
             },
             "token_budget": {
@@ -276,8 +276,8 @@ class TestIr:
             "diagnostics": [], "diagnostics_omitted": 0,
             "receipt": merkle_object_digest(receipt_core),
             "actions": {
-                "inspect": ["spec", "proof-state"],
-                "revise": ["spec", "proof-check"], "apply": ["spec", "prove"],
+                "inspect": ["proof", "state"],
+                "revise": ["proof", "check"], "apply": ["proof", "save"],
                 "verify": ["spec", "verify"],
             },
             "token_budget": {
@@ -359,7 +359,7 @@ class TestIr:
         data["object_digest"] = merkle_object_digest(core)
         data["actions"] = {
             "scaffold": ["spec", "scaffold", "--from", "<PLAN_FILE>"],
-            "goals": ["spec", "goals", "specs"],
+            "goals": ["proof", "list", "specs", '--bytes', '4096', '--limit', '32'],
             "verify": ["spec", "verify", "specs"],
         }
         plan = FormalPlan.from_data(data)

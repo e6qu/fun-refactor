@@ -1,0 +1,94 @@
+name: CLI and proof workflow checks
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - src/cli.rs
+      - src/spec.rs
+      - src/spec/**
+      - tests/proof_cli.rs
+      - tests/json_surface.rs
+      - tests/python_layout.rs
+      - tests/retained_proofs.rs
+      - tools/check-agent-skill.py
+      - .github/workflows/cli-usability.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cli-usability-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  PYTHONPATH: tools:sdk/python/src
+  PYTHONDONTWRITEBYTECODE: '1'
+  FR_LEAN_JOBS: '1'
+  LEAN_NUM_THREADS: '1'
+jobs:
+  cli:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            /tests/agent-eval/results/2026-09-25-flow-cache/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cli-usability
+      - run: cargo fmt --all --check
+      - id: fr_build
+        run: cargo build --locked --bin fr
+      - name: Retain the exact Linux tool for command controls
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-usability-linux-tool
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 14
+      - run: cargo test --locked --lib cli::tests -- --test-threads=1
+      - run: cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
+      - run: cargo test --locked --test proof_cli -- --test-threads=1
+      - run: cargo test --locked --test json_surface -- --test-threads=1
+      - run: cargo test --locked --test history_git_cli --test graph_export --test docs_cli -- --test-threads=1
+      - run: cargo test --locked --test python_layout -- --test-threads=1
+      - run: cargo test --locked --test lean_adoption -- --test-threads=1
+      - run: cargo test --locked --test semantic_evidence semantic_selection -- --test-threads=1
+      - run: cargo test --locked --test call_binding retained_call_contract_cannot_be_forged_with_a_new_digest -- --test-threads=1
+      - run: cargo test --locked --test scalar_assignments recomputed_digest_does_not_admit_a_forged_assignment_contract -- --test-threads=1
+      - run: cargo test --locked --test imported_flow imports_require_summaries_and_root_local_entries -- --test-threads=1
+      - run: cargo test --locked --test retained_proofs proof_arguments_and_native_requirement_coverage_refuse -- --test-threads=1
+      - run: cargo test --locked --test retained_proofs proof_package_budgets_refuse_before_execution -- --test-threads=1
+      - run: cargo test --locked --test retained_proofs proof_review_bounds_escaped_path_disclosure -- --test-threads=1
+      - run: python3 -B tools/check-agent-skill.py --fr target/debug/fr
+      - run: python3 -B tools/reader_proof_example.py --fr target/debug/fr
+      - run: cargo test --locked --test cli from_a_subdirectory -- --test-threads=1
+      - name: Check current proof collection and SDK contracts without model calls
+        run: |
+          python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt -r tests/agent-eval/selected-agents/native-requirements.txt
+          ty check sdk/python/src tools/proof-authoring-agent.py
+          python3 -B -m pytest -q sdk/python/tests/test_ir.py sdk/python/tests/test_runtime.py
+          python3 -B -m pytest -q sdk/python/tests/test_guide.py -k "proof_writing_commands_are_not_read_only_guide_actions or authored_guide_files_are_exact_bounded_and_temporary"
+          python3 -B -m unittest agent_eval.test_argument_repair agent_eval.test_algorithm_admission agent_eval.test_selected_public agent_eval.test_selected_local
+      - if: ${{ !cancelled() && steps.fr_build.outcome == 'success' }}
+        run: cargo test --locked --test completion_agent_eval prepared_agent_session_exposes_only_guide_follow_and_finish -- --exact --test-threads=1
+      - if: ${{ !cancelled() && steps.fr_build.outcome == 'success' }}
+        run: cargo test --locked --test matched_agent_context matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence -- --exact --test-threads=1
+      - if: ${{ !cancelled() && steps.fr_build.outcome == 'success' }}
+        run: python3 -B tools/test-proof-authoring-agent.py --fr target/debug/fr
+      - run: lean -j1 -DwarningAsError=true tests/fixtures/lean-project-layout.lean
+      - run: cargo test --locked --test lean_grammar -- --test-threads=1 --nocapture

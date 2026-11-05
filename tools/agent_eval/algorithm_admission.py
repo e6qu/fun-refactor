@@ -116,19 +116,16 @@ def script(lean_root, search_path, study, setup):
     require(study in ALGORITHM_STUDIES and setup == 'workflow', 'choose the complete algorithm workflow explicitly')
     target = 'specs/FrSpecs/Euclid.lean::'
     lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
-             shlex.join(['fr', '--json', 'spec', 'proof-state', target + 'euclid_correct',
-        '--from', '.fr/proof-tactics', '--at', '1:5', '--token-limit', '4096', '--timeout-seconds', '30'])]
-    bad = shlex.join(['fr', '--json', 'spec', 'proof-check', target + 'euclid_correct',
-                     '--from', '.fr/admission-bad.lean', '--token-limit', '4096'])
+             shlex.join(['fr', '--json', 'proof', 'state', target + 'euclid_correct', '--draft', '.fr/proof-tactics', '--at', '1:5', '--bytes', '4096', '--timeout-seconds', '30'])]
+    bad = shlex.join(['fr', '--json', 'proof', 'check', target + 'euclid_correct', '--draft', '.fr/admission-bad.lean', '--bytes', '4096', '--timeout-seconds', '30'])
     lines += [f'if {bad} > .fr/admission-rejected.json; then task_rejection_status=0; else task_rejection_status=$?; fi',
               shlex.join(['python3', '-c', 'import json,sys; r=json.load(open(".fr/admission-rejected.json")); '
-                  'assert int(sys.argv[1]) in (0,1) and r["passed"] is False; '
+                  'assert int(sys.argv[1]) == 1 and r["passed"] is False; '
                   'assert r["receipt"] is None and "Possibly looping simp theorem" in json.dumps(r)']) + ' "$task_rejection_status"']
     for name in algorithms.OBLIGATIONS:
         reference = ROOT / algorithms.DIRECTORY / 'controls' / (name.replace('_', '-') + '.lean')
-        for operation, field in [('proof-check', 'passed'), ('prove', 'applied')]:
-            arguments = ['fr', '--json', 'spec', operation, target + name, '--from', str(reference)]
-            arguments += ['--token-limit', '4096'] if operation == 'proof-check' else ['--write']
+        for operation, field in [('check', 'passed'), ('save', 'applied')]:
+            arguments = ['fr', '--json', 'proof', operation, target + name, '--draft', str(reference), '--bytes', '4096', '--timeout-seconds', '30']
             report = '.fr/admission-' + name + '-' + operation + '.json'
             lines += [shlex.join(arguments) + ' > ' + shlex.quote(report),
                       shlex.join(['python3', '-c', 'import json; assert json.load(open(' + repr(report) + '))['
@@ -147,14 +144,13 @@ def delivery_script(lean_root, search_path, setup):
         lines.append('cat .fr/finish-card.txt > /dev/null')
     saves = []
     for name in algorithms.OBLIGATIONS:
-        for operation, field in (('proof-check', 'passed'), ('prove', 'applied')):
+        for operation, field in (('check', 'passed'), ('save', 'applied')):
             report = '.fr/admission-' + name + '-' + operation + '.json'
-            argv = ['fr', '--json', 'spec', operation, algorithms.SPEC + '::' + name,
-                    '--from', '.fr/' + name + '.tactics']
-            argv += ['--token-limit', '4096'] if operation == 'proof-check' else ['--write']
+            argv = ['fr', '--json', 'proof', operation, algorithms.SPEC + '::' + name,
+                    '--draft', '.fr/' + name + '.tactics', '--bytes', '4096', '--timeout-seconds', '30']
             lines += [shlex.join(argv) + ' > ' + shlex.quote(report), shlex.join(['python3', '-c',
                 'import json; assert json.load(open(' + repr(report) + '))[' + repr(field) + '] is True'])]
-            if operation == 'prove':
+            if operation == 'save':
                 saves.append(report)
     lines.append(shlex.join([str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail']) +
                  ' > .fr/admission-package.log 2>&1')
