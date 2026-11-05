@@ -54,6 +54,20 @@ static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
 
 int main(void) {
   Scanner *scanner = tree_sitter_lean_external_scanner_create();
+  Input constructor = input("  rfl");
+  assert(scan(scanner, &constructor, TACTIC_BRANCH_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 2);
+  Input next_constructor = input("| succ n => rfl");
+  assert(scan(scanner, &next_constructor, LAYOUT_END));
+  assert(scanner->depth == 0 && next_constructor.offset == 0);
+  assert(scan(scanner, &constructor, TACTIC_BRANCH_START));
+  Input boolean_or = input("|| other");
+  assert(!scan(scanner, &boolean_or, LAYOUT_END));
+  assert(scanner->depth == 1);
+  Input constructor_end = input("");
+  assert(scan(scanner, &constructor_end, LAYOUT_END));
+  assert(scanner->depth == 0);
+
   Input blank_lines = input("\n  \n\t\n    rfl");
   assert(scan(scanner, &blank_lines, LAYOUT_START));
   assert(scanner->depth == 1 && top_indent(scanner) == 4);

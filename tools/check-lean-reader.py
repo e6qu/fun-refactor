@@ -15,7 +15,7 @@ def check(binary, diagnostics, integer_library):
     failures = []
     for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean',
                     'lean-nested-assumptions.lean', 'lean-recursive-algorithms.lean',
-                    'lean-lambda-continuations.lean']:
+                    'lean-lambda-continuations.lean', 'lean-project-layout.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)

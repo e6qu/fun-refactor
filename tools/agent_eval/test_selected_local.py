@@ -11,6 +11,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -63,6 +64,52 @@ class SelectedLocalTests(unittest.TestCase):
             retain.assert_called_once()
             saved = json.loads((root / 'attempts/bounded-client/result.json').read_text())
             self.assertEqual(saved['process'], result['process'])
+
+    def test_real_stalled_client_leaves_time_to_save_the_final_failure_record(self):
+        # Only the fake client's process and monitor use real time. Fixture setup
+        # stands in for an already qualified task; this makes no model calls.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            row = {'id': 'stalled-script', 'profile': 'client', 'task': 'fixture', 'setup': 'files'}
+            schedule = {'milestone': 'M1', 'attempts': [row], 'profiles': {'client': {'client': 'codex'}}}
+            limits = {**local.LIMITS, 'wall_seconds': 3, 'rss_bytes': 64 * 1024**2,
+                      'disk_bytes': 1024**2, 'cpu_limit_seconds': 2, 'transcript_bytes': 4096}
+            checkers = {name: {'path': sys.executable, 'sha256': local.hash_file(Path(sys.executable))}
+                        for name in ('python', 'rustc', 'rustdoc', 'lean')}
+            value = {'schedule': schedule, 'live_calls_enabled': True, 'source': {'native_inputs': {}},
+                     'implementation': {}, 'limits': limits, 'client_finish_seconds': 1,
+                     'public_check_environment': local.PUBLIC_CHECK_ENVIRONMENT,
+                     'binaries': {}, 'components': {}, 'checkers': checkers,
+                     'seeds': {'fixture': {'archive': 'fixture.tar', 'receipt': {}}},
+                     'prompts': {'stalled-script': 'No model access; deliberately stall.'}}
+            value['sha256'] = hashlib.sha256(local.encoded(value)).hexdigest()
+            plan = root / 'plan.json'
+            plan.write_text(json.dumps(value))
+            def unpack(archive, receipt, project):
+                (project / '.git/info').mkdir(parents=True)
+            with mock.patch.object(local, 'sys', SimpleNamespace(platform='darwin')), \
+                    mock.patch.object(local, 'LIMITS', limits), \
+                    mock.patch.object(local, 'CLIENT_FINISH_SECONDS', 1), \
+                    mock.patch.object(local, 'identity', return_value={'native_inputs': {}}), \
+                    mock.patch.object(local, 'prepare', return_value=schedule), \
+                    mock.patch.object(local, 'implementation_bindings', return_value={}), \
+                    mock.patch.object(local, 'project_parent', return_value=root / 'work'), \
+                    mock.patch.object(local, 'unpack', side_effect=unpack), \
+                    mock.patch.object(local.tasks.comparison_grade.BASE, 'initialize'), \
+                    mock.patch.object(local.shutil, 'which', return_value=None), \
+                    mock.patch.object(local, 'invocation', return_value=(
+                        [sys.executable, '-B', '-c', 'import time; time.sleep(30)'], b'')), \
+                    mock.patch.object(local, 'retain_result') as retain:
+                result = local.attempt(plan, row['id'])
+            saved = json.loads((root / 'attempts/stalled-script/result.json').read_text())
+            self.assertEqual(saved['status'], 'failed')
+            self.assertEqual(saved['process']['stop_reason'], 'wall_seconds')
+            self.assertEqual(saved['process'], result['process'])
+            self.assertFalse(saved['complete_attempt_deadline_missed'])
+            self.assertLess(saved['elapsed_seconds'], limits['wall_seconds'])
+            self.assertEqual(saved['collection_errors'], [])
+            self.assertIsNotNone(saved['finished_at'])
+            retain.assert_called_once()
 
     def test_delivery_projects_and_private_records_share_the_explicit_persistent_root(self):
         plan = Path('/project/.local-agent-runs/delivery/plan.json')

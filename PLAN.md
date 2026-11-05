@@ -41,140 +41,51 @@ See the [agent comparison policy](docs/product-review.md#compare-the-selected-ag
 
 ## Next work
 
-Deliver each complete milestone in one PR: implementation, complete examples, independent checks,
-all required live attempts, results and tracking updates belong together.
-Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
-Keep a milestone open until its completion conditions are met and its CI passes.
-M1 and M2 now have their complete comparisons.
-PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
-Finish the remaining M3 work together, starting from merged main.
-The [task guide](tests/agent-eval/proof-writing/README.md) owns the fixed claims, checks and publication limits.
-The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
-28 submitted a patch and eight timed out without one. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
-accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
-GLM and Kimi submitted no page-count proof in either setup.
+Deliver each complete milestone in one PR: implementation, examples, independent checks,
+required live attempts, results and tracking belong together. Keep a milestone open until
+its completion conditions are met and its CI passes. M1 and M2 have their complete comparisons.
+M3 is open: GLM and Kimi still lack accepted page-count proofs within the original 150 seconds.
 
-M3 remains open: GLM and Kimi still lack accepted page-count proofs within the
-original 150-second limit. The [method](docs/agent-improvement.md) and
-[behavior review](tests/agent-eval/proof-writing/behavior-review.md) explain why
-more tool use alone has not established an improvement.
+The [improvement method](docs/agent-improvement.md) requires a recorded obstacle, a specific
+proposed repair, checked controls and a comparison declared before any model calls.
+The latest evidence gives us three useful limits:
 
-The [Euclid study](tests/agent-eval/proof-algorithms/README.md) is now complete:
-all twenty fresh sessions ran once, and independent GitHub checks accepted all
-eight delivered patches. Twelve complete attempts timed out. The executable
-function and its termination and correctness claims stayed fixed.
+| Study | What happened | What it establishes |
+| --- | --- | --- |
+| [Write the three Rust model proofs](tests/agent-eval/proof-writing/local-results/README.md) | 28 of 36 attempts delivered accepted patches; eight timed out. GLM and Kimi delivered no page-count proof | Fr can support access and range proofs; page count remains unfinished |
+| [Write the actual Euclid algorithm proofs](tests/agent-eval/proof-algorithms/README.md) | Eight of twenty attempts delivered accepted patches; twelve timed out | Two repetitions show no general graph advantage; no transfer test was earned |
+| [Repair page-count arguments](tests/agent-eval/proof-argument-repair/README.md) | All eight attempts timed out without a patch. One Kimi draft passed checking near 135 seconds but was not saved or delivered | The predicted argument mistake was not observed, so this does not validate that repair instruction |
 
-| Comparison | Observed complete results |
-| --- | --- |
-| Select facts / receive declarations | GLM 0/2 in each; Kimi 0/2 and 1/2 |
-| Checklist / identical-information graph | Luna 2/2 and 2/2; Kimi 1/2 and 2/2; GLM 0/2 in each |
+Every failure, interrupted collection and unstarted slot remains recorded. A correct draft,
+a checked proof and a delivered patch are distinct outcomes. Unknown usage and charges stay unknown.
+The [supplied-proof delivery study](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
+measures delivery of given answers; it cannot replace proof discovery.
 
-One GLM presentation attempt encountered a confirmed fr reader defect, so we cannot rely on its
-comparison. Two repetitions establish no general graph
-advantage. No agent met the planned two-versus-zero rule for a transfer test;
-accumulator list reversal stays reserved. The results do not yet justify an
-automatic controller that tries alternative proof paths.
+**PR [#603](https://github.com/e6qu/fun-refactor/pull/603): make the commands and proof workflow easier to use.**
 
-**Merged in PR #592:** the reader accepts multiline GCD proofs and
-keeps their following tactic and declaration separate. Both valid references pass;
-all twelve deliberately broken controls fail. The original checker independently
-grades all twenty sessions. Repaired fr accepts the eight delivered patches and
-checks the misplaced ninth diff separately without counting a new success.
-The small proof guides address the observed flag, context and delivery mistakes;
-these instruction changes have no measured success gain yet.
+1. Use one explicit `proof` command family. `start` creates a fresh draft and shows Lean's
+   actual goal; `state --at end` resumes at the last nonblank step. Return the available
+   variables and facts separately from the remaining statement to prove.
+2. Make results dependable for both people and scripts: labelled terminal searches,
+   explicit scan roots, one JSON error report, and exit 1 for a rejected proof check.
+   Require response-byte and time settings. Remove the old proof command forms.
+3. Check and save a complete draft in one call, then check the package and export the
+   saved edits. Test stalled dependencies, a stalled compiler and a client that ignores
+   its deadline. Preserve the existing limits and time for collecting the final record.
+4. Execute the revised lessons and skills. Fix the Lean reader omissions found while
+   using fr on this work. Refresh source-bound records and pass the complete CI gate.
 
-Both fixed benchmark corpora now pass comparisons with every tracked file
-present, with no changed symbols or references. The
-[audit summary](tests/agent-eval/index-consumers/lambda-reader-control-summary.json)
-records both runs and preserves the original timing baselines. Refreshed reports
-and tracking pages are retained. The earlier
-[five sessions](tests/agent-eval/proof-algorithms/interrupted-results/README.md)
-and [later memory stop](tests/agent-eval/proof-algorithms/interrupted-init-results/README.md)
-remain separate; no closed model slot was rerun.
+The [focused hosted checks](https://github.com/e6qu/fun-refactor/actions/runs/41949404938)
+pass for the new CLI and SDK. Broader checks and the new stall controls are still in progress.
+These are tool checks; no improvement in GLM or Kimi success has been measured for this interface.
 
-The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41466033975)
-passed on the reviewed commit. Toolchain checks fetch only their installer inputs,
-fixing Go's checkout timeout within its existing five-minute deadline.
-The missing Mac runner check passed on a targeted retry, on the same platform.
-Reviewed summaries and patches are public; raw transcripts remain private.
-
-**Merged in PR #593: save checked proofs and deliver their edits together.**
-
-The implementation and scripted controls now pass:
-
-- `proof save` distinguishes `written` from `already-present`. A repeated save
-  preserves source and history and needs no further write.
-- `history patch` combines explicitly selected saved edits. Both GCD proofs reach
-  one independently accepted patch. Conflicting file states, repeated IDs, missing
-  snapshots and an empty combined result refuse. Git checks the patch and reverse.
-- Changing a release number alone keeps existing measurements valid.
-  Python and native versions must still agree.
-- Guides explain the commands. The report correction preserves every original
-  study outcome. The metadata comparison retains its earlier measurement and
-  records the extra 265 response bytes on the same one-edit fixture.
-
-All nineteen affected collection groups passed and their current records are retained.
-The [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41595629760)
-passed all 92 jobs before merge. Those scripted checks establish tool behavior.
-
-**Earlier result: [delivery of supplied GCD proofs](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md).**
-All twelve fixed slots ran once after fresh hosted qualification and six reported
-passing local checks. Review found that the four OpenCode admission checks also
-missed incomplete final usage. The stricter admission now rejects that gap.
-Independent GitHub checking accepted all eleven delivered patches.
-Five attempts met every completion requirement. Six completed OpenCode sessions
-omitted their final response's token record from the JSON stream; one Kimi attempt
-timed out without exporting a patch. Both proofs and the package had passed in
-that timeout. Preserve all seven failures and the original 150-second limit.
-
-Luna completed both repetitions with and without the finish card. OpenCode's
-incomplete accounting prevents a reliable GLM/Kimi comparison. Do not adopt the
-card as a measured improvement or start a transfer test. Both setups received
-correct proofs; this comparison cannot close M3 or measure proof discovery.
-
-The explicit OpenCode2 2.2.5 pin passes both local no-model reproductions and
-[hosted qualification](https://github.com/e6qu/fun-refactor/actions/runs/41654594443).
-All six scripted native exchanges, proof controls, Mac build and retained-patch
-replay pass. The runner rejects missing or duplicate response records.
-
-**Current result: [complete page-count comparison](tests/agent-eval/proof-argument-repair/README.md).**
-
-All eight fresh GLM/Kimi attempts ran once after matching hosted and local
-qualification. None submitted a patch. One Kimi draft passed fr checking near
-135 seconds but was not saved or delivered. No mapped argument error was
-observed, so the proposed repair mechanism remains unobserved.
-[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41918858328)
-confirmed all eight failures. Keep the broader 36-attempt study paused.
-
-The generator now uses explicit arithmetic imports and one compiler worker.
-The collector enforces its existing ten-second finishing reserve inside the
-150-second total. All eight complete attempts finished within that total.
-The earlier interrupted collection and seven unstarted slots remain recorded
-separately. Unknown usage and account charges remain unknown.
-
-**Next work, together in the M3 milestone PR:**
-
-1. Give each proof attempt its exact target, a valid initial cursor and current
-   goal. Cover the recorded wrong-target, cursor and JSON-shape errors with
-   runnable examples and regression checks. Use explicit settings and existing
-   fr actions where they already supply the needed information.
-2. Explain assumption structure and goal changes with checked Lean examples.
-   For example, distinguish a pair of facts from a proof that implies another
-   fact. Show how one closed branch differs from an accepted complete proof.
-3. Check the complete save, package-build and patch-delivery workflow. Include
-   a client that ignores its finishing deadline; its failed receipt and session
-   export must still fit within 150 seconds and the existing resource caps.
-4. Declare the next comparison before model calls. Measure the first useful
-   proof check, observed repairs and independently accepted delivered patches.
-   Compare any graph proposal with the same explicit command workflow. Require
-   it to address a recorded error. Finish the named language cases,
-   numeric proofs and source/model checks together; a familiar GCD delivery
-   cannot replace them.
-
-Do not repeat the full M3 study to seek a passing result. The
-[team pilot](tests/agent-eval/team-solve/README.md) and unrun
-[division-fact plan](tests/agent-eval/proof-division-facts/README.md) retain their
-separate scope. Neither closes the solo proof-writing milestone.
+**After those checks pass:** freeze a new comparison before spending model calls.
+Require fresh complete native admission with the exact commands, clients and resource settings.
+Record time to the first useful proof check, observed repairs, saving, package checking,
+patch delivery and final accounting. Any graph comparison must supply the same information
+and command workflow to both conditions and address a recorded obstacle.
+Do not repeat the full 36-attempt study to seek a passing result. Keep list reversal reserved.
+The named language cases, both numeric tasks and source/model checks below still define M3 completion.
 
 ### M1. Run the selected agents on three complete tasks
 

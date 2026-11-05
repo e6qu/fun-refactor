@@ -139,8 +139,8 @@ fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_acce
 ```
 
 The report should say `passed: false` and include Lean's explanation: a Boolean value is not a proof
-of the requested equality. A successful process exit means a report was produced; inspect `passed`
-to find out whether the proof worked. A rejected attempt has no checked receipt and changes no source.
+of the requested equality. A rejected proof exits with status 1 and reports `passed: false`;
+an accepted proof exits with status 0 and reports `passed: true`. Rejection produces no checked receipt and changes no source.
 
 Each diagnostic's `draft_location` points into your tactics file and includes a short source excerpt.
 For example, an unknown tactic on line 2 of `bad-proof.lean` points to that file's line 2.
@@ -151,21 +151,22 @@ A location is `null` when the error cannot be assigned to that file, such as an 
 ## Inspect your progress after each step
 
 You can ask Lean where you are before the whole proof is finished.
-Save `initial.lean` with this one tactic, which deliberately does nothing:
+`proof start` creates a new tactics file containing `skip`, which deliberately does nothing:
 
 ```lean
 skip
 ```
 
 ```sh
-fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft initial.lean --at 1:5 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof start specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft initial.lean --bytes 4096 --timeout-seconds 30
 ```
 
-`--at 1:5` means line 1, character column 5: immediately after `skip`.
-Lines and columns start at one. Count Unicode characters rather than bytes.
+The initial cursor is immediately after `skip`, at line 1, character column 5.
+To resume after an edit, use `proof state --at end` with the same target, draft, byte limit and timeout.
+For a specific branch, use `--at LINE:end` or `--at LINE:COLUMN`. Lines and columns start at one; count Unicode characters rather than bytes.
 The report identifies the original `theorem`, the checked draft fingerprint and `draft_location`.
-In `goals`, lines such as `staff owner : Bool` are available inputs.
-The statement after `⊢` is the current objective: prove the access rule.
+Each `goals` item separates `context` from `goal`. In `context`, `staff owner : Bool` names available inputs.
+The `goal` field is the current objective: prove the access rule. Text mode prints it after `⊢`.
 The parameters are already available; introducing `staff` again would be a mistake.
 
 Now save `partial.lean`:

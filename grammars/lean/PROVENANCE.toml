@@ -204,3 +204,10 @@ why = "a blank line with spaces opened a false layout level and rejected valid p
 subject = "a proof can end at its parenthesized type annotation"
 change = "close layout before an ascription colon; case labels request their own colon token and keep it inside the tactic"
 why = "requiring a proof block's closing token rejected `(by omega : 0 ≤ size)` because its type annotation is not an indentation change or closing parenthesis"
+
+[[patch]]
+subject = "nested constructor cases, record endings and literal braces"
+rule = "tactic_cases, tactic_constructor_branch, structure_instance, string, interpolated_string"
+change = "track constructor lists and branch bodies separately, require their layout endings, allow a trailing record separator, and interpret braces only in interpolated strings"
+accepts = ["cases n with | zero => rfl | succ k => rfl", "some { count := 1\n}", "\"{literal braces}\""]
+why = "dogfooding found three valid project kernels omitted by the reader: nested siblings attached to the wrong split, a final record newline was rejected, and literal braces consumed later declarations as string interpolation"

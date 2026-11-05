@@ -871,6 +871,10 @@ fn project_kernels_remain_readable_as_lean_source() {
     let mut failures = Vec::new();
     for (name, source) in [
         (
+            "LayoutForms",
+            include_str!("fixtures/lean-project-layout.lean"),
+        ),
+        (
             "AgentSession",
             include_str!("../kernels/FrKernels/AgentSession.lean"),
         ),

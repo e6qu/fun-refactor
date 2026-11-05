@@ -53,6 +53,7 @@ module.exports = grammar({
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
     $._continuation_body_start,         // Inline terms continue inside the enclosing layout
     $._do_body_start,           // The following `do` opens a statement body
+    $._tactic_branch_start,     // Constructor branch body, closed before its next pipe
     $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
 
@@ -869,7 +870,9 @@ module.exports = grammar({
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
+        $._layout_start,
         repeat1($.tactic_constructor_branch),
+        $._layout_end,
       )),
     )),
 
@@ -878,9 +881,9 @@ module.exports = grammar({
       field('constructor', $.qualified_name),
       repeat(field('binder', choice($.identifier, $.hole))),
       '=>',
-      $._layout_start,
+      $._tactic_branch_start,
       field('body', $._tactic_seq),
-      optional($._layout_end),
+      $._layout_end,
     )),
 
     // `rcases` has a pattern tree rather than tactic bodies. Alternatives and
@@ -1397,7 +1400,7 @@ module.exports = grammar({
 
     structure_instance: $ => seq(
       '{',
-      optional($._structure_body),
+      optional(seq($._structure_body, optional(choice(',', /\n/)))),
       '}',
     ),
 
@@ -1469,17 +1472,23 @@ module.exports = grammar({
       repeat(choice(
         $._string_content,
         $.escape_sequence,
-        $.interpolation,
       )),
       '"',
     ),
 
     interpolated_string: $ => seq(
       field('prefix', choice('s!', 'r!', 'm!')),
-      $.string,
+      alias($._interpolated_string_body, $.string),
     ),
 
-    _string_content: _ => token.immediate(prec(1, /[^"\\{]+/)),
+    _interpolated_string_body: $ => seq(
+      '"',
+      repeat(choice($._interpolated_string_content, $.escape_sequence, '{{', $.interpolation)),
+      '"',
+    ),
+
+    _string_content: _ => token.immediate(prec(1, /[^"\\]+/)),
+    _interpolated_string_content: _ => token.immediate(prec(1, /[^"\\{]+/)),
 
     escape_sequence: _ => token.immediate(seq(
       '\\',

@@ -327,7 +327,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         ],
     );
     assert!(
-        false_claim.status.success(),
+        false_claim.status.code() == Some(1),
         "{}",
         String::from_utf8_lossy(&false_claim.stderr)
     );
@@ -376,7 +376,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         ],
     );
     assert!(
-        missing.status.success(),
+        missing.status.code() == Some(1),
         "{}",
         String::from_utf8_lossy(&missing.stderr)
     );

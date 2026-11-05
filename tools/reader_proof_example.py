@@ -44,19 +44,31 @@ def check(binary, folder):
                 redirect, arguments = folder / arguments[at + 1], arguments[:at]
             model = folder / 'specs/FrSpecs/SrcLibRsAllowed.lean'
             before = model.read_bytes() if model.exists() else None
-            if 'proof-check' in arguments or 'proof-state' in arguments:
-                filename = arguments[arguments.index('--from') + 1]
+            operation = arguments[arguments.index('proof') + 1] if 'proof' in arguments else None
+            if operation in {'start', 'state', 'check'}:
+                filename = arguments[arguments.index('--draft') + 1]
                 assert filename in drafts
-                (folder / filename).write_text(drafts[filename])
-            result = run(binary, folder, arguments)
+                if operation == 'start':
+                    assert not (folder / filename).exists()
+                else:
+                    (folder / filename).write_text(drafts[filename])
+            if operation == 'check':
+                completed = subprocess.run([str(binary), *arguments], cwd=folder,
+                    capture_output=True, text=True, timeout=30)
+                expected_exit = 1 if filename in {'bad-proof.lean', 'partial.lean'} else 0
+                assert completed.returncode == expected_exit, (arguments, completed.stdout, completed.stderr)
+                assert not completed.stderr, completed.stderr
+                result = json.loads(completed.stdout)
+            else:
+                result = run(binary, folder, arguments)
             commands += 1
             if redirect is not None:
                 redirect.write_text(json.dumps(result))
-            if 'proof-state' in arguments:
+            if operation in {'start', 'state'}:
                 assert model.read_bytes() == before
                 assert result['acceptance'] == 'not-checked'
                 states.append((result['status'], len(result['goals'])))
-            if 'proof-check' in arguments:
+            if operation == 'check':
                 assert model.read_bytes() == before
                 if filename in {'bad-proof.lean', 'partial.lean'}:
                     assert result['passed'] is False and result['receipt'] is None and result['diagnostics'], result
@@ -64,8 +76,8 @@ def check(binary, folder):
                 else:
                     assert rejected and result['passed'] is True and result['receipt'], result
                     checked = True
-            if 'prove' in arguments and '--write' not in arguments:
-                assert checked and model.read_bytes() == before
+            if operation == 'save':
+                assert checked and result['status'] == 'written' and model.read_bytes() != before
             if 'evidence' in arguments:
                 evidence = result
     assert source_path.read_text() == source

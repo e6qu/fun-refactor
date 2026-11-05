@@ -43,6 +43,7 @@ enum TokenType {
   TACTIC_LABEL_COLON,
   CONTINUATION_BODY_START,
   DO_BODY_START,
+  TACTIC_BRANCH_START,
   TACTIC_SUBJECT_SEPARATOR,
 };
 
@@ -106,7 +107,7 @@ static inline uint32_t top_indent(Scanner *s) {
   return s->depth > 0 ? s->indents[s->depth - 1] : 0;
 }
 
-static inline void push(Scanner *s, uint32_t indent, bool binding) {
+static inline void push(Scanner *s, uint32_t indent, uint8_t binding) {
   if (s->depth < MAX_DEPTH) {
     s->indents[s->depth] = indent;
     s->bindings[s->depth++] = binding;
@@ -317,6 +318,13 @@ bool tree_sitter_lean_external_scanner_scan(
     return true;
   }
 
+  if (valid_symbols[TACTIC_BRANCH_START]) {
+    push_layout_indent(s, lexer);
+    if (s->depth > 0) s->bindings[s->depth - 1] = 2;
+    lexer->result_symbol = TACTIC_BRANCH_START;
+    return true;
+  }
+
   if (valid_symbols[CONTINUATION_BODY_START]) {
     skip_spaces(lexer);
     if (is_nl(lexer->lookahead)) {
@@ -349,7 +357,7 @@ bool tree_sitter_lean_external_scanner_scan(
     uint32_t qi = s->queued_indent;
     uint32_t ci = top_indent(s);
 
-    bool binding = s->bindings[s->depth - 1];
+    bool binding = s->bindings[s->depth - 1] == 1;
     if ((qi < ci || (binding && qi == ci)) && valid_symbols[LAYOUT_END]) {
       lexer->mark_end(lexer);
       if (binding) {
@@ -427,7 +435,7 @@ bool tree_sitter_lean_external_scanner_scan(
     Indent indent = measure_indent(lexer, false);
     uint32_t next = indent.column;
     uint32_t ci   = top_indent(s);
-    bool binding = s->bindings[s->depth - 1];
+    bool binding = s->bindings[s->depth - 1] == 1;
 
     if ((next < ci || (binding && next == ci)) && valid_symbols[LAYOUT_END]) {
       if (binding && ((next == ci && starts_with_infix(lexer, indent.first)) ||
@@ -465,6 +473,16 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 6. Closing delimiters and tuple separators end one nested layout level. */
   if (valid_symbols[LAYOUT_END] && s->depth > 0) {
     int32_t c = lexer->lookahead;
+    if (c == '|' && s->bindings[s->depth - 1] == 2) {
+      lexer->mark_end(lexer);
+      lexer->advance(lexer, true);
+      if (lexer->lookahead != '|' && lexer->lookahead != '>') {
+        pop(s);
+        lexer->result_symbol = LAYOUT_END;
+        return true;
+      }
+      return false;
+    }
     if (c == ':') {
       lexer->mark_end(lexer);
       lexer->advance(lexer, true);
@@ -476,7 +494,7 @@ bool tree_sitter_lean_external_scanner_scan(
       return false;
     }
     if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9 ||
-        (c == ';' && s->bindings[s->depth - 1])) {
+        (c == ';' && s->bindings[s->depth - 1] == 1)) {
       pop(s);
       lexer->result_symbol = LAYOUT_END;
       return true;

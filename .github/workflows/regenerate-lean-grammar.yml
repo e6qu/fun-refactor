@@ -20,6 +20,7 @@ jobs:
             tests/fixtures/lean-nested-assumptions.lean
             tests/fixtures/lean-recursive-algorithms.lean
             tests/fixtures/lean-lambda-continuations.lean
+            tests/fixtures/lean-project-layout.lean
             tools/check-lean-reader.py
       - uses: actions/setup-node@v6
         with:
@@ -55,7 +56,7 @@ jobs:
             grammars/lean/grammar.js grammars/lean/src/scanner.c grammars/lean/tests \
             tests/fixtures/lean-proof-locations.lean tests/fixtures/lean-source-declarations.lean \
             tests/fixtures/lean-nested-assumptions.lean tests/fixtures/lean-recursive-algorithms.lean \
-            tests/fixtures/lean-lambda-continuations.lean \
+            tests/fixtures/lean-lambda-continuations.lean tests/fixtures/lean-project-layout.lean \
             tools/check-lean-reader.py .github/workflows/regenerate-lean-grammar.yml; then
             echo 'Lean reader inputs changed during generation; regenerate the new head.' >&2
             exit 1
