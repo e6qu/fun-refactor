@@ -12,32 +12,15 @@
   ],
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-04-distinct-answers-41873008758",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-05-distinct-answers-42037455932",
       "changed_sources": [
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/guide.py",
-        "sdk/python/src/fr_ir/intent_actions.py",
-        "sdk/python/src/fr_ir/ir.py",
-        "sdk/python/src/fr_ir/runtime.py",
-        "src/cli.rs",
-        "src/project/agent_actions.rs",
-        "src/project/agent_guide.rs",
-        "src/project/find.rs",
-        "src/spec.rs",
-        "src/spec/proof_state.rs"
+        "sdk/python/src/fr_ir/_version.py"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-04-distinct-answers-41873008758/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-distinct-answers-42037455932/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
