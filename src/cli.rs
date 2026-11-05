@@ -1011,15 +1011,17 @@ pub fn run() -> Result<()> {
         Err(error) => {
             let help = matches!(
                 error.kind(),
-                clap::error::ErrorKind::DisplayHelp
-                    | clap::error::ErrorKind::DisplayVersion
-                    | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
             );
             if help {
                 print!("{error}");
                 std::process::exit(0);
             }
-            if std::env::args_os().any(|argument| argument == "--json") {
+            if std::env::args_os()
+                .skip(1)
+                .take_while(|argument| argument != "--")
+                .any(|argument| argument == "--json")
+            {
                 println!(
                     "{}",
                     serde_json::to_string(&serde_json::json!({
@@ -1212,7 +1214,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 draft,
                 bytes,
                 timeout_seconds,
-            } => cmd_spec_prove(cli, target, draft, *bytes, *timeout_seconds),
+            } => cmd_proof_save(cli, target, draft, *bytes, *timeout_seconds),
         },
         Command::Project { command } => cmd_project(cli, command),
         Command::TaskChange(options) => cmd_task_change(cli, options),
@@ -1748,20 +1750,25 @@ fn cmd_proof_start(
         !draft.as_os_str().is_empty()
             && draft
                 .components()
-                .all(|part| matches!(part, std::path::Component::Normal(_))),
-        "the new draft must name a file inside the workspace"
+                .any(|part| matches!(part, std::path::Component::Normal(_)))
+            && draft.components().all(|part| matches!(
+                part,
+                std::path::Component::Normal(_) | std::path::Component::CurDir
+            )),
+        "use a workspace-relative draft file without parent-directory steps (..)"
     );
     crate::spec::proof_task(&root, target, 16384, !cli.no_ignore)?;
-    let mut path = root.clone();
+    let mut component_path = root.clone();
     for component in draft.components() {
-        path.push(component.as_os_str());
-        if let Ok(metadata) = std::fs::symlink_metadata(&path) {
+        component_path.push(component.as_os_str());
+        if let Ok(metadata) = std::fs::symlink_metadata(&component_path) {
             anyhow::ensure!(
                 !metadata.file_type().is_symlink(),
                 "draft paths cannot traverse a symlink"
             );
         }
     }
+    let path = root.join(draft);
     let parent = path.parent().context("draft has no parent directory")?;
     std::fs::create_dir_all(parent)?;
     let mut file = std::fs::OpenOptions::new()
@@ -1835,7 +1842,7 @@ fn present_proof_state(cli: &Cli, state: &crate::spec::ProofState) -> Result<()>
     Ok(())
 }
 
-fn cmd_spec_prove(
+fn cmd_proof_save(
     cli: &Cli,
     target: &str,
     from: &Path,
@@ -1864,8 +1871,9 @@ fn cmd_spec_prove(
         "transaction": u64::MAX, "applied": true,
         "verify": ["spec", "verify", shown],
     });
+    let response_bytes = serde_json::to_vec_pretty(&report)?.len() + 1;
     anyhow::ensure!(
-        serde_json::to_vec_pretty(&report)?.len() <= token_limit,
+        response_bytes <= token_limit,
         "proof save result exceeds --bytes {token_limit}; fr wrote no source"
     );
     let change = crate::edit::FileChange {

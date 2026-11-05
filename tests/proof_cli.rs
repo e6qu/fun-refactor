@@ -67,7 +67,7 @@ fn proof_start_creates_a_draft_and_returns_the_actual_goal_without_overwriting()
         "start",
         TARGET,
         "--draft",
-        ".fr/tactics",
+        "./.fr/tactics",
         "--bytes",
         "8192",
         "--timeout-seconds",
@@ -192,6 +192,12 @@ fn argument_errors_honor_json_and_do_not_create_a_draft() {
     assert_eq!(report(&invalid)["error"]["kind"], "invalid-input");
     assert!(invalid.stderr.is_empty());
     assert!(!root.path().join("draft.tactics").exists());
+    for missing_command in [&[][..], &["proof"][..]] {
+        let incomplete = run(root.path(), missing_command);
+        assert_eq!(incomplete.status.code(), Some(2));
+        assert_eq!(report(&incomplete)["error"]["kind"], "invalid-input");
+        assert!(incomplete.stderr.is_empty());
+    }
 }
 
 #[test]

@@ -1482,10 +1482,10 @@ pub fn formal_goals(
     respect_ignore: bool,
 ) -> Result<FormalGoals> {
     if !(1..=64).contains(&limit) {
-        bail!("formal goal limit must be between 1 and 64.");
+        bail!("proof list needs a result limit between 1 and 64.");
     }
     if !(1_024..=16_384).contains(&token_limit) {
-        bail!("formal goal token limit must be between 1024 and 16384.");
+        bail!("proof list needs 1024..16384 UTF-8 response bytes.");
     }
     let root = root.canonicalize()?;
     let report = check(&root, inputs, respect_ignore)?;
@@ -1539,7 +1539,7 @@ pub fn formal_goals(
             "revealed": revealed,
             "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
         });
-        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
         if upper_bound <= token_limit {
             return Ok(FormalGoals {
                 schema: FORMAL_GOALS_SCHEMA,
@@ -1641,7 +1641,7 @@ pub fn proof_task(
         "actions": &actions,
         "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
     });
-    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
     if upper_bound > token_limit {
         bail!("proof task cannot fit the selected response ceiling.");
     }
@@ -2008,7 +2008,7 @@ fn check_prepared_proof(
             "actions": &actions,
             "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
         });
-        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
         if upper_bound <= token_limit {
             return Ok(ProofAttempt {
                 schema: PROOF_ATTEMPT_SCHEMA,
@@ -3334,7 +3334,7 @@ fn property_task_for_formal(formal: &FormalFunction, token_limit: usize) -> Resu
         "actions": &actions,
         "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
     });
-    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len() + 1;
     if upper_bound > token_limit {
         bail!("property task cannot fit the selected response ceiling.");
     }

@@ -12,6 +12,10 @@ fn run(root: &Path, args: &[&str]) -> serde_json::Value {
         .output()
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    if let Some(budget) = value.get("token_budget") {
+        assert!(output.stdout.len() <= budget["used_upper_bound"].as_u64().unwrap() as usize);
+        assert!(output.stdout.len() <= budget["limit"].as_u64().unwrap() as usize);
+    }
     let expected_code = if args.starts_with(&["proof", "check"]) && value["passed"] == false {
         1
     } else {
@@ -104,6 +108,28 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
         serde_json::to_vec_pretty(&split).unwrap().len()
             <= split["token_budget"]["limit"].as_u64().unwrap() as usize
     );
+
+    let exact_bytes = split["token_budget"]["used_upper_bound"]
+        .as_u64()
+        .unwrap()
+        .to_string();
+    let exact = run(
+        &root,
+        &[
+            "proof",
+            "state",
+            &target,
+            "--draft",
+            "draft.tactics",
+            "--at",
+            "2:end",
+            "--bytes",
+            &exact_bytes,
+            "--timeout-seconds",
+            "30",
+        ],
+    );
+    assert_eq!(exact["goals"], split["goals"]);
 
     let closed_branch = inspect(&root, &target, "draft.tactics", 3);
     assert_eq!(closed_branch["status"], "closed-at-position");

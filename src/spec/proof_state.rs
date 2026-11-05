@@ -162,7 +162,7 @@ pub fn proof_state(
             measurement: "serialized_utf8_bytes",
         },
     };
-    let upper_bound = serde_json::to_vec_pretty(&report)?.len();
+    let upper_bound = serde_json::to_vec_pretty(&report)?.len() + 1;
     if upper_bound > token_limit {
         bail!(
             "complete proof state needs {upper_bound} response bytes; the selected ceiling is {token_limit}. No goals or assumptions were silently removed."
