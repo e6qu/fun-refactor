@@ -200,7 +200,7 @@ def audit_case(row, case):
         require(flow is None and profile.compiler.digest(row['error']) == profile.compiler.digest(expected['error']),
                 'CLI refusal cannot be an analysis report')
         require(type(invocations[1]['exit_code']) is int and invocations[1]['exit_code'] == expected['exit_code']
-                and invocations[1]['stderr'].startswith('Error: ' + expected['error']['error']['message']),
+                and invocations[1]['stderr'] == '',
                 'CLI refusal status or diagnostic changed')
         return
     require(row['error'] is None and invocations[1] == {'exit_code': 0, 'stderr': ''},

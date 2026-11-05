@@ -451,7 +451,7 @@ class PythonContract(unittest.TestCase):
         self.reject(value)
 
     def test_refusal_exit_status_and_diagnostic(self):
-        for field, replacement in [('exit_code', 0), ('exit_code', True), ('stderr', '')]:
+        for field, replacement in [('exit_code', 0), ('exit_code', True), ('stderr', 'unexpected duplicate diagnostic')]:
             value, row = self.changed('refuse-import-entry/moved')
             row['invocations'][1][field] = replacement
             self.reject(value)
