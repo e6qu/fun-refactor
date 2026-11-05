@@ -3,7 +3,7 @@
 Use this page when fr refuses a command, gives a wrong answer, or cannot finish your task.
 The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and an incorrect answer need different reports.
 
-## Command and reader repairs in PR #603
+## Merged command and reader repairs
 
 A rejected `fr proof check` now exits 1.
 With `--json`, errors use one JSON report on stdout, the normal output stream.
@@ -18,7 +18,14 @@ The proof-delivery control checks supplied tactics, reviews the edit, exports a 
 A timed-out attempt still fails. The control makes no model call.
 The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146) pass, including the new reader regression and stalled-process controls.
 The new measurement records and their audits pass.
-Read the complete [PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
+PR [#603](https://github.com/e6qu/fun-refactor/pull/603) is merged.
+Its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
+and all companion workflows passed. These checks establish tool behavior, not improved model success.
+
+The unrun division-fact diagnostic still needs fresh admission with the current CLI,
+OpenCode2 2.2.5 and complete resource observer. An old successful setup receipt cannot
+admit a changed client or tool. Its [protocol](tests/agent-eval/proof-division-facts/README.md)
+keeps the hosted controls and four complete local client checks ahead of model calls.
 
 ## Merged repairs and remaining limits
 

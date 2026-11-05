@@ -76,6 +76,8 @@ def implementation_bindings(milestone):
         if milestone in {'M3-page-count', REPAIR_STUDY}:
             paths += [ROOT / CASE_DIRECTORIES['M3'] / name for name in
                       ('cases.json', 'fixtures/src/pages.rs', 'controls/page-count.lean')]
+        if milestone == 'M3-facts':
+            paths += [ROOT / '.github/workflows/proof-algorithms.yml']
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
 
 
@@ -336,6 +338,12 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 'hosted task seed differs')
         seeds[task] = {'archive': str((directory / 'original.tar.gz').resolve()), 'receipt': receipt}
     packets = {row['id']: prompt(row['task'], row['setup'], checkers, milestone) for row in proposed['attempts']}
+    if milestone == 'M3-facts':
+        prepared = json.loads((inputs / 'division-facts/project.json').read_text())
+        start = shlex.join(['fr', '--json', 'proof', 'start', prepared['target'], '--draft', '.fr/proof-tactics',
+                           '--bytes', '8192', '--timeout-seconds', '30'])
+        for key in packets:
+            packets[key] += '\nExact theorem target: ' + prepared['target'] + '. Start with its actual Lean goal:\n' + start + '\n'
     value = {'source': identity(), 'schedule': proposed, 'binaries': paths, 'components': components, 'versions': versions,
              'live_calls_enabled': True,
              'seeds': seeds, 'prompts': packets, 'implementation': implementation_bindings(milestone),
@@ -412,9 +420,11 @@ def freeze(inputs, binaries, runtime, output, milestone):
         from .selected_guarded import contract
         from .algorithm_admission import server_packages, validate_receipts
         value['resource_monitor'] = contract()
+        admission_task = ('page-count' if milestone == REPAIR_STUDY else
+                          'division-facts' if milestone == 'M3-facts' else 'euclid')
         value['admission'] = validate_receipts(json.loads(runtime['admission'].read_text()), paths,
-            seeds['page-count' if milestone == REPAIR_STUDY else 'euclid']['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
-        if milestone in {DELIVERY_STUDY, REPAIR_STUDY}:
+            seeds[admission_task]['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
+        if milestone in {DELIVERY_STUDY, REPAIR_STUDY, 'M3-facts'}:
             packages = subprocess.run([checkers['python']['path'], '-c',
                 'import importlib.metadata,json; print(json.dumps({"websockets":importlib.metadata.version("websockets")}))'],
                 capture_output=True, text=True, timeout=10)

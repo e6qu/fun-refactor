@@ -8,26 +8,26 @@ Complete each milestone in one PR, including its checks, required attempts and t
 
 ## Current branch
 
-PR [#601](https://github.com/e6qu/fun-refactor/pull/601) is merged.
-Its [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41919641540)
-passed all 92 jobs; companion workflows also passed.
+PRs [#601](https://github.com/e6qu/fun-refactor/pull/601) and
+[#603](https://github.com/e6qu/fun-refactor/pull/603) are merged.
+The [#603 CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
+passed all 92 jobs; all companion workflows passed too.
 The [argument-repair comparison](../tests/agent-eval/proof-argument-repair/README.md)
 retains all eight new attempts, each run once. All timed out without a patch.
 One Kimi draft passed checking near 135 seconds but was not saved or delivered.
 No mapped argument-type error was observed. The proposed repair instruction has no
 measured benefit. Earlier interrupted and unstarted slots remain separate.
 
-PR [#603](https://github.com/e6qu/fun-refactor/pull/603), branch
-`improve/clear-proof-and-cli-workflows`, improves the commands and proof workflow.
-The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146)
-pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
-The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
-passes the syntax fixtures and affected project files.
-Both fixed-repository reader comparisons pass.
-The [reviewed inventory](../tests/agent-eval/index-consumers/lean-reader-current.json) records every changed declaration and reference.
-The current measurement records and their audits pass.
-Read the [complete PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
-We made no new model calls for this change.
+The next branch is `improve/check-division-fact-guidance`.
+Refresh the [division-fact diagnostic](../tests/agent-eval/proof-division-facts/README.md),
+which has no started attempts or frozen execution plan. The question is whether the
+agents can find suitable division declarations and apply their current types.
+This tests a different obstacle from the unobserved argument-repair prediction.
+The old qualification cannot admit the changed CLI, client or monitor.
+Require fresh hosted controls and all four complete local client checks before freezing calls.
+Keep the full 150-second limit, ten-second collection reserve and independent resource observer.
+The roadmap lists the eight-slot comparison and its fixed decisions. Keep this work in one PR.
+Publish only reviewed summaries and submitted patches; leave raw native records private.
 
 ## Interface decisions
 

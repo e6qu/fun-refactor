@@ -16,6 +16,14 @@ env:
   LEAN_NUM_THREADS: '1'
   RAYON_NUM_THREADS: '1'
 jobs:
+  division-fact-controls:
+    name: Check the division-fact experiment without model calls
+    needs: qualify
+    uses: ./.github/workflows/proof-feedback.yml
+    with:
+      study: M3-facts
+      operation: prepare
+      artifact_run: ${{ format('{0}', github.run_id) }}
   page-count-diagnosis:
     name: Distinguish division facts from their application without model calls
     needs: qualify
@@ -117,6 +125,7 @@ jobs:
           agent_eval.test_selected_local agent_eval.test_selected_grading
           agent_eval.test_selected_guarded
           agent_eval.test_algorithm_admission
+          agent_eval.test_proof_feedback agent_eval.test_proof_division_facts agent_eval.test_argument_repair
           agent_eval.test_proof_delivery
           agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
       - run: rustup toolchain install 1.99.1 --profile minimal

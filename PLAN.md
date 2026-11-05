@@ -61,35 +61,30 @@ a checked proof and a delivered patch are distinct outcomes. Unknown usage and c
 The [supplied-proof delivery study](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
 measures delivery of given answers; it cannot replace proof discovery.
 
-**PR [#603](https://github.com/e6qu/fun-refactor/pull/603): make the commands and proof workflow easier to use.**
+**Completed:** [#603](https://github.com/e6qu/fun-refactor/pull/603) merged the explicit
+`fr proof start`, `state`, `check` and `save` workflow, dependable JSON errors and Lean reader repairs.
+Its [92-job CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
+and all companion workflows passed. These tool checks establish no improvement in GLM or Kimi success.
 
-1. Use one explicit `proof` command family. `start` creates a fresh draft and shows Lean's
-   actual goal; `state --at end` resumes at the last nonblank step. Return the available
-   variables and facts separately from the remaining statement to prove.
-2. Make results dependable for both people and scripts: labelled terminal searches,
-   explicit scan roots and one JSON error report. A rejected proof check returns exit 1.
-   Require response-byte and time settings. Remove the old proof command forms.
-3. Check and save a complete draft in one call, then check the package and export the
-   saved edits. Test stalled dependencies, a stalled compiler and a client that ignores
-   its deadline. Preserve the existing limits and time for collecting the final record.
-4. Execute the revised lessons and skills. Fix the Lean reader omissions found while
-   using fr on this work. Refresh source-bound records and pass the complete CI gate.
+**Next PR: distinguish finding division facts from applying them.**
 
-The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146)
-pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
-The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
-also passes the syntax fixtures and affected project files.
-Both fixed-repository reader comparisons pass. The [reviewed inventory](tests/agent-eval/index-consumers/lean-reader-current.json)
-records the exact changes in declarations and references; historical timing reports stay intact.
-All fresh measurement collections and report audits pass.
-Read the [complete PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
-These are tool checks. We have not measured improved GLM or Kimi success with this interface.
+1. Refresh the [eight-attempt diagnostic](tests/agent-eval/proof-division-facts/README.md)
+   for the current commands and OpenCode2 2.2.5. Prove that a quotient plus its remainder
+   is at most the nonnegative input when the divisor is positive.
+   For example, eleven divided by five gives two plus one, and three is at most eleven.
+2. Give both conditions the same theorem, tools, skills and 150-second complete-attempt limit.
+   One condition receives four current library declaration types; the other must select facts
+   from the same installed library. Neither receives a completed proof.
+3. Pass independent hosted proof and patch controls, then all four complete local client checks.
+   Cover actual goal inspection, rejected tactics, saving, package checks, delivered patch replay
+   and final accounting. Keep the resource reserve and observe detached workers.
+4. Freeze the eight slots before calls. Run each once; independently grade every original patch.
+   Report complete successes, timeouts, usage and unknown charges. Review the first proof check,
+   first accepted proof, save and delivery. Make the per-agent decision fixed in the protocol.
 
-**After those checks pass:** freeze a new comparison before spending model calls.
-Require fresh complete native admission with the exact commands, clients and resource settings.
-Record time to the first useful proof check, observed repairs, saving, package checking,
-patch delivery and final accounting. Any graph comparison must supply the same information
-and command workflow to both conditions and address a recorded obstacle.
+The earlier argument-repair instruction produced no delivered patch and its predicted error was
+unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
+from graph presentation. A resource refusal blocks launching, rather than permitting weaker checks.
 Do not repeat the full 36-attempt study to seek a passing result. Keep list reversal reserved.
 The named language cases, both numeric tasks and source/model checks below still define M3 completion.
 

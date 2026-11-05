@@ -19,6 +19,24 @@
     "parallel_attempts": 1
   },
   "client_finish_seconds": 10,
+  "lean_arguments": ["-j1"],
+  "lean_imports": ["Init.Data.Int.DivMod.Lemmas"],
+  "native_admission": {
+    "complete_workflow_required": true,
+    "interactive_goal_required": true,
+    "unfinished_draft_rejected_required": true,
+    "independent_patch_replay_required": true,
+    "session_accounting_required": true,
+    "conditions": ["select-facts", "supplied-declarations"],
+    "client_context_reserve_bytes": 134217728,
+    "control_limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    }
+  },
   "decisions": {
     "2,0": "Test better selection of current facts for the modeled operation; this diagnostic alone cannot establish complete page-count success",
     "2,2": "The small case does not reproduce the full-task obstacle; inspect the remaining branches and delivery",

@@ -119,12 +119,12 @@ class ArgumentRepairTests(unittest.TestCase):
     def test_native_setup_protects_the_shared_skill_and_keeps_control_drafts_separate(self):
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
-            protected = feedback.install_repair_admission(project, 'argument-repair', Path('/lean'),
-                                                         {'target': 'specs/Fixed.lean::page_bounds'})
+            protected = feedback.install_diagnostic_admission(project, 'argument-repair', Path('/lean'),
+                                                         {'target': 'specs/Fixed.lean::page_bounds'}, STUDY)
             self.assertIn('.agents/skills/fr/SKILL.md', protected)
             self.assertIn('.fr/argument-repair.txt', protected)
             self.assertIn('.fr/checks.json', protected)
-            self.assertEqual((project / '.fr/admission-start.lean').read_text(), 'skip\n')
+            self.assertFalse((project / '.fr/admission-start.lean').exists())
             from agent_eval.proof_delivery import input_changes
             self.assertEqual(input_changes(project, protected), [])
             (project / 'change.patch').write_bytes(b'nonempty submitted patch\n')
