@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Select a published release and immutable source commit before building assets."""
+import argparse
 import base64
 import json
 import os
@@ -66,5 +67,34 @@ def main():
     print(json.dumps(result, sort_keys=True))
 
 
+def replay_request(planned, repository, run, fetch):
+    require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository), "invalid release repository")
+    require(re.fullmatch(r"[1-9][0-9]{0,19}", run), "use the explicit release workflow run")
+    require(type(planned['number']) is int and planned['number'] > 0 and
+            planned['baseBranchName'] == 'main' and
+            planned['headBranchName'] == 'release-please--branches--main',
+            'refresh only the planned root release branch')
+    pull = fetch(repository, 'pulls/' + str(planned['number']))
+    require(pull['state'] == 'open' and pull['draft'] is False and
+            pull['base']['ref'] == planned['baseBranchName'] and
+            pull['head']['ref'] == planned['headBranchName'] and
+            pull['head']['repo']['full_name'] == repository,
+            'release replay requires an open release PR in this repository')
+    return ['gh', 'workflow', 'run', 'project-changes-recheck.yml', '--repo', repository,
+            '--ref', planned['headBranchName'], '-f', 'prefix=release-' + run, '-f', 'run_ci=true']
+
+
+def check_plan():
+    command = replay_request(json.loads(os.environ['PLANNED_PR']), os.environ['GITHUB_REPOSITORY'],
+                             os.environ['GITHUB_RUN_ID'], api)
+    subprocess.run(command, check=True, timeout=20)
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('operation', choices=('publish', 'check-plan'))
+    args = parser.parse_args()
+    if args.operation == 'publish':
+        main()
+    else:
+        check_plan()

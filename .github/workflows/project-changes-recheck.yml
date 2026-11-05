@@ -1,14 +1,15 @@
 name: Recheck familiar project changes
 on:
-  push:
-    branches: [feat/real-project-changes]
-    paths: [.github/workflows/project-changes-recheck.yml]
   workflow_dispatch:
     inputs:
       prefix:
         description: New directory prefix for the current replay
         required: true
         type: string
+      run_ci:
+        description: Run the complete CI gate after publishing the audited replay
+        required: true
+        type: boolean
 permissions:
   contents: write
 concurrency:
@@ -19,6 +20,9 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -27,7 +31,7 @@ jobs:
       RUSTFLAGS: '-D warnings'
       RUSTUP_TOOLCHAIN: '1.99.1'
       RAYON_NUM_THREADS: '1'
-      PREFIX: ${{ github.event_name == 'push' && format('2026-10-21-current-{0}', github.run_id) || inputs.prefix }}
+      PREFIX: ${{ inputs.prefix }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -94,6 +98,12 @@ jobs:
           git add --sparse "tests/agent-eval/results/$PREFIX-project-changes-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: recheck familiar project changes after release integration'
           git push origin "HEAD:refs/heads/$BRANCH"
+      - name: Check the exact branch containing the published replay
+        if: inputs.run_ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: gh workflow run ci.yml --ref "$BRANCH"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

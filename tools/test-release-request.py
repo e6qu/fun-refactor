@@ -70,6 +70,46 @@ class ReleaseRequest(unittest.TestCase):
             with self.subTest(tag=tag), self.assertRaises(ValueError):
                 release_request.select("workflow_dispatch", tag, "", "", "", "e6qu/fun-refactor", self.fetch)
 
+    def test_planned_release_collects_a_real_replay_before_requesting_full_ci(self):
+        planned = {'number': 42, 'baseBranchName': 'main',
+                   'headBranchName': 'release-please--branches--main'}
+        pull = {'state': 'open', 'draft': False, 'base': {'ref': 'main'},
+                'head': {'ref': planned['headBranchName'], 'repo': {'full_name': 'e6qu/fun-refactor'}}}
+        fetch = Mock(return_value=pull)
+        self.assertEqual(release_request.replay_request(planned, 'e6qu/fun-refactor', '123', fetch),
+            ['gh', 'workflow', 'run', 'project-changes-recheck.yml', '--repo', 'e6qu/fun-refactor',
+             '--ref', planned['headBranchName'], '-f', 'prefix=release-123', '-f', 'run_ci=true'])
+        fetch.assert_called_once_with('e6qu/fun-refactor', 'pulls/42')
+
+    def test_planning_cannot_refresh_main_a_fork_or_an_unrelated_pull_request(self):
+        planned = {'number': 42, 'baseBranchName': 'main',
+                   'headBranchName': 'release-please--branches--main'}
+        pull = {'state': 'open', 'draft': False, 'base': {'ref': 'main'},
+                'head': {'ref': planned['headBranchName'], 'repo': {'full_name': 'e6qu/fun-refactor'}}}
+        for change in ({'number': True}, {'number': -1}, {'baseBranchName': 'other'},
+                       {'headBranchName': 'main'}, {'headBranchName': 'release-please--branches--main\nother'}):
+            fetch = Mock(return_value=pull)
+            with self.subTest(planned=change), self.assertRaises(ValueError):
+                release_request.replay_request({**planned, **change}, 'e6qu/fun-refactor', '123', fetch)
+            fetch.assert_not_called()
+        for change in ({'state': 'closed'}, {'draft': True}, {'base': {'ref': 'other'}},
+                       {'head': {'ref': 'main', 'repo': {'full_name': 'e6qu/fun-refactor'}}},
+                       {'head': {'ref': planned['headBranchName'], 'repo': {'full_name': 'other/fun-refactor'}}}):
+            with self.subTest(pull=change), self.assertRaises(ValueError):
+                release_request.replay_request(planned, 'e6qu/fun-refactor', '123', Mock(return_value={**pull, **change}))
+
+    def test_planning_api_errors_and_invalid_run_ids_stop_dispatch(self):
+        planned = {'number': 42, 'baseBranchName': 'main',
+                   'headBranchName': 'release-please--branches--main'}
+        for run in ('', '0', '-1', '123\nmain', '1' * 21):
+            fetch = Mock()
+            with self.subTest(run=run), self.assertRaises(ValueError):
+                release_request.replay_request(planned, 'e6qu/fun-refactor', run, fetch)
+            fetch.assert_not_called()
+        with self.assertRaisesRegex(RuntimeError, 'GitHub query failed'):
+            release_request.replay_request(planned, 'e6qu/fun-refactor', '123',
+                                          Mock(side_effect=RuntimeError('GitHub query failed')))
+
 
 if __name__ == "__main__":
     unittest.main()
