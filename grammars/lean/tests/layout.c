@@ -66,9 +66,9 @@ int main(void) {
   Input cases = input("\n  | nil => simp");
   assert(scan(scanner, &cases, TACTIC_CASES_START));
   assert(scanner->depth == 1 && scanner->bindings[0] == 3 && top_indent(scanner) == 2);
-  Input following_tactic = input("\n  rcases pair with left | right");
-  assert(scan(scanner, &following_tactic, LAYOUT_END));
-  assert(scanner->depth == 0 && following_tactic.offset == 0);
+  Input after_constructor_list = input("\n  rcases pair with left | right");
+  assert(scan(scanner, &after_constructor_list, LAYOUT_END));
+  assert(scanner->depth == 0 && after_constructor_list.offset == 0);
 
   assert(scan(scanner, &cases, TACTIC_CASES_START));
   Input peer_branch = input("\n  | cons head tail => simp");
@@ -82,15 +82,15 @@ int main(void) {
   assert(scan(scanner, &cases, TACTIC_CASES_START));
   Input last_branch = input("    simp");
   assert(scan(scanner, &last_branch, TACTIC_BRANCH_START));
-  assert(scan(scanner, &following_tactic, LAYOUT_END));
+  assert(scan(scanner, &after_constructor_list, LAYOUT_END));
   assert(scanner->depth == 2 && scanner->queued_indent == 2);
   char cases_state[TREE_SITTER_SERIALIZATION_BUFFER_SIZE];
   unsigned cases_size = tree_sitter_lean_external_scanner_serialize(scanner, cases_state);
   tree_sitter_lean_external_scanner_deserialize(scanner, cases_state, cases_size);
   assert(scanner->bindings[1] == 3 && scanner->queued_indent == 2);
-  assert(scan(scanner, &following_tactic, LAYOUT_END));
+  assert(scan(scanner, &after_constructor_list, LAYOUT_END));
   assert(scanner->depth == 1 && scanner->queued_indent == 2);
-  assert(scan(scanner, &following_tactic, LAYOUT_SEMICOLON));
+  assert(scan(scanner, &after_constructor_list, LAYOUT_SEMICOLON));
   assert(scanner->depth == 1 && scanner->queued_indent == NO_QUEUED);
   assert(scan(scanner, &cases_end, LAYOUT_END));
 
