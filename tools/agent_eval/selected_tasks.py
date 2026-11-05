@@ -49,8 +49,14 @@ def command(argv, root, output):
 
 def fr(binary, project, arguments, output):
     result = command([str(binary), '-C', str(project), '--json', *arguments], project, output)
-    require(result['returncode'] == 0, 'fr refused setup or a prescribed control; inspect ' + str(output))
-    return json.loads(result['stdout'])
+    report = json.loads(result['stdout'])
+    if tuple(arguments[:2]) == ('proof', 'check'):
+        require(type(report.get('passed')) is bool, 'proof check did not return its declared verdict: ' + str(output))
+        expected = 0 if report['passed'] else 1
+    else:
+        expected = 0
+    require(result['returncode'] == expected, 'fr refused setup or a prescribed control; inspect ' + str(output))
+    return report
 
 
 def sources(root):
@@ -247,13 +253,13 @@ def prescribed_change(task, variant, project, binary, output):
         tactics = output / 'tactics.lean'
         tactics.write_text('rfl\n' if variant == 'reference' else 'cases staff\n')
         before = sources(project)
-        checked = fr(binary, project, ['spec', 'proof-check', PROOF_TARGET, '--from', str(tactics)],
+        checked = fr(binary, project, ['proof', 'check', PROOF_TARGET, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'],
                      output / 'proof-check.json')
         require(checked['passed'] == (variant == 'reference'), 'unexpected prescribed tactic outcome')
         require(sources(project) == before, 'proof-check changed project source')
         if variant == 'reference':
-            fr(binary, project, ['spec', 'prove', PROOF_TARGET, '--from', str(tactics)], output / 'proof-preview.json')
-            fr(binary, project, ['spec', 'prove', PROOF_TARGET, '--from', str(tactics), '--write'], output / 'proof-write.json')
+            fr(binary, project, ['proof', 'save', PROOF_TARGET, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'proof-preview.json')
+            fr(binary, project, ['proof', 'save', PROOF_TARGET, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'proof-write.json')
         return
     if task == 'boltons-rename':
         name, path = 'clamp', 'boltons/mathutils.py'

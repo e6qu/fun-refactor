@@ -110,11 +110,11 @@ class ArgumentRepairTests(unittest.TestCase):
         from agent_eval.algorithm_admission import script
         for condition in ('shared-skill', 'argument-repair'):
             commands = script(Path('/lean'), '/tools:/usr/bin:/bin', STUDY, condition)
-            for required in ('draft_location', 'context', '.fr/argument-repair.txt', ' spec proof-check ',
-                             ' spec proof-state ', '"acceptance"',
-                             ' spec prove ', '/lean/bin/lake -d specs build --wfail', 'git diff --binary HEAD'):
+            for required in ('draft_location', 'context', '.fr/argument-repair.txt', ' proof check ',
+                             ' proof state ', '"acceptance"',
+                             ' proof save ', '/lean/bin/lake -d specs build --wfail', 'git diff --binary HEAD'):
                 self.assertIn(required, commands)
-            self.assertEqual(commands.count(' spec proof-check '), 2)
+            self.assertEqual(commands.count(' proof check '), 2)
 
     def test_native_setup_protects_the_shared_skill_and_keeps_control_drafts_separate(self):
         with tempfile.TemporaryDirectory() as temp:

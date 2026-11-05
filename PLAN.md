@@ -102,7 +102,7 @@ Reviewed summaries and patches are public; raw transcripts remain private.
 
 The implementation and scripted controls now pass:
 
-- `spec prove` distinguishes `written` from `already-present`. A repeated save
+- `proof save` distinguishes `written` from `already-present`. A repeated save
   preserves source and history and needs no further write.
 - `history patch` combines explicitly selected saved edits. Both GCD proofs reach
   one independently accepted patch. Conflicting file states, repeated IDs, missing

@@ -221,10 +221,9 @@ def qualify(binary, qualification, output):
         for name in algorithms.OBLIGATIONS:
             target = algorithms.SPEC + '::' + name
             draft = '.fr/' + name + '.tactics'
-            checked = common.fr(binary, project, ['spec', 'proof-check', target, '--from', draft,
-                                '--token-limit', '4096'], output / (setup + '-' + name + '-check.json'))
+            checked = common.fr(binary, project, ['proof', 'check', target, '--draft', draft, '--bytes', '4096', '--timeout-seconds', '30'], output / (setup + '-' + name + '-check.json'))
             require(checked['passed'] is True, 'the supplied proof must be correct')
-            saved = common.fr(binary, project, ['spec', 'prove', target, '--from', draft, '--write'],
+            saved = common.fr(binary, project, ['proof', 'save', target, '--draft', draft, '--bytes', '4096', '--timeout-seconds', '30'],
                               output / (setup + '-' + name + '-save.json'))
             require(saved['status'] == 'written' and saved['proof_checked'] is True and saved['applied'] is True,
                     'save both supplied proofs through fr')

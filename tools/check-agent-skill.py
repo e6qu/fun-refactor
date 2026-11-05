@@ -61,7 +61,7 @@ def check_bundle():
             target = (path.parent / link).resolve()
             assert target.is_relative_to(SKILL.resolve()) and target.is_file(), link
         for command in commands(path):
-            assert command[0] == "fr", command
+            assert command[0] in {"fr", "lake"}, command
     route_bytes = {
         name: sum((SKILL / relative).stat().st_size for relative in route)
         for name, route in ROUTES.items()
@@ -94,10 +94,15 @@ class Exercise:
         return value, len(result.stdout.encode())
 
     def example(self, root, path, command, success=True):
-        value, size = self.run(root, command[1:], success)
+        if command[0] == "lake":
+            result = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=30)
+            assert (result.returncode == 0) == success, (command, result.stdout, result.stderr)
+            value, size = {"passed": result.returncode == 0}, len(result.stdout.encode())
+        else:
+            value, size = self.run(root, command[1:], success)
         self.examples += 1
         self.executed.append((path, tuple(command)))
-        if path.name in ("SKILL.md", "explore.md", "batch.md") and "spec" not in command:
+        if path.name in ("SKILL.md", "explore.md", "batch.md") and not {"spec", "proof"}.intersection(command):
             self.exploration_bytes += size
         return value
 
@@ -555,52 +560,59 @@ def lean_workflow(exercise, root):
     exercise.run(root, ["spec", "scaffold", "--from", str(plan_file), "--package", "specs", "--write"])
     model = root / "specs/FrSpecs" / (plan["kernel"]["module"] + ".lean")
     exercise.values["<LEAN_TARGET>"] = str(model.relative_to(root)) + "::" + plan["properties"][0]["name"]
+    exercise.values["<TARGET>"] = exercise.values["<LEAN_TARGET>"]
     prefix = subprocess.run(["lake", "env", "lean", "--print-prefix"], cwd=root / "specs",
                             capture_output=True, text=True, check=True, timeout=10)
     library = Path(prefix.stdout.strip()) / "src/lean/Init/Data/Int"
     assert library.is_dir()
     exercise.values["<LEAN_LIBRARY_DIR>"] = str(library)
+    exercise.values["<LIBRARY_FOLDER>"] = str(library)
     exercise.values["<LIBRARY_QUERY>"] = "tdiv"
+    exercise.values["<NAME_FRAGMENT>"] = "tdiv"
     (root / ".fr/proof-tactics").write_text("rfl\n")
     original, original_program = model.read_bytes(), source.read_bytes()
     proof_examples = [(SKILL / "SKILL.md", command) for command in commands(SKILL / "SKILL.md")
-                      if "spec" in command]
+                      if "proof" in command]
     proof_examples += [(path, command) for command in commands(path)]
     for example_path, command in proof_examples:
-        if "proof-state" in command:
+        if "proof" in command and ("state" in command or "start" in command):
             tactics = root / ".fr/proof-tactics"
-            tactics.write_text("skip\n")
+            if "start" in command:
+                tactics.unlink(missing_ok=True)
+            else:
+                tactics.write_text("skip\n")
             state = exercise.example(root, example_path, command)
             assert state["status"] == "goals" and state["acceptance"] == "not-checked"
-            assert len(state["goals"]) == 1 and "⊢" in state["goals"][0]
-            assert "value : Bool" in state["goals"][0]
+            assert len(state["goals"]) == 1 and state["goals"][0]["goal"]
+            assert "value : Bool" in state["goals"][0]["context"]
             assert state["draft_location"]["line"] == 1 and state["draft_location"]["column"] == 5
             assert model.read_bytes() == original
             tactics.write_text("rfl\n")
             value = state
         else:
             value = exercise.example(root, example_path, command)
-        if "goals" in command:
+        if "proof" in command and "list" in command:
             goal, = value["catalog"]
             assert goal["target"] == exercise.values["<LEAN_TARGET>"]
-        if "proof-task" in command:
+        if "proof" in command and "show" in command:
             assert value["claim"]["parameters"] == ["(value : Bool)"]
             part, = value["claim"]["parts"]
             assert part["assumptions"] == [] and len(part["conclusions"]) == 1
             assert "allowedModel" in part["conclusions"][0] and "value" in part["conclusions"][0]
-            assert value["token_budget"]["used_upper_bound"] <= 4096
-        if "<LIBRARY_QUERY>" in command:
+            assert value["token_budget"]["used_upper_bound"] <= int(command[command.index("--bytes") + 1])
+        if "<LIBRARY_QUERY>" in command or "<NAME_FRAGMENT>" in command:
             assert value["rows"] and value["page"]["returned"] <= 4
             assert "source" not in value["columns"]
             signature = value["columns"].index("signature")
             assert all(row[signature]["basis"] == "syntax-header" for row in value["rows"])
             assert "coverage" in value and "omitted" in value
-        if "proof-check" in command:
+        if "proof" in command and "save" in command:
+            exercise.values["<EDIT_ID>"] = str(value["transaction"])
+        if "proof" in command and "check" in command:
             assert value["passed"] and model.read_bytes() == original
             tactics = root / ".fr/proof-tactics"
             tactics.write_text("exact (0 : Nat)\n")
-            failed, _ = exercise.run(root, ["spec", "proof-check", exercise.values["<LEAN_TARGET>"],
-                                          "--from", ".fr/proof-tactics", "--token-limit", "4096"])
+            failed, _ = exercise.run(root, ["proof", "check", exercise.values["<LEAN_TARGET>"], '--draft', ".fr/proof-tactics", '--bytes', "4096", '--timeout-seconds', '30'], success=False)
             assert not failed["passed"] and failed["diagnostics"] and model.read_bytes() == original
             tactics.write_text("rfl\n")
     assert model.read_bytes() != original and source.read_bytes() == original_program

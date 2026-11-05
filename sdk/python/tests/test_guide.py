@@ -66,7 +66,7 @@ class AuthoredClient(FakeClient):
             report = super().call(*arguments, input_bytes=input_bytes)
             value = report._value
             value["actions"] = [{"id": "proof-check",
-                                 "arguments": ["spec", "proof-check", "target", "--from", "<tactics-file>"],
+                                 "arguments": ["proof", "check", "target", '--draft', "<tactics-file>", '--bytes', '4096', '--timeout-seconds', '30'],
                                  "output_schema": "fr-proof-attempt-1", "schema_field": "schema",
                                  "input": None, "author_fields": [{"name": "tactics-file", "shape": "Lean tactics"}],
                                  "writes": False, "ready": False, "max_output_bytes": 16384}]
@@ -78,7 +78,7 @@ class AuthoredClient(FakeClient):
                 value["serialized_bytes"] = len(_canonical(value))
             return report
         self.calls.append((arguments, input_bytes))
-        assert arguments[:4] == ("spec", "proof-check", "target", "--from")
+        assert arguments[:4] == ("proof", "check", "target", "--from")
         supplied = open(arguments[4], encoding="utf-8").read()
         assert supplied == "rfl\n"
         return FrReport({"schema": "fr-proof-attempt-1", "accepted": True}, arguments)

@@ -68,12 +68,11 @@ def prepare(binary, project, output, fixture):
         (project / 'specs' / name).write_bytes((fixture.parent / name).read_bytes())
     built = common.command(['lake', 'build'], project / 'specs', output / 'build.json')
     require(built['returncode'] == 0, 'the original executable algorithm must build with disclosed proof debt')
-    goals = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
+    goals = common.fr(binary, project, ['proof', 'list', 'specs', '--bytes', '4096', '--limit', '32'], output / 'goals.json')
     require(goals['omitted'] == 0 and {row['name'] for row in goals['catalog']} == set(OBLIGATIONS),
             'disclose exactly the termination and correctness obligations')
     for name in OBLIGATIONS:
-        task = common.fr(binary, project, ['spec', 'proof-task', SPEC + '::' + name,
-                        '--token-limit', '4096'], output / (name + '-task.json'))
+        task = common.fr(binary, project, ['proof', 'show', SPEC + '::' + name, '--bytes', '4096'], output / (name + '-task.json'))
         require(task['goal']['name'] == name, 'the proof task names the wrong obligation')
     for name in common.sources(project):
         (project / name).chmod(0o644)
@@ -278,26 +277,22 @@ def controls(binary, output, native):
                 draft = candidate / '.fr' / (name + '.tactics')
                 draft.parent.mkdir(exist_ok=True)
                 draft.write_text('skip\n')
-                state = common.fr(binary, candidate, ['spec', 'proof-state', SPEC + '::' + name,
-                    '--from', str(draft), '--at', '1:5', '--token-limit', '4096', '--timeout-seconds', '30'],
+                state = common.fr(binary, candidate, ['proof', 'state', SPEC + '::' + name, '--draft', str(draft), '--at', '1:5', '--bytes', '4096', '--timeout-seconds', '30'],
                     output / (variant + '-' + name + '-state.json'))
                 require(state['acceptance'] == 'not-checked', 'interactive state is not proof acceptance')
                 control = 'euclid-correct-lambda.lean' if (variant == 'reference-with-multiline-lambda' and
                                                           name == 'euclid_correct') else name.replace('_', '-') + '.lean'
                 draft.write_text((ROOT / DIRECTORY / 'controls' / control).read_text())
-                checked = common.fr(binary, candidate, ['spec', 'proof-check', SPEC + '::' + name,
-                                    '--from', str(draft), '--token-limit', '4096'], output / (variant + '-' + name + '-check.json'))
+                checked = common.fr(binary, candidate, ['proof', 'check', SPEC + '::' + name, '--draft', str(draft), '--bytes', '4096', '--timeout-seconds', '30'], output / (variant + '-' + name + '-check.json'))
                 require(checked['passed'] is True, 'reference tactics must pass through fr')
-                saved = common.fr(binary, candidate, ['spec', 'prove', SPEC + '::' + name,
-                                  '--from', str(draft), '--write'], output / (variant + '-' + name + '-save.json'))
+                saved = common.fr(binary, candidate, ['proof', 'save', SPEC + '::' + name, '--draft', str(draft), '--bytes', '4096', '--timeout-seconds', '30'], output / (variant + '-' + name + '-save.json'))
                 require(saved['applied'] is True, 'reference tactics must be saved through fr')
                 require(saved['status'] == 'written' and saved['proof_checked'] is True,
                         'a saved proof must explicitly report its checked placement')
                 transactions.append(str(saved['transaction']))
                 if name == OBLIGATIONS[0]:
                     journal = (candidate / '.fr-history/state.json').read_bytes()
-                    repeated = common.fr(binary, candidate, ['spec', 'prove', SPEC + '::' + name,
-                        '--from', str(draft), '--write'], output / (variant + '-repeated-save.json'))
+                    repeated = common.fr(binary, candidate, ['proof', 'save', SPEC + '::' + name, '--draft', str(draft), '--bytes', '4096', '--timeout-seconds', '30'], output / (variant + '-repeated-save.json'))
                     require(repeated['status'] == 'already-present' and repeated['proof_checked'] is True and
                             repeated['applied'] is False and repeated['transaction'] is None and
                             (candidate / '.fr-history/state.json').read_bytes() == journal,

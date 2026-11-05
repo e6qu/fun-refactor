@@ -48,11 +48,11 @@ class SelectedPublicTests(unittest.TestCase):
 
     def test_interactive_proof_operations_are_reported_separately(self):
         events = [{'type': 'item.completed', 'item': {'type': 'command_execution', 'command': command}}
-                  for command in ('fr --json spec proof-task target --token-limit 4096',
-                                  'fr --json spec proof-state target --from draft --at 1:5 --token-limit 4096 --timeout-seconds 30')]
+                  for command in ('fr --json proof show target --token-limit 4096',
+                                  'fr --json proof state target --from draft --at 1:5 --token-limit 4096 --timeout-seconds 30')]
         used = observed_fr(events)
         self.assertEqual(used['commands_observed'], 2)
-        self.assertEqual(used['operations_observed'], ['spec proof-state', 'spec proof-task'])
+        self.assertEqual(used['operations_observed'], ['proof state', 'proof show'])
 
     def test_overlapping_tools_count_once_and_absent_timing_stays_unknown(self):
         events = [{'type': 'tool_use', 'part': {'state': {'time': {'start': start, 'end': end}}}}

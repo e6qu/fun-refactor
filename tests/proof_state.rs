@@ -56,14 +56,14 @@ fn inspect(root: &Path, target: &str, draft: &str, line: usize) -> serde_json::V
     run(
         root,
         &[
-            "spec",
-            "proof-state",
+            "proof",
+            "state",
             target,
-            "--from",
+            "--draft",
             draft,
             "--at",
             &format!("{line}:{column}"),
-            "--token-limit",
+            "--bytes",
             "8192",
             "--timeout-seconds",
             "30",
@@ -79,7 +79,7 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     let original = std::fs::read(&module).unwrap();
     let draft = "have pair : keepModel x = x ∧ keepModel x = x := by\n  constructor\n  · rfl\n  · skip\nexact pair.1\n";
     std::fs::write(root.join("draft.tactics"), draft).unwrap();
-    let task = run(&root, &["spec", "proof-task", &target]);
+    let task = run(&root, &["proof", "show", &target, "--bytes", "4096"]);
     assert_eq!(task["actions"]["inspect"][1], "proof-state");
 
     let split = inspect(&root, &target, "draft.tactics", 2);
@@ -104,7 +104,17 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     assert!(right_branch["goals"][0].as_str().unwrap().contains("right"));
     let rejected = run(
         &root,
-        &["spec", "proof-check", &target, "--from", "draft.tactics"],
+        &[
+            "proof",
+            "check",
+            &target,
+            "--draft",
+            "draft.tactics",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert_eq!(rejected["passed"], false);
     assert!(rejected["receipt"].is_null());
@@ -118,7 +128,17 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     assert_ne!(closed["proof_digest"], split["proof_digest"]);
     let accepted = run(
         &root,
-        &["spec", "proof-check", &target, "--from", "draft.tactics"],
+        &[
+            "proof",
+            "check",
+            &target,
+            "--draft",
+            "draft.tactics",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert_eq!(accepted["passed"], true);
     assert!(accepted["receipt"].is_string());
@@ -160,12 +180,15 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     let applied = run(
         &root,
         &[
-            "spec",
-            "prove",
+            "proof",
+            "save",
             &target,
-            "--from",
+            "--draft",
             "draft.tactics",
-            "--write",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
         ],
     );
     assert_eq!(applied["applied"], true);
@@ -182,14 +205,14 @@ fn cursor_and_deadline_settings_are_explicit_cli_requirements() {
     let temporary = tempfile::tempdir().unwrap();
     for missing in ["--at", "--token-limit", "--timeout-seconds"] {
         let mut arguments = vec![
-            "spec",
-            "proof-state",
+            "proof",
+            "state",
             "specs/Demo.lean::demo",
-            "--from",
+            "--draft",
             "draft",
             "--at",
             "1:1",
-            "--token-limit",
+            "--bytes",
             "4096",
             "--timeout-seconds",
             "20",

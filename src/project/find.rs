@@ -4,7 +4,11 @@ use anyhow::ensure;
 #[derive(clap::Args)]
 pub struct Options {
     name: String,
-    #[arg(long = "in", default_value = ".")]
+    #[arg(
+        long = "in",
+        default_value = ".",
+        help = "Filter returned code under a path or handle; use -C to limit the scan itself."
+    )]
     scope: String,
     #[arg(long)]
     revision: Option<String>,
@@ -35,7 +39,11 @@ pub struct SelectOptions {
         help = "Exact declaration names or full revision-bound project handles."
     )]
     selectors: Vec<String>,
-    #[arg(long = "in", default_value = ".")]
+    #[arg(
+        long = "in",
+        default_value = ".",
+        help = "Filter returned code under a path or handle; use -C to limit the scan itself."
+    )]
     scope: String,
     #[arg(long)]
     revision: Option<String>,

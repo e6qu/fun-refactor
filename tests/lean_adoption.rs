@@ -73,14 +73,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let first = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", target, "--from", "proof.lean"],
     );
     assert!(
         first.status.success(),
@@ -113,7 +106,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     ] {
         let proof = workspace.path().join("proof.lean");
         std::fs::write(&proof, tactics).unwrap();
-        let checked = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
+        let checked = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30)
             .unwrap_or_else(|error| panic!("{tactics:?}: {error:#}"));
         assert!(
             checked.passed,
@@ -124,7 +117,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     }
     let proof = workspace.path().join("proof.lean");
     std::fs::write(&proof, "simp only [keepModel, Bool.not_not]\n").unwrap();
-    let warned = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    let warned =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30).unwrap();
     assert!(
         !warned.passed,
         "unused simp arguments must fail before saving"
@@ -143,7 +137,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         .as_ref()
         .unwrap()
         .contains("Bool.not_not"));
-    assert!(fun_refactor::spec::prove(workspace.path(), target, &proof).is_err());
+    assert!(fun_refactor::spec::prove(workspace.path(), target, &proof, 4096, 30).is_err());
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
 
     let with_other_debt = format!(
@@ -152,7 +146,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     );
     std::fs::write(&model, &with_other_debt).unwrap();
     std::fs::write(&proof, "rfl\n").unwrap();
-    let clean = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    let clean =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30).unwrap();
     assert!(clean.passed, "{}", serde_json::to_string(&clean).unwrap());
     assert!(clean.diagnostics.is_empty());
     assert_eq!(std::fs::read_to_string(&model).unwrap(), with_other_debt);
@@ -160,7 +155,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
 
     std::fs::write(&proof, "refine ?_\n").unwrap();
     let unfinished =
-        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30).unwrap();
     assert!(!unfinished.passed);
     assert!(!unfinished.diagnostics.is_empty());
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
@@ -169,7 +164,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "\n\n  have h : True := by trivial\n  unknown_step\n",
     )
     .unwrap();
-    let unknown = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    let unknown =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30).unwrap();
     assert!(!unknown.passed);
     let diagnostic = unknown
         .diagnostics
@@ -185,14 +181,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(&proof, "\n\n  exact missingLemma\n").unwrap();
     let named = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", target, "--from", "proof.lean"],
     );
     assert!(
         named.status.success(),
@@ -220,7 +209,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     );
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
     std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
-    let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
+    let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30)
         .unwrap_err()
         .to_string();
     let proof_line = std::str::from_utf8(&before_show)
@@ -256,13 +245,15 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     let edited_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
     assert_eq!(edited_task.goal.target, target);
     std::fs::write(&proof, "exact false\n").unwrap();
-    let rejected = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    let rejected =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30).unwrap();
     assert!(!rejected.passed);
     assert!(rejected.receipt.is_none());
     assert!(!rejected.diagnostics.is_empty());
     assert_eq!(std::fs::read_to_string(&model).unwrap(), manually_edited);
     std::fs::write(&proof, "rfl\n").unwrap();
-    let repaired = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    let repaired =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096, 30).unwrap();
     assert!(
         repaired.passed,
         "{}",
@@ -271,7 +262,17 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_eq!(std::fs::read_to_string(&model).unwrap(), manually_edited);
     let saved = run(
         workspace.path(),
-        &["spec", "prove", target, "--from", "proof.lean", "--write"],
+        &[
+            "proof",
+            "save",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         saved.status.success(),
@@ -290,14 +291,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_ne!(first_task.goal.id, second_task.goal.id);
     let false_claim = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", target, "--from", "proof.lean"],
     );
     assert!(
         false_claim.status.success(),
@@ -311,14 +305,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(&dependency, format!("-- reviewed dependency\n{policy}")).unwrap();
     let renewed = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", target, "--from", "proof.lean"],
     );
     assert!(
         renewed.status.success(),
@@ -331,14 +318,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::remove_file(&dependency).unwrap();
     let missing = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", target, "--from", "proof.lean"],
     );
     assert!(
         missing.status.success(),
@@ -585,7 +565,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     assert!(generated.contains("def keepModel (value : Bool) : Bool :=\n  value"));
     assert_eq!(generated.matches("-- fr:debt").count(), 2);
 
-    let goals = run(workspace.path(), &["--json", "spec", "goals", "specs"]);
+    let goals = run(workspace.path(), &["--json", "proof", "list", "specs"]);
     assert!(
         goals.status.success(),
         "{}",
@@ -609,7 +589,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let goal = goals["catalog"][0]["id"].as_str().unwrap();
     let revealed = run(
         workspace.path(),
-        &["--json", "spec", "goals", "specs", "--goal", goal],
+        &["--json", "proof", "list", "specs", "--goal", goal],
     );
     assert!(
         revealed.status.success(),
@@ -668,7 +648,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         followed["object_digest"],
         guided["route"]["evidence"]["task_digest"]
     );
-    let proof_task = run(workspace.path(), &["--json", "spec", "proof-task", &target]);
+    let proof_task = run(workspace.path(), &["--json", "proof", "show", &target]);
     assert!(
         proof_task.status.success(),
         "{}",
@@ -697,7 +677,10 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         current_source.replace("{ value }", "{ !value }"),
     )
     .unwrap();
-    let stale_task = run(workspace.path(), &["spec", "proof-task", &target]);
+    let stale_task = run(
+        workspace.path(),
+        &["proof", "show", &target, "--bytes", "4096"],
+    );
     assert!(!stale_task.status.success());
     assert!(String::from_utf8_lossy(&stale_task.stderr).contains("stale source"));
     std::fs::write(&source_path, current_source).unwrap();
@@ -708,8 +691,8 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         workspace.path(),
         &[
             "--json",
-            "spec",
-            "proof-check",
+            "proof",
+            "check",
             &target,
             "--from",
             "wrong-proof.lean",
@@ -735,12 +718,15 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let rejected_write = run(
         workspace.path(),
         &[
-            "spec",
-            "prove",
+            "proof",
+            "save",
             &target,
-            "--from",
+            "--draft",
             "wrong-proof.lean",
-            "--write",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
         ],
     );
     assert!(!rejected_write.status.success());
@@ -754,14 +740,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
 
     let checked = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            &target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", &target, "--from", "proof.lean"],
     );
     assert!(
         checked.status.success(),
@@ -775,8 +754,8 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         workspace.path(),
         &[
             "--json",
-            "spec",
-            "prove",
+            "proof",
+            "save",
             &target,
             "--from",
             "proof.lean",
@@ -809,13 +788,23 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     .success());
     assert_eq!(std::fs::read_to_string(&model).unwrap(), after);
 
-    let remaining = run(workspace.path(), &["--json", "spec", "goals", "specs"]);
+    let remaining = run(workspace.path(), &["--json", "proof", "list", "specs"]);
     let remaining: serde_json::Value = serde_json::from_slice(&remaining.stdout).unwrap();
     let obligation = remaining["catalog"][0]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
     assert!(run(
         workspace.path(),
-        &["spec", "prove", &target, "--from", "proof.lean", "--write"]
+        &[
+            "proof",
+            "save",
+            &target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30"
+        ]
     )
     .status
     .success());
@@ -1032,14 +1021,7 @@ fn agent_authors_a_multi_input_property_and_its_proof() {
     let target = "specs/FrSpecs/SrcLibRsBoth.lean::bothModel_commutative";
     let checked = run(
         workspace.path(),
-        &[
-            "--json",
-            "spec",
-            "proof-check",
-            target,
-            "--from",
-            "proof.lean",
-        ],
+        &["--json", "proof", "check", target, "--from", "proof.lean"],
     );
     assert!(
         checked.status.success(),
@@ -1052,8 +1034,8 @@ fn agent_authors_a_multi_input_property_and_its_proof() {
         workspace.path(),
         &[
             "--json",
-            "spec",
-            "prove",
+            "proof",
+            "save",
             target,
             "--from",
             "proof.lean",

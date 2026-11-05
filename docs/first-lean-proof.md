@@ -100,8 +100,8 @@ python3 make-property.py
 fr -C . --json spec plan src/lib.rs::allowed --property-from property.json > formal-plan.json
 fr -C . --json spec scaffold --from formal-plan.json --package specs
 fr -C . --json spec scaffold --from formal-plan.json --package specs --write
-fr -C . --json spec goals specs
-fr -C . --json spec proof-task specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule
+fr -C . --json proof list specs --bytes 4096 --limit 8
+fr -C . --json proof show specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --bytes 4096
 ```
 
 The plan describes the selected source, generated definition, claim and assumptions. Review it before
@@ -135,7 +135,7 @@ exact false
 ```
 
 ```sh
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from bad-proof.lean
+fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft bad-proof.lean --bytes 4096 --timeout-seconds 30
 ```
 
 The report should say `passed: false` and include Lean's explanation: a Boolean value is not a proof
@@ -158,7 +158,7 @@ skip
 ```
 
 ```sh
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from initial.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft initial.lean --at 1:5 --bytes 4096 --timeout-seconds 30
 ```
 
 `--at 1:5` means line 1, character column 5: immediately after `skip`.
@@ -182,10 +182,10 @@ Here the false case reduces to `owner = owner`; the true case reduces to `true =
 We leave the second case open deliberately. Inspect three positions:
 
 ```sh
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 1:12 --token-limit 4096 --timeout-seconds 30
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 2:6 --token-limit 4096 --timeout-seconds 30
-fr -C . --json spec proof-state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --at 3:7 --token-limit 4096 --timeout-seconds 30
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from partial.lean --token-limit 4096
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --at 1:12 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --at 2:6 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof state specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --at 3:7 --bytes 4096 --timeout-seconds 30
+fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft partial.lean --bytes 4096 --timeout-seconds 30
 ```
 
 After the split, `status: "goals"` includes both cases and their available facts.
@@ -212,9 +212,9 @@ The tactics file omits `by`: fr inserts these steps inside the existing proof re
 Only a complete check with `passed: true` establishes acceptance. Then preview and save:
 
 ```sh
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean
-fr -C . --json spec prove specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean
-fr -C . --json spec prove specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean --write
+fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
+fr -C . --json proof save specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
+fr -C . --json proof save specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr -C . --json spec check specs --strict --max-debt 0
 fr -C . --json spec evidence specs
 ```

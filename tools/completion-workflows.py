@@ -111,7 +111,7 @@ def prepare(executable: Path, root: Path) -> tuple[str, str]:
         root,
         ["spec", "scaffold", "--from", "formal-plan.json", "--write"],
     )
-    goals, _ = run(executable, root, ["spec", "goals", "specs"])
+    goals, _ = run(executable, root, ["proof", "list", "specs", '--bytes', '4096', '--limit', '32'])
     goal = goals["catalog"][0]
     return goal["spec"], goal["name"]
 

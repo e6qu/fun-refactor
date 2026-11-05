@@ -11,7 +11,7 @@ field names below match the tool; the examples explain why you would use them.
 | “Can this input reach the output?” | `project dataflow` for supported Python; read [result meanings](docs/understanding-results.md) |
 | “What would the fix change?” | `author`, `rename`, or a task guide; inspect the preview |
 | “Did the requested behavior improve?” | `checks`; choose a declared behavior test |
-| “How do I write and check a Lean proof?” | `spec plan`, `spec goals`, `spec proof-task`, `spec proof-check`, `spec prove`, `spec evidence`; start with the [complete lesson](docs/first-lean-proof.md) |
+| “How do I write and check a Lean proof?” | `spec plan`, `proof list`, `proof show`, `proof check`, `proof save`, `spec evidence`; start with the [complete lesson](docs/first-lean-proof.md) |
 | “How do I undo or deliver it?” | `history`, `workflow`, `git` |
 
 A refactoring preserves the required behavior. A repair or feature deliberately changes it.
@@ -704,13 +704,13 @@ fr spec plan SOURCE::SYMBOL [--property KIND]... [--property-from FILE]...
 fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
 fr spec scaffold --from PLAN [--package PATH] [--write]
 
-fr spec goals [PATH...] [--goal DIGEST] [--limit COUNT] [--token-limit BYTES]
+fr proof list [PATH...] [--goal DIGEST] [--limit COUNT] [--token-limit BYTES]
 
-fr spec proof-task SPEC::OBLIGATION [--token-limit BYTES]
-fr spec proof-state SPEC::OBLIGATION --from PROOF --at LINE:COLUMN --token-limit BYTES --timeout-seconds SECONDS
+fr proof show SPEC::OBLIGATION [--token-limit BYTES]
+fr proof state SPEC::OBLIGATION --from PROOF --at LINE:COLUMN --token-limit BYTES --timeout-seconds SECONDS
 
-fr spec proof-check SPEC::OBLIGATION --from PROOF [--token-limit BYTES]
-fr spec prove SPEC::OBLIGATION --from PROOF [--write]
+fr proof check SPEC::OBLIGATION --from PROOF [--token-limit BYTES]
+fr proof save SPEC::OBLIGATION --from PROOF [--write]
 
 fr spec ci [--package PATH] [--max-debt COUNT] [--write]
 

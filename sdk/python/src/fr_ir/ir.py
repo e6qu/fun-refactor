@@ -1909,16 +1909,20 @@ class ProofState:
             "operation", "target", "goal_id", "proof_digest", "checker", "theorem",
             "draft_location", "status", "goals", "acceptance", "scope", "check", "token_budget",
         }, "proof state")
-        if value["operation"] != "proof-state" or value["acceptance"] != "not-checked":
+        if value["operation"] not in {"proof-start", "proof-state"} or value["acceptance"] != "not-checked":
             raise IrError("proof state is inspection and cannot accept a proof")
         if not all(_is_digest(value[key]) for key in ("goal_id", "proof_digest")):
             raise IrError("proof state identities must be canonical digests")
         for key in ("target", "checker", "theorem", "scope"):
             if not isinstance(value[key], str) or not value[key]:
                 raise IrError("proof state fields must be nonempty text")
-        goals = _string_vector(value["goals"], "proof state goals")
-        if any(not goal for goal in goals):
-            raise IrError("proof state goals cannot contain empty entries")
+        goals = value["goals"]
+        if not isinstance(goals, list):
+            raise IrError("proof state goals must be objects with context and goal fields")
+        for goal in goals:
+            goal = _exact_mapping(goal, {"context", "goal"}, "proof state goal")
+            if not isinstance(goal["context"], str) or not isinstance(goal["goal"], str) or not goal["goal"].strip():
+                raise IrError("proof state goals need context text and a nonempty goal")
         if (not isinstance(value["status"], str)
                 or value["status"] not in {"goals", "closed-at-position", "no-tactic-at-position"}):
             raise IrError("unknown proof state status")
@@ -1933,7 +1937,7 @@ class ProofState:
         if location["source_excerpt"] is not None and not isinstance(location["source_excerpt"], str):
             raise IrError("proof state excerpt must be text or null")
         check = _string_vector(value["check"], "proof state check action")
-        if check[:3] != ("spec", "proof-check", value["target"]):
+        if check[:3] != ("proof", "check", value["target"]):
             raise IrError("proof state must direct complete acceptance to proof-check")
         _byte_budget(value["token_budget"], "proof state budget")
         return cls(json.loads(json.dumps(value)))

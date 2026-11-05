@@ -1,0 +1,57 @@
+name: CLI and proof workflow checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cli-usability-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  PYTHONPATH: tools:sdk/python/src
+  PYTHONDONTWRITEBYTECODE: '1'
+  FR_LEAN_JOBS: '1'
+  LEAN_NUM_THREADS: '1'
+jobs:
+  cli:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cli-usability
+      - run: cargo fmt --all --check
+      - run: cargo build --locked --bin fr
+      - name: Retain the exact Linux tool for command controls
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-usability-linux-tool
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 14
+      - run: cargo test --locked --lib cli::tests -- --test-threads=1
+      - run: cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
+      - run: cargo test --locked --test proof_cli -- --test-threads=1
+      - run: cargo test --locked --test cli from_a_subdirectory -- --test-threads=1
+      - name: Check current proof collection and SDK contracts without model calls
+        run: |
+          python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt -r tests/agent-eval/selected-agents/native-requirements.txt
+          python3 -B -m pytest -q sdk/python/tests/test_ir.py sdk/python/tests/test_runtime.py
+          python3 -B -m unittest agent_eval.test_argument_repair agent_eval.test_algorithm_admission agent_eval.test_selected_public

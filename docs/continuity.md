@@ -74,9 +74,9 @@ source and can be verified from its exact build metadata.
 
 ## What the merged proof work established
 
-`spec proof-state` reads Lean's actual goals at a draft cursor. A solved branch is
+`proof state` reads Lean's actual goals at a draft cursor. A solved branch is
 not a checked complete proof. Require `proof-check` to pass before saving.
-`spec prove` distinguishes a new `written` result from `already-present`, which
+`proof save` distinguishes a new `written` result from `already-present`, which
 needs no repeat save. `history patch 4 7 --output change.patch` exports saved edits
 4 and 7 together, using their recorded contents in that order. The shared
 [Lean skill](../skills/fr/references/lean.md) explains the check and save loop.

@@ -291,7 +291,10 @@ fn each_typed_language_completes_agent_proofs_regeneration_drift_and_reversal() 
         let model = format!("specs/FrSpecs/{}.lean", plan.kernel.module);
         for property in &plan.properties {
             let goal = format!("{model}::{}", property.name);
-            let task = run(workspace.path(), &["spec", "proof-task", &goal]);
+            let task = run(
+                workspace.path(),
+                &["proof", "show", &goal, "--bytes", "4096"],
+            );
             assert_eq!(task["schema"], "fr-proof-task-1");
             std::fs::write(
                 workspace.path().join("proof.lean"),
@@ -304,13 +307,33 @@ fn each_typed_language_completes_agent_proofs_regeneration_drift_and_reversal() 
             .unwrap();
             let attempt = run(
                 workspace.path(),
-                &["spec", "proof-check", &goal, "--from", "proof.lean"],
+                &[
+                    "proof",
+                    "check",
+                    &goal,
+                    "--draft",
+                    "proof.lean",
+                    "--bytes",
+                    "4096",
+                    "--timeout-seconds",
+                    "30",
+                ],
             );
             assert_eq!(attempt["passed"], true, "{path}: {attempt}");
             let before = std::fs::read(workspace.path().join(&model)).unwrap();
             let applied = run(
                 workspace.path(),
-                &["spec", "prove", &goal, "--from", "proof.lean", "--write"],
+                &[
+                    "proof",
+                    "save",
+                    &goal,
+                    "--draft",
+                    "proof.lean",
+                    "--bytes",
+                    "4096",
+                    "--timeout-seconds",
+                    "30",
+                ],
             );
             assert_eq!(attempt["receipt"], applied["receipt"]);
             assert_eq!(applied["status"], "written");
@@ -323,7 +346,17 @@ fn each_typed_language_completes_agent_proofs_regeneration_drift_and_reversal() 
                 let history = std::fs::read(&journal).unwrap();
                 let repeated = run(
                     workspace.path(),
-                    &["spec", "prove", &goal, "--from", "proof.lean", "--write"],
+                    &[
+                        "proof",
+                        "save",
+                        &goal,
+                        "--draft",
+                        "proof.lean",
+                        "--bytes",
+                        "4096",
+                        "--timeout-seconds",
+                        "30",
+                    ],
                 );
                 assert_eq!(repeated["status"], "already-present");
                 assert_eq!(repeated["proof_checked"], true);
@@ -760,12 +793,32 @@ fn declarative_languages_complete_structural_proof_and_history_workflows() {
             std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
             let attempt = run(
                 workspace.path(),
-                &["spec", "proof-check", &target, "--from", "proof.lean"],
+                &[
+                    "proof",
+                    "check",
+                    &target,
+                    "--draft",
+                    "proof.lean",
+                    "--bytes",
+                    "4096",
+                    "--timeout-seconds",
+                    "30",
+                ],
             );
             assert_eq!(attempt["passed"], true, "{path}: {attempt}");
             let applied = run(
                 workspace.path(),
-                &["spec", "prove", &target, "--from", "proof.lean", "--write"],
+                &[
+                    "proof",
+                    "save",
+                    &target,
+                    "--draft",
+                    "proof.lean",
+                    "--bytes",
+                    "4096",
+                    "--timeout-seconds",
+                    "30",
+                ],
             );
             let transaction = applied["transaction"].as_u64().unwrap().to_string();
             run(
@@ -958,7 +1011,17 @@ fn large_structural_terms_keep_proof_tasks_small_and_model_edits_invalidate_goal
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     run(
         workspace.path(),
-        &["spec", "prove", &target, "--from", "proof.lean", "--write"],
+        &[
+            "proof",
+            "save",
+            &target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     let evidence = run(workspace.path(), &["spec", "evidence", "specs"]);
     assert_eq!(

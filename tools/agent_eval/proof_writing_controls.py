@@ -24,7 +24,7 @@ def drift_checks(case, binary, original, prepared, tactics, output):
         target = prepared['target']
         model_path = project / prepared['spec']
         model_text = model_path.read_text()
-        first = common.fr(binary, project, ['spec', 'proof-task', target], output / 'original-task.json')
+        first = common.fr(binary, project, ['proof', 'show', target, '--bytes', '4096'], output / 'original-task.json')
         source = project / prepared['source']
         source_text = source.read_text()
         if case == 'page-count':
@@ -39,11 +39,11 @@ def drift_checks(case, binary, original, prepared, tactics, output):
             changed_source = source_text.replace('if staff', 'if !staff', 1)
         require(changed_source != source_text, 'source control did not change its comparison')
         source.write_text(changed_source)
-        stale = common.command([str(binary), '-C', str(project), '--json', 'spec', 'proof-task', target], project, output / 'stale-source.json')
+        stale = common.command([str(binary), '-C', str(project), '--json', 'proof', 'show', target, '--bytes', '4096'], project, output / 'stale-source.json')
         require(stale['returncode'] != 0, 'a changed source cannot retain the old proof task')
         source.write_text(source_text)
         model_path.write_text(model_text + '\n-- changed model context\n')
-        changed_model = common.fr(binary, project, ['spec', 'proof-task', target], output / 'changed-model.json')
+        changed_model = common.fr(binary, project, ['proof', 'show', target, '--bytes', '4096'], output / 'changed-model.json')
         require(changed_model['goal']['id'] != first['goal']['id'], 'a model change must expire its goal identity')
         parameters = ''.join(f' ({row["name"]} : {row["lean_type"]})' for row in prepared['property']['parameters'])
         lines = model_text.splitlines(keepends=True)
@@ -51,9 +51,9 @@ def drift_checks(case, binary, original, prepared, tactics, output):
         require(len(selected) == 1, 'control needs exactly one fixed theorem header')
         lines[selected[0]] = f'theorem {prepared["obligation"]}{parameters} : False := by\n'
         model_path.write_text(''.join(lines))
-        changed_claim = common.fr(binary, project, ['spec', 'proof-task', target], output / 'changed-claim.json')
+        changed_claim = common.fr(binary, project, ['proof', 'show', target, '--bytes', '4096'], output / 'changed-claim.json')
         require(changed_claim['goal']['id'] != first['goal']['id'], 'a changed property must expire the old goal')
-        false_claim = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(tactics)], output / 'false-claim.json')
+        false_claim = common.fr(binary, project, ['proof', 'check', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'false-claim.json')
         require(false_claim['passed'] is False and false_claim['receipt'] is None, 'a false fixed claim must fail Lean checking')
         dependency = project / 'specs/FrSpecs/M3Dependency.lean'
         dependency_text = 'namespace FrSpecs.M3Dependency\ndef enabled : Bool := true\nend FrSpecs.M3Dependency\n'
@@ -68,13 +68,13 @@ def drift_checks(case, binary, original, prepared, tactics, output):
         model_name = head.split('def ', 1)[1].split(' ', 1)[0]
         dependency_tactics.write_text(tactics.read_text().replace(
             '[' + model_name, '[' + model_name + ', M3Dependency.enabled'))
-        before_dependency = common.fr(binary, project, ['spec', 'proof-task', target], output / 'dependency-task.json')
-        dependency_proof = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(dependency_tactics)], output / 'dependency-accepted.json')
+        before_dependency = common.fr(binary, project, ['proof', 'show', target, '--bytes', '4096'], output / 'dependency-task.json')
+        dependency_proof = common.fr(binary, project, ['proof', 'check', target, '--draft', str(dependency_tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'dependency-accepted.json')
         require(dependency_proof['passed'] is True, 'reference must pass with its declared dependency')
         dependency.write_text(dependency_text.replace(':= true', ':= false'))
-        after_dependency = common.fr(binary, project, ['spec', 'proof-task', target], output / 'dependency-changed.json')
+        after_dependency = common.fr(binary, project, ['proof', 'show', target, '--bytes', '4096'], output / 'dependency-changed.json')
         require(before_dependency['goal']['id'] != after_dependency['goal']['id'], 'dependency edits must expire the old proof task')
-        rejected_dependency = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(dependency_tactics)], output / 'dependency-rejected.json')
+        rejected_dependency = common.fr(binary, project, ['proof', 'check', target, '--draft', str(dependency_tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'dependency-rejected.json')
         require(rejected_dependency['passed'] is False and rejected_dependency['receipt'] is None,
                 'a stale compiled dependency cannot preserve an invalid proof')
     return True
@@ -138,18 +138,18 @@ def exercise(case, binary, project, prepared, output, inputs):
     require(unfinished['passed'] is False, 'an unchanged proof gap must fail')
     wrong = output / 'wrong.lean'
     wrong.write_text('exact false\n')
-    rejected = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(wrong)], output / 'wrong-check.json')
+    rejected = common.fr(binary, project, ['proof', 'check', target, '--draft', str(wrong), '--bytes', '4096', '--timeout-seconds', '30'], output / 'wrong-check.json')
     require(rejected['passed'] is False and rejected['receipt'] is None and rejected['diagnostics'],
             'invalid tactics must retain useful diagnostics and no receipt')
     require(common.sources(project) == baseline, 'a rejected proof check changed source')
     tactics = output / 'reference.lean'
     tactics.write_text(reference(case))
-    checked = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(tactics)], output / 'reference-check.json')
+    checked = common.fr(binary, project, ['proof', 'check', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'reference-check.json')
     require(checked['passed'] is True and checked['receipt'], 'supplied reference proof failed')
     require(common.sources(project) == baseline, 'proof-check must leave the prepared source unchanged')
-    common.fr(binary, project, ['spec', 'prove', target, '--from', str(tactics)], output / 'preview.json')
+    common.fr(binary, project, ['proof', 'save', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'preview.json')
     require(common.sources(project) == baseline, 'a proof preview changed source')
-    written = common.fr(binary, project, ['spec', 'prove', target, '--from', str(tactics), '--write'], output / 'write.json')
+    written = common.fr(binary, project, ['proof', 'save', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'write.json')
     require(written['receipt'] == checked['receipt'], 'previewed proof and written proof must bind the same checked context')
     accepted = tasks.check(project, prepared, binary, output / 'accepted')
     require(accepted['passed'] is True, 'reference failed the independent proof and axiom checks')
