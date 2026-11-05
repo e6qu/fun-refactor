@@ -31,4 +31,12 @@ theorem alternativeInsideConstructor (flag : Bool) (h : True ∨ True) : True :=
     · exact right
   | true => trivial
 
+def classifyCommand (args : List String) : IO Nat := do
+  if let ["count", value] := args then
+    return value.length
+  else if let "page" :: rest := args then
+    return rest.length
+  else
+    return 0
+
 def afterProjectLayout : Nat := 42

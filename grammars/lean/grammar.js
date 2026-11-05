@@ -1070,7 +1070,7 @@ module.exports = grammar({
     if_let: $ => prec.right(seq(
       'if',
       'let',
-      field('pattern', $._pattern),
+      field('pattern', $._binding_pattern),
       choice(':=', '<-', '←'),
       field('value', $._expression),
       $._then_else,
@@ -1095,9 +1095,16 @@ module.exports = grammar({
       ')',
     ),
 
-    // List pattern: `[x]`, `[x, y]` — only in do_let to avoid
-    // GLR conflict with instance_binder in fun binders.
-    list_pattern: $ => seq('[', commaSep1($._pattern), ']'),
+    _binding_pattern: $ => choice(
+      $._pattern, $.list_pattern, $.cons_pattern,
+      $.string, $.number, $.true, $.false,
+    ),
+
+    list_pattern: $ => seq('[', commaSep($._binding_pattern), ']'),
+
+    cons_pattern: $ => prec.right(PREC.add, seq(
+      field('head', $._binding_pattern), '::', field('tail', $._binding_pattern),
+    )),
 
     // Constructor pattern: `some x`, `none`, `Foo.bar x y`
     // An identifier alone is just an identifier, not a constructor_pattern
@@ -1183,7 +1190,7 @@ module.exports = grammar({
     do_let: $ => prec.dynamic(2, prec.right(2, seq(
       $._binding_start,
       'let',
-      field('pattern', choice($._pattern, $.list_pattern)),
+      field('pattern', $._binding_pattern),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
@@ -1195,7 +1202,7 @@ module.exports = grammar({
     let_bind: $ => seq(
       $._binding_start,
       'let',
-      field('name', $._pattern),
+      field('name', $._binding_pattern),
       optional($._type_spec),
       choice('<-', '←'),
       field('value', $._expression),
@@ -1289,7 +1296,7 @@ module.exports = grammar({
     do_if_let: $ => prec.right(1, seq(
       'if',
       'let',
-      field('pattern', $._pattern),
+      field('pattern', $._binding_pattern),
       choice(':=', '<-', '←'),
       field('value', $._expression),
       $._do_then_else,
