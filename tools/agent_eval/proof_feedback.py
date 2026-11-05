@@ -421,8 +421,11 @@ def outcomes(rows, milestone):
                 require(validity in {'valid', 'service-failed', 'collection-failed', 'unknown'}, 'review execution validity explicitly')
                 usable = usable and validity == 'valid' and not row['collection_error_recorded'] and not row['checking_input_changes']
                 usable = usable and row['stop_reason'] in {None, 'wall_seconds'} and row['suspended_seconds'] < 1
+                if milestone == 'M3-facts':
+                    usable = usable and (row['stop_reason'] == 'wall_seconds' or
+                        (row['reported_usage_complete'] is True and row['client_model_recorded'] is True))
                 if row['independent_outcome'] == 'passed':
-                    if milestone == REPAIR_STUDY:
+                    if milestone in {REPAIR_STUDY, 'M3-facts'}:
                         require(row['reported_usage_complete'] is True and row['client_model_recorded'] is True,
                                 'incomplete native accounting cannot count as complete success')
                     require(row['native_status'] == 'completed' and row['stop_reason'] is None and
@@ -575,7 +578,7 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
                 accepted = row['native_status'] == 'completed' and verdict['passed']
                 if milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
                     accepted = accepted and construction_checks_passed(row)
-                if milestone == REPAIR_STUDY:
+                if milestone in {REPAIR_STUDY, 'M3-facts'}:
                     accepted = accepted and row['reported_usage_complete'] is True and row['client_model_recorded'] is True
                 result['attempts'][row['id']] = {'status': 'checked', 'native_status': row['native_status'],
                     'patch_sha256': row['patch_sha256'], 'patch_accepted': verdict['passed'],
