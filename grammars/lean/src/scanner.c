@@ -44,6 +44,7 @@ enum TokenType {
   CONTINUATION_BODY_START,
   DO_BODY_START,
   TACTIC_BRANCH_START,
+  TACTIC_CASES_START,
   TACTIC_PATTERN_SEPARATOR,
   IF_LET_START,
   TACTIC_SUBJECT_SEPARATOR,
@@ -54,7 +55,7 @@ enum TokenType {
 
 typedef struct {
   uint32_t indents[MAX_DEPTH];
-  uint8_t bindings[MAX_DEPTH];
+  uint8_t bindings[MAX_DEPTH]; // 0 block, 1 binding, 2 constructor body, 3 constructor list
   uint8_t  depth;
   uint32_t queued_indent; // indent of next non-blank line, or NO_QUEUED
 } Scanner;
@@ -327,6 +328,13 @@ bool tree_sitter_lean_external_scanner_scan(
     return true;
   }
 
+  if (valid_symbols[TACTIC_CASES_START]) {
+    push_layout_indent(s, lexer);
+    if (s->depth > 0) s->bindings[s->depth - 1] = 3;
+    lexer->result_symbol = TACTIC_CASES_START;
+    return true;
+  }
+
   if (valid_symbols[CONTINUATION_BODY_START]) {
     skip_spaces(lexer);
     if (is_nl(lexer->lookahead)) {
@@ -360,6 +368,17 @@ bool tree_sitter_lean_external_scanner_scan(
     uint32_t ci = top_indent(s);
 
     bool binding = s->bindings[s->depth - 1] == 1;
+    if (qi == ci && s->bindings[s->depth - 1] == 3 && valid_symbols[LAYOUT_END]) {
+      lexer->mark_end(lexer);
+      Indent next = measure_indent(lexer, false);
+      if (next.first != '|') {
+        pop(s);
+        lexer->result_symbol = LAYOUT_END;
+        return true;
+      }
+      s->queued_indent = NO_QUEUED;
+      return false;
+    }
     if ((qi < ci || (binding && qi == ci)) && valid_symbols[LAYOUT_END]) {
       lexer->mark_end(lexer);
       if (binding) {
@@ -444,6 +463,14 @@ bool tree_sitter_lean_external_scanner_scan(
     uint32_t next = indent.column;
     uint32_t ci   = top_indent(s);
     bool binding = s->bindings[s->depth - 1] == 1;
+
+    if (next == ci && s->bindings[s->depth - 1] == 3 &&
+        indent.first != '|' && valid_symbols[LAYOUT_END]) {
+      pop(s);
+      s->queued_indent = next;
+      lexer->result_symbol = LAYOUT_END;
+      return true;
+    }
 
     if ((next < ci || (binding && next == ci)) && valid_symbols[LAYOUT_END]) {
       if (binding && ((next == ci && starts_with_infix(lexer, indent.first)) ||

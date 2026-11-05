@@ -232,3 +232,10 @@ rule = "if_let, do_if_let"
 change = "recognize the conditional let keyword before the ordinary binding-value marker can select a term let expression"
 accepts = ["if let some value := input then value else 0", "if letterFlag then 1 else 0"]
 why = "the competing expression path consumed a binding-start marker after if, so the dedicated conditional pattern rules never received the let keyword"
+
+[[patch]]
+subject = "tactics following constructor lists"
+rule = "tactic_cases"
+change = "close a constructor list before a same-column non-pipe tactic while retaining same-column constructor arms"
+accepts = ["induction values with\n  | nil => simp\n  | cons head tail ih => simp_all\n  rcases pair with left | right"]
+why = "the full reader suite found a following rcases tactic rejected because the constructor list only closed on a strictly smaller indentation"

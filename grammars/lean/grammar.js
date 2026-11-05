@@ -54,6 +54,7 @@ module.exports = grammar({
     $._continuation_body_start,         // Inline terms continue inside the enclosing layout
     $._do_body_start,           // The following `do` opens a statement body
     $._tactic_branch_start,     // Constructor branch body, closed before its next pipe
+    $._tactic_cases_start,      // Constructor list, closed before a following peer tactic
     $._tactic_pattern_separator, // A pipe here extends an rcases pattern, not a constructor list
     $._if_let_start,           // Keep conditional bindings separate from ordinary let expressions
     $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
@@ -872,7 +873,7 @@ module.exports = grammar({
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
-        $._layout_start,
+        $._tactic_cases_start,
         repeat1($.tactic_constructor_branch),
         $._layout_end,
       )),
