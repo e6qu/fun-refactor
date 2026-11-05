@@ -99,7 +99,12 @@ fn imports_require_summaries_and_root_local_entries() {
         &["project", "dataflow", target, "--imports", "--summaries"],
     );
     assert!(!outside.status.success());
-    assert!(String::from_utf8_lossy(&outside.stderr).contains("root-local"));
+    assert!(outside.stderr.is_empty(), "{outside:?}");
+    let error: Value = serde_json::from_slice(&outside.stdout).unwrap();
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("root-local"));
 }
 
 #[test]

@@ -245,7 +245,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "{syntax_error}"
     );
     assert!(syntax_error.ends_with("; no files changed."));
-    assert!(syntax_error.contains(&format!("{}:1:", proof.display())));
+    assert!(syntax_error.contains("proof.lean:1:"), "{syntax_error}");
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
     let manually_edited = std::str::from_utf8(&before_show).unwrap().replace(
         "  -- fr:debt keepModel_identity\n  sorry\n",

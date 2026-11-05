@@ -242,7 +242,12 @@ fn retained_call_contract_cannot_be_forged_with_a_new_digest() {
             ],
         );
         assert!(!output.status.success(), "forged {field} admitted");
-        assert!(String::from_utf8_lossy(&output.stderr).contains("inconsistent"));
+        assert!(output.stderr.is_empty(), "{output:?}");
+        let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("inconsistent"));
     }
 }
 
