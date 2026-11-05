@@ -38,36 +38,36 @@
       "sha256": "7f06b8ffe2881a1858402182a4b53e027ecfc0702d9d8333cddbf7829f65d3d7"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-04-focused-proof-imports-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-05-checked-proof-reader-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "2869a1e23be69afea92dc03d180f15c96296fdec8267ddb2ba1737cdffe5f95f"
+      "sha256": "d01c300b3a20f462c130c649765782d11926e4108cc0488e8c0a3164a6540bd7"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-04-focused-proof-imports-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-05-checked-proof-reader-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "b15c135d9c5075770abeaf40a79a8e47449b51dd4e13b4220c27e6bbccc62f9a"
+      "sha256": "b91b6c608490edef3c8b3a2748687e7cb9df6a33b5b1ffa617f9fe625eadc900"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-04-focused-proof-imports-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-05-checked-proof-reader-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "f4ad9a7f33079ca05c9aa9b544e8d6bbe92a26a7a0a651aefeb2165fc61b52d5"
+      "sha256": "6143636f09da7eccb340b7e6764100813730e2ef89062f701ab0a12952f45a11"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-04-focused-proof-imports-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-05-checked-proof-reader-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "203b684a8afba3218a674503a0b77550df74857b8dbe149dd1da55007036035a"
+      "sha256": "0398d1753fb7c384afa2c060a15b47cb3cc6b2cb016f6074e8b0d85293a486b2"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-03-proof-delivery-remaining-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-04-focused-proof-imports-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-05-checked-proof-reader-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "4ec89937af5fb938cfc69c20130cfbb4e7c041682711e206a165b11f7c55cfb0"
+      "sha256": "c4236b15f94b1913039fa569339d684c1bcdbedc059e09edfc9248de4ab39dab"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-04-focused-proof-imports-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-05-checked-proof-reader-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "d2561533d9bbc81805ad41bf10a00f61361f7c38c9366dcaa91ba9de6f0a926e"
+      "sha256": "370aada0642cf32335ddf0a0263518771dde5fa7da943a18d1c353c9d853a58b"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-04-focused-proof-imports-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-05-checked-proof-reader-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-04-focused-proof-imports-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "0d33da53d91ee3b15367bd7e348263984b97f157e256f154379b29fdcd759aef"
+      "sha256": "ee4fbefd334e228300af4387fb27056ebd37077f4759d47058548144ff755d78"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
