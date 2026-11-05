@@ -202,6 +202,24 @@ executed each advertised cell.
 
 ## Release
 
+The proposed version needs a fresh project replay before merging. A replay runs
+the 21 existing project changes and both renames against the new executable,
+then independently checks the findings and delivered patches. A report from
+`fr 0.89.1` cannot stand in for `fr 0.89.2`; keep the old record intact.
+Release planning now requests this replay and then runs the complete CI gate
+on the branch containing the audited result. Wait for that gate before merging.
+
+To refresh a work branch explicitly, choose its name and a new result prefix:
+
+```sh
+gh workflow run project-changes-recheck.yml --ref WORK_BRANCH --field prefix=NEW_RESULT_PREFIX --field run_ci=true
+```
+
+The workflow commits only the checked result and tracking. Fetch that commit
+before making further local edits. `run_ci=true` starts the complete gate after
+publication; choose `false` explicitly when collecting several repairs before
+one final gate. The workflow refuses publishing directly to `main`.
+
 Release Please prepares the version and changelog pull request. Merging it publishes the release tag;
 the workflow then builds native archives, the WASM package and the Python package, with checksums.
 It checks out the commit resolved from the published tag. Preparing the next release pull request runs separately,
