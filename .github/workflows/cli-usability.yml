@@ -63,6 +63,7 @@ jobs:
       - run: cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
       - run: cargo test --locked --test proof_cli -- --test-threads=1
       - run: cargo test --locked --test json_surface -- --test-threads=1
+      - run: cargo test --locked --test history_git_cli --test graph_export --test docs_cli -- --test-threads=1
       - run: cargo test --locked --test python_layout -- --test-threads=1
       - run: cargo test --locked --test lean_adoption -- --test-threads=1
       - run: cargo test --locked --test semantic_evidence semantic_selection -- --test-threads=1
@@ -78,8 +79,12 @@ jobs:
       - name: Check current proof collection and SDK contracts without model calls
         run: |
           python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt -r tests/agent-eval/selected-agents/native-requirements.txt
+          ty check sdk/python/src tools/proof-authoring-agent.py
           python3 -B -m pytest -q sdk/python/tests/test_ir.py sdk/python/tests/test_runtime.py
           python3 -B -m pytest -q sdk/python/tests/test_guide.py -k "proof_writing_commands_are_not_read_only_guide_actions or authored_guide_files_are_exact_bounded_and_temporary"
           python3 -B -m unittest agent_eval.test_argument_repair agent_eval.test_algorithm_admission agent_eval.test_selected_public agent_eval.test_selected_local
+      - run: cargo test --locked --test completion_agent_eval prepared_agent_session_exposes_only_guide_follow_and_finish -- --exact --test-threads=1
+      - run: cargo test --locked --test matched_agent_context matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence -- --exact --test-threads=1
+      - run: python3 -B tools/test-proof-authoring-agent.py --fr target/debug/fr
       - run: lean -j1 -DwarningAsError=true tests/fixtures/lean-project-layout.lean
       - run: cargo test --locked --test lean_grammar -- --test-threads=1 --nocapture

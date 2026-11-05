@@ -167,7 +167,6 @@ client.complete_guide(AgentGoal("prove",
     selector=GoalSelector(path={json.dumps(proof_path)}),
     operation=GoalOperation("proof", {{"obligation":{json.dumps(obligation)}}})), {{
     1: GuideInputs({{"tactics-file": tactics}}),
-    2: GuideInputs({{"tactics-file": tactics}}),
 }})
 '''
 
@@ -191,7 +190,7 @@ name="calculate"`, `  expect matched = 1`, `  expect changed = 1 files`,
 `  expect refusals = 0`, `}}`. Build goals with `AgentGoal`, `GoalSelector`, `GoalOperation`,
 `GuideInputs`, and `GuideFile`. `complete_guide` returns a guide and reports; the migration guide's
 actions are followed with `client.follow_guide`. Recipe input belongs to action 0. Migration inputs
-belong to action 1. The proof tactics file belongs unchanged to actions 1 and 2.
+belong to action 1. The proof tactics file belongs to action 1.
 
 Use this complete tested program shape. Preserve the constructor names, field types, operation
 fields and indexed input maps. You may reformat it, but do not add fields or calls:

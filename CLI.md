@@ -704,13 +704,6 @@ fr spec plan SOURCE::SYMBOL [--property KIND]... [--property-from FILE]...
 fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
 fr spec scaffold --from PLAN [--package PATH] [--write]
 
-fr proof list PATH... --limit COUNT --bytes BYTES
-fr proof show SPEC::OBLIGATION --bytes BYTES
-fr proof start SPEC::OBLIGATION --draft NEW_FILE --bytes BYTES --timeout-seconds SECONDS
-fr proof state SPEC::OBLIGATION --draft FILE --at POSITION --bytes BYTES --timeout-seconds SECONDS
-fr proof check SPEC::OBLIGATION --draft FILE --bytes BYTES --timeout-seconds SECONDS
-fr proof save SPEC::OBLIGATION --draft FILE --bytes BYTES --timeout-seconds SECONDS
-
 fr spec ci [--package PATH] [--max-debt COUNT] [--write]
 
 fr spec check [PATH...]
@@ -724,29 +717,6 @@ Use `spec candidates`, `property-task`, `plan` and `scaffold` to select a source
 describe a claim, and create its Lean model. Use `proof` to write the proof.
 The [complete lesson](docs/first-lean-proof.md) walks through a staff-or-owner access rule.
 The agent authors the claim and tactics; fr checks them without inventing either.
-
-`proof list` returns targets such as `specs/FrSpecs/Access.lean::allowedModel_access_rule`.
-`proof show` explains that target's parameters, assumptions and conclusions.
-`proof start` creates a draft containing `skip` (a step that leaves the goal open),
-then asks Lean for the actual goal. It refuses to overwrite an existing draft.
-After editing, use `proof state --at end` to inspect the last nonblank line.
-For a particular branch use `--at LINE:end` or one-based Unicode `LINE:COLUMN` coordinates.
-Each goal has separate `context` and `goal` text fields: available variables and facts,
-then the statement still to prove.
-
-All proof settings are explicit. `--draft` names the tactics file; omit the enclosing `by`.
-`--bytes` selects 1024–16384 UTF-8 response bytes, rather than model tokens.
-If a complete report does not fit, fr refuses instead of removing goals or assumptions.
-`--timeout-seconds` selects 1–60 shared seconds for dependency preparation and the Lean request.
-
-A state report is an inspection, not proof acceptance. `closed-at-position` means only the
-selected branch has no remaining goals there. A second branch may still be unfinished.
-`proof check` checks the entire draft without changing source. Exit 0 with `passed: true`
-means accepted. Exit 1 with `passed: false` reports a rejected or unfinished proof.
-`proof save` checks the entire draft and writes an accepted proof in one call.
-Its `transaction` identifies the saved edit for `history patch`; `already-present` needs no repeat save.
-Check the owning Lean package after saving all proofs, then export the patch.
-See the [worked interactive proof](docs/first-lean-proof.md#inspect-your-progress-after-each-step).
 
 `kernel` evaluates `fr-pure-kernel-1` terms without reading project source or writing history.
 Its report states checked signed-64 arithmetic, partiality and indexed binding policies.
@@ -827,6 +797,42 @@ implementation/model proof obligation. Its axiom analysis covers declared syntax
 does not compute each theorem's transitive axiom dependencies. The correspondence
 record distinguishes anchor identity, mapped signatures, executable comparisons and
 implementation proofs. The latter two stay false unless future evidence supplies them.
+
+### `fr proof`
+
+Inspect a claim, write proof steps, and ask Lean to check the complete draft.
+
+```sh
+fr proof list PATH... --limit COUNT --bytes BYTES
+fr proof show SPEC::OBLIGATION --bytes BYTES
+fr proof start SPEC::OBLIGATION --draft NEW_FILE --bytes BYTES --timeout-seconds SECONDS
+fr proof state SPEC::OBLIGATION --draft FILE --at POSITION --bytes BYTES --timeout-seconds SECONDS
+fr proof check SPEC::OBLIGATION --draft FILE --bytes BYTES --timeout-seconds SECONDS
+fr proof save SPEC::OBLIGATION --draft FILE --bytes BYTES --timeout-seconds SECONDS
+```
+
+`proof list` returns targets such as `specs/FrSpecs/Access.lean::allowedModel_access_rule`.
+`proof show` explains that target's parameters, assumptions and conclusions.
+`proof start` creates a draft containing `skip` (a step that leaves the goal open),
+then asks Lean for the actual goal. It refuses to overwrite an existing draft.
+After editing, use `proof state --at end` to inspect the last nonblank line.
+For a particular branch use `--at LINE:end` or one-based Unicode `LINE:COLUMN` coordinates.
+Each goal has separate `context` and `goal` text fields: available variables and facts,
+then the statement still to prove.
+
+All proof settings are explicit. `--draft` names the tactics file; omit the enclosing `by`.
+`--bytes` selects 1024–16384 UTF-8 response bytes, rather than model tokens.
+If a complete report does not fit, fr refuses instead of removing goals or assumptions.
+`--timeout-seconds` selects 1–60 shared seconds for dependency preparation and the Lean request.
+
+A state report is an inspection, not proof acceptance. `closed-at-position` means only the
+selected branch has no remaining goals there. A second branch may still be unfinished.
+`proof check` checks the entire draft without changing source. Exit 0 with `passed: true`
+means accepted. Exit 1 with `passed: false` reports a rejected or unfinished proof.
+`proof save` checks the entire draft and writes an accepted proof in one call.
+Its `transaction` identifies the saved edit for `history patch`; `already-present` needs no repeat save.
+Check the owning Lean package after saving all proofs, then export the patch.
+See the [worked interactive proof](docs/first-lean-proof.md#inspect-your-progress-after-each-step).
 
 ### `fr author`
 
@@ -1152,8 +1158,8 @@ fr project workspaces --manifest crates/core/Cargo.toml
 fr project gaps --limit 40
 ```
 
-`fr project` returns compact JSON under schema `fr-project-1` in both output modes.
-It leaves existing `symbols`, `refs`, `type` and other response shapes unchanged.
+`fr project` prints labelled results for people. Add `--json` for compact `fr-project-1` reports.
+The fields below describe those JSON reports.
 Maps describe directories, indexed files and lexical symbol containment.
 They do not classify packages, frameworks or architectural layers.
 Variables and parameters stay hidden unless `--locals` selects them.
