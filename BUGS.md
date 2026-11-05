@@ -13,7 +13,10 @@ Dependency preparation and checking share one deadline. Stalled processes stop w
 
 Lean strings such as `"mod target {"` previously hid later functions from fr.
 The reader now finds those functions without treating the quoted sample as code.
-The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/42057310100) pass, including the new reader regression and stalled-process controls.
+Scripted comparisons use the two read-only proof actions. They reject proof writes and missing check evidence.
+The proof-delivery control checks supplied tactics, reviews the edit, exports a patch and verifies it independently.
+A timed-out attempt still fails. The control makes no model call.
+The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146) pass, including the new reader regression and stalled-process controls.
 The new measurement records and their audits pass.
 Read the complete [PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
 

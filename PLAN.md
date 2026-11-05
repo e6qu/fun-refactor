@@ -75,7 +75,7 @@ measures delivery of given answers; it cannot replace proof discovery.
 4. Execute the revised lessons and skills. Fix the Lean reader omissions found while
    using fr on this work. Refresh source-bound records and pass the complete CI gate.
 
-The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42057310100)
+The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146)
 pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
 The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
 also passes the syntax fixtures and affected project files.
