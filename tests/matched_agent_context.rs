@@ -134,7 +134,7 @@ fn matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence() 
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["passed"], true);
+    assert_eq!(report["passed"], true, "{report}");
     assert_eq!(report["context_saving_observed"], true);
     assert_eq!(report["results"][0]["coverage"]["route_coverage"], true);
     assert_eq!(report["results"][0]["coverage"]["action_coverage"], true);
@@ -157,6 +157,33 @@ fn matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence() 
     let replay: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(replay["verified"], true);
     assert_eq!(replay["acceptance_evidence"], true);
+
+    let evidence = fr.join("sdk-events.jsonl");
+    let original = std::fs::read_to_string(&evidence).unwrap();
+    let mut removed = false;
+    let kept = original
+        .lines()
+        .filter(|line| {
+            let event: Value = serde_json::from_str(line).unwrap();
+            if event["arguments"]
+                .as_array()
+                .unwrap()
+                .starts_with(&[json!("proof"), json!("check")])
+            {
+                removed = true;
+                false
+            } else {
+                true
+            }
+        })
+        .collect::<Vec<_>>();
+    assert!(removed);
+    std::fs::write(evidence, kept.join("\n") + "\n").unwrap();
+    let output = script(root).arg("score").arg(&sessions).output().unwrap();
+    assert!(output.status.success());
+    let missing: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(missing["passed"], false);
+    assert_eq!(missing["results"][0]["coverage"]["action_coverage"], false);
 }
 
 #[test]

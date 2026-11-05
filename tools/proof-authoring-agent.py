@@ -339,7 +339,7 @@ def step(session: Path, request: dict[str, Any]) -> dict[str, Any]:
     elif kind == "task":
         guide = client.guide(goal())
         full = dict(client.follow_guide(guide.actions()[0]).to_data())
-        visible = {key: full[key] for key in ("schema", "goal", "contract", "templates",
+        visible = {key: full[key] for key in ("schema", "goal", "contract", "claim",
                                                "object_digest", "token_budget")}
     elif kind == "check":
         tactics = request.get("tactics")

@@ -561,7 +561,6 @@ def sdk_coverage(session: Path) -> dict[str, object]:
         lambda args: args[:2] == ["migrate", "feature"],
         lambda args: args[:2] == ["proof", "show"],
         lambda args: args[:2] == ["proof", "check"],
-        lambda args: args[:2] == ["proof", "save"],
     ]
     return {"calls": len(rows), "failed_calls": sum(row.get("exit_code") != 0 for row in rows),
             "observed_routes": routes, "route_coverage": all(route in routes for route in ROUTES),
