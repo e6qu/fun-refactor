@@ -381,6 +381,9 @@ class AgentGuide:
                     or not action["arguments"]
                     or any(not isinstance(item, str) or _requests_execution(item)
                            for item in action["arguments"])
+                    or action["arguments"][0].startswith("-")
+                    or (action["arguments"][0] == "proof"
+                        and action["arguments"][1:2] not in (["list"], ["show"], ["state"], ["check"]))
                     or not isinstance(fields, list) or not all(isinstance(name, str) for name in names)
                     or any(not name or "\0" in name or len(name.encode("utf-8")) > 64
                            for name in names)

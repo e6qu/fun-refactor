@@ -272,7 +272,8 @@ def test_authored_guide_files_are_exact_bounded_and_temporary():
         "tactics-file": GuideFile("proof.lean", "rfl\n"),
     }))
     assert report.schema == "fr-proof-attempt-1"
-    assert not Path(client.calls[-1][0][-1]).exists()
+    arguments = client.calls[-1][0]
+    assert not Path(arguments[arguments.index("--draft") + 1]).exists()
 
 
 def test_complete_guide_keeps_intermediate_reports_inside_one_sdk_call():
@@ -512,3 +513,21 @@ def test_capability_byte_range_matches_the_public_span_shape():
     goal = AgentGoal("change", selector=GoalSelector(name="caller"),
         operation=GoalOperation("capability", {"capability":"inline-call", "range":span}))
     assert goal.to_data()["operation"]["range"] == span
+
+
+@pytest.mark.parametrize("arguments", [
+    ["proof", "save", "target", "--draft", "draft.tactics"],
+    ["proof", "start", "target", "--draft", "draft.tactics"],
+    ["--json", "proof", "save", "target", "--draft", "draft.tactics"],
+    ["proof", "--json", "save", "target", "--draft", "draft.tactics"],
+])
+def test_proof_writing_commands_are_not_read_only_guide_actions(arguments):
+    def recommend_write(value):
+        value["actions"][0]["arguments"] = arguments
+        identity = {key: item for key, item in value.items()
+                    if key not in ("object_root", "basis", "serialized_bytes")}
+        value["object_root"] = merkle_object_digest(identity)
+    client = FakeClient(recommend_write)
+    with pytest.raises(FrRuntimeError, match="writing action"):
+        guide_goal(client, AgentGoal("prove"))
+    assert len(client.calls) == 1
