@@ -55,6 +55,7 @@ module.exports = grammar({
     $._do_body_start,           // The following `do` opens a statement body
     $._tactic_branch_start,     // Constructor branch body, closed before its next pipe
     $._tactic_pattern_separator, // A pipe here extends an rcases pattern, not a constructor list
+    $._if_let_start,           // Keep conditional bindings separate from ordinary let expressions
     $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
 
@@ -1069,6 +1070,7 @@ module.exports = grammar({
     // Parsed as do-element or standalone, uses `let` keyword after `if`
     if_let: $ => prec.right(seq(
       'if',
+      $._if_let_start,
       'let',
       field('pattern', $._binding_pattern),
       choice(':=', '<-', '←'),
@@ -1295,6 +1297,7 @@ module.exports = grammar({
     // If-let in do-block: `if let some x := e then ...`
     do_if_let: $ => prec.right(1, seq(
       'if',
+      $._if_let_start,
       'let',
       field('pattern', $._binding_pattern),
       choice(':=', '<-', '←'),

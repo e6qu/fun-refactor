@@ -45,6 +45,7 @@ enum TokenType {
   DO_BODY_START,
   TACTIC_BRANCH_START,
   TACTIC_PATTERN_SEPARATOR,
+  IF_LET_START,
   TACTIC_SUBJECT_SEPARATOR,
 };
 
@@ -528,6 +529,17 @@ bool tree_sitter_lean_external_scanner_scan(
     lexer->advance(lexer, true);
     if (identifier_continues(lexer->lookahead)) return false;
     lexer->result_symbol = DO_BODY_START;
+    return true;
+  }
+
+  if (valid_symbols[IF_LET_START]) {
+    lexer->mark_end(lexer);
+    for (const char *word = "let"; *word; word++) {
+      if (lexer->lookahead != *word) return false;
+      lexer->advance(lexer, true);
+    }
+    if (identifier_continues(lexer->lookahead)) return false;
+    lexer->result_symbol = IF_LET_START;
     return true;
   }
 

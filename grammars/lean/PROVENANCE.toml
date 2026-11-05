@@ -225,3 +225,10 @@ rule = "if_let, do_if_let, do_let, let_bind, list_pattern, cons_pattern"
 change = "accept literal value patterns and right-associated list cons patterns in bindings while retaining the narrower function-binder grammar"
 accepts = ["if let [\"count\", value] := args then value.length else 0", "if let \"page\" :: rest := args then rest.length else 0"]
 why = "checking the complete project program exposed two valid conditional bindings that the narrower identifier/tuple pattern grammar rejected"
+
+[[patch]]
+subject = "conditional binding lookahead"
+rule = "if_let, do_if_let"
+change = "recognize the conditional let keyword before the ordinary binding-value marker can select a term let expression"
+accepts = ["if let some value := input then value else 0", "if letterFlag then 1 else 0"]
+why = "the competing expression path consumed a binding-start marker after if, so the dedicated conditional pattern rules never received the let keyword"

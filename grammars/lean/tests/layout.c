@@ -54,6 +54,15 @@ static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
 
 int main(void) {
   Scanner *scanner = tree_sitter_lean_external_scanner_create();
+  bool conditional_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
+  conditional_tokens[IF_LET_START] = conditional_tokens[BINDING_START] = true;
+  Input conditional = input("let some value := input then");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &conditional.lexer, conditional_tokens));
+  assert(conditional.lexer.result_symbol == IF_LET_START && scanner->depth == 0);
+  Input ordinary_name = input("letterFlag then");
+  assert(!tree_sitter_lean_external_scanner_scan(scanner, &ordinary_name.lexer, conditional_tokens));
+  assert(scanner->depth == 0);
+
   Input constructor = input("  rfl");
   assert(scan(scanner, &constructor, TACTIC_BRANCH_START));
   assert(scanner->depth == 1 && scanner->bindings[0] == 2);
