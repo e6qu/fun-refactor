@@ -1,5 +1,13 @@
 name: CLI and proof workflow checks
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - src/cli.rs
+      - src/spec.rs
+      - src/spec/**
+      - tests/proof_cli.rs
+      - .github/workflows/cli-usability.yml
   workflow_dispatch:
 permissions:
   contents: read
