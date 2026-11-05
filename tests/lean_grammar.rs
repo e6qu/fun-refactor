@@ -776,6 +776,33 @@ fn tactic_locations_preserve_later_source_declarations() {
 }
 
 #[test]
+fn literal_braces_keep_later_functions_visible_without_string_references() {
+    let source = r#"
+def samples : List String := ["mod target {\r\n  ", "/* } */", "formal-plan-admission"]
+def main (args : List String) : IO Unit := do
+  IO.println args.length
+"#;
+    let (_directory, index) = common::workspace(&[("Source.lean", source)]);
+    let functions: BTreeSet<_> = index
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    assert_eq!(functions, BTreeSet::from(["samples", "main"]));
+    let false_reads: Vec<_> = index
+        .references
+        .iter()
+        .map(|reference| reference.name.as_str())
+        .filter(|name| ["target", "formal", "plan", "admission", "r", "n"].contains(name))
+        .collect();
+    assert!(
+        false_reads.is_empty(),
+        "string data became code: {false_reads:?}"
+    );
+}
+
+#[test]
 fn agent_proof_forms_parse_structurally() {
     let source = include_str!("fixtures/lean-agent-proof-forms.lean");
 
