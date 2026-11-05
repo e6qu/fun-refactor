@@ -22,6 +22,9 @@ jobs:
             tests/fixtures/lean-lambda-continuations.lean
             tests/fixtures/lean-project-layout.lean
             tools/check-lean-reader.py
+            kernels/FrKernels/AgentSession.lean
+            kernels/FrKernels/SemanticIntent.lean
+            kernels/ProjectMain.lean
       - uses: actions/setup-node@v6
         with:
           node-version: '26.5.0'
@@ -57,6 +60,7 @@ jobs:
             tests/fixtures/lean-proof-locations.lean tests/fixtures/lean-source-declarations.lean \
             tests/fixtures/lean-nested-assumptions.lean tests/fixtures/lean-recursive-algorithms.lean \
             tests/fixtures/lean-lambda-continuations.lean tests/fixtures/lean-project-layout.lean \
+            kernels/FrKernels/AgentSession.lean kernels/FrKernels/SemanticIntent.lean kernels/ProjectMain.lean \
             tools/check-lean-reader.py .github/workflows/regenerate-lean-grammar.yml; then
             echo 'Lean reader inputs changed during generation; regenerate the new head.' >&2
             exit 1

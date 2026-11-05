@@ -245,6 +245,28 @@ def check(binary, diagnostics, integer_library):
             if names != expected:
                 failures.append(fixture + ': declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)}))
         print('Checked', fixture, flush=True)
+    for relative in ('kernels/FrKernels/AgentSession.lean',
+                     'kernels/FrKernels/SemanticIntent.lean', 'kernels/ProjectMain.lean'):
+        source = ROOT / relative
+        result = subprocess.run([str(binary), 'parse', '--xml', str(source)],
+                                cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
+        name = 'project-' + source.stem
+        (diagnostics / (name + '.xml')).write_text(result.stdout)
+        (diagnostics / (name + '.stderr')).write_text(result.stderr)
+        assert result.returncode in {0, 1}, result.stderr
+        if result.returncode != 0:
+            failures.append(relative + ': syntax errors')
+        start = result.stdout.index('<sources>')
+        end = result.stdout.index('</sources>', start) + len('</sources>')
+        tree = ET.fromstring(result.stdout[start:end])
+        expected = re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', source.read_text())
+        names = [''.join(''.join(node.find('qualified_name').itertext()).split())
+                 for node in tree.findall('./source/module/definition')]
+        if names != expected:
+            failures.append(relative + ': top-level declarations moved or disappeared: ' +
+                            repr({'expected': expected, 'actual': names}))
+        print('Checked project source:', relative, result.returncode,
+              [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
     library_source = integer_library.read_bytes()
     assert hashlib.sha256(library_source).hexdigest() == '2e8bc644e6198a9fdd14c99558a77c459c0c5c6e6414dea2af0d3ef19704d8f2'
     result = subprocess.run([str(binary), 'parse', '--xml', str(integer_library)],
