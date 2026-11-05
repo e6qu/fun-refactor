@@ -7,6 +7,10 @@ on:
       - src/spec.rs
       - src/spec/**
       - tests/proof_cli.rs
+      - tests/json_surface.rs
+      - tests/python_layout.rs
+      - tests/retained_proofs.rs
+      - tools/check-agent-skill.py
       - .github/workflows/cli-usability.yml
   workflow_dispatch:
 permissions:
@@ -57,6 +61,12 @@ jobs:
       - run: cargo test --locked --lib cli::tests -- --test-threads=1
       - run: cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
       - run: cargo test --locked --test proof_cli -- --test-threads=1
+      - run: cargo test --locked --test json_surface -- --test-threads=1
+      - run: cargo test --locked --test python_layout -- --test-threads=1
+      - run: cargo test --locked --test retained_proofs proof_arguments_and_native_requirement_coverage_refuse -- --test-threads=1
+      - run: cargo test --locked --test retained_proofs proof_package_budgets_refuse_before_execution -- --test-threads=1
+      - run: cargo test --locked --test retained_proofs proof_review_bounds_escaped_path_disclosure -- --test-threads=1
+      - run: python3 -B tools/check-agent-skill.py --fr target/debug/fr
       - run: python3 -B tools/reader_proof_example.py --fr target/debug/fr
       - run: cargo test --locked --test cli from_a_subdirectory -- --test-threads=1
       - name: Check current proof collection and SDK contracts without model calls

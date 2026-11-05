@@ -195,7 +195,9 @@ def controls(task, binary, inputs, tools, output):
                     plan(task, binary, effect_project, output / 'side-effect')
                 except ValueError:
                     refusal = json.loads((output / 'side-effect/preview.json').read_text())
-                    require('literal scalar' in refusal['stderr'] and common.sources(effect_project) == before,
+                    message = json.loads(refusal['stdout'])['error']['message']
+                    require('literal scalar' in message and not refusal['stderr']
+                            and common.sources(effect_project) == before,
                             'side-effecting argument did not refuse without writes')
                 else:
                     raise ValueError('side-effect control unexpectedly admitted removal')

@@ -145,7 +145,7 @@ def source_workflow(exercise, root):
     exercise.values["<KNOWN_FILE>"] = str(root / "app.py")
     for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
-            if "spec" in command:
+            if {"spec", "proof"}.intersection(command):
                 continue
             value = exercise.example(root, path, command)
             if "<KNOWN_FILE>" in command:

@@ -93,7 +93,12 @@ fn author_refuses_unexpected_indent_without_writing_or_saving() {
         "--write",
     ]);
     assert!(!result.status.success(), "{result:?}");
-    assert!(String::from_utf8_lossy(&result.stderr).contains("complete block"));
+    assert!(result.stderr.is_empty(), "{result:?}");
+    let error: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("complete block"));
     assert_eq!(
         fs::read_to_string(temp.path().join("app.py")).unwrap(),
         source

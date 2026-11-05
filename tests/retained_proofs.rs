@@ -83,7 +83,12 @@ fn proof_arguments_and_native_requirement_coverage_refuse() {
         ],
     );
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("proof-inputs dependency"));
+    assert!(result.stderr.is_empty(), "{result:?}");
+    let error: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("proof-inputs dependency"));
 }
 
 #[test]
@@ -97,14 +102,18 @@ fn proof_package_budgets_refuse_before_execution() {
     .unwrap();
     let output = run(root.path(), &["spec", "retain"]);
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("4 MiB"));
+    assert!(output.stderr.is_empty(), "{output:?}");
+    let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(error["error"]["message"].as_str().unwrap().contains("4 MiB"));
     fs::remove_file(root.path().join("specs/oversized.txt")).unwrap();
     for i in 0..129 {
         fs::write(root.path().join(format!("specs/file{i}.txt")), "x").unwrap();
     }
     let output = run(root.path(), &["spec", "retain"]);
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("128 files"));
+    assert!(output.stderr.is_empty(), "{output:?}");
+    let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(error["error"]["message"].as_str().unwrap().contains("128 files"));
 }
 
 #[test]
@@ -184,5 +193,10 @@ fn proof_review_bounds_escaped_path_disclosure() {
     }
     let output = run(root.path(), &["spec", "retain"]);
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("proof review exceeds 1 MiB"));
+    assert!(output.stderr.is_empty(), "{output:?}");
+    let error: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("proof review exceeds 1 MiB"));
 }
