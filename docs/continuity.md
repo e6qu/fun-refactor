@@ -19,9 +19,11 @@ measured benefit. Earlier interrupted and unstarted slots remain separate.
 
 PR [#603](https://github.com/e6qu/fun-refactor/pull/603), branch
 `improve/clear-proof-and-cli-workflows`, improves the commands and proof workflow.
-The [focused hosted checks](https://github.com/e6qu/fun-refactor/actions/runs/41949404938)
-pass for its CLI, SDK and basic delivery path. Complete the new stalled-process controls,
-Lean reader repairs, source-bound record refreshes and full CI before review.
+The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42038465557)
+pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
+The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
+passes the syntax fixtures and affected project files.
+Finish collecting and auditing fresh measurements, then pass the full CI gate before review.
 There have been no new model calls for this change.
 
 ## Interface decisions
