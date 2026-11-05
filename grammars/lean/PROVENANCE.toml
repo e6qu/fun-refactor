@@ -211,3 +211,10 @@ rule = "tactic_cases, tactic_constructor_branch, structure_instance, string, int
 change = "track constructor lists and branch bodies separately, require their layout endings, allow a trailing record separator, and interpret braces only in interpolated strings"
 accepts = ["cases n with | zero => rfl | succ k => rfl", "some { count := 1\n}", "\"{literal braces}\""]
 why = "dogfooding found three valid project kernels omitted by the reader: nested siblings attached to the wrong split, a final record newline was rejected, and literal braces consumed later declarations as string interpolation"
+
+[[patch]]
+subject = "alternative patterns inside constructor branches"
+rule = "rcases_alternative_pattern, tactic_constructor_branch"
+change = "give a pattern's pipe its own scanner token, ahead of constructor-branch layout endings"
+accepts = ["rcases valid with rfl | ⟨n, member, rfl⟩"]
+why = "a branch-ending pipe rule also closed a tactic at its internal pattern alternative, losing that branch and the following theorem"

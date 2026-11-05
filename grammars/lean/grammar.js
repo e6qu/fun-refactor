@@ -54,6 +54,7 @@ module.exports = grammar({
     $._continuation_body_start,         // Inline terms continue inside the enclosing layout
     $._do_body_start,           // The following `do` opens a statement body
     $._tactic_branch_start,     // Constructor branch body, closed before its next pipe
+    $._tactic_pattern_separator, // A pipe here extends an rcases pattern, not a constructor list
     $._tactic_subject_separator, // A comma here extends the tactic, not a tuple
   ],
 
@@ -924,11 +925,11 @@ module.exports = grammar({
     rcases_alternative_pattern: $ => prec.right(1, choice(
       seq(
         choice($._rcases_atom, $.rcases_tuple_pattern),
-        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))),
+        repeat1(seq($._tactic_pattern_separator, choice($._rcases_atom, $.rcases_tuple_pattern))),
       ),
       seq(
         '(', choice($._rcases_atom, $.rcases_tuple_pattern),
-        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
+        repeat1(seq($._tactic_pattern_separator, choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
       ),
     )),
 

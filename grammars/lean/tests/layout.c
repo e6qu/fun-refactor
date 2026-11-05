@@ -57,6 +57,12 @@ int main(void) {
   Input constructor = input("  rfl");
   assert(scan(scanner, &constructor, TACTIC_BRANCH_START));
   assert(scanner->depth == 1 && scanner->bindings[0] == 2);
+  bool alternative_tokens[TACTIC_SUBJECT_SEPARATOR + 1] = {false};
+  alternative_tokens[LAYOUT_END] = alternative_tokens[TACTIC_PATTERN_SEPARATOR] = true;
+  Input pattern_pipe = input("| right");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &pattern_pipe.lexer, alternative_tokens));
+  assert(pattern_pipe.lexer.result_symbol == TACTIC_PATTERN_SEPARATOR);
+  assert(scanner->depth == 1 && scanner->bindings[0] == 2);
   Input next_constructor = input("| succ n => rfl");
   assert(scan(scanner, &next_constructor, LAYOUT_END));
   assert(scanner->depth == 0 && next_constructor.offset == 0);

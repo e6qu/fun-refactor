@@ -23,4 +23,12 @@ theorem nestedConstructorCases (state action : Nat) : state = state := by
           | succ action => rfl
       | succ state => rfl
 
+theorem alternativeInsideConstructor (flag : Bool) (h : True ∨ True) : True := by
+  cases flag with
+  | false =>
+    rcases h with left | right
+    · exact left
+    · exact right
+  | true => trivial
+
 def afterProjectLayout : Nat := 42

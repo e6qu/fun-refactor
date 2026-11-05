@@ -44,6 +44,7 @@ enum TokenType {
   CONTINUATION_BODY_START,
   DO_BODY_START,
   TACTIC_BRANCH_START,
+  TACTIC_PATTERN_SEPARATOR,
   TACTIC_SUBJECT_SEPARATOR,
 };
 
@@ -402,6 +403,12 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->mark_end(lexer);
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
+        if (valid_symbols[TACTIC_PATTERN_SEPARATOR] && lexer->lookahead == '|') {
+          lexer->advance(lexer, false);
+          lexer->mark_end(lexer);
+          lexer->result_symbol = TACTIC_PATTERN_SEPARATOR;
+          return true;
+        }
         return false;
       }
       s->queued_indent = NO_QUEUED;
@@ -455,12 +462,25 @@ bool tree_sitter_lean_external_scanner_scan(
       // Suppress semicolon before `|`
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
+        if (valid_symbols[TACTIC_PATTERN_SEPARATOR] && lexer->lookahead == '|') {
+          lexer->advance(lexer, false);
+          lexer->mark_end(lexer);
+          lexer->result_symbol = TACTIC_PATTERN_SEPARATOR;
+          return true;
+        }
         return false;
       }
       s->queued_indent = NO_QUEUED;
       lexer->result_symbol = LAYOUT_SEMICOLON;
       return true;
     }
+  }
+
+  if (valid_symbols[TACTIC_PATTERN_SEPARATOR] && lexer->lookahead == '|') {
+    lexer->advance(lexer, false);
+    lexer->mark_end(lexer);
+    lexer->result_symbol = TACTIC_PATTERN_SEPARATOR;
+    return true;
   }
 
   /* 5. EOF while in layout — emit LAYOUT_END to close all open blocks. */
