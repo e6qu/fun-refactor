@@ -203,13 +203,12 @@ digest in the same object-storage pattern as project disclosure.
 Create a proof task without reading or reproducing the model file:
 
 ```sh
-fr --json proof show \ --bytes 4096
-  specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --token-limit 4096
+fr --json proof show specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --bytes 4096
 ```
 
 An exact target also works after a direct proof edit removed its unfinished marker.
 For example, replacing `sorry` with an incorrect `exact false` still leaves the named theorem available
-to `proof-task` and `proof-check`. The unfinished-goal catalog lists pending work; an empty catalog
+to `proof show` and `proof check`. The unfinished-goal catalog lists pending work; an empty catalog
 does not establish that an edited proof passed Lean. Keep the named proof-region markers for repair.
 
 `fr-proof-task-1` binds the selected goal, input contract, checker and exact actions to one content
@@ -234,14 +233,12 @@ Replace `skip` with tactics that solve the actual goal, then check the whole dra
 
 ```sh
 printf 'rfl\n' > proof.lean
-fr --json proof check \ --bytes 4096 --timeout-seconds 30
-  specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean
-fr --json proof save specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity \ --bytes 4096 --timeout-seconds 30
-  --from proof.lean --write
+fr --json proof check specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --draft proof.lean --bytes 4096 --timeout-seconds 30
+fr --json proof save specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr --json spec verify specs
 ```
 
-`proof-check` returns `fr-proof-attempt-1`. A successful receipt binds the current goal, normalized
+`proof check` returns `fr-proof-attempt-1`. A successful receipt binds the current goal, normalized
 inserted tactics, pinned Lean checker and exact local package inputs through `checker_context_digest`.
 For example, changing an imported access-policy definition expires the old task and receipt even when
 the theorem's own file has not changed. The checker builds that module's current dependencies before

@@ -1446,26 +1446,6 @@ impl Project<'_> {
                         "agent-authored Lean tactics without leading by.",
                     )],
                 ));
-                actions.push(action(
-                    "proof-preview",
-                    args(&[
-                        "proof",
-                        "save",
-                        &target,
-                        "--draft",
-                        "<tactics-file>",
-                        "--bytes",
-                        "4096",
-                        "--timeout-seconds",
-                        "30",
-                    ]),
-                    "1",
-                    None,
-                    vec![author(
-                        "tactics-file",
-                        "unchanged tactics accepted by proof-check.",
-                    )],
-                ));
             }
         }
         if source_required && !goal.constraints.allow_source {

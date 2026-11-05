@@ -147,10 +147,8 @@ def exercise(case, binary, project, prepared, output, inputs):
     checked = common.fr(binary, project, ['proof', 'check', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'reference-check.json')
     require(checked['passed'] is True and checked['receipt'], 'supplied reference proof failed')
     require(common.sources(project) == baseline, 'proof-check must leave the prepared source unchanged')
-    common.fr(binary, project, ['proof', 'save', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'preview.json')
-    require(common.sources(project) == baseline, 'a proof preview changed source')
     written = common.fr(binary, project, ['proof', 'save', target, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'write.json')
-    require(written['receipt'] == checked['receipt'], 'previewed proof and written proof must bind the same checked context')
+    require(written['receipt'] == checked['receipt'], 'checked and saved proofs must bind the same checked context')
     accepted = tasks.check(project, prepared, binary, output / 'accepted')
     require(accepted['passed'] is True, 'reference failed the independent proof and axiom checks')
     patch = common.comparison_grade.BASE.git(project, 'diff', '--binary', 'HEAD').stdout

@@ -28,8 +28,8 @@ def prove(root, client, name, tactics="decide\n"):
     proof = root/"tactics.txt"
     proof.write_text(tactics)
     target = f"specs/FrSpecs/{name}.lean::preserves"
-    client.call("proof", "check", target, "--from", str(proof))
-    client.call("proof", "save", target, "--from", str(proof), "--write")
+    client.call("proof", "check", target, "--draft", str(proof), "--bytes", "4096", "--timeout-seconds", "30")
+    client.call("proof", "save", target, "--draft", str(proof), "--bytes", "4096", "--timeout-seconds", "30")
 
 
 @pytest.mark.parametrize("language", ["rust", "python"])
@@ -229,9 +229,9 @@ def test_existing_formalization_retains_unused_boolean_parameters(tmp_path):
     target = f"specs/FrSpecs/{plan['kernel']['module']}.lean::{plan['properties'][0]['name']}"
     tactics = root/"tactics.txt"
     tactics.write_text("cases a <;> cases b <;> cases unused <;> rfl\n")
-    checked = client.call("proof", "check", target, "--from", str(tactics))
+    checked = client.call("proof", "check", target, "--draft", str(tactics), "--bytes", "4096", "--timeout-seconds", "30")
     assert checked.at("/passed") is True
-    client.call("proof", "save", target, "--from", str(tactics), "--write")
+    client.call("proof", "save", target, "--draft", str(tactics), "--bytes", "4096", "--timeout-seconds", "30")
     report = ProofReport.review(client).execute(client)
     assert report.passed and report.report.at("/source_implementation_proved") is False
     assert len(report.report.at("/evidence/kernel_correspondence")) == 1

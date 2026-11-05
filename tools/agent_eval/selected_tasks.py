@@ -258,7 +258,6 @@ def prescribed_change(task, variant, project, binary, output):
         require(checked['passed'] == (variant == 'reference'), 'unexpected prescribed tactic outcome')
         require(sources(project) == before, 'proof-check changed project source')
         if variant == 'reference':
-            fr(binary, project, ['proof', 'save', PROOF_TARGET, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'proof-preview.json')
             fr(binary, project, ['proof', 'save', PROOF_TARGET, '--draft', str(tactics), '--bytes', '4096', '--timeout-seconds', '30'], output / 'proof-write.json')
         return
     if task == 'boltons-rename':

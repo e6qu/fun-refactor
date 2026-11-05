@@ -11,13 +11,20 @@ fn run(root: &Path, args: &[&str]) -> serde_json::Value {
         .args(args)
         .output()
         .unwrap();
-    assert!(
-        output.status.success(),
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let expected_code = if args.starts_with(&["proof", "check"]) && value["passed"] == false {
+        1
+    } else {
+        0
+    };
+    assert_eq!(
+        output.status.code(),
+        Some(expected_code),
         "{}\n{}",
-        String::from_utf8_lossy(&output.stdout),
+        value,
         String::from_utf8_lossy(&output.stderr)
     );
-    serde_json::from_slice(&output.stdout).unwrap()
+    value
 }
 
 fn setup(root: &Path) -> (PathBuf, String) {
@@ -80,13 +87,16 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     let draft = "have pair : keepModel x = x ∧ keepModel x = x := by\n  constructor\n  · rfl\n  · skip\nexact pair.1\n";
     std::fs::write(root.join("draft.tactics"), draft).unwrap();
     let task = run(&root, &["proof", "show", &target, "--bytes", "4096"]);
-    assert_eq!(task["actions"]["inspect"][1], "proof-state");
+    assert_eq!(task["actions"]["inspect"][1], "state");
 
     let split = inspect(&root, &target, "draft.tactics", 2);
     assert_eq!(split["operation"], "proof-state");
     assert_eq!(split["status"], "goals");
     assert_eq!(split["goals"].as_array().unwrap().len(), 2);
-    assert!(split["goals"][0].as_str().unwrap().contains("x : Bool"));
+    assert!(split["goals"][0]["context"]
+        .as_str()
+        .unwrap()
+        .contains("x : Bool"));
     assert_eq!(split["goal_id"], task["goal"]["id"]);
     assert_eq!(split["draft_location"]["line"], 2);
     assert_eq!(split["acceptance"], "not-checked");
@@ -101,7 +111,10 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     let right_branch = inspect(&root, &target, "draft.tactics", 4);
     assert_eq!(right_branch["status"], "goals");
     assert_eq!(right_branch["goals"].as_array().unwrap().len(), 1);
-    assert!(right_branch["goals"][0].as_str().unwrap().contains("right"));
+    assert!(right_branch["goals"][0]["context"]
+        .as_str()
+        .unwrap()
+        .contains("right"));
     let rejected = run(
         &root,
         &[
@@ -118,7 +131,7 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     );
     assert_eq!(rejected["passed"], false);
     assert!(rejected["receipt"].is_null());
-    assert_eq!(rejected["actions"]["inspect"][1], "proof-state");
+    assert_eq!(rejected["actions"]["inspect"][1], "state");
     assert_eq!(std::fs::read(&module).unwrap(), original);
 
     std::fs::write(root.join("draft.tactics"), draft.replace("skip", "rfl")).unwrap();
@@ -151,7 +164,7 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
     context.push_str("skip\n");
     std::fs::write(root.join("context.tactics"), &context).unwrap();
     let state = inspect(&root, &target, "context.tactics", 13);
-    let goal = state["goals"][0].as_str().unwrap();
+    let goal = state["goals"][0]["context"].as_str().unwrap();
     assert!(goal.contains("fact0") && goal.contains("fact11"), "{goal}");
     let budget = fun_refactor::spec::proof_state(
         &root,

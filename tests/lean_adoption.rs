@@ -73,7 +73,18 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let first = run(
         workspace.path(),
-        &["--json", "proof", "check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         first.status.success(),
@@ -181,7 +192,18 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(&proof, "\n\n  exact missingLemma\n").unwrap();
     let named = run(
         workspace.path(),
-        &["--json", "proof", "check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         named.status.success(),
@@ -291,7 +313,18 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_ne!(first_task.goal.id, second_task.goal.id);
     let false_claim = run(
         workspace.path(),
-        &["--json", "proof", "check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         false_claim.status.success(),
@@ -305,7 +338,18 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(&dependency, format!("-- reviewed dependency\n{policy}")).unwrap();
     let renewed = run(
         workspace.path(),
-        &["--json", "proof", "check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         renewed.status.success(),
@@ -318,7 +362,18 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::remove_file(&dependency).unwrap();
     let missing = run(
         workspace.path(),
-        &["--json", "proof", "check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         missing.status.success(),
@@ -565,7 +620,12 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     assert!(generated.contains("def keepModel (value : Bool) : Bool :=\n  value"));
     assert_eq!(generated.matches("-- fr:debt").count(), 2);
 
-    let goals = run(workspace.path(), &["--json", "proof", "list", "specs"]);
+    let goals = run(
+        workspace.path(),
+        &[
+            "--json", "proof", "list", "specs", "--bytes", "4096", "--limit", "32",
+        ],
+    );
     assert!(
         goals.status.success(),
         "{}",
@@ -589,7 +649,9 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let goal = goals["catalog"][0]["id"].as_str().unwrap();
     let revealed = run(
         workspace.path(),
-        &["--json", "proof", "list", "specs", "--goal", goal],
+        &[
+            "--json", "proof", "list", "specs", "--goal", goal, "--bytes", "4096", "--limit", "32",
+        ],
     );
     assert!(
         revealed.status.success(),
@@ -648,7 +710,10 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         followed["object_digest"],
         guided["route"]["evidence"]["task_digest"]
     );
-    let proof_task = run(workspace.path(), &["--json", "proof", "show", &target]);
+    let proof_task = run(
+        workspace.path(),
+        &["--json", "proof", "show", &target, "--bytes", "4096"],
+    );
     assert!(
         proof_task.status.success(),
         "{}",
@@ -682,7 +747,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         &["proof", "show", &target, "--bytes", "4096"],
     );
     assert!(!stale_task.status.success());
-    assert!(String::from_utf8_lossy(&stale_task.stderr).contains("stale source"));
+    assert!(String::from_utf8_lossy(&stale_task.stdout).contains("stale source"));
     std::fs::write(&source_path, current_source).unwrap();
 
     std::fs::write(workspace.path().join("wrong-proof.lean"), "exact false\n").unwrap();
@@ -694,14 +759,16 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
             "proof",
             "check",
             &target,
-            "--from",
+            "--draft",
             "wrong-proof.lean",
-            "--token-limit",
+            "--bytes",
             "2048",
+            "--timeout-seconds",
+            "30",
         ],
     );
     assert!(
-        failed.status.success(),
+        failed.status.code() == Some(1),
         "{}",
         String::from_utf8_lossy(&failed.stderr)
     );
@@ -740,7 +807,18 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
 
     let checked = run(
         workspace.path(),
-        &["--json", "proof", "check", &target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            &target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         checked.status.success(),
@@ -757,9 +835,12 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
             "proof",
             "save",
             &target,
-            "--from",
+            "--draft",
             "proof.lean",
-            "--write",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
         ],
     );
     assert!(
@@ -788,7 +869,12 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     .success());
     assert_eq!(std::fs::read_to_string(&model).unwrap(), after);
 
-    let remaining = run(workspace.path(), &["--json", "proof", "list", "specs"]);
+    let remaining = run(
+        workspace.path(),
+        &[
+            "--json", "proof", "list", "specs", "--bytes", "4096", "--limit", "32",
+        ],
+    );
     let remaining: serde_json::Value = serde_json::from_slice(&remaining.stdout).unwrap();
     let obligation = remaining["catalog"][0]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
@@ -1021,7 +1107,18 @@ fn agent_authors_a_multi_input_property_and_its_proof() {
     let target = "specs/FrSpecs/SrcLibRsBoth.lean::bothModel_commutative";
     let checked = run(
         workspace.path(),
-        &["--json", "proof", "check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "proof",
+            "check",
+            target,
+            "--draft",
+            "proof.lean",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
+        ],
     );
     assert!(
         checked.status.success(),
@@ -1037,9 +1134,12 @@ fn agent_authors_a_multi_input_property_and_its_proof() {
             "proof",
             "save",
             target,
-            "--from",
+            "--draft",
             "proof.lean",
-            "--write",
+            "--bytes",
+            "4096",
+            "--timeout-seconds",
+            "30",
         ],
     );
     assert!(

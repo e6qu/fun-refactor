@@ -78,7 +78,7 @@ class AuthoredClient(FakeClient):
                 value["serialized_bytes"] = len(_canonical(value))
             return report
         self.calls.append((arguments, input_bytes))
-        assert arguments[:4] == ("proof", "check", "target", "--from")
+        assert arguments[:4] == ("proof", "check", "target", "--draft")
         supplied = open(arguments[4], encoding="utf-8").read()
         assert supplied == "rfl\n"
         return FrReport({"schema": "fr-proof-attempt-1", "accepted": True}, arguments)

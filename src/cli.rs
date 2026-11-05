@@ -1651,12 +1651,7 @@ fn cmd_spec_goals(
 }
 
 fn cmd_spec_proof_task(cli: &Cli, target: &str, token_limit: usize) -> Result<()> {
-    let task = crate::spec::proof_task(
-        &workspace_root(cli),
-        shell_arguments(&[target.into()]),
-        token_limit,
-        !cli.no_ignore,
-    )?;
+    let task = crate::spec::proof_task(&workspace_root(cli), target, token_limit, !cli.no_ignore)?;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&task)?);
     } else {

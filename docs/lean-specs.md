@@ -32,7 +32,7 @@ and direct proof checks explicitly use one compiler worker.
 | `fr spec kernel` | Evaluate bounded shared terms with explicit checked arithmetic and partial failures |
 | `fr spec candidates` / `property-task` / `plan` | Discover the conservative generated-kernel subset and emit built-in or agent-authored property plans with content fingerprints and without source text |
 | `fr spec scaffold --from` | Revalidate a plan against current source and generate proof-preserving definitions and theorem regions |
-| `fr proof list` / `proof-task` / `proof-check` / `prove` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
+| `fr proof list` / `show` / `state` / `check` / `save` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
 | `fr proof state` | Show the theorem, available assumptions and remaining goals at a draft cursor; a closed branch still requires a complete proof check |
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
 | `fr spec evidence` | Report model properties, assumptions, trusted components, model-to-code connections and remaining work |

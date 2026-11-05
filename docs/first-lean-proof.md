@@ -106,7 +106,7 @@ fr -C . --json proof show specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_acces
 
 The plan describes the selected source, generated definition, claim and assumptions. Review it before
 scaffolding, which creates the Lean definition and an unfinished theorem. The goals report lists the
-one claim. `proof-task` reveals its context, parameters and the claim's parts. An unfinished theorem contains
+one claim. `proof show` reveals its context, parameters and the claim's parts. An unfinished theorem contains
 `sorry`, a visible proof gap; it is not an accepted proof.
 
 Each `claim.parts` entry lists `assumptions` and `conclusions` copied from the theorem's syntax.
@@ -195,7 +195,7 @@ This is why an empty local goal list is never a proof receipt.
 A cursor outside a tactic reports `no-tactic-at-position`; move into a tactic to inspect progress.
 Every inspection has `acceptance: "not-checked"`.
 
-The selected `--token-limit` bounds UTF-8 response bytes, not model tokens. If the complete
+The selected `--bytes` bounds UTF-8 response bytes, not model tokens. If the complete
 state does not fit, fr refuses rather than silently removing a goal or assumption.
 The explicit 30-second deadline covers dependency preparation and the editor query together.
 Inspect after each new step and use its actual goal to choose the next one.
@@ -209,19 +209,18 @@ cases staff
 ```
 
 The tactics file omits `by`: fr inserts these steps inside the existing proof region.
-Only a complete check with `passed: true` establishes acceptance. Then preview and save:
+Only a complete check with `passed: true` establishes acceptance. Then check and save:
 
 ```sh
 fr -C . --json proof check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
-fr -C . --json proof save specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr -C . --json proof save specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --draft proof.lean --bytes 4096 --timeout-seconds 30
 fr -C . --json spec check specs --strict --max-debt 0
 fr -C . --json spec evidence specs
 ```
 
 The corrected check must report `passed: true`. It leaves source unchanged and returns a receipt,
-which identifies this checked goal, proof, checker and package inputs. `prove` previews the edit;
-`prove --write` checks again, inserts the proof and records an undoable change. Other source and
+which identifies this checked goal, proof, checker and package inputs. `proof save` checks
+the complete draft, inserts the proof and records an undoable change. Other source and
 proof regions retain their bytes. The strict check requires current source/signature references and
 zero unfinished proof gaps. `evidence` builds the owning package and reports its claims and assumptions.
 
