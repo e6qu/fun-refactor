@@ -35,6 +35,7 @@ It cannot close M3.
 ## Change one input
 
 Both conditions have the same task, unfinished theorem, fr, skill, instructions, library and checks.
+Editing or deleting a supplied skill file fails the attempt, as does changing the handout or check settings.
 Both receive a protected `.fr/declarations.txt` file:
 
 | Condition | Handout |

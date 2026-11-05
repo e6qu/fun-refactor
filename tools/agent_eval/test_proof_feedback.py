@@ -252,6 +252,7 @@ class ProofFeedbackTests(unittest.TestCase):
                 ('M3-construction', 'fr', 'none'), ('M3-page-count', 'fr', 'none'),
                 ('M3-facts', 'select-facts', 'none'), ('M3-facts', 'supplied-declarations', 'none'),
                 ('M3-facts', 'supplied-declarations', 'edit'), ('M3-facts', 'select-facts', 'delete'),
+                ('M3-facts', 'supplied-declarations', 'skill-edit'), ('M3-facts', 'select-facts', 'skill-delete'),
                 (plan.REPAIR_STUDY, 'shared-skill', 'none'), (plan.REPAIR_STUDY, 'argument-repair', 'none'),
                 (plan.REPAIR_STUDY, 'argument-repair', 'edit'), (plan.REPAIR_STUDY, 'shared-skill', 'delete'),
                 (plan.REPAIR_STUDY, 'argument-repair', 'skill-edit')):
@@ -305,6 +306,8 @@ class ProofFeedbackTests(unittest.TestCase):
                             handout.unlink()
                         elif handout_change == 'skill-edit':
                             (workspace / '.agents/skills/fr/SKILL.md').write_text('changed\n')
+                        elif handout_change == 'skill-delete':
+                            (workspace / '.agents/skills/fr/SKILL.md').unlink()
                     session = argv[argv.index('--session') + 1]
                     stdout.write((json.dumps({'type': 'step_finish', 'sessionID': session,
                         'part': {'tokens': {}, 'cost': 0}}) + '\n').encode())
@@ -332,7 +335,7 @@ class ProofFeedbackTests(unittest.TestCase):
                 else:
                     self.assertNotIn('initial_check_seconds', record)
                 self.assertEqual(record['elapsed_seconds'], 8 if milestone == 'M3-feedback' else 5)
-                expected_path = ('.agents/skills/fr/SKILL.md' if handout_change == 'skill-edit' else
+                expected_path = ('.agents/skills/fr/SKILL.md' if handout_change in {'skill-edit', 'skill-delete'} else
                                  '.fr/argument-repair.txt' if milestone == plan.REPAIR_STUDY else '.fr/declarations.txt')
                 self.assertEqual(record['checking_input_changes'], [] if handout_change == 'none' else [expected_path])
                 if milestone in {'M3-facts', plan.REPAIR_STUDY}:
