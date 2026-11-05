@@ -128,6 +128,7 @@ jobs:
           agent_eval.test_proof_feedback agent_eval.test_proof_division_facts agent_eval.test_argument_repair
           agent_eval.test_proof_delivery
           agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
+      - run: python3 -B tools/test-native-source-inputs.py
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2
         with:
@@ -137,7 +138,7 @@ jobs:
         run: |
           lean -j1 -DwarningAsError=true tests/fixtures/lean-recursive-algorithms.lean
           lean -j1 -DwarningAsError=true tests/fixtures/lean-lambda-continuations.lean
-          cargo test --locked --test lean --test lean_grammar -- --test-threads=1
+          cargo test --locked --test lean --test lean_grammar --test native_fingerprint -- --test-threads=1
           cargo test --locked --test history_patch_cli --test history_git_cli -- --test-threads=1
           cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
           cargo test --locked --lib spec::tests -- --test-threads=1

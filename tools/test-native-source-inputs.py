@@ -171,11 +171,16 @@ class NativeInputs(unittest.TestCase):
             root = Path(directory)
             fixture(root)
             before = native_source_bindings(root)
-            for name in ('docs/lesson.md', 'target/binary', 'grammars/python/node_modules/package/cache'):
+            for name in ('docs/lesson.md', 'target/binary', 'grammars/python/node_modules/package/cache',
+                         'src/.fr-history/state.json', 'src/.fr/cache/index.json'):
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('generated output')
             self.assertEqual(before, native_source_bindings(root))
+            (root / 'src/.fr-history/state.json').write_text('new history')
+            self.assertEqual(before, native_source_bindings(root))
+            (root / 'src/.fr-history.rs').write_text('real source')
+            self.assertNotEqual(before, native_source_bindings(root))
 
     def test_missing_roots_and_unsupported_policy_fail(self):
         for policy in ('../outside\nnative-source-inputs.txt\n', 'src/\nsrc/\nnative-source-inputs.txt\n',

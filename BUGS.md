@@ -29,6 +29,14 @@ keeps the hosted controls and four complete local client checks ahead of model c
 
 ## Merged repairs and remaining limits
 
+The source-input repair in PR #604 excludes fr's generated `.fr` and `.fr-history`
+directories from the native source identity. For example, a history file under
+`src/.fr-history` previously made unchanged Rust source look different.
+Both Rust and Python checks cover that case and still detect real source changes,
+including a file named `src/.fr-history.rs`. Existing history files stay intact.
+The input-policy change requires fresh current reports; earlier records retain
+their original source identities and outcomes.
+
 The [supplied-proof delivery review](tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
 found six OpenCode2 2.0.32 sessions whose saved final response has token counts but
 whose JSON stream omits that final usage event. Correct patches from those sessions
