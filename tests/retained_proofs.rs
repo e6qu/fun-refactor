@@ -104,7 +104,10 @@ fn proof_package_budgets_refuse_before_execution() {
     assert!(!output.status.success());
     assert!(output.stderr.is_empty(), "{output:?}");
     let error: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert!(error["error"]["message"].as_str().unwrap().contains("4 MiB"));
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("4 MiB"));
     fs::remove_file(root.path().join("specs/oversized.txt")).unwrap();
     for i in 0..129 {
         fs::write(root.path().join(format!("specs/file{i}.txt")), "x").unwrap();
@@ -113,7 +116,10 @@ fn proof_package_budgets_refuse_before_execution() {
     assert!(!output.status.success());
     assert!(output.stderr.is_empty(), "{output:?}");
     let error: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert!(error["error"]["message"].as_str().unwrap().contains("128 files"));
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("128 files"));
 }
 
 #[test]
