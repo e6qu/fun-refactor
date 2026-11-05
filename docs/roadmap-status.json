@@ -215,37 +215,13 @@
       "scope": "Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-04-focused-imports-text-recheck-text-package-recheck",
-      "changed_sources": [
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "sdk/python/src/fr_ir/guide.py",
-        "sdk/python/src/fr_ir/intent_actions.py",
-        "sdk/python/src/fr_ir/ir.py",
-        "sdk/python/src/fr_ir/runtime.py",
-        "sdk/python/tests/test_guide.py",
-        "sdk/python/tests/test_intent.py",
-        "sdk/python/tests/test_ir.py",
-        "sdk/python/tests/test_refinement.py",
-        "src/cli.rs",
-        "src/project/agent_actions.rs",
-        "src/project/agent_guide.rs",
-        "src/project/find.rs",
-        "src/spec.rs",
-        "src/spec/proof_state.rs",
-        "tools/compiler-profile.py",
-        "tools/python-contract.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-05-checked-proof-reader-text-package-recheck",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-04-focused-imports-text-recheck-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-05-checked-proof-reader-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
@@ -543,14 +519,13 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 3,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
-        "B.repository-flow",
         "B.effects"
       ],
       "state": "open",
@@ -765,9 +740,7 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -811,7 +784,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
