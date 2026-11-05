@@ -23,7 +23,12 @@ pub struct Options {
     signature: bool,
     #[arg(long, help = "Include source slices within a shared page byte budget.")]
     source: bool,
-    #[arg(long, default_value_t = 2048, requires = "source")]
+    #[arg(
+        long,
+        default_value_t = 2048,
+        requires = "source",
+        help = "Maximum source bytes across this page; requires --source."
+    )]
     bytes: usize,
     #[arg(long, default_value_t = 12)]
     limit: usize,
@@ -53,7 +58,12 @@ pub struct SelectOptions {
     signature: bool,
     #[arg(long, help = "Include source slices within a shared page byte budget.")]
     source: bool,
-    #[arg(long, default_value_t = 2048, requires = "source")]
+    #[arg(
+        long,
+        default_value_t = 2048,
+        requires = "source",
+        help = "Maximum source bytes across this page; requires --source."
+    )]
     bytes: usize,
     #[arg(long, default_value_t = 24)]
     limit: usize,

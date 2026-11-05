@@ -1243,7 +1243,13 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         .output()
         .unwrap();
     assert!(!missing_body.status.success());
-    assert!(String::from_utf8_lossy(&missing_body.stderr).contains("--body"));
+    assert!(
+        serde_json::from_slice::<serde_json::Value>(&missing_body.stdout).unwrap()["error"]
+            ["message"]
+            .as_str()
+            .unwrap()
+            .contains("--body")
+    );
     let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "--no-cache", "-C"])
         .arg(dir.path())
@@ -1251,7 +1257,13 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         .output()
         .unwrap();
     assert!(!missing_body.status.success());
-    assert!(String::from_utf8_lossy(&missing_body.stderr).contains("--body"));
+    assert!(
+        serde_json::from_slice::<serde_json::Value>(&missing_body.stdout).unwrap()["error"]
+            ["message"]
+            .as_str()
+            .unwrap()
+            .contains("--body")
+    );
     assert!(
         !run(
             dir.path(),

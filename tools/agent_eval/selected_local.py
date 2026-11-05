@@ -141,7 +141,7 @@ def prompt(task, setup, checkers, milestone):
             f'The combined CLI transcript, including command output, is limited to {LIMITS["transcript_bytes"]:,} bytes. '
             'Search narrow paths and cap printed matches, for example rg -n "name" FILE | head -40. '
             'Keep working files under .fr/, or remove them before delivery. Only the marked proof region may change. '
-            'A fr proof-check report with passed=false is a failed check even if the command exits successfully. '
+            'A rejected fr proof check exits 1 and reports passed=false; both mean that the draft needs repair. '
             'Write a draft and check it early, then use Lean diagnostics to repair it. '
             'Repair rejected tactics using the reported diagnostics; keep the theorem and definitions fixed.')
         checks = [shlex.join([checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'])]

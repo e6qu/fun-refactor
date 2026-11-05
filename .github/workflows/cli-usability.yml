@@ -57,6 +57,7 @@ jobs:
       - run: cargo test --locked --lib cli::tests -- --test-threads=1
       - run: cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
       - run: cargo test --locked --test proof_cli -- --test-threads=1
+      - run: python3 -B tools/reader_proof_example.py --fr target/debug/fr
       - run: cargo test --locked --test cli from_a_subdirectory -- --test-threads=1
       - name: Check current proof collection and SDK contracts without model calls
         run: |

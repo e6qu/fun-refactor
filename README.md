@@ -69,7 +69,8 @@ You need an installed `fr` binary and Python 3 to follow that lesson.
 
 A project root is the folder containing the project you want to inspect.
 Run `fr` there. Add `--json` to return structured data for another program.
-A preview shows proposed changes without applying them. Commands that edit source preview by default.
+A preview shows proposed changes without applying them. Refactoring commands preview before a write.
+`proof save` checks and writes a complete proof in one call; its name explicitly requests the save.
 For an existing project, these commands list files, check readable syntax and find functions:
 
 ```sh

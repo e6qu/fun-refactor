@@ -216,7 +216,7 @@ class ProofFeedbackTests(unittest.TestCase):
         value = {'passed': False, 'receipt': None, 'diagnostics': [{'message': 'Argument type mismatch'}]}
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); output = root / 'check.json'
-            result = subprocess.CompletedProcess([], 0, json.dumps(value), '')
+            result = subprocess.CompletedProcess([], 1, json.dumps(value), '')
             with mock.patch.object(feedback.subprocess, 'run', return_value=result) as run:
                 text, size = feedback.initial_check('/fr', root, {'target': 'spec::fixed'}, {}, output, 20)
             self.assertEqual(json.loads(text), value)
@@ -224,9 +224,15 @@ class ProofFeedbackTests(unittest.TestCase):
             self.assertEqual(size, len(text.encode()))
             self.assertEqual(run.call_args.kwargs['timeout'], 20)
             value['passed'] = True
-            with mock.patch.object(feedback.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(value), '')), \
+            with mock.patch.object(feedback.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, json.dumps(value), '')), \
                     self.assertRaisesRegex(ValueError, 'argument-type error'):
                 feedback.initial_check('/fr', root, {'target': 'spec::fixed'}, {}, output, 20)
+
+            value['passed'] = False
+            for wrong_exit in (0, 2):
+                with mock.patch.object(feedback.subprocess, 'run', return_value=subprocess.CompletedProcess([], wrong_exit, json.dumps(value), '')), \
+                        self.assertRaisesRegex(ValueError, 'rejected proof with exit 1'):
+                    feedback.initial_check('/fr', root, {'target': 'spec::fixed'}, {}, output, 20)
 
     def test_freeze_captures_single_file_opencode_without_other_clients(self):
         with tempfile.TemporaryDirectory() as temporary:

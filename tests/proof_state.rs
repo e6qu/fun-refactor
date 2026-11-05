@@ -216,7 +216,7 @@ fn live_cursor_states_follow_branches_and_full_check_remains_required() {
 #[test]
 fn cursor_and_deadline_settings_are_explicit_cli_requirements() {
     let temporary = tempfile::tempdir().unwrap();
-    for missing in ["--at", "--token-limit", "--timeout-seconds"] {
+    for missing in ["--at", "--bytes", "--timeout-seconds"] {
         let mut arguments = vec![
             "proof",
             "state",

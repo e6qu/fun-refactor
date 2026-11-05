@@ -184,7 +184,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         .find(|item| item.message == "unknown tactic")
         .unwrap();
     let location = diagnostic.draft_location.as_ref().unwrap();
-    assert_eq!(location.path, proof);
+    assert_eq!(location.path, std::path::Path::new("proof.lean"));
     assert_eq!((location.line, location.column), (4, 4));
     assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
     assert!(diagnostic.checked_location.as_ref().unwrap().line > location.line);
@@ -206,7 +206,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         ],
     );
     assert!(
-        named.status.success(),
+        named.status.code() == Some(1),
         "{}",
         String::from_utf8_lossy(&named.stderr)
     );
@@ -747,7 +747,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         &["proof", "show", &target, "--bytes", "4096"],
     );
     assert!(!stale_task.status.success());
-    assert!(String::from_utf8_lossy(&stale_task.stdout).contains("stale source"));
+    assert!(String::from_utf8_lossy(&stale_task.stderr).contains("stale source"));
     std::fs::write(&source_path, current_source).unwrap();
 
     std::fs::write(workspace.path().join("wrong-proof.lean"), "exact false\n").unwrap();

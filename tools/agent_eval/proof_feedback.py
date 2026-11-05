@@ -228,7 +228,7 @@ def qualify_declarations(output):
 def initial_check(binary, project, prepared, env, output, seconds):
     result = subprocess.run([str(binary), '-C', str(project), '--json', 'proof', 'check', prepared['target'], '--draft', 'initial-tactics.txt', '--bytes', '4096', '--timeout-seconds', '30'],
                             cwd=project, env=env, capture_output=True, text=True, timeout=seconds)
-    require(result.returncode == 0, 'initial fr check did not return its JSON report: ' + result.stderr[:2048])
+    require(result.returncode == 1, 'initial fr check must return a rejected proof with exit 1: ' + result.stderr[:2048])
     value = json.loads(result.stdout)
     common.save(output, value)
     require(value['passed'] is False and value['receipt'] is None and value['diagnostics'] and

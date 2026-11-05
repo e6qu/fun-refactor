@@ -149,7 +149,12 @@ fn a_recomputed_digest_cannot_change_the_retained_expression_contract() {
             ],
         );
         assert!(!output.status.success(), "forged {field} admitted");
-        assert!(String::from_utf8_lossy(&output.stderr).contains("inconsistent"));
+        assert!(
+            serde_json::from_slice::<Value>(&output.stdout).unwrap()["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("inconsistent")
+        );
     }
 }
 

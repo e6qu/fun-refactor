@@ -67,7 +67,7 @@ measures delivery of given answers; it cannot replace proof discovery.
    actual goal; `state --at end` resumes at the last nonblank step. Return the available
    variables and facts separately from the remaining statement to prove.
 2. Make results dependable for both people and scripts: labelled terminal searches,
-   explicit scan roots, one JSON error report, and exit 1 for a rejected proof check.
+   explicit scan roots and one JSON error report. A rejected proof check returns exit 1.
    Require response-byte and time settings. Remove the old proof command forms.
 3. Check and save a complete draft in one call, then check the package and export the
    saved edits. Test stalled dependencies, a stalled compiler and a client that ignores
@@ -77,7 +77,7 @@ measures delivery of given answers; it cannot replace proof discovery.
 
 The [focused hosted checks](https://github.com/e6qu/fun-refactor/actions/runs/41949404938)
 pass for the new CLI and SDK. Broader checks and the new stall controls are still in progress.
-These are tool checks; no improvement in GLM or Kimi success has been measured for this interface.
+These are tool checks. We have not measured improved GLM or Kimi success with this interface.
 
 **After those checks pass:** freeze a new comparison before spending model calls.
 Require fresh complete native admission with the exact commands, clients and resource settings.

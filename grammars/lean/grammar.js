@@ -1400,7 +1400,7 @@ module.exports = grammar({
 
     structure_instance: $ => seq(
       '{',
-      optional(seq($._structure_body, optional(choice(',', /\n/)))),
+      optional($._structure_body),
       '}',
     ),
 
@@ -1408,16 +1408,15 @@ module.exports = grammar({
     // (extends, fields, type) inside the braces.
     _structure_body: $ => choice(
       seq(field('extends', $._expression), 'with',
-        optional(seq(
-          choice($.field_assignment, $.ellipsis),
-          repeat(seq(choice(',', /\n/), choice($.field_assignment, $.ellipsis))),
-        )),
-        optional($._type_spec)),
-      seq(
-        choice($.field_assignment, $.ellipsis),
-        repeat(seq(choice(',', /\n/), choice($.field_assignment, $.ellipsis))),
-        optional($._type_spec)),
+        optional($._structure_fields), optional($._type_spec)),
+      seq($._structure_fields, optional($._type_spec)),
       $._type_spec,
+    ),
+
+    _structure_fields: $ => seq(
+      choice($.field_assignment, $.ellipsis),
+      repeat(seq(choice(',', /\n/), choice($.field_assignment, $.ellipsis))),
+      optional(choice(',', /\n/)),
     ),
 
     field_assignment: $ => choice(

@@ -741,8 +741,8 @@ If a complete report does not fit, fr refuses instead of removing goals or assum
 
 A state report is an inspection, not proof acceptance. `closed-at-position` means only the
 selected branch has no remaining goals there. A second branch may still be unfinished.
-`proof check` checks the entire draft without changing source: exit 0 with `passed: true`
-means accepted; exit 1 with `passed: false` reports a rejected or unfinished proof.
+`proof check` checks the entire draft without changing source. Exit 0 with `passed: true`
+means accepted. Exit 1 with `passed: false` reports a rejected or unfinished proof.
 `proof save` checks the entire draft and writes an accepted proof in one call.
 Its `transaction` identifies the saved edit for `history patch`; `already-present` needs no repeat save.
 Check the owning Lean package after saving all proofs, then export the patch.

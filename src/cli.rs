@@ -1866,7 +1866,7 @@ fn cmd_spec_prove(
     });
     anyhow::ensure!(
         serde_json::to_vec_pretty(&report)?.len() <= token_limit,
-        "proof save result exceeds --bytes {token_limit}; no source was written"
+        "proof save result exceeds --bytes {token_limit}; fr wrote no source"
     );
     let change = crate::edit::FileChange {
         path: &plan.spec,
@@ -3007,7 +3007,17 @@ fn with_project(
 fn shell_arguments(arguments: &[String]) -> String {
     arguments
         .iter()
-        .map(|argument| format!("'{}'", argument.replace('\'', "'\\''")))
+        .map(|argument| {
+            if !argument.is_empty()
+                && argument.chars().all(|character| {
+                    character.is_ascii_alphanumeric() || "_-/.:=@%+,".contains(character)
+                })
+            {
+                argument.clone()
+            } else {
+                format!("'{}'", argument.replace('\'', "'\\''"))
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ")
 }
@@ -3073,6 +3083,8 @@ fn project_text(report: &serde_json::Value, root: &Path) -> Result<String> {
                         let (columns, rows) = table.context("project table is absent")?;
                         if rows.is_empty() {
                             out.push_str(&format!("{pad}No results.\n"));
+                        } else {
+                            out.push_str(&format!("{pad}Results:\n"));
                         }
                         for (index, row) in rows.iter().enumerate() {
                             let row = row.as_array().context("project row must be an array")?;
@@ -5246,7 +5258,7 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
     if baseline.routes.is_empty() {
         anyhow::bail!(
             "no API under {}. A Next.js route is `app/**/api/**/route.ts` or anything \
-             under `pages/api/`, with the URL coming from where the file sits; a FastAPI \
+             under `pages/api/`. Its URL follows the file location. A FastAPI \
              one is a `@router.get(\"…\")` on an `async def`.",
             root.display()
         );
@@ -6148,7 +6160,7 @@ fn cmd_flow(
     if !inputs.is_empty() && !matches!(symbol.language, Language::Helm | Language::Yaml) {
         anyhow::bail!(
             "-f/--set describe a helm invocation, but '{}' is {}, whose values have no Helm \
-             precedence to decide; drop the flags or point at a chart's values",
+             precedence to decide. Drop the flags or point at a chart's values",
             symbol.name,
             symbol.language
         );
@@ -7454,8 +7466,7 @@ fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
         println!("fallback  {}", cache.is_fallback());
         println!(
             "\nAn entry takes its key from every workspace file, the query set and the analysis \n\
-             code, so an edit makes every stale answer unreachable rather than serving a \n\
-             result that described an earlier tree."
+             code. An edit makes stale answers unreachable."
         );
     }
     Ok(())
