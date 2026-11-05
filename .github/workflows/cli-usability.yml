@@ -76,4 +76,4 @@ jobs:
           python3 -B -m pytest -q sdk/python/tests/test_guide.py -k "proof_writing_commands_are_not_read_only_guide_actions or authored_guide_files_are_exact_bounded_and_temporary"
           python3 -B -m unittest agent_eval.test_argument_repair agent_eval.test_algorithm_admission agent_eval.test_selected_public agent_eval.test_selected_local
       - run: lean -j1 -DwarningAsError=true tests/fixtures/lean-project-layout.lean
-      - run: cargo test --locked --test lean_grammar project_kernels_remain_readable_as_lean_source -- --test-threads=1 --nocapture
+      - run: cargo test --locked --test lean_grammar -- --test-threads=1 --nocapture
