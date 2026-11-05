@@ -291,7 +291,8 @@ class TeamSolveTests(unittest.TestCase):
         team.verified_plan(prepared, plan['sha256'])
         self.assertEqual(plan['versions']['opencode2'], 'opencode v2.2.5')
         self.assertEqual(plan['source'], self.plan['source'])
-        self.assertEqual(set(plan['companions']), {'codex-code-mode-host', 'opencode'})
+        self.assertEqual(set(plan['companions']), {'codex-code-mode-host'})
+        self.assertFalse((prepared / 'bin/opencode').exists())
         self.assertEqual(team.sources(original), self.plan['source'])
 
     def test_native_uses_exact_models_and_enforces_real_completion(self):

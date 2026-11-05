@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import tomllib
 
 from . import selected_tasks as common
 from .selected_plan import ROOT, require
@@ -122,8 +123,19 @@ def prepare(case, binary, project, output):
     plan = common.fr(binary, project, ['spec', 'plan', target, '--property-from', str(output / 'property.json')], output / 'plan.json')
     common.save(output / 'formal-plan.json', plan)
     common.fr(binary, project, ['spec', 'scaffold', '--from', str(output / 'formal-plan.json'), '--package', 'specs', '--write'], output / 'scaffold.json')
+    configuration = tomllib.loads((project / 'specs/lakefile.toml').read_text())
+    lean_arguments = configuration['lean_lib'][0]['moreLeanArgs']
+    require(lean_arguments == ['-j1'], 'the generated proof library must declare one Lean compiler worker')
     spec = 'specs/FrSpecs/' + plan['kernel']['module'] + '.lean'
     obligation = plan['properties'][0]['name']
+    if case == 'page-count':
+        require(entry['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'],
+                'declare the complete page-count task imports explicitly')
+        module = project / spec
+        source = module.read_text()
+        require(source.startswith('prelude\nimport Init.Data.Int.DivMod.Lemmas\nnamespace FrSpecs\n') and
+                (project / 'specs/FrSpecs.lean').read_text().startswith('prelude\n'),
+                'fr must generate the explicit proof imports and package entry without setup rewrites')
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
     require(built['returncode'] == 0, 'the prepared Lean package must build before a live attempt')
     catalog = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')
@@ -145,6 +157,7 @@ def prepare(case, binary, project, output):
     (project / '.git/info/exclude').write_text('\n'.join(sorted((common.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     common.comparison_grade.BASE.initialize(project)
     result = {'task': case, 'language': entry['language'], 'source': entry['path'], 'spec': spec,
+        'lean_arguments': lean_arguments,
         'obligation': obligation, 'target': spec + '::' + obligation,
         'original': common.sources(project), 'protected_proof': masked_proof((project / spec).read_text(), obligation),
         'plan_digest': plan['object_digest'], 'goal_digest': goal['id'],
@@ -153,6 +166,8 @@ def prepare(case, binary, project, output):
                        'model': 'Bool' if case.startswith('access-') else 'Lean mathematical Int with truncating division' if case == 'page-count' else 'Lean mathematical Nat',
                        'source_implementation_proved': False},
         'scope': 'Source, model, fixed property and package are identical for both setups; no proof steps are supplied.'}
+    if case == 'page-count':
+        result['lean_imports'] = entry['lean_imports']
     common.save(output / 'project.json', result)
     common.retain_seed(project, result, output)
     return result

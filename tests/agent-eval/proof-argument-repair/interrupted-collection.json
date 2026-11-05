@@ -1,0 +1,107 @@
+{
+  "purpose": "Preserve an interrupted collection before any repair-instruction comparison. Do not count this as a valid paired comparison.",
+  "plan_sha256": "20f2030be707d1327ae6b96c2eb3483746d7018d02f27fd58c941e089ede1a21",
+  "source_commit": "fe836f9f1ec2dcec0929ba9ed6a50189ecb9da2a",
+  "qualified_run": 41912454443,
+  "started_attempts": 1,
+  "unstarted_attempts": 7,
+  "submitted_patches": 0,
+  "reason": "The native launcher gave the CLI the entire remaining 150-second budget. The outer guard stopped the controller before it could record process results and export session accounting. The ten-second finishing reserve was stated in the prompt but not enforced by the launcher.",
+  "decision": "Stop the seven unstarted slots. Enforce the existing finishing reserve, test a client that ignores the prompt deadline, and qualify a new packet. Never rerun this started slot.",
+  "elapsed_seconds": 150.06622766700093,
+  "complete_attempt_resources": {
+    "exit_code": 124,
+    "process_exit_code": -9,
+    "timed_out": true,
+    "stop_reason": "wall_seconds",
+    "launch_error": null,
+    "monitor_error": null,
+    "elapsed_seconds": 150.06622766700093,
+    "limits": {
+      "wall_seconds": 150,
+      "rss_bytes": 805306368,
+      "disk_bytes": 536870912,
+      "cpu_seconds": 75,
+      "transcript_bytes": 1048576
+    },
+    "sampled_aggregate_rss_bytes": 547799040,
+    "sampled_cpu_seconds": 16.27,
+    "sampled_disk_growth_bytes": 105460,
+    "transcript_bytes": 0,
+    "suspended_seconds": 0
+  },
+  "record_sha256": "df357dba365f9715320c84030979f11339745a2a5d5c80d4a18321fd4fccea60",
+  "reported_usage_complete": false,
+  "observed_actions": [
+    "Read the shared skill and division definitions.",
+    "The first two check commands used an unsupported flag and an invalid target; subsequent commands reached proof checking.",
+    "The last observed proof check rejected a theorem argument type mismatch; no passing proof or patch was delivered."
+  ],
+  "attempts": [
+    {
+      "id": "opencode2-glm-flash-page-count-shared-skill-1",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "shared-skill",
+      "repetition": 1,
+      "status": "failed"
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-argument-repair-1",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "argument-repair",
+      "repetition": 1,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-argument-repair-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "argument-repair",
+      "repetition": 1,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-shared-skill-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "shared-skill",
+      "repetition": 1,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-argument-repair-2",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "argument-repair",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-shared-skill-2",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "shared-skill",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-shared-skill-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "shared-skill",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-argument-repair-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "argument-repair",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    }
+  ],
+  "publication": "Reviewed summary only; native records, drafts and accounting remain private."
+}

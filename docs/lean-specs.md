@@ -15,6 +15,13 @@ A proof about the tool's review rules is different from a proof about your check
 source hashes and builds the owning Lean packages. It also prepares proof work in other projects. The
 [agent formalization guide](agent-formalization.md) covers that adoption workflow.
 
+Fr declares the integer-division import explicitly for generated arithmetic
+proofs, such as bounds on the number of pages. New package entries use
+`prelude`, which turns off Lean's automatic import of the full `Init` library.
+This keeps unrelated library code out of that compiler session. The claim stays
+the same. Preserve supplied imports in a fixed proof task. Generated libraries
+and direct proof checks explicitly use one compiler worker.
+
 ## What exists
 
 | Surface | Current scope |

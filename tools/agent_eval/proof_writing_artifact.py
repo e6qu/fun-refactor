@@ -15,7 +15,7 @@ def command(argv):
     return result.stdout.strip()
 
 
-def verify(run, binary):
+def verify(run, binary, build_kind):
     require(os.environ.get('GITHUB_ACTIONS') == 'true' and run.isdigit(), 'choose an explicit hosted build run')
     require(binary.is_file() and not binary.is_symlink(), 'the downloaded fr executable is missing or linked')
     repository = os.environ['GITHUB_REPOSITORY']
@@ -23,7 +23,10 @@ def verify(run, binary):
     require(metadata['head_repository']['full_name'] == repository, 'reuse a build from this repository')
     pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', f'repos/{repository}/actions/runs/{run}/jobs?filter=all&per_page=100']))
     jobs = [job for page in pages for job in page['jobs']]
-    builder = 'Check early returns and numeric proof models'
+    builders_by_kind = {'numeric-models': 'Check early returns and numeric proof models',
+                        'algorithms': 'Reject incomplete proofs of the fixed GCD implementation'}
+    require(build_kind in builders_by_kind, 'choose the tested native build kind explicitly')
+    builder = builders_by_kind[build_kind]
     builders = [row for row in jobs if row['name'] == builder or row['name'].endswith('/ ' + builder)]
     require(len(builders) == 1 and builders[0]['conclusion'] == 'success', 'the chosen fr build and model tests must pass')
     commit = metadata['head_sha']
@@ -46,7 +49,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', required=True)
     parser.add_argument('--fr', type=Path, required=True)
+    parser.add_argument('--build-kind', choices=('numeric-models', 'algorithms'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     arguments = parser.parse_args()
-    result = verify(arguments.run, arguments.fr.absolute())
+    result = verify(arguments.run, arguments.fr.absolute(), arguments.build_kind)
     arguments.output.write_text(json.dumps(result, indent=2) + '\n')

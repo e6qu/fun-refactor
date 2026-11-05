@@ -28,9 +28,11 @@ defaultTargets = ["FrSpecs"]
 
 [[lean_lib]]
 name = "FrSpecs"
+moreLeanArgs = ["-j1"]
 "#;
 
-const ROOT_MODULE: &str = r#"/-
+const ROOT_MODULE: &str = r#"prelude
+/-
 This is the checked root of the project's Lean specification package.
 Import each model here so `fr spec verify` builds it.
 -/
@@ -898,12 +900,7 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
     }
     let root_path = package_plan.package.join("FrSpecs.lean");
     let root_original = crate::vfs::read_to_string(&root_path)?;
-    let import = format!("import FrSpecs.{module}");
-    let root_updated = if root_original.lines().any(|line| line.trim() == import) {
-        root_original.clone()
-    } else {
-        format!("{import}\n{root_original}")
-    };
+    let root_updated = insert_model_import(&root_original, &module)?;
     Ok(ScaffoldPlan {
         source,
         symbol: symbol.to_string(),
@@ -1340,12 +1337,7 @@ pub(crate) fn scaffold_formal_plan(
     check_generated_formal_module(&package_plan.package, &checker)?;
     let root_path = package_plan.package.join("FrSpecs.lean");
     let root_original = crate::vfs::read_to_string(&root_path)?;
-    let import = format!("import FrSpecs.{}", expected.kernel.module);
-    let root_updated = if root_original.lines().any(|line| line.trim() == import) {
-        root_original.clone()
-    } else {
-        format!("{import}\n{root_original}")
-    };
+    let root_updated = insert_model_import(&root_original, &expected.kernel.module)?;
     let regenerated = !original.is_empty();
     let mut files = vec![
         ScaffoldFile {
@@ -1835,8 +1827,9 @@ fn check_prepared_proof(
     scratch.as_file_mut().write_all(checker_source.as_bytes())?;
     scratch.as_file_mut().flush()?;
     if output.status.success() {
+        // Pin the compiler pool, as the interactive proof worker already does.
         output = Command::new("lake")
-            .args(["env", "lean"])
+            .args(["env", "lean", "-j", "1"])
             .arg(scratch.path())
             .current_dir(&package)
             .output()
@@ -1985,7 +1978,7 @@ fn check_generated_formal_module(package: &Path, source: &str) -> Result<()> {
     scratch.as_file_mut().write_all(source.as_bytes())?;
     scratch.as_file_mut().flush()?;
     let output = Command::new("lake")
-        .args(["env", "lean"])
+        .args(["env", "lean", "-j", "1"])
         .arg(scratch.path())
         .current_dir(package)
         .output()
@@ -3713,6 +3706,53 @@ fn proof_regions(text: &str) -> Result<BTreeMap<String, String>> {
     Ok(regions)
 }
 
+fn insert_model_import(source: &str, module: &str) -> Result<String> {
+    let parsed = Parsers::new().parse(crate::lang::Language::Lean, source)?;
+    if parsed.has_errors() {
+        bail!("the existing Lean package entry has syntax errors; no files changed.");
+    }
+    let imported_module = format!("FrSpecs.{module}");
+    let import = format!("import {imported_module}");
+    let mut cursor = parsed.root().walk();
+    if parsed.root().named_children(&mut cursor).any(|node| {
+        if node.kind() != "import" {
+            return false;
+        }
+        let mut module_cursor = node.walk();
+        let mut remaining = imported_module.as_str();
+        for part in node.children_by_field_name("module", &mut module_cursor) {
+            let Ok(text) = part.utf8_text(source.as_bytes()) else {
+                return false;
+            };
+            let Some(rest) = remaining.strip_prefix(text) else {
+                return false;
+            };
+            remaining = rest;
+        }
+        remaining.is_empty()
+    }) {
+        return Ok(source.into());
+    }
+    let newline = if source.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let mut cursor = parsed.root().walk();
+    let header_end = parsed
+        .root()
+        .named_children(&mut cursor)
+        .filter(|node| matches!(node.kind(), "module_header" | "prelude"))
+        .map(|node| node.end_byte())
+        .max();
+    let mut updated = source.to_string();
+    match header_end {
+        Some(offset) => updated.insert_str(offset, &format!("{newline}{import}{newline}")),
+        None => updated.insert_str(0, &format!("{import}{newline}")),
+    }
+    Ok(updated)
+}
+
 fn render_formal_module(
     plan: &FormalPlan,
     proofs: &BTreeMap<String, String>,
@@ -3755,6 +3795,8 @@ fn render_formal_module(
             "\n{}\n",
             kernel_term_definition(&plan.kernel.model, &evaluation.term)
         ));
+    } else {
+        text.insert_str(0, "prelude\nimport Init.Data.Int.DivMod.Lemmas\n");
     }
     for property in &plan.properties {
         let proof = proofs
@@ -4059,7 +4101,7 @@ fn verify_with_warnings(
                         continue;
                     }
                     let mut check = Command::new("lake");
-                    check.args(["env", "lean"]);
+                    check.args(["env", "lean", "-j", "1"]);
                     if deny_warnings {
                         check.arg("-DwarningAsError=true");
                     }
@@ -5568,6 +5610,13 @@ mod tests {
         let plan = init(root, Path::new("verification/lean")).unwrap();
         assert_eq!(plan.files.len(), 4);
         assert!(plan.files.iter().all(|file| !file.existing));
+        assert!(plan
+            .files
+            .iter()
+            .find(|file| file.path.ends_with("FrSpecs.lean"))
+            .unwrap()
+            .content
+            .starts_with("prelude\n"));
         assert!(init(root, Path::new("../outside")).is_err());
         assert!(init(root, &root.parent().unwrap().join("outside")).is_err());
 
@@ -5585,6 +5634,61 @@ mod tests {
         .unwrap();
         let error = init(root, Path::new("verification/lean")).unwrap_err();
         assert!(error.to_string().contains("refusing to replace"), "{error}");
+    }
+
+    #[test]
+    fn model_imports_preserve_lean_headers_and_comments() {
+        for original in [
+            "namespace FrSpecs\nend FrSpecs\n",
+            "prelude\nnamespace FrSpecs\nend FrSpecs\n",
+            "/- prelude in a comment -/\nprelude /- header comment\ncontinued -/\nnamespace FrSpecs\nend FrSpecs\n",
+            "module\nprelude\nnamespace FrSpecs\nend FrSpecs\n",
+            "prelude\r\nnamespace FrSpecs\r\nend FrSpecs\r\n",
+        ] {
+            let updated = super::insert_model_import(original, "Numeric").unwrap();
+            let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated).unwrap();
+            assert!(!parsed.has_errors(), "{updated}");
+            assert_eq!(updated.matches("import FrSpecs.Numeric").count(), 1);
+            assert_eq!(super::insert_model_import(&updated, "Numeric").unwrap(), updated);
+            let newline = if original.contains("\r\n") { "\r\n" } else { "\n" };
+            assert_eq!(updated.replace(&format!("{newline}import FrSpecs.Numeric{newline}"), "")
+                .replace(&format!("import FrSpecs.Numeric{newline}"), ""), original);
+        }
+        let commented = "/-\nimport FrSpecs.Numeric\n-/\nprelude\n";
+        let updated = super::insert_model_import(commented, "Numeric").unwrap();
+        assert_eq!(updated.matches("import FrSpecs.Numeric").count(), 2);
+        assert_eq!(
+            super::insert_model_import(&updated, "Numeric").unwrap(),
+            updated
+        );
+        let public = "module\nprelude\npublic import FrSpecs.Numeric\n";
+        assert_eq!(
+            super::insert_model_import(public, "Numeric").unwrap(),
+            public
+        );
+        assert!(super::insert_model_import("def broken := (", "Numeric").is_err());
+    }
+
+    #[test]
+    fn numeric_formal_models_declare_their_arithmetic_imports() {
+        let workspace = tempfile::tempdir().unwrap();
+        fs::write(
+            workspace.path().join("identity.rs"),
+            "pub fn identity(value: i64) -> i64 { value }\n",
+        )
+        .unwrap();
+        let plan = super::formal_plan(
+            workspace.path(),
+            "identity.rs::identity",
+            &["identity".into()],
+        )
+        .unwrap();
+        let source = super::render_formal_module(&plan, &BTreeMap::new(), "").unwrap();
+        assert!(
+            source.starts_with("prelude\nimport Init.Data.Int.DivMod.Lemmas\nnamespace FrSpecs\n")
+        );
+        assert!(source.contains(&plan.kernel.lean_definition));
+        assert!(source.contains(&plan.properties[0].proposition));
     }
 
     #[test]

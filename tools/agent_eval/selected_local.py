@@ -16,7 +16,7 @@ from .bounded_host import run as bounded_run
 from .bounded_host import elapsed_time
 from .selected_cli import configuration, invocation, export_session, verify_export
 from . import selected_tasks as tasks
-from .selected_plan import ALGORITHM_STUDIES, ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import ALGORITHM_STUDIES, ALGORITHM_TASKS, ADMISSION_STUDIES, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, REPAIR_STUDY, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
@@ -68,10 +68,12 @@ def implementation_bindings(milestone):
             paths += list((directory / 'controls').glob('*.lean'))
             paths += list((directory / 'reserved').glob('*.lean'))
             paths += [directory / 'interrupted-results/summary.json']
+            paths += [directory / 'interrupted-results' / name for name in
+                      ('lakefile.toml', 'lake-manifest.json', 'lean-toolchain')]
             paths += list((directory / 'interrupted-results').glob('*.lean'))
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
-        if milestone == 'M3-page-count':
+        if milestone in {'M3-page-count', REPAIR_STUDY}:
             paths += [ROOT / CASE_DIRECTORIES['M3'] / name for name in
                       ('cases.json', 'fixtures/src/pages.rs', 'controls/page-count.lean')]
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
@@ -189,8 +191,8 @@ def execution_prompt(frozen_prompt, started_at, wall_seconds, finish_seconds):
     require(0 < finish_seconds < wall_seconds, 'reserve explicit client finishing time within the attempt deadline')
     deadline = started_at + wall_seconds
     return (f'Attempt clock (Unix seconds): start {started_at:.3f}; '
-        f'finish tools by {deadline - finish_seconds:.3f}; '
-        f'finish the response and session accounting by {deadline:.3f}.\n'
+        f'finish the model response and tools by {deadline - finish_seconds:.3f}; '
+        f'the collector saves session accounting by {deadline:.3f}.\n'
         'Use date +%s alongside necessary shell commands to check remaining time. '
         'Keep the final response concise.\n\n' +
         frozen_prompt.replace(TOOL_DEADLINE_MARKER, f'{deadline - finish_seconds:.3f}'))
@@ -240,8 +242,6 @@ def freeze_binaries(binaries, output, clients):
     companions = {}
     if 'codex' in clients:
         companions['codex-code-mode-host'] = binaries['codex'].resolve().parent / 'codex-code-mode-host'
-    if 'opencode2' in clients:
-        companions['opencode'] = binaries['opencode2'].resolve().parent / 'opencode'
     directory = output / 'bin'
     directory.mkdir(parents=True, exist_ok=False)
     captured = {}
@@ -267,7 +267,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
     if milestone in PROOF_STUDIES:
         expected_runtime |= {'fr_build', 'controls'}
-    if milestone in ALGORITHM_TASKS:
+    if milestone in ADMISSION_STUDIES:
         expected_runtime.add('admission')
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     clients = {profile['client'] for profile in proposed['profiles'].values()}
@@ -408,13 +408,13 @@ def freeze(inputs, binaries, runtime, output, milestone):
             value['formal_inputs'][task].update(
                 model_sha256=hashlib.sha256(prepared['model'].encode()).hexdigest(),
                 property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
-    if milestone in ALGORITHM_TASKS:
+    if milestone in ADMISSION_STUDIES:
         from .selected_guarded import contract
         from .algorithm_admission import server_packages, validate_receipts
         value['resource_monitor'] = contract()
         value['admission'] = validate_receipts(json.loads(runtime['admission'].read_text()), paths,
-            seeds['euclid']['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
-        if milestone == DELIVERY_STUDY:
+            seeds['page-count' if milestone == REPAIR_STUDY else 'euclid']['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
+        if milestone in {DELIVERY_STUDY, REPAIR_STUDY}:
             packages = subprocess.run([checkers['python']['path'], '-c',
                 'import importlib.metadata,json; print(json.dumps({"websockets":importlib.metadata.version("websockets")}))'],
                 capture_output=True, text=True, timeout=10)
@@ -491,7 +491,7 @@ def retain_result(project, output, report):
 
 
 def project_parent(plan_path, milestone, plan_sha256, attempt_id):
-    if milestone == DELIVERY_STUDY:
+    if milestone in {DELIVERY_STUDY, REPAIR_STUDY}:
         return plan_path.parent / 'projects' / attempt_id
     return Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + plan_sha256[:12]) / attempt_id
 
@@ -551,7 +551,7 @@ def attempt(plan_path, attempt_id):
             (binary_directory / 'fr').symlink_to(value['binaries']['fr']['path'])
             if milestone != DELIVERY_STUDY:
                 shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
-            if milestone in ALGORITHM_STUDIES:
+            if milestone in ALGORITHM_STUDIES | {REPAIR_STUDY}:
                 checking_inputs.update({str(path.relative_to(project)): hash_file(path)
                     for path in (project / '.agents/skills/fr').rglob('*') if path.is_file()})
         env = {key: os.environ[key] for key in ('HOME', 'PATH', 'LANG', 'CODEX_HOME', 'XDG_CONFIG_HOME',
@@ -596,7 +596,11 @@ def attempt(plan_path, attempt_id):
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
             checking_inputs['.fr/checks.json'] = hash_file(directory / 'checks.json')
             report['provided_checking_inputs'] = checking_inputs
-        if milestone == 'M3-facts':
+        if milestone == REPAIR_STUDY:
+            from .proof_feedback import install_repair_instruction
+            handout = install_repair_instruction(project, row['setup'])
+            checking_inputs['.fr/argument-repair.txt'] = hash_file(handout)
+        elif milestone == 'M3-facts':
             from .proof_feedback import install_declarations
             handout = install_declarations(project, row['setup'])
             checking_inputs['.fr/declarations.txt'] = hash_file(handout)
@@ -635,8 +639,8 @@ def attempt(plan_path, attempt_id):
         report['project'] = str(project)
         tasks.save(output / 'result.json', report)
         with (output / 'native.stdout').open('xb') as stdout, (output / 'native.stderr').open('xb') as stderr:
-            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started)
-            require(remaining > 0, 'attempt deadline expired during preparation')
+            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started) - value['client_finish_seconds']
+            require(remaining > 0, 'client deadline expired during preparation; preserve finishing time')
             process = bounded_run(argv, stdin, stdout, stderr, project, env=env, cwd=project,
                                   **{**LIMITS, 'wall_seconds': remaining,
                                      'transcript_bytes': LIMITS['transcript_bytes'] - initial_bytes})

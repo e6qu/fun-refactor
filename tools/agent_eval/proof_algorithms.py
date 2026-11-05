@@ -12,6 +12,7 @@ from . import selected_tasks as common
 from .selected_plan import ALGORITHM_STUDIES, ROOT, encoded, require
 
 DIRECTORY = Path('tests/agent-eval/proof-algorithms')
+PACKAGE_FILES = ('FrSpecs.lean', 'lakefile.toml', 'lake-manifest.json', 'lean-toolchain')
 SPEC = 'specs/FrSpecs/Euclid.lean'
 OBLIGATIONS = ('euclid_decreases', 'euclid_correct')
 DECLARATIONS = ('euclid_decreases', 'euclid', 'euclid_correct')
@@ -63,7 +64,8 @@ def prepare(binary, project, output, fixture):
     source = project / SPEC
     source.parent.mkdir(exist_ok=True)
     source.write_bytes(fixture.read_bytes())
-    (project / 'specs/FrSpecs.lean').write_bytes((fixture.parent / 'FrSpecs.lean').read_bytes())
+    for name in PACKAGE_FILES:
+        (project / 'specs' / name).write_bytes((fixture.parent / name).read_bytes())
     built = common.command(['lake', 'build'], project / 'specs', output / 'build.json')
     require(built['returncode'] == 0, 'the original executable algorithm must build with disclosed proof debt')
     goals = common.fr(binary, project, ['spec', 'goals', 'specs'], output / 'goals.json')

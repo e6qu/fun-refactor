@@ -78,6 +78,18 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
                 del delivery_rows['opencode2-kimi-k3/shared-skill']
                 with self.assertRaisesRegex(ValueError, 'every profile'):
                     admission.validate_receipts(delivery_rows, binaries, 'c' * 64, '12', admission.DELIVERY_STUDY, checkers)
+                repair_rows = {name + '/' + setup: {**row, 'study': admission.REPAIR_STUDY, 'setup': setup,
+                    'interactive_goal': True, 'argument_type_rejection': True, 'independent_patch_replay': True}
+                    for name, row in rows.items() if name != 'codex-luna-fast'
+                    for setup in ('shared-skill', 'argument-repair')}
+                admitted = admission.validate_receipts(repair_rows, binaries, 'c' * 64, '12', admission.REPAIR_STUDY, checkers)
+                self.assertEqual(len(admitted['profiles']), 4)
+                for field, value in (('interactive_goal', False), ('argument_type_rejection', False), ('session_accounting', False),
+                                     ('independent_patch_replay', False), ('client_sha256', 'stale')):
+                    changed = copy.deepcopy(repair_rows)
+                    changed['opencode2-glm-flash/argument-repair'][field] = value
+                    with self.subTest(repair_field=field), self.assertRaises(ValueError):
+                        admission.validate_receipts(changed, binaries, 'c' * 64, '12', admission.REPAIR_STUDY, checkers)
 
     def test_delivery_admission_uses_supplied_drafts_and_both_saved_edits(self):
         for setup in admission.delivery.SETUPS:
@@ -94,12 +106,19 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
         self.assertEqual(admission.server_packages(), {'websockets': '15.0.1'})
         with patch.object(admission.metadata, 'version', side_effect=admission.metadata.PackageNotFoundError('websockets')):
             with self.assertRaisesRegex(ValueError, 'Selected Python lacks'):
-                admission.native_python()
+                admission.native_python(admission.platform.python_version())
         with patch.object(admission.metadata, 'version', return_value='16.0'):
             with self.assertRaisesRegex(ValueError, 'hash-locked requirement'):
-                admission.native_python()
+                admission.native_python(admission.platform.python_version())
         with patch.object(admission.metadata, 'version', return_value='15.0.1'):
-            self.assertEqual(admission.native_python()['packages'], admission.server_packages())
+            self.assertEqual(admission.native_python(admission.platform.python_version())['packages'], admission.server_packages())
+
+    def test_python_pin_is_checked_before_package_inventory_and_native_work(self):
+        with patch.object(admission.platform, 'python_version', return_value='3.14.11'), \
+                patch.object(admission.metadata, 'version') as inventory:
+            with self.assertRaisesRegex(ValueError, 'Python differs from its explicit pin'):
+                admission.native_python('3.14.10')
+            inventory.assert_not_called()
 
 
 if __name__ == '__main__':

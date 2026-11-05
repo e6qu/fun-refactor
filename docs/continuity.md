@@ -26,12 +26,10 @@ reproductions pass with the pinned official 2.2.5 repair. The runner and native
 admission reject missing or duplicate usage. A new comparison must have fresh
 complete admission; the old receipts cannot authorize more calls.
 
-Continue on `improve/typed-division-guidance` for the next part of M3.
-The immediate task is a repeatable no-model diagnosis of the complete page-count
-claim. The original source, generated model, invalid-input branch, signed-64
-bounds and eleven-at-five example stay fixed. Start from the accepted manual
-reference, change one proof step per control, and check with the current fr build.
-An accepted reference is checked again after the rejection controls.
+PR #599 merged with passing CI. Continue on
+`improve/typed-proof-repair-comparison` for the next part of M3.
+The no-model diagnosis is complete. The original source, generated model,
+invalid-input branch, signed-64 bounds and eleven-at-five example stay fixed.
 
 The new `page-count-diagnosis` job in the algorithm workflow owns this check.
 The [reviewed control report](../tests/agent-eval/proof-page-count/typed-division-review.md)
@@ -43,9 +41,36 @@ control, never a new agent attempt or a replacement for an old failure.
 
 The review fixes a proposed instruction and prediction before another comparison:
 match each required proof argument to a named assumption after reading a type error,
-then check that step before searching again. No live execution plan is frozen. Do not launch the old unrun division-fact plan,
+then check that step before searching again. The
+[fresh eight-slot comparison](../tests/agent-eval/proof-argument-repair/README.md)
+tests only that instruction against the shared skill alone. Qualify the exact
+complete native workflow in all four profile/condition pairs, then freeze its
+inputs and admission receipts before any call. No live execution plan is frozen
+yet. Do not launch the old unrun division-fact plan,
 repeat a closed slot, lengthen the deadline or claim the proof-writing milestone
 complete from these controls. Keep the remaining M3 work in its milestone PR.
+
+The first complete local check used the shared-skill GLM setting with scripted
+replies. Proof checking, saving, package building and accounting passed, but patch
+validation exposed a mismatched protected-input format. Its peak also left less
+than the required 128 MiB client reserve. Both failures stay recorded privately;
+they are not live attempts. The controller format is corrected, and both new
+conditions pin one Lean compiler worker after a bounded same-proof probe reduced
+sampled memory by about 87 MiB. A phase review also found peaks in direct proof
+checking and saving. Fr now explicitly uses one compiler worker for those checks
+and newly generated package settings. Require fresh complete qualification before
+calls. Release 0.89.1 merged during validation. Main is integrated and the first
+release-matching replay passed. The direct-check fix changes native source again;
+refresh the affected current records and native tools before freezing inputs.
+
+The worker-matching project replay passed in run 41828853087. Linux algorithm
+qualification then caught a separate reconstruction error: it created an old
+interrupted project's package with the new template. The original package files
+are now explicit fixtures recovered from its recorded commit. A regression
+reproduces the exact closed-batch source hash and rejects a changed worker setting.
+The original outcomes stay fixed. Refresh hosted proof qualification after this
+controller fix; the successful Mac build in run 41828607812 has matching native
+source and can be verified from its exact build metadata.
 
 ## What the merged proof work established
 

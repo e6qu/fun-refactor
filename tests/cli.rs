@@ -409,7 +409,6 @@ fn a_long_unused_report_says_what_it_is_mostly_made_of() {
 
 #[test]
 fn what_unused_reports_can_be_given_to_delete() {
-    // The next command after `fr unused` is `fr delete`.
     let ws = Workspace::new(&[
         ("a/one.go", "package a\n\nfunc Shared() int {\n\treturn 1\n}\n"),
         (

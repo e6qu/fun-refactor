@@ -96,6 +96,43 @@ class AlgorithmChecks(unittest.TestCase):
             with self.assertRaises(ValueError):
                 algorithms.retained_submission(directory, prepared)
 
+    def test_original_package_snapshot_matches_the_closed_batch_source_exactly(self):
+        directory = ROOT / algorithms.DIRECTORY / 'interrupted-results'
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            paths = {algorithms.SPEC: 'Euclid.lean',
+                     **{'specs/' + name: name for name in algorithms.PACKAGE_FILES}}
+            for target, fixture in paths.items():
+                path = project / target;path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((directory / fixture).read_bytes());path.chmod(0o644)
+            prepared = {'original': common.sources(project)}
+            row, submitted = algorithms.retained_submission(directory, prepared)
+            self.assertTrue(submitted.is_file())
+            self.assertEqual(row['profile'], 'opencode2-kimi-k3')
+            configuration = project / 'specs/lakefile.toml'
+            configuration.write_text(configuration.read_text() + 'moreLeanArgs = ["-j1"]\n')
+            with self.assertRaisesRegex(ValueError, 'original algorithm source'):
+                algorithms.retained_submission(directory, {'original': common.sources(project)})
+
+    def test_retained_studies_use_their_exact_original_package_snapshot(self):
+        directory = ROOT / algorithms.DIRECTORY
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            paths = {algorithms.SPEC: 'Euclid.lean',
+                     **{'specs/' + name: name for name in algorithms.PACKAGE_FILES}}
+            for target, fixture in paths.items():
+                path = project / target
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((directory / 'retained-fixtures' / fixture).read_bytes())
+                path.chmod(0o644)
+            digest = hashlib.sha256(encoded(common.sources(project))).hexdigest()
+            for study in ('M3-algorithm-facts', 'M3-algorithm-presentation'):
+                summary = json.loads((directory / 'local-results' / study / 'summary.json').read_text())
+                self.assertEqual(digest, summary['task_source_sha256']['euclid'])
+            configuration = project / 'specs/lakefile.toml'
+            configuration.write_text(configuration.read_text() + 'moreLeanArgs = ["-j1"]\n')
+            self.assertNotEqual(hashlib.sha256(encoded(common.sources(project))).hexdigest(), digest)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -39,7 +39,7 @@ fn checked_outcomes_retain_failures_and_replay_independent_behavior() {
     python(&[
         "tools/outcome-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-11-03-proof-delivery-remaining-checked-outcomes",
+        "tests/agent-eval/results/2026-11-04-focused-proof-imports-checked-outcomes",
     ]);
 }
 
@@ -239,6 +239,6 @@ fn consumer_scopes_retain_exact_discovery_and_replay_checked_delivery() {
     python(&[
         "tools/change-scope-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-11-03-release-088-scope-inputs-change-scope",
+        "tests/agent-eval/results/2026-11-04-focused-proof-imports-change-scope",
     ]);
 }

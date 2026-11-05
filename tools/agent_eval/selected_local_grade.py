@@ -9,7 +9,7 @@ import tempfile
 
 from . import selected_grading as grading
 from . import selected_local as local
-from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, REPAIR_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 CORE_FILES = (
     'tools/agent_eval/selected_tasks.py', 'tools/agent_eval/comparison_grade.py',
@@ -57,6 +57,9 @@ def core_digest(milestone):
             paths += [ROOT / TASK_PATHS[milestone], feedback / 'checkers.json', ROOT / PROFILE_PATHS[milestone]]
             paths += [path for path in (feedback / 'fixtures').rglob('*') if path.is_file()]
             paths += list((feedback / 'controls').glob('*.lean'))
+            if milestone == REPAIR_STUDY:
+                paths += [ROOT / 'tools/agent_eval' / name for name in
+                          ('algorithm_admission.py', 'selected_guarded.py', 'test_argument_repair.py')]
         elif milestone in ALGORITHM_TASKS:
             directory = ROOT / CASE_DIRECTORIES['M3-algorithm-facts']
             paths += [ROOT / 'tools/agent_eval/proof_algorithms.py', ROOT / 'tools/agent_eval/algorithm_guidance.py',
@@ -66,9 +69,11 @@ def core_digest(milestone):
                       ROOT / '.github/workflows/grade-algorithms.yml', ROOT / '.github/workflows/refinement-evidence.yml',
                       directory / 'requirements.json', directory / 'guidance.json', directory / 'declarations.txt']
             paths += list((directory / 'controls').glob('*.lean'))
-            paths += list((directory / 'fixtures').glob('*.lean'))
+            paths += [path for path in (directory / 'fixtures').iterdir() if path.is_file()]
             paths += list((directory / 'reserved').glob('*.lean'))
             paths += [directory / 'interrupted-results/summary.json']
+            paths += [directory / 'interrupted-results' / name for name in
+                      ('lakefile.toml', 'lake-manifest.json', 'lean-toolchain')]
             paths += list((directory / 'interrupted-results').glob('*.lean'))
             paths += list((directory / 'interrupted-results/patches').glob('*.patch'))
     if milestone == DELIVERY_STUDY:
@@ -91,6 +96,9 @@ def verify(summary, milestone):
     rows = summary['attempts']
     require(len(rows) == len(expected['attempts']), 'public summary must retain all scheduled slots')
     for supplied, planned in zip(rows, expected['attempts']):
+        if milestone == REPAIR_STUDY:
+            from .proof_feedback import validate_repair_observations
+            validate_repair_observations(supplied['argument_repair_observations'], supplied['total_seconds'])
         require(all(supplied[key] == planned[key] for key in ('id', 'profile', 'task', 'setup', 'repetition')),
                 'public attempt identity or order differs')
         require(supplied['native_status'] in {'unstarted', 'completed', 'failed'}, 'finish recording interrupted work')

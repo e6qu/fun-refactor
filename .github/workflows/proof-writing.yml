@@ -305,7 +305,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}
         run: >-
-          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          python3 -B -m agent_eval.proof_writing_artifact --build-kind numeric-models --run "$M3_TOOL_RUN"
           --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-native-build.json"
       - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
       - name: Use scripted replies in network-free native clients
@@ -437,7 +437,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}
         run: >-
-          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          python3 -B -m agent_eval.proof_writing_artifact --build-kind numeric-models --run "$M3_TOOL_RUN"
           --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-sdk-build.json"
       - run: chmod +x target/debug/fr
       - name: Find the proof checker in its source file with fr
@@ -506,7 +506,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}
         run: >-
-          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          python3 -B -m agent_eval.proof_writing_artifact --build-kind numeric-models --run "$M3_TOOL_RUN"
           --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-private-build.json"
       - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
       - name: Exercise eighteen positive and negative patch deliveries without model calls
@@ -632,7 +632,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}
         run: >-
-          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          python3 -B -m agent_eval.proof_writing_artifact --build-kind numeric-models --run "$M3_TOOL_RUN"
           --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-case-build.json"
       - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
       - name: Check the fixed claim, tactic diagnostics and exact proof delivery

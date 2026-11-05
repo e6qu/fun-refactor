@@ -40,7 +40,8 @@ def prepare(root, study):
             'retain every planned fresh session')
     paths = [root / CLIENT_DIRECTORY / 'clients.json', root / DIRECTORY.parent / 'proof-writing/profiles.json']
     paths += [path for path in (root / DIRECTORY).rglob('*') if path.is_file()
-              and path.suffix in {'.json', '.lean', '.txt'} and 'local-results' not in path.parts]
+              and (path.suffix in {'.json', '.lean', '.txt', '.toml'} or path.name == 'lean-toolchain')
+              and 'local-results' not in path.parts]
     bindings = {str(path.relative_to(root)): common.digest(path) for path in sorted(paths)}
     result = {'milestone': study, 'live_calls_enabled': False, 'profiles': profiles, 'clients': clients,
               'requirements': {**requirements, 'tasks': {'euclid': {'request': request()}},

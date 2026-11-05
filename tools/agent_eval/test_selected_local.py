@@ -19,6 +19,51 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_uncooperative_client_stops_before_collection_deadline(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            row = {'id': 'bounded-client', 'profile': 'client', 'task': 'fixture', 'setup': 'files'}
+            schedule = {'milestone': 'M1', 'attempts': [row], 'profiles': {'client': {'client': 'codex'}}}
+            checkers = {name: {'path': sys.executable, 'sha256': local.hash_file(Path(sys.executable))}
+                        for name in ('python', 'rustc', 'rustdoc', 'lean')}
+            value = {'schedule': schedule, 'live_calls_enabled': True, 'source': {'native_inputs': {}},
+                     'implementation': {}, 'limits': local.LIMITS, 'client_finish_seconds': 10,
+                     'public_check_environment': local.PUBLIC_CHECK_ENVIRONMENT,
+                     'binaries': {}, 'components': {}, 'checkers': checkers,
+                     'seeds': {'fixture': {'archive': 'fixture.tar', 'receipt': {}}},
+                     'prompts': {'bounded-client': 'Finish before the deadline.'}}
+            value['sha256'] = hashlib.sha256(local.encoded(value)).hexdigest()
+            plan = root / 'plan.json'
+            plan.write_text(json.dumps(value))
+            clock = [100.]
+            def unpack(archive, receipt, project):
+                (project / '.git/info').mkdir(parents=True)
+                clock[0] = 105.
+            def native(command, prompt, stdout, stderr, project, **settings):
+                self.assertEqual(settings['wall_seconds'], 135.)
+                clock[0] += settings['wall_seconds']
+                return {'exit_code': 124, 'stop_reason': 'wall_seconds'}
+            with mock.patch.object(local.sys, 'platform', 'darwin'), \
+                    mock.patch.object(local, 'identity', return_value={'native_inputs': {}}), \
+                    mock.patch.object(local, 'prepare', return_value=schedule), \
+                    mock.patch.object(local, 'implementation_bindings', return_value={}), \
+                    mock.patch.object(local, 'project_parent', return_value=root / 'work'), \
+                    mock.patch.object(local, 'unpack', side_effect=unpack), \
+                    mock.patch.object(local.tasks.comparison_grade.BASE, 'initialize'), \
+                    mock.patch.object(local, 'elapsed_time', side_effect=lambda: clock[0]), \
+                    mock.patch.object(local.shutil, 'which', return_value=None), \
+                    mock.patch.object(local, 'invocation', return_value=(['client'], b'')), \
+                    mock.patch.object(local, 'bounded_run', side_effect=native), \
+                    mock.patch.object(local, 'retain_result') as retain:
+                result = local.attempt(plan, row['id'])
+            self.assertEqual(result['status'], 'failed')
+            self.assertEqual(result['process']['stop_reason'], 'wall_seconds')
+            self.assertEqual(result['elapsed_seconds'], 140.)
+            self.assertFalse(result['complete_attempt_deadline_missed'])
+            retain.assert_called_once()
+            saved = json.loads((root / 'attempts/bounded-client/result.json').read_text())
+            self.assertEqual(saved['process'], result['process'])
+
     def test_delivery_projects_and_private_records_share_the_explicit_persistent_root(self):
         plan = Path('/project/.local-agent-runs/delivery/plan.json')
         parent = local.project_parent(plan, 'M3-delivery', 'a' * 64, 'fixed-slot')
@@ -42,8 +87,7 @@ class SelectedLocalTests(unittest.TestCase):
             assets = {
                 'codex': '#!/bin/sh\nprintf "codex-cli 0.164.0\\n"\n',
                 'codex-code-mode-host': '#!/bin/sh\nexit 0\n',
-                'opencode2': '#!/bin/sh\nexec "$(dirname "$0")/opencode" "$@"\n',
-                'opencode': '#!/bin/sh\nprintf "opencode v2.0.32\\n"\n',
+                'opencode2': '#!/bin/sh\nprintf "opencode v2.2.5\\n"\n',
                 'fr': '#!/bin/sh\nprintf "fr fixture\\n"\n',
             }
             for name, content in assets.items():
@@ -52,18 +96,19 @@ class SelectedLocalTests(unittest.TestCase):
                 path.chmod(0o755)
             paths, components = local.freeze_binaries(
                 {name: installed / name for name in ('fr', 'codex', 'opencode2')}, root / 'study', {'codex', 'opencode2'})
+            self.assertEqual(set(components), {'codex-code-mode-host'})
             shutil.rmtree(installed)
             for name, entry in {**paths, **components}.items():
                 self.assertEqual(Path(entry['path']).read_text(), assets[name])
                 self.assertEqual(local.hash_file(Path(entry['path'])), entry['sha256'])
                 self.assertTrue(Path(entry['path']).is_relative_to(root / 'study'))
             result = subprocess.run([paths['opencode2']['path'], '--version'], capture_output=True, check=True)
-            self.assertEqual(result.stdout, b'opencode v2.0.32\n')
+            self.assertEqual(result.stdout, b'opencode v2.2.5\n')
 
     def test_corrupted_frozen_executable_copy_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for name in ('fr', 'codex', 'codex-code-mode-host', 'opencode2', 'opencode'):
+            for name in ('fr', 'codex', 'codex-code-mode-host', 'opencode2'):
                 (root / name).write_bytes(name.encode())
             copyfile = shutil.copyfile
             def corrupt(source, target):
@@ -273,8 +318,8 @@ class SelectedLocalTests(unittest.TestCase):
     def test_execution_clock_keeps_preparation_inside_the_original_deadline(self):
         prompt = local.execution_prompt('Frozen request.', started_at=1000.125,
                                         wall_seconds=150, finish_seconds=10)
-        self.assertIn('start 1000.125; finish tools by 1140.125', prompt)
-        self.assertIn('response and session accounting by 1150.125', prompt)
+        self.assertIn('start 1000.125; finish the model response and tools by 1140.125', prompt)
+        self.assertIn('collector saves session accounting by 1150.125', prompt)
         self.assertTrue(prompt.endswith('Frozen request.'))
         for finishing in (0, 150, 180):
             with self.assertRaisesRegex(ValueError, 'within the attempt deadline'):

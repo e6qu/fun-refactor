@@ -228,15 +228,16 @@ class ProofFeedbackTests(unittest.TestCase):
                     self.assertRaisesRegex(ValueError, 'argument-type error'):
                 feedback.initial_check('/fr', root, {'target': 'spec::fixed'}, {}, output, 20)
 
-    def test_freeze_captures_only_selected_clients_and_their_companions(self):
+    def test_freeze_captures_single_file_opencode_without_other_clients(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for name in ('fr', 'opencode2', 'opencode'):
+            for name in ('fr', 'opencode2'):
                 (root / name).write_bytes(name.encode())
             binaries, components = local.freeze_binaries(
                 {name: root / name for name in ('fr', 'opencode2')}, root / 'capture', {'opencode2'})
             self.assertEqual(set(binaries), {'fr', 'opencode2'})
-            self.assertEqual(set(components), {'opencode'})
+            self.assertEqual(components, {})
+            self.assertEqual({path.name for path in (root / 'capture/bin').iterdir()}, {'fr', 'opencode2'})
 
     def test_controller_charges_initial_check_to_both_conditions_and_changes_only_visibility(self):
         prompts = {}
@@ -244,7 +245,10 @@ class ProofFeedbackTests(unittest.TestCase):
                 ('M3-feedback', 'self-check', 'none'), ('M3-feedback', 'supplied-feedback', 'none'),
                 ('M3-construction', 'fr', 'none'), ('M3-page-count', 'fr', 'none'),
                 ('M3-facts', 'select-facts', 'none'), ('M3-facts', 'supplied-declarations', 'none'),
-                ('M3-facts', 'supplied-declarations', 'edit'), ('M3-facts', 'select-facts', 'delete')):
+                ('M3-facts', 'supplied-declarations', 'edit'), ('M3-facts', 'select-facts', 'delete'),
+                (plan.REPAIR_STUDY, 'shared-skill', 'none'), (plan.REPAIR_STUDY, 'argument-repair', 'none'),
+                (plan.REPAIR_STUDY, 'argument-repair', 'edit'), (plan.REPAIR_STUDY, 'shared-skill', 'delete'),
+                (plan.REPAIR_STUDY, 'argument-repair', 'skill-edit')):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary).resolve(); original = root / 'original'; original.mkdir()
                 (original / 'source.rs').write_text('pub fn quotient(a:i64,b:i64)->i64 { a / b }\n')
@@ -279,17 +283,22 @@ class ProofFeedbackTests(unittest.TestCase):
                     return initial, len(initial.encode())
 
                 def native(argv, stdin, stdout, stderr, workspace, **kwargs):
-                    self.assertEqual(kwargs['wall_seconds'], 147 if milestone == 'M3-feedback' else 150)
+                    self.assertEqual(kwargs['wall_seconds'], 137 if milestone == 'M3-feedback' else 140)
                     self.assertEqual(kwargs['transcript_bytes'], local.LIMITS['transcript_bytes'] -
                                      (len(initial.encode()) if milestone == 'M3-feedback' else 0))
                     prompts[condition] = argv[-1]
-                    if milestone == 'M3-facts':
-                        handout = workspace / '.fr/declarations.txt'
-                        self.assertEqual('Int.tdiv_nonneg' in handout.read_text(), condition == 'supplied-declarations')
+                    if milestone in {'M3-facts', plan.REPAIR_STUDY}:
+                        handout = workspace / ('.fr/declarations.txt' if milestone == 'M3-facts' else '.fr/argument-repair.txt')
+                        if milestone == 'M3-facts':
+                            self.assertEqual('Int.tdiv_nonneg' in handout.read_text(), condition == 'supplied-declarations')
+                        else:
+                            self.assertEqual('argument-type error' in handout.read_text(), condition == 'argument-repair')
                         if handout_change == 'edit':
                             handout.write_text('changed\n')
                         elif handout_change == 'delete':
                             handout.unlink()
+                        elif handout_change == 'skill-edit':
+                            (workspace / '.agents/skills/fr/SKILL.md').write_text('changed\n')
                     session = argv[argv.index('--session') + 1]
                     stdout.write((json.dumps({'type': 'step_finish', 'sessionID': session,
                         'part': {'tokens': {}, 'cost': 0}}) + '\n').encode())
@@ -317,14 +326,16 @@ class ProofFeedbackTests(unittest.TestCase):
                 else:
                     self.assertNotIn('initial_check_seconds', record)
                 self.assertEqual(record['elapsed_seconds'], 8 if milestone == 'M3-feedback' else 5)
-                self.assertEqual(record['checking_input_changes'],
-                                 [] if handout_change == 'none' else ['.fr/declarations.txt'])
-                if milestone == 'M3-facts':
-                    self.assertIn('.fr/declarations.txt', record['provided_checking_inputs'])
+                expected_path = ('.agents/skills/fr/SKILL.md' if handout_change == 'skill-edit' else
+                                 '.fr/argument-repair.txt' if milestone == plan.REPAIR_STUDY else '.fr/declarations.txt')
+                self.assertEqual(record['checking_input_changes'], [] if handout_change == 'none' else [expected_path])
+                if milestone in {'M3-facts', plan.REPAIR_STUDY}:
+                    self.assertIn(expected_path, record['provided_checking_inputs'])
                     self.assertEqual(record['status'], 'completed' if handout_change == 'none' else 'failed')
                 shutil.rmtree(Path(record['project']).parent.parent)
         self.assertEqual(prompts['self-check'], prompts['supplied-feedback'].split('\n\nInitial fr rejection report')[0])
         self.assertEqual(prompts['select-facts'], prompts['supplied-declarations'])
+        self.assertEqual(prompts['shared-skill'], prompts['argument-repair'])
 
 
 if __name__ == '__main__':

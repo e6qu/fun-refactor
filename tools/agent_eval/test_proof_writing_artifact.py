@@ -19,7 +19,7 @@ class ArtifactIdentity(unittest.TestCase):
             artifact.command(['gh', 'api', 'repos/example/project/actions/runs/123'])
         self.assertEqual(run.call_count, 1)
 
-    def run_verification(self, *, changed, conclusions):
+    def run_verification(self, *, changed, conclusions, build_kind):
         def command(argv):
             if argv[0] == 'gh':
                 if '/jobs?' in argv[-1]:
@@ -27,7 +27,8 @@ class ArtifactIdentity(unittest.TestCase):
                     self.assertIn('--paginate', argv)
                     self.assertIn('--slurp', argv)
                     return json.dumps([{'jobs': [{'name': 'Require every proof control', 'conclusion': 'success'}]},
-                                       {'jobs': [{'name': 'Check early returns and numeric proof models', 'conclusion': value}
+                                       {'jobs': [{'name': {'numeric-models': 'Check early returns and numeric proof models',
+                                                                'algorithms': 'Reject incomplete proofs of the fixed GCD implementation'}[build_kind], 'conclusion': value}
                                                  for value in conclusions]}])
                 return json.dumps({'head_sha': 'a' * 40, 'head_repository': {'full_name': 'example/project'}})
             if 'fetch' in argv:
@@ -40,25 +41,32 @@ class ArtifactIdentity(unittest.TestCase):
             binary.write_bytes(b'controlled test executable')
             with mock.patch.object(artifact, 'command', side_effect=command), \
                  mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'example/project'}):
-                return artifact.verify('123', binary)
+                return artifact.verify('123', binary, build_kind)
 
     def test_identical_native_inputs_and_passing_tests_allow_explicit_reuse(self):
-        result = self.run_verification(changed=False, conclusions=['success'])
+        result = self.run_verification(changed=False, conclusions=['success'], build_kind='numeric-models')
         self.assertTrue(result['passed'])
         self.assertEqual(result['run'], '123')
         self.assertEqual(result['live_model_calls'], 0)
 
+    def test_algorithm_artifact_needs_its_own_passing_builder(self):
+        result = self.run_verification(changed=False, conclusions=['success'], build_kind='algorithms')
+        self.assertTrue(result['passed'])
+        for conclusions in (['failure'], ['success', 'failure']):
+            with self.assertRaisesRegex(ValueError, 'must pass'):
+                self.run_verification(changed=False, conclusions=conclusions, build_kind='algorithms')
+
     def test_changed_native_inputs_require_a_new_build(self):
         with self.assertRaisesRegex(ValueError, 'native fr inputs changed'):
-            self.run_verification(changed=True, conclusions=['success'])
+            self.run_verification(changed=True, conclusions=['success'], build_kind='numeric-models')
 
     def test_failed_tests_cannot_qualify_an_artifact(self):
         with self.assertRaisesRegex(ValueError, 'must pass'):
-            self.run_verification(changed=False, conclusions=['failure'])
+            self.run_verification(changed=False, conclusions=['failure'], build_kind='numeric-models')
 
     def test_multiple_builder_attempts_cannot_select_an_older_success(self):
         with self.assertRaisesRegex(ValueError, 'must pass'):
-            self.run_verification(changed=False, conclusions=['success', 'failure'])
+            self.run_verification(changed=False, conclusions=['success', 'failure'], build_kind='numeric-models')
 
 
 if __name__ == '__main__':

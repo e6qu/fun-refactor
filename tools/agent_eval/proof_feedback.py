@@ -5,12 +5,15 @@ import json
 import math
 import os
 from pathlib import Path
+import shlex
+import shutil
+import re
 import subprocess
 import tempfile
 
 from . import proof_writing_tasks as proof
 from . import selected_tasks as common
-from .selected_plan import PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, prepare, require
+from .selected_plan import PROOF_DIAGNOSTICS, REPAIR_STUDY, CASE_DIRECTORIES, ROOT, encoded, prepare, require
 
 DIRECTORY = Path('tests/agent-eval/proof-feedback')
 TASK = 'division-repair'
@@ -20,7 +23,7 @@ check = proof.check
 
 def case_details(milestone):
     require(milestone in PROOF_DIAGNOSTICS, 'select the explicit small proof study')
-    if milestone == 'M3-page-count':
+    if milestone in {'M3-page-count', REPAIR_STUDY}:
         entry = proof.CASES['page-count']
         return {'directory': CASE_DIRECTORIES[milestone], 'task': 'page-count', 'source': entry['path'],
                 'fixture': None, 'property': entry['property'], 'draft': None,
@@ -50,7 +53,7 @@ def case_details(milestone):
 
 
 def property_for(task, milestone):
-    if milestone == 'M3-page-count':
+    if milestone in {'M3-page-count', REPAIR_STUDY}:
         return proof.property_for('page-count', task)
     details = case_details(milestone)
     a, b = proof.variable('a'), proof.variable('b')
@@ -64,7 +67,7 @@ def property_for(task, milestone):
 
 
 def prepare_inputs(binary, project, output, milestone):
-    if milestone == 'M3-page-count':
+    if milestone in {'M3-page-count', REPAIR_STUDY}:
         return proof.prepare('page-count', binary, project, output)
     details = case_details(milestone)
     require(not project.exists(), 'prepare the diagnostic in a new project')
@@ -108,7 +111,7 @@ def prepare_inputs(binary, project, output, milestone):
 
 
 def prompt(checkers, milestone):
-    if milestone == 'M3-page-count':
+    if milestone in {'M3-page-count', REPAIR_STUDY}:
         request = prepare(ROOT, milestone)['requirements']['tasks']['page-count']['request']
         return (request + '\n\nTactics are proof steps. Read all parts of the fixed claim before writing a draft. '
                 'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
@@ -142,6 +145,60 @@ def install_declarations(project, condition):
                'Select the needed current declarations from the installed Lean standard library.\n')
     path.write_text(content)
     return path
+
+
+def install_repair_instruction(project, condition):
+    require(condition in {'shared-skill', 'argument-repair'}, 'choose the argument repair condition explicitly')
+    path = project / '.fr/argument-repair.txt'
+    require(not path.exists(), 'do not overwrite a supplied repair instruction')
+    path.parent.mkdir(exist_ok=True)
+    path.write_text((ROOT / CASE_DIRECTORIES[REPAIR_STUDY] / 'fixtures/argument-repair.txt').read_text()
+                    if condition == 'argument-repair' else 'Use the shared fr skill to write and check the proof.\n')
+    return path
+
+
+def install_repair_admission(project, condition, lean_root, prepared):
+    """Scripted controls receive reference drafts; live attempts never receive them."""
+    from .page_count_diagnosis import drafts, REFERENCE
+    from . import selected_local as local
+    shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
+    handout = install_repair_instruction(project, condition)
+    directory = project / '.fr'
+    (directory / 'admission-target.txt').write_text(prepared['target'])
+    (directory / 'admission-start.lean').write_text('skip\n')
+    (directory / 'admission-reference.lean').write_text(REFERENCE.read_text())
+    (directory / 'admission-bad.lean').write_text(drafts(REFERENCE.read_text())['integer-instead-of-proof'])
+    common.save(directory / 'checks.json', {'schema': 1, 'checks': [{'name': 'lean',
+        'argv': [str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail'], 'cwd': '.',
+        'timeout_seconds': 120, 'covers': ['fixed Lean theorem without proof gaps']}]})
+    paths = [handout, directory / 'checks.json', *(project / '.agents/skills/fr').rglob('*')]
+    return {str(path.relative_to(project)): {'sha256': local.hash_file(path), 'mode': path.stat().st_mode & 0o7777}
+            for path in paths if path.is_file()}
+
+
+def repair_admission_script(lean_root, search_path, condition):
+    require(condition in {'shared-skill', 'argument-repair'}, 'admit the explicit repair condition')
+    from .algorithm_admission import MARKER
+    lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
+             'cat .agents/skills/fr/SKILL.md .fr/argument-repair.txt > /dev/null',
+             'proof_target=$(cat .fr/admission-target.txt)',
+             'fr --json spec proof-state "$proof_target" --from .fr/admission-start.lean --at 1:5 --token-limit 4096 --timeout-seconds 30 > .fr/admission-state.json',
+             shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-state.json")); '
+                 'assert r["goals"] and r["acceptance"] == "not-checked"']),
+             'fr --json spec proof-check "$proof_target" --from .fr/admission-bad.lean --token-limit 4096 > .fr/admission-rejected.json',
+             shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-rejected.json")); '
+                'assert r["passed"] is False and r["receipt"] is None; '
+                'assert any(d["draft_location"] and "Int" in str(d["context"]) '
+                'and "0 ≤" in str(d["context"]) for d in r["diagnostics"])'])]
+    for operation, field in [('proof-check', 'passed'), ('prove', 'applied')]:
+        report = '.fr/admission-' + operation + '.json'
+        lines += ['fr --json spec ' + operation + ' "$proof_target" --from .fr/admission-reference.lean ' +
+                  ('--token-limit 4096' if operation == 'proof-check' else '--write') + ' > ' + report,
+                  shlex.join(['python3', '-c', 'import json; assert json.load(open(' + repr(report) + '))[' + repr(field) + '] is True'])]
+    lines += [shlex.join([str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail']) +
+              ' > .fr/admission-package.log 2>&1', 'git diff --binary HEAD > change.patch',
+              'test -s change.patch', 'printf ' + shlex.quote(MARKER + '\n')]
+    return '\n'.join(lines) + '\n'
 
 
 def qualify_declarations(output):
@@ -189,10 +246,20 @@ def validate_controls(value, milestone):
             'study', rejection, 'native_exchanges', 'controls', 'private', 'fr_sha256', 'core_checker_sha256'}
     if milestone == 'M3-facts':
         fields |= {'declarations_sha256', 'handout_changes_rejected'}
+    if milestone == REPAIR_STUDY:
+        fields |= {'repair_instruction_sha256', 'handout_changes_rejected', 'argument_type_error_rejected',
+                   'lean_arguments', 'lean_imports', 'run_attempt'}
     require(value['study'] == milestone and set(value) == fields, 'diagnostic controls need their exact declared fields')
     if milestone == 'M3-facts':
         require(value['declarations_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] / 'fixtures/declarations.txt')
                 and value['handout_changes_rejected'] is True, 'qualify the exact declarations and protected handout')
+    if milestone == REPAIR_STUDY:
+        require(value['repair_instruction_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] /
+                'fixtures/argument-repair.txt') and value['handout_changes_rejected'] is True and
+                value['argument_type_error_rejected'] is True and value['lean_arguments'] == ['-j1'] and
+                value['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'] and
+                type(value['run_attempt']) is int and value['run_attempt'] == 1,
+                'qualify the exact repair instruction and protected handout')
     expected = {variant: {'status': 'passed', 'accepted': variant == 'reference'} for variant in VARIANTS}
     require(value['passed'] is True and value['live_model_calls'] == 0 and value['controls'] == expected,
             'all seven independent diagnostic patch controls must pass')
@@ -239,17 +306,42 @@ def controls(binary, output, native, milestone):
     if milestone == 'M3-facts':
         result.update(declarations_sha256=qualify_declarations(output), handout_changes_rejected=True)
         common.save(output / 'controls.json', result)
+    if milestone == REPAIR_STUDY:
+        from .page_count_diagnosis import drafts, REFERENCE
+        bad = output / 'argument-type-error.lean'
+        bad.write_text(drafts(REFERENCE.read_text())['integer-instead-of-proof'])
+        rejected = common.fr(binary, original, ['spec', 'proof-check', prepared['target'], '--from',
+                            str(bad.resolve()), '--token-limit', '4096'], output / 'argument-type-error.json')
+        require(rejected['passed'] is False and rejected['receipt'] is None and
+                any(d['draft_location'] and 'Int' in str(d['context']) and '0 ≤' in str(d['context'])
+                    for d in rejected['diagnostics']), 'require the mapped actual and expected argument types')
+        for condition in prepare(ROOT, milestone)['requirements']['setups']:
+            project = output / ('handout-' + condition);project.mkdir()
+            handout = install_repair_instruction(project, condition)
+            protected = {'.fr/argument-repair.txt': common.digest(handout)}
+            require(local.checking_input_changes(project, protected) == [], 'clean repair handout changed')
+            handout.write_text('altered\n')
+            require(local.checking_input_changes(project, protected) == ['.fr/argument-repair.txt'],
+                    'reject changed repair handouts')
+            handout.unlink()
+            require(local.checking_input_changes(project, protected) == ['.fr/argument-repair.txt'],
+                    'reject deleted repair handouts')
+        result.update(argument_type_error_rejected=True, lean_arguments=prepared['lean_arguments'],
+                      lean_imports=prepared['lean_imports'], run_attempt=int(os.environ['GITHUB_RUN_ATTEMPT']),
+                      repair_instruction_sha256=common.digest(ROOT / CASE_DIRECTORIES[milestone] /
+                      'fixtures/argument-repair.txt'), handout_changes_rejected=True)
+        common.save(output / 'controls.json', result)
     for variant in VARIANTS:
         candidate = output / ('candidate-' + variant)
         common.checkout(original, candidate)
         if variant in {'reference', 'changed-source', 'missing-patch', 'wrong-patch'}:
-            tactics = (ROOT / proof.DIRECTORY / 'controls/page-count.lean' if milestone == 'M3-page-count' else
+            tactics = (ROOT / proof.DIRECTORY / 'controls/page-count.lean' if milestone in {'M3-page-count', REPAIR_STUDY} else
                        ROOT / details['directory'] / 'controls/reference.lean')
             common.fr(binary, candidate, ['spec', 'prove', prepared['target'], '--from', str(tactics), '--write'],
                       output / (variant + '-write.json'))
         if variant == 'changed-source':
             source = candidate / prepared['source']
-            operator = ' / ' if milestone in {'M3-feedback', 'M3-page-count', 'M3-facts'} else ' * '
+            operator = ' / ' if milestone in {'M3-feedback', 'M3-page-count', 'M3-facts', REPAIR_STUDY} else ' * '
             require(source.read_text().count(operator) == 1, 'change exactly the source arithmetic operator')
             source.write_text(source.read_text().replace(operator, ' + ', 1))
         if variant == 'changed-claim':
@@ -306,12 +398,15 @@ def outcomes(rows, milestone):
                 usable = usable and validity == 'valid' and not row['collection_error_recorded'] and not row['checking_input_changes']
                 usable = usable and row['stop_reason'] in {None, 'wall_seconds'} and row['suspended_seconds'] < 1
                 if row['independent_outcome'] == 'passed':
+                    if milestone == REPAIR_STUDY:
+                        require(row['reported_usage_complete'] is True and row['client_model_recorded'] is True,
+                                'incomplete native accounting cannot count as complete success')
                     require(row['native_status'] == 'completed' and row['stop_reason'] is None and
                             row['complete_attempt_deadline_missed'] is False and row['total_seconds'] <= 150 and
                             not row['checking_input_changes'] and not row['collection_error_recorded'] and
                             row['independent_check']['patch_accepted'] is True,
                             'a timed-out diagnostic remains failed even if its patch passes')
-                    if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+                    if milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
                         require(construction_checks_passed(row), 'unobserved construction checks remain failed')
             counts[condition] = sum(row['independent_outcome'] == 'passed' for row in selected)
         result[profile] = {'accepted': counts, 'execution_usable': usable}
@@ -319,7 +414,7 @@ def outcomes(rows, milestone):
 
 
 def decisions(rows, milestone):
-    require(milestone in {'M3-feedback', 'M3-facts'}, 'choose the explicit two-condition diagnostic')
+    require(milestone in {'M3-feedback', 'M3-facts', REPAIR_STUDY}, 'choose the explicit two-condition diagnostic')
     result = outcomes(rows, milestone)
     schedule = prepare(ROOT, milestone)
     control, supplied = schedule['requirements']['setups']
@@ -332,6 +427,64 @@ def decisions(rows, milestone):
             decision = 'Repair or clarify experiment execution before interpreting these results'
         row['decision'] = decision
     return result
+
+
+def validate_repair_observations(value, total_seconds):
+    require(isinstance(value, dict) and set(value) ==
+            {'first_argument_type_error', 'next_action', 'next_proof_check'},
+            'review the first mapped argument error, next action and next check separately')
+    error, action, checked = (value[name] for name in ('first_argument_type_error', 'next_action', 'next_proof_check'))
+    if error is None:
+        require(action is None and checked is None, 'no argument error means the repair mechanism is unobserved')
+        return 'unobserved'
+    require(isinstance(error, dict) and set(error) == {'seconds', 'diagnostic_sha256', 'summary'},
+            'identify the first mapped argument error')
+    records = [(error, 'diagnostic_sha256')]
+    if action is not None:
+        require(isinstance(action, dict) and set(action) == {'seconds', 'kind', 'summary'} and
+                action['kind'] in {'read-diagnostic', 'edit', 'proof-check', 'theorem-search', 'other'},
+                'describe the next actual action')
+        records.append((action, None))
+    if checked is not None:
+        require(action is not None and isinstance(checked, dict) and set(checked) ==
+                {'seconds', 'report_sha256', 'argument_mismatch_fixed', 'passed', 'theorem_search_before_check'} and
+                all(type(checked[key]) is bool for key in
+                    ('argument_mismatch_fixed', 'passed', 'theorem_search_before_check')),
+                'record the next check separately from whole-proof success')
+        require(action['kind'] != 'theorem-search' or checked['theorem_search_before_check'],
+                'do not hide a theorem search before the next check')
+        records.append((checked, 'report_sha256'))
+    previous = 0
+    for row, digest in records:
+        seconds = row['seconds']
+        require(type(seconds) in {int, float} and math.isfinite(seconds) and previous <= seconds <= total_seconds,
+                'observations must follow the actual attempt order')
+        previous = seconds
+        if digest:
+            require(isinstance(row[digest], str) and re.fullmatch('[0-9a-f]{64}', row[digest]),
+                    'bind the private diagnostic or proof-check report')
+        if 'summary' in row:
+            require(isinstance(row['summary'], str) and 0 < len(row['summary']) <= 240 and '\n' not in row['summary'],
+                    'publish a concise reviewed observation, not a raw record')
+    return ('met' if checked is not None and checked['argument_mismatch_fixed'] and
+            not checked['theorem_search_before_check'] else 'not-met')
+
+
+def repair_decision(rows):
+    result = decisions(rows, REPAIR_STUDY)
+    for profile, outcome in result.items():
+        outcome['mechanism'] = {}
+        for condition in ('shared-skill', 'argument-repair'):
+            counts = {'met': 0, 'not-met': 0, 'unobserved': 0}
+            for row in rows:
+                if row['profile'] == profile and row['setup'] == condition:
+                    observation = validate_repair_observations(row['argument_repair_observations'], row['total_seconds'])
+                    counts[observation] += 1
+            outcome['mechanism'][condition] = counts
+    complete = all(row['execution_usable'] and row['accepted']['argument-repair'] >= 1 for row in result.values())
+    return {'profiles': result, 'completion_prediction_met': complete,
+            'next_step': ('Inspect the mechanism observations before choosing a transfer task; M3 remains open.' if complete else
+                          'Keep the broader 36-attempt comparison paused; inspect the first unresolved step.')}
 
 
 def construction_checks_passed(row):
@@ -396,8 +549,10 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
                 verdict = grading.grade(image, task, original, prepared, binary, rust, patch,
                                         output / row['id'], milestone=milestone, tools={})
                 accepted = row['native_status'] == 'completed' and verdict['passed']
-                if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
+                if milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
                     accepted = accepted and construction_checks_passed(row)
+                if milestone == REPAIR_STUDY:
+                    accepted = accepted and row['reported_usage_complete'] is True and row['client_model_recorded'] is True
                 result['attempts'][row['id']] = {'status': 'checked', 'native_status': row['native_status'],
                     'patch_sha256': row['patch_sha256'], 'patch_accepted': verdict['passed'],
                     'outcome': 'passed' if accepted else 'failed',
@@ -412,6 +567,26 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
 
 
 def markdown(summary):
+    if summary['study'] == REPAIR_STUDY:
+        result = repair_decision(summary['attempts'])
+        lines = ['# Does repairing typed arguments help finish page count?', '',
+                 'Eight fresh attempts compare the same complete page-count claim, fr and shared skill.',
+                 'Only one condition adds the post-error argument-repair instruction. Each complete attempt has 150 seconds.',
+                 'The baseline is the same agent with the shared skill alone; this does not measure fr overhead against ordinary Lean.', '',
+                 '| Agent | Shared skill: accepted / 2 | Repair instruction: accepted / 2 | Decision |',
+                 '| --- | ---: | ---: | --- |']
+        for profile, row in result['profiles'].items():
+            lines.append(f'| {profile} | {row["accepted"]["shared-skill"]} | {row["accepted"]["argument-repair"]} | {row["decision"]} |')
+        lines += ['', result['next_step'], '',
+                  'A successful proof without an argument-type error leaves the proposed mechanism unobserved.',
+                  'First-check timing is observational. These two repetitions cannot establish a general success rate.',
+                  'An accepted proof establishes only the fixed mathematical model; its connection to Rust execution stays unproved.',
+                  'Only submitted patches and reviewed summaries are public; raw agent records stay private.', '',
+                  '| Attempt | Complete outcome | Seconds | Argument-repair mechanism |', '| --- | --- | ---: | --- |']
+        for row in summary['attempts']:
+            observed = validate_repair_observations(row['argument_repair_observations'], row['total_seconds'])
+            lines.append(f'| {row["id"]} | {row["independent_outcome"]} | {row["total_seconds"]:.3f} | {observed} |')
+        return '\n'.join(lines) + '\n'
     if summary['study'] in {'M3-construction', 'M3-page-count'}:
         if summary['study'] == 'M3-page-count':
             result = page_count_decision(summary['attempts'])
@@ -436,7 +611,7 @@ def markdown(summary):
             patch = '[patch](' + row['patch_file'] + ')' if row['patch_file'] else 'none'
             lines.append(f'| {row["id"]} | {row["independent_outcome"]} | {row["total_seconds"]:.3f} | {patch} |')
         return '\n'.join(lines) + '\n'
-    require(summary['study'] in {'M3-feedback', 'M3-facts'}, 'choose the explicit diagnostic report')
+    require(summary['study'] in {'M3-feedback', 'M3-facts', REPAIR_STUDY}, 'choose the explicit diagnostic report')
     result = decisions(summary['attempts'], summary['study'])
     control, supplied = prepare(ROOT, summary['study'])['requirements']['setups']
     lines = (['# Can the agents select and apply current division facts?', '',

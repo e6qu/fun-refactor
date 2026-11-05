@@ -131,6 +131,7 @@ jobs:
           cargo test --locked --test lean --test lean_grammar -- --test-threads=1
           cargo test --locked --test history_patch_cli --test history_git_cli -- --test-threads=1
           cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
+          cargo test --locked --lib spec::tests -- --test-threads=1
           cargo test --locked --lib history::patch::tests -- --test-threads=1
           cargo build --locked --bin fr
       - name: Check six scripted native CLI exchanges without model access
@@ -144,11 +145,12 @@ jobs:
           python3 -B -m agent_eval.proof_algorithms --fr target/debug/fr
           --output "$RUNNER_TEMP/algorithm-controls" --native "$RUNNER_TEMP/algorithm-native/summary.json"
       - name: Save and deliver supplied proofs and reject incomplete delivery
+        id: delivery-controls
         run: >-
           python3 -B -m agent_eval.proof_delivery --fr target/debug/fr
           --qualification "$RUNNER_TEMP/algorithm-controls" --output "$RUNNER_TEMP/proof-delivery"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && (steps.delivery-controls.outcome == 'success' || steps.delivery-controls.outcome == 'failure')
         with:
           name: proof-delivery-controls
           path: |
@@ -271,8 +273,17 @@ jobs:
           docker load --input "$RUNNER_TEMP/private-checker/grader-image.tar.gz"
           python3 -B -m agent_eval.algorithm_replay replay --fr "$RUNNER_TEMP/current-tool/fr" \
             --qualification "$RUNNER_TEMP/qualified/algorithm-controls" --output "$RUNNER_TEMP/algorithm-current-replay"
+      - name: Retain failed replay diagnostics
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: algorithm-current-replay-failure
+          path: |
+            ${{ runner.temp }}/algorithm-current-replay/*/result.json
+            ${{ runner.temp }}/algorithm-current-replay/*/grader.stdout
+            ${{ runner.temp }}/algorithm-current-replay/*/grader.stderr
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: algorithm-current-replay
           path: |
