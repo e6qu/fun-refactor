@@ -162,7 +162,7 @@ def goal() -> AgentGoal:
         operation=GoalOperation("proof", {"obligation": OBLIGATION}),
         checks=CHECK_NAMES,
         delivery=DELIVERY,
-        context=GoalLimits(packet_limit=16384),
+        context=GoalLimits(token_limit=4096, packet_limit=16384),
     )
 
 

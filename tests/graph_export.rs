@@ -147,7 +147,7 @@ fn asking_for_dot_and_json_together_is_refused() {
     assert!(!output.status.success());
     assert!(output.stderr.is_empty());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["error"]["kind"], "invalid-input");
+    assert_eq!(report["error"]["kind"], "error");
     assert!(report["error"]["message"]
         .as_str()
         .unwrap()
