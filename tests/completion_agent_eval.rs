@@ -149,7 +149,7 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
         .unwrap()
         .windows(2)
         .any(|pair| pair == [json!("--draft"), json!("proof.lean")]));
-    assert_eq!(checked["response"]["schema"], 1);
+    assert_eq!(checked["response"]["schema"], "fr-proof-attempt-1");
     assert_eq!(checked["response"]["passed"], true);
     assert!(!structured.join("project/.fr-history").exists());
     std::fs::write(
