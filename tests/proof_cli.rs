@@ -222,3 +222,63 @@ fn project_queries_have_text_for_people_and_json_for_programs() {
     assert!(structured.status.success());
     assert_eq!(report(&structured)["page"]["returned"], 1);
 }
+
+#[cfg(unix)]
+#[test]
+fn stalled_dependencies_and_compiler_stop_without_a_receipt_or_source_edit() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = project();
+    let model = root.path().join("specs/FrSpecs/SrcLibRsKeep.lean");
+    let before = std::fs::read(&model).unwrap();
+    std::fs::write(root.path().join("ready.tactics"), "rfl\n").unwrap();
+    let tools = root.path().join("fake-tools");
+    std::fs::create_dir(&tools).unwrap();
+    let lake = tools.join("lake");
+    std::fs::write(
+        &lake,
+        "#!/bin/sh\nif [ \"$1\" = \"$FR_TEST_BLOCK_STAGE\" ]; then\n  printf '%s' \"$$\" > \"$FR_TEST_PROCESS_PID\"\n  exec sleep 30\nfi\nexit 0\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&lake, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let mut paths = vec![tools];
+    paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+    let path = std::env::join_paths(paths).unwrap();
+    for stage in ["build", "env"] {
+        let pid_file = root.path().join(format!("{stage}.pid"));
+        let started = std::time::Instant::now();
+        let stopped = Command::new(FR)
+            .args(["--json", "-C"])
+            .arg(root.path())
+            .args([
+                "proof",
+                "check",
+                TARGET,
+                "--draft",
+                "ready.tactics",
+                "--bytes",
+                "8192",
+                "--timeout-seconds",
+                "1",
+            ])
+            .env("PATH", &path)
+            .env("FR_TEST_BLOCK_STAGE", stage)
+            .env("FR_TEST_PROCESS_PID", &pid_file)
+            .output()
+            .unwrap();
+        assert_eq!(stopped.status.code(), Some(1));
+        assert!(report(&stopped)["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("shared deadline"));
+        assert!(report(&stopped)["receipt"].is_null());
+        assert!(started.elapsed() < std::time::Duration::from_secs(5));
+        let pid = std::fs::read_to_string(pid_file).unwrap();
+        assert!(!Command::new("kill")
+            .args(["-0", &pid])
+            .output()
+            .unwrap()
+            .status
+            .success());
+        assert_eq!(std::fs::read(&model).unwrap(), before);
+    }
+}

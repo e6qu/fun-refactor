@@ -63,3 +63,4 @@ jobs:
           python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt -r tests/agent-eval/selected-agents/native-requirements.txt
           python3 -B -m pytest -q sdk/python/tests/test_ir.py sdk/python/tests/test_runtime.py
           python3 -B -m unittest agent_eval.test_argument_repair agent_eval.test_algorithm_admission agent_eval.test_selected_public
+      - run: cargo test --locked --test lean_grammar project_kernels_remain_readable_as_lean_source -- --test-threads=1 --nocapture

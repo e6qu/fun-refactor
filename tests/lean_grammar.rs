@@ -865,3 +865,35 @@ fn multiline_lambda_keeps_its_argument_and_following_tactic() {
     }
     assert!(found);
 }
+
+#[test]
+fn project_kernels_remain_readable_as_lean_source() {
+    let mut failures = Vec::new();
+    for (name, source) in [
+        (
+            "AgentSession",
+            include_str!("../kernels/FrKernels/AgentSession.lean"),
+        ),
+        (
+            "SemanticIntent",
+            include_str!("../kernels/FrKernels/SemanticIntent.lean"),
+        ),
+        ("ProjectMain", include_str!("../kernels/ProjectMain.lean")),
+    ] {
+        let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+        if parsed.has_errors() {
+            for span in parsed.error_spans().iter().take(4) {
+                let node = parsed
+                    .root()
+                    .descendant_for_byte_range(span.start, span.end)
+                    .unwrap();
+                let parent = node.parent().unwrap_or(node);
+                let sexp = parent.to_sexp();
+                let diagnostic: String = sexp.chars().take(6000).collect();
+                eprintln!("{name} {}..{}: {diagnostic}", span.start, span.end);
+            }
+            failures.push(name);
+        }
+    }
+    assert!(failures.is_empty(), "Lean kernel parse gaps: {failures:?}");
+}

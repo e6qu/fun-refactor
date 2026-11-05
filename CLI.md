@@ -464,7 +464,7 @@ Tagged actions use `action.schema = "fr-intent-action-2"` and
 | `property-task` | `prove` | No additional fields |
 | `formal-plan` | `prove` | `properties`, optional typed `agent_properties`; writing `package`, `checks`, `delivery` |
 | `proof-task` | `prove` | Exact `obligation` |
-| `proof-submission` | `prove` | Exact `obligation`, agent-written `tactics`, `checks`, `delivery` |
+| `proof-submission` | `prove` | Exact `obligation`, agent-written `tactics`, response `bytes`, `timeout_seconds`, `checks`, `delivery` |
 
 A capability range is the public `{"start": BYTE, "end": BYTE}` span and must lie in the selected
 source/declaration. Extraction uses the full span; call inlining, rewrites and flow use its start.
