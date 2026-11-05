@@ -43,8 +43,19 @@ defaultTargets = ["FrSpecs"]
 
 [[lean_lib]]
 name = "FrSpecs"
+moreLeanArgs = ["-j1"]
 '''
-ROOT_LEAN = '''import FrSpecs.SrcLibRsRender
+LAKE_MANIFEST = '''{
+  "version": "1.1.0",
+  "packagesDir": ".lake/packages",
+  "packages": [],
+  "name": "«fr-specs»",
+  "lakeDir": ".lake"
+}
+'''
+ROOT_LEAN = '''prelude
+import FrSpecs.SrcLibRsRender
+
 /-
 This is the checked root of the project's Lean specification package.
 Import each model here so `fr spec verify` builds it.
@@ -54,12 +65,15 @@ namespace FrSpecs
 
 end FrSpecs
 '''
-MODEL_BASELINE = '''namespace FrSpecs
+MODEL_BASELINE = '''prelude
+import Init.Data.Int.DivMod.Lemmas
+namespace FrSpecs
 
 -- fr:generated-begin formal-kernel
--- fr:plan e7c05c680d52d54ce9300f1c037f1fe482a5fb2733ba99853a9c93c2fb022d14
+-- fr:plan e8a70ed218853168bc12d444aa2199bbb1538f951a2c6827a28a5f838262ca0f
 -- fr:spec src/lib.rs::render @ dbb8f9aafedfeafffa7cfe33630e69a4a67d63b6a08db38688cb157dc583b8ac
 -- fr:signature value: bool => value: Bool; return: bool => return: Bool
+set_option linter.unusedVariables false in
 def renderModel (value : Bool) : Bool :=
   value
 
@@ -132,6 +146,7 @@ def fixture_revision() -> str:
         SPEC: MODEL_BASELINE,
         "specs/FrSpecs.lean": ROOT_LEAN,
         "specs/lakefile.toml": LAKEFILE,
+        "specs/lake-manifest.json": LAKE_MANIFEST,
         "specs/lean-toolchain": LEAN_TOOLCHAIN,
         ".gitignore": GITIGNORE,
     }))
@@ -211,6 +226,7 @@ def populate(project: Path, binary: Path) -> None:
         SPEC: MODEL_BASELINE,
         "specs/FrSpecs.lean": ROOT_LEAN,
         "specs/lakefile.toml": LAKEFILE,
+        "specs/lake-manifest.json": LAKE_MANIFEST,
         "specs/lean-toolchain": LEAN_TOOLCHAIN,
     }
     for name, text in expected.items():

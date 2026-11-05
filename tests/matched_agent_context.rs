@@ -68,8 +68,28 @@ fn matched_harness_requires_equal_outcomes_and_complete_arm_specific_evidence() 
         .lines()
         .collect::<Vec<_>>();
     let sdk = step(root, &fr, json!({"tool":"sdk","program_lines":program}));
-    assert_eq!(sdk["exit_code"], 0);
+    assert_eq!(sdk["exit_code"], 0, "{sdk}");
     assert_eq!(sdk["answers"]["workflows"].as_array().unwrap().len(), 7);
+    let fr_config: Value =
+        serde_json::from_slice(&std::fs::read(fr.join("session.json")).unwrap()).unwrap();
+    let proof_target = format!(
+        "{}::{}",
+        fr_config["proof_path"].as_str().unwrap(),
+        fr_config["obligation"].as_str().unwrap()
+    );
+    for operation in ["start", "save"] {
+        let refused = Command::new("python3")
+            .arg(fr_config["wrapper"].as_str().unwrap())
+            .args(["--json", "-C"])
+            .arg(fr.join("project"))
+            .args(["proof", operation, &proof_target, "--draft", "proof.lean"])
+            .args(["--bytes", "4096", "--timeout-seconds", "30"])
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        assert!(refused.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("only show or check drafts"));
+    }
     step(
         root,
         &fr,

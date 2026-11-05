@@ -240,8 +240,10 @@ if len(argv) < 4 or argv[0] != "--json" or argv[1] != "-C" or pathlib.Path(argv[
 arguments = argv[3:]
 if not arguments or any(value.split("=", 1)[0] in ("--write", "--save-plan") for value in arguments):
     raise SystemExit("SDK comparison admits previews only")
-if arguments[0] not in ("guide", "intent", "rename", "recipe", "project", "author", "migrate", "spec"):
+if arguments[0] not in ("guide", "intent", "rename", "recipe", "project", "author", "migrate", "spec", "proof"):
     raise SystemExit("SDK comparison command is outside the guided surface")
+if arguments[0] == "proof" and (len(arguments) < 2 or arguments[1] not in ("show", "check")):
+    raise SystemExit("SDK comparison proof commands must only show or check drafts")
 input_bytes = sys.stdin.buffer.read(65537)
 if len(input_bytes) > 65536:
     raise SystemExit("SDK input exceeds 64 KiB")
