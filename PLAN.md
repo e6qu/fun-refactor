@@ -75,11 +75,14 @@ measures delivery of given answers; it cannot replace proof discovery.
 4. Execute the revised lessons and skills. Fix the Lean reader omissions found while
    using fr on this work. Refresh source-bound records and pass the complete CI gate.
 
-The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42038465557)
+The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42057310100)
 pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
 The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
 also passes the syntax fixtures and affected project files.
-Collect and audit fresh measurements before the final full CI gate.
+Both fixed-repository reader comparisons pass. The [reviewed inventory](tests/agent-eval/index-consumers/lean-reader-current.json)
+records the exact changes in declarations and references; historical timing reports stay intact.
+All fresh measurement collections and report audits pass.
+Read the [complete PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
 These are tool checks. We have not measured improved GLM or Kimi success with this interface.
 
 **After those checks pass:** freeze a new comparison before spending model calls.

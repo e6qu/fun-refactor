@@ -71,7 +71,7 @@ Its `proof_digest` identifies draft content, not a complete Lean machine state.
 Do not merge nodes just because their displayed goals or theorem identifiers match.
 Retaining whole draft snapshots could support a prototype that replays drafts.
 Its replay cost and step validity would need qualification.
-Only a passing complete `proof-check` can accept the final proof.
+Only a passing complete `fr proof check` can accept the final proof.
 
 ## Skills should distinguish these cases
 
