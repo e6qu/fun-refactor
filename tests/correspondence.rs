@@ -182,7 +182,7 @@ fn retained_correspondence_acceptance_matches_its_inputs() {
         .args([
             "tools/correspondence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-11-05-checked-proof-reader-resumable-correspondence/result.json",
+            "tests/agent-eval/results/2026-11-06-fr-metadata-resumable-correspondence/result.json",
         ])
         .output()
         .unwrap();
