@@ -1,5 +1,6 @@
 """Provider and host regressions using synthetic responses and small subprocesses."""
 import copy
+import errno
 import io
 import json
 import os
@@ -361,6 +362,36 @@ class BoundedHost(unittest.TestCase):
             self.assertGreater(result['sampled_aggregate_rss_bytes'], 4 * 1024**2)
             time.sleep(0.9)
             self.assertFalse(Path(sentinel).exists())
+
+    def test_darwin_exiting_worker_is_gone_not_a_monitor_failure(self):
+        zombie = subprocess.CompletedProcess([], 0, stdout='Z\n')
+        exiting = subprocess.CompletedProcess([], 0, stdout='E\n')
+        running = subprocess.CompletedProcess([], 0, stdout='S\n')
+        self.assertTrue(host.darwin_exited(1, errno.ESRCH))
+        self.assertFalse(host.darwin_exited(1, errno.EACCES))
+        with patch.object(host.os, 'kill', side_effect=ProcessLookupError):
+            self.assertTrue(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill', side_effect=PermissionError):
+            self.assertFalse(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill'), patch.object(host.subprocess, 'run', return_value=zombie):
+            self.assertTrue(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill'), patch.object(host.subprocess, 'run', return_value=exiting):
+            self.assertTrue(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill'), patch.object(host.subprocess, 'run', return_value=running):
+            self.assertFalse(host.darwin_exited(1, errno.EPERM))
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'macOS process inventory')
+    def test_unreaped_zombie_child_does_not_stop_the_monitor(self):
+        child = subprocess.Popen([sys.executable, '-c', 'pass'])
+        try:
+            deadline = time.monotonic() + 5
+            while subprocess.run(['ps', '-o', 'stat=', '-p', str(child.pid)], capture_output=True,
+                                 text=True).stdout.strip()[:1] != 'Z' and time.monotonic() < deadline:
+                time.sleep(0.05)
+            host.process_identity(child.pid)
+            host.darwin_sample(os.getpgrp())
+        finally:
+            child.wait()
 
     def test_cleanup_does_not_kill_a_reused_pid(self):
         with patch.object(host.os, 'killpg') as group, patch.object(host.os, 'kill') as kill, \
