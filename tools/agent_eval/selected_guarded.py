@@ -18,12 +18,35 @@ class IndependentSampler:
         self.directory = directory
         self.started = host.elapsed_time()
         self.written = 0
+        self.commands = set()
+        self.command_bytes = 0
         self.peak = {'rss_bytes': 0, 'processes': []}
 
     def __call__(self, group):
         raw = subprocess.run(['ps', '-axo', 'pid=,ppid=,pgid=,rss=,time=,comm='],
                              capture_output=True, text=True, check=True, timeout=2).stdout
         rows = client_memory_profile.processes(raw, group)
+        for row in rows:
+            if row['executable'] != 'fr' or row['pid'] in self.commands:
+                continue
+            try:
+                result = subprocess.run(['ps', '-p', str(row['pid']), '-o', 'args='],
+                                        capture_output=True, text=True, timeout=2)
+                command = result.stdout.strip() if result.returncode == 0 else ''
+                error = None if command else 'Process command unavailable'
+            except (OSError, subprocess.TimeoutExpired) as failure:
+                command, error = '', type(failure).__name__
+            entry = {'pid': row['pid'], 'seconds': host.elapsed_time() - self.started,
+                     'status': 'captured' if command else 'unavailable',
+                     'command': command[:4096] if command else None,
+                     'error': error,
+                     'omitted_characters': max(0, len(command) - 4096)}
+            line = json.dumps(entry, ensure_ascii=False, allow_nan=False).encode() + b'\n'
+            require(self.command_bytes + len(line) <= 128 * 1024, 'private command trace exceeds budget')
+            with (self.directory / 'commands.jsonl').open('ab') as stream:
+                stream.write(line)
+            self.command_bytes += len(line)
+            self.commands.add(row['pid'])
         memory = sum(row['rss_bytes'] for row in rows)
         cpu = {row['pid']: row['cpu_seconds'] for row in rows}
         data = json.dumps([host.elapsed_time() - self.started, memory, list(cpu.items())],
@@ -40,6 +63,7 @@ class IndependentSampler:
 def contract():
     return {'guard': str(GUARD), 'guard_sha256': local.hash_file(GUARD),
             'observer': 'outside the throttled workload; ps descendants, 100 ms target interval',
+            'commands': 'Private bounded argv for each first-observed fr process; unavailable reads stay unknown.',
             'scope': 'Guard, controller, CLI and workers, including preparation and accounting.'}
 
 

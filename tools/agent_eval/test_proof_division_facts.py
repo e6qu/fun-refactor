@@ -50,6 +50,8 @@ class DivisionFactsTests(unittest.TestCase):
                          'Preserve provided .fr/checks.json', 'Do not start a nested guard',
                          'Run the supplied checks once', 'call another model']:
             self.assertIn(required, supplied)
+        self.assertIn('/pinned/lean/Init/Data/Int/DivMod/Lemmas.lean', supplied)
+        self.assertIn('--limit bounds results, not input work', supplied)
         for hidden in ['Int.tdiv_nonneg', 'Int.tmod_add_mul_tdiv', 'controls/reference.lean', 'Fr is not provided']:
             self.assertNotIn(hidden, supplied)
 
@@ -138,6 +140,9 @@ class DivisionFactsTests(unittest.TestCase):
                              '.fr/declarations.txt', '"context"', '"goal"', 'unsolved goals',
                              '/lean/bin/lake -d specs build --wfail', 'git diff --binary HEAD'):
                 self.assertIn(required, commands)
+            self.assertIn('/lean/src/lean/Init/Data/Int/DivMod/Lemmas.lean', commands)
+            self.assertIn('project find tdiv --contains --signature --limit 4', commands)
+            self.assertIn('r["coverage"]["indexed_files"] == 1', commands)
             with tempfile.TemporaryDirectory() as temporary:
                 project = Path(temporary)
                 protected = feedback.install_diagnostic_admission(project, setup, Path('/lean'),

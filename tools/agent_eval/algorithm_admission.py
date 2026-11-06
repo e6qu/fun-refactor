@@ -60,7 +60,7 @@ def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, 
                 for name in profiles for setup in setups}
     require(set(receipts) == set(expected), 'qualify every profile and required setup before calls')
     features = (('interactive_goal', 'argument_type_rejection', 'independent_patch_replay') if study == REPAIR_STUDY else
-                ('interactive_goal', 'unfinished_draft_rejected', 'independent_patch_replay') if study == 'M3-facts' else
+                ('interactive_goal', 'library_lookup', 'unfinished_draft_rejected', 'independent_patch_replay') if study == 'M3-facts' else
                 ('supplied_proofs', 'saved_edit_export', 'independent_patch_replay') if study == DELIVERY_STUDY else ('recursive_loop_rejected',))
     if study == REPAIR_STUDY:
         require(requirements['conditions'] == ['shared-skill', 'argument-repair'] and
@@ -280,6 +280,7 @@ def child(args):
             'recursive_loop_rejected': args.study in ALGORITHM_STUDIES,
             'argument_type_rejection': args.study == REPAIR_STUDY,
             'interactive_goal': args.study in {REPAIR_STUDY, 'M3-facts'},
+            'library_lookup': args.study == 'M3-facts',
             'unfinished_draft_rejected': args.study == 'M3-facts',
             'supplied_proofs': args.study == DELIVERY_STUDY, 'saved_edit_export': args.study == DELIVERY_STUDY,
             'independent_patch_replay': args.study in CONDITION_STUDIES,

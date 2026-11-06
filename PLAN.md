@@ -68,12 +68,16 @@ and all companion workflows passed. These tool checks establish no improvement i
 
 **PR #604: distinguish finding division facts from applying them.**
 
-The hosted controls pass for the current tool. They check real proofs, reject wrong
-patches and protect the supplied skill. The refreshed project replay also passes
+The original hosted controls passed: they checked real proofs, rejected wrong
+patches and protected the supplied skill. The refreshed project replay also passes
 with release `0.89.2`. Fr now ignores its own generated history and cache when
 identifying program source. Earlier records keep their original hashes and outcomes.
 The complete PR gate and four local client checks still precede the eight calls.
-No new model attempt has started; M3 remains open.
+The first new session exceeded its unchanged memory limit during broad library
+indexing. No patch was delivered; seven slots remain unstarted. M3 stays open.
+The [interrupted collection](tests/agent-eval/proof-division-facts/interrupted-collection.json)
+cannot establish agent ability. Repair and qualify library discovery before freezing
+another packet; preserve the original failed slot and all unstarted slots.
 
 1. Refresh the [eight-attempt diagnostic](tests/agent-eval/proof-division-facts/README.md)
    for the current commands and OpenCode2 2.2.5. Prove that a quotient plus its remainder
@@ -83,7 +87,7 @@ No new model attempt has started; M3 remains open.
    One condition receives four current library declaration types; the other must select facts
    from the same installed library. Neither receives a completed proof.
 3. Pass independent hosted proof and patch controls, then all four complete local client checks.
-   Cover actual goal inspection, rejected tactics, saving, package checks, delivered patch replay
+   Cover one-import-file declaration lookup, actual goal inspection, rejected tactics, saving, package checks, delivered patch replay
    and final accounting. Keep the resource reserve and observe detached workers.
 4. Freeze the eight slots before calls. Run each once; independently grade every original patch.
    Report complete successes, timeouts, usage and unknown charges. Review the first proof check,

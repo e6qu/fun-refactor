@@ -1,6 +1,18 @@
 # Can the agents select and apply current division facts?
 
-No agent attempts have started and no execution plan is frozen.
+The [first collection](interrupted-collection.json) stopped after one GLM session
+exceeded the unchanged 768 MiB memory limit. Seven slots never started.
+No patch was delivered, and complete accounting is unavailable. This is not a valid comparison.
+Its cache contains roughly 1,600 files from across Lean's source tree, including unrelated `Std` modules.
+The peak identifies a large `fr` process; the exact interrupted command remains unknown.
+The event stream records completed tools, so it lost the running command when the controller stopped.
+
+The next setup must check discovery too: search the imported division file before
+starting, checking, saving and delivering the control proof. Shared instructions now
+give that file explicitly. The observer records bounded command lines for owned `fr`
+processes privately, before their tools finish. New qualification and a new frozen
+packet are required before another collection. Never resume or replace the interrupted slot.
+
 The [argument-repair comparison](../proof-argument-repair/README.md) observed no mapped argument-type error
 and delivered no patch. Repeating that instruction would not test its proposed repair.
 This diagnostic instead asks whether the agents can select and apply suitable division declarations.
@@ -75,7 +87,8 @@ The comparison cannot treat this prepared handout as free work or establish fr o
 3. Compare the handout against Lean's actual `#check` output for all four declarations.
    Reject changing or deleting either condition's handout, as well as changed checker settings.
 4. Require four fresh complete local client checks: each agent with each handout.
-   Scripted replies must start a draft, inspect actual context and goals, reject unfinished tactics,
+   Scripted replies must find declarations in the imported Lean file, verify that only
+   that file was indexed, start a draft, inspect actual context and goals, reject unfinished tactics,
    check and save the supplied control proof, build the package, replay the delivered patch
    and finish session accounting. These control drafts never enter live projects.
    Keep the original 60-second control limit, 768 MiB ceiling and 128 MiB memory reserve.

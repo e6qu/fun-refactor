@@ -22,12 +22,21 @@ The repairs shipped in PR [#603](https://github.com/e6qu/fun-refactor/pull/603).
 Its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
 and all companion workflows passed. These checks establish tool behavior, not improved model success.
 
-The unrun division-fact diagnostic still needs fresh admission with the current CLI,
+The interrupted division-fact diagnostic needs fresh admission with the current CLI,
 OpenCode2 2.2.5 and complete resource observer. An old successful setup receipt cannot
 admit a changed client or tool. Its [protocol](tests/agent-eval/proof-division-facts/README.md)
 keeps the hosted controls and four complete local client checks ahead of model calls.
 
 ## Repairs in PR #604
+
+The first division-fact session exceeded its unchanged 768 MiB budget during library discovery.
+Its cache includes roughly 1,600 Lean source files; no patch or complete accounting survived.
+Seven slots remain unstarted. This cannot establish whether the agent can write the proof.
+Shared instructions now name the imported division file for declaration searches.
+Fresh setup checks must run that lookup and verify one indexed file before proving.
+The observer also records owned `fr` command lines privately before a tool finishes.
+The original run lacked that detail, so its exact interrupted command remains unknown.
+Qualification of these repairs is pending. No timeout or memory limit increased.
 
 The source-input repair in PR #604 excludes fr's generated `.fr` and `.fr-history`
 directories from the native source identity. For example, a history file under
@@ -46,7 +55,8 @@ then starts full CI on the branch containing its results. Exact hash checks stay
 The division-fact evaluator also protects the supplied fr skill against edits and deletion.
 It requires complete usage and resource records before interpreting agent success.
 A checked patch with missing accounting still fails the complete attempt.
-The fresh hosted controls pass; local client checks and live attempts remain unrun.
+The original hosted and four local controls passed, but omitted library discovery.
+The first live session exposed that gap; the next qualification must exercise it.
 
 ## Merged repairs and remaining limits
 

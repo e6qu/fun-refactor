@@ -21,7 +21,9 @@ measured benefit. Earlier interrupted and unstarted slots remain separate.
 PR [#604](https://github.com/e6qu/fun-refactor/pull/604) uses
 `improve/check-division-fact-guidance` and remains draft.
 Refresh the [division-fact diagnostic](../tests/agent-eval/proof-division-facts/README.md),
-which has no started attempts or frozen execution plan. The question is whether the
+whose first collection stopped after one memory-limited session and seven unstarted slots.
+The [record](../tests/agent-eval/proof-division-facts/interrupted-collection.json)
+preserves that invalid comparison. The question is whether the
 agents can find suitable division declarations and apply their current types.
 This tests a different obstacle from the unobserved argument-repair prediction.
 The old qualification cannot admit the changed CLI, client or monitor.
@@ -30,7 +32,7 @@ Keep the full 150-second limit, ten-second collection reserve and independent re
 The roadmap lists the eight-slot comparison and its fixed decisions. Keep this work in one PR.
 Publish only reviewed summaries and submitted patches; leave raw native records private.
 
-The current hosted proof controls pass. They now cover protected skills, complete
+The original hosted proof controls passed. They covered protected skills, complete
 usage and full resource records. Fr's source identity excludes generated `.fr`
 and `.fr-history` directories, including history created under `src`.
 Fresh reports preserve the earlier records and their original source identities.
@@ -39,10 +41,13 @@ passes all 21 changes and both renames with `0.89.2` and the corrected input pol
 Release planning now requests this replay and full CI before merging a release.
 
 Keep the refreshed records in this same PR. Require complete CI and fresh hosted
-qualification on its final source. Next pass all four local
-scripted client checks and freeze the eight slots. No new model call has started.
-Automatic approval review requires approval of the exact provider payload before
-these live calls. Complete preparation and show that payload before requesting approval.
+qualification on its final source. Next pass all four local scripted client checks,
+including declaration discovery in the imported Lean file, and freeze a new packet.
+The original four controls omitted this lookup. The stopped session indexed about
+1,600 library files and exceeded 768 MiB before delivering a patch.
+Private command capture now retains an owned `fr` process's arguments before completion.
+The old stream lost the unfinished command, so its exact text remains unknown.
+Review the new packet's exact material and provider destinations before more calls.
 
 ## Interface decisions
 

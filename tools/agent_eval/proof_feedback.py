@@ -129,9 +129,15 @@ def prompt(checkers, milestone):
                 'Only the marked proof region may change. Preserve .fr/checks.json; store reports elsewhere.')
     if milestone in {'M3-construction', 'M3-facts'}:
         request = prepare(ROOT, milestone)['requirements']['tasks'][case_details(milestone)['task']]['request']
+        library = str(checkers['lean']['source_root'])
+        if milestone == 'M3-facts':
+            library = ('the imported division module ' +
+                       str(Path(library) / 'Init/Data/Int/DivMod/Lemmas.lean') +
+                       '. Use that file as fr -C when finding declarations. '
+                       'Do not index the whole Lean source tree; --limit bounds results, not input work')
         return (request + '\n\nTactics are proof steps. Read the fixed claim before writing a draft. '
                 'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
-                str(checkers['lean']['source_root']) + '. A rejected fr proof check exits 1 with passed=false; read the report. '
+                library + '. A rejected fr proof check exits 1 with passed=false; read the report. '
                 'Only the marked proof region may change. Preserve .fr/checks.json; store reports elsewhere.')
     require(milestone == 'M3-feedback', 'choose the explicit prompt study')
     request = json.loads((ROOT / DIRECTORY / 'tasks.json').read_text())['tasks'][TASK]['request']
@@ -203,6 +209,12 @@ def diagnostic_admission_script(lean_root, search_path, condition, study):
                   'assert any("unsolved goals" in d["message"].lower() for d in r["diagnostics"])')
     lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
              'cat .agents/skills/fr/SKILL.md ' + handout + ' > /dev/null',
+             *([shlex.join(['fr', '--json', '-C', str(lean_root / 'src/lean/Init/Data/Int/DivMod/Lemmas.lean'),
+                           'project', 'find', 'tdiv', '--contains', '--signature', '--limit', '4']) +
+                ' > .fr/admission-library.json',
+                shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-library.json")); '
+                    'assert r["coverage"]["indexed_files"] == 1 and r["rows"]; '
+                    'assert "signature" in r["columns"]'])] if study == 'M3-facts' else []),
              'proof_target=$(cat .fr/admission-target.txt)',
              'fr --json proof start "$proof_target" --draft .fr/admission-start.lean --bytes 4096 --timeout-seconds 30 > .fr/admission-start.json',
              'fr --json proof state "$proof_target" --draft .fr/admission-start.lean --at end --bytes 4096 --timeout-seconds 30 > .fr/admission-state.json',

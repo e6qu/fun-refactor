@@ -91,12 +91,12 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
                     with self.subTest(repair_field=field), self.assertRaises(ValueError):
                         admission.validate_receipts(changed, binaries, 'c' * 64, '12', admission.REPAIR_STUDY, checkers)
                 fact_rows = {name + '/' + setup: {**copy.deepcopy(row), 'study': 'M3-facts', 'setup': setup,
-                    'interactive_goal': True, 'unfinished_draft_rejected': True, 'independent_patch_replay': True}
+                    'interactive_goal': True, 'library_lookup': True, 'unfinished_draft_rejected': True, 'independent_patch_replay': True}
                     for name, row in rows.items() if name != 'codex-luna-fast'
                     for setup in ('select-facts', 'supplied-declarations')}
                 admitted = admission.validate_receipts(fact_rows, binaries, 'c' * 64, '12', 'M3-facts', checkers)
                 self.assertEqual(len(admitted['profiles']), 4)
-                for field, value in (('interactive_goal', False), ('unfinished_draft_rejected', False),
+                for field, value in (('interactive_goal', False), ('library_lookup', False), ('unfinished_draft_rejected', False),
                                      ('independent_patch_replay', False), ('session_accounting', False),
                                      ('archive_sha256', 'stale'), ('implementation', {})):
                     changed = copy.deepcopy(fact_rows)
