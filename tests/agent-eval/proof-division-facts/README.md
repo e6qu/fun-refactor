@@ -48,6 +48,11 @@ The supplied names are `Int.mul_le_mul_of_nonneg_right`, `Int.tdiv_nonneg`,
 Their types describe their inputs and conclusions. The handout supplies no tactics, intermediate proof or completed proof.
 The control proof stays outside both agent projects.
 
+Both conditions also receive the [arithmetic skill](../../../skills/fr/references/lean-arithmetic.md).
+It already demonstrates `Int.tdiv_nonneg` and `Int.mul_le_mul_of_nonneg_right` in separate examples.
+The comparison tests the extra four-type handout on top of that shared help.
+The selection condition must still find a suitable remainder identity and assemble the complete argument.
+
 The [requirements](requirements.json) fix two repetitions per condition for each pinned GLM Flash and Kimi K3 low-reasoning profile.
 That gives eight fresh local OpenCode2 sessions, with condition order balanced between repetitions and profiles.
 Use OpenCode2 2.2.5, Lean 4.28.0 and the copied Python 3.14.10 installation.
