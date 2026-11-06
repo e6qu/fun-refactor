@@ -66,7 +66,14 @@ measures delivery of given answers; it cannot replace proof discovery.
 Its [92-job CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
 and all companion workflows passed. These tool checks establish no improvement in GLM or Kimi success.
 
-**Next PR: distinguish finding division facts from applying them.**
+**PR #604: distinguish finding division facts from applying them.**
+
+The hosted controls pass for the current tool. They check real proofs, reject wrong
+patches and protect the supplied skill. The refreshed project replay also passes
+with release `0.89.2`. Fr now ignores its own generated history and cache when
+identifying program source. Earlier records keep their original hashes and outcomes.
+The complete PR gate and four local client checks still precede the eight calls.
+No new model attempt has started; M3 remains open.
 
 1. Refresh the [eight-attempt diagnostic](tests/agent-eval/proof-division-facts/README.md)
    for the current commands and OpenCode2 2.2.5. Prove that a quotient plus its remainder

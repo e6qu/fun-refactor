@@ -27,7 +27,7 @@ OpenCode2 2.2.5 and complete resource observer. An old successful setup receipt 
 admit a changed client or tool. Its [protocol](tests/agent-eval/proof-division-facts/README.md)
 keeps the hosted controls and four complete local client checks ahead of model calls.
 
-## Merged repairs and remaining limits
+## Repairs in PR #604
 
 The source-input repair in PR #604 excludes fr's generated `.fr` and `.fr-history`
 directories from the native source identity. For example, a history file under
@@ -36,6 +36,19 @@ Both Rust and Python checks cover that case and still detect real source changes
 including a file named `src/.fr-history.rs`. Existing history files stay intact.
 The input-policy change requires fresh current reports; earlier records retain
 their original source identities and outcomes.
+
+CI also rejected a project replay from release `0.89.1` while building `0.89.2`.
+The [fresh replay](https://github.com/e6qu/fun-refactor/actions/runs/42137806778)
+passes all 21 saved changes and both renames under the corrected source policy.
+Release planning now requests that checked replay for the proposed version,
+then starts full CI on the branch containing its results. Exact hash checks stay intact.
+
+The division-fact evaluator also protects the supplied fr skill against edits and deletion.
+It requires complete usage and resource records before interpreting agent success.
+A checked patch with missing accounting still fails the complete attempt.
+The fresh hosted controls pass; local client checks and live attempts remain unrun.
+
+## Merged repairs and remaining limits
 
 The [supplied-proof delivery review](tests/agent-eval/proof-algorithms/local-results/M3-delivery/review.md)
 found six OpenCode2 2.0.32 sessions whose saved final response has token counts but
