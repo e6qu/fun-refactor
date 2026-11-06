@@ -1,0 +1,23 @@
+diff --git a/specs/FrSpecs/SrcPartsRsDivisionParts.lean b/specs/FrSpecs/SrcPartsRsDivisionParts.lean
+index 271dfd3..e03afe7 100644
+--- a/specs/FrSpecs/SrcPartsRsDivisionParts.lean
++++ b/specs/FrSpecs/SrcPartsRsDivisionParts.lean
+@@ -13,8 +13,16 @@ def division_partsModel (a : Int) (b : Int) : Int :=
+ -- fr:property agent unproved
+ theorem division_partsModel_at_most_input (a : Int) (b : Int) : ((((0 : Int)) ≤ (a)) ∧ (((1 : Int)) ≤ (b))) → ((division_partsModel (a) (b)) ≤ (a)) := by
+   -- fr:proof-begin division_partsModel_at_most_input
+-  -- fr:debt division_partsModel_at_most_input
+-  sorry
++  intro h
++  have hb : 0 ≤ b := by omega
++  have hq : 0 ≤ Int.tdiv a b := Int.tdiv_nonneg h.1 hb
++  have hnn0 := Int.mul_le_mul_of_nonneg_right (show (0 : Int) ≤ b - 1 by omega) hq
++  rw [Int.zero_mul] at hnn0
++  have hsum := Int.tmod_add_mul_tdiv a b
++  have hbdecomp : b * Int.tdiv a b = Int.tdiv a b + (b - 1) * Int.tdiv a b := by
++    rw [Int.sub_mul, Int.one_mul]; omega
++  show Int.tdiv a b + Int.tmod a b ≤ a
++  omega
+   -- fr:proof-end division_partsModel_at_most_input
+ -- fr:generated-end formal-kernel
+ 
