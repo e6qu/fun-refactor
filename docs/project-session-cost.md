@@ -22,9 +22,9 @@ Seconds below include the coordinator, source copy, Python starts, questions, ed
 
 | Project | CLI seconds | Python restarted | Python kept running | Saved restarted | Saved kept running |
 |---|---:|---:|---:|---:|---:|
-| glob | 0.508 | 0.782 (+53.9%) | 0.618 (+21.5%) | 0.914 (+79.8%) | 0.732 (+44.1%) |
-| boltons | 1.701 | 1.978 (+16.3%) | 1.812 (+6.6%) | 2.072 (+21.9%) | 1.866 (+9.8%) |
-| jmespath | 0.650 | 0.923 (+41.9%) | 0.776 (+19.3%) | 1.135 (+74.5%) | 0.948 (+45.8%) |
+| glob | 0.725 | 1.090 (+50.4%) | 0.873 (+20.4%) | 1.313 (+81.1%) | 1.036 (+42.8%) |
+| boltons | 2.568 | 2.914 (+13.5%) | 2.694 (+4.9%) | 2.992 (+16.5%) | 2.730 (+6.3%) |
+| jmespath | 0.925 | 1.319 (+42.6%) | 1.092 (+18.1%) | 1.667 (+80.2%) | 1.387 (+50.0%) |
 
 The CLI baseline includes a Python coordinator. These percentages measure the added library, process and saved-answer work in this procedure; they do not compare Python with Rust as programming languages. All approaches use the same optimized native executable.
 
@@ -34,21 +34,21 @@ CPU seconds sum user and system processor work for the session and its waited-fo
 
 | Project / approach | Median CPU seconds | Maximum sampled memory MiB | Median final fr cache KiB | Median final saved data KiB |
 |---|---:|---:|---:|---:|
-| glob / cli-fresh | 0.49 | 50.8 | 153.7 | 0.0 |
-| glob / sdk-fresh | 0.75 | 79.1 | 153.7 | 0.0 |
-| glob / sdk-running | 0.60 | 80.9 | 153.7 | 0.0 |
-| glob / saved-fresh | 0.89 | 83.2 | 153.7 | 516.1 |
-| glob / saved-running | 0.71 | 82.9 | 153.7 | 516.1 |
-| boltons / cli-fresh | 1.69 | 80.6 | 908.9 | 0.0 |
-| boltons / sdk-fresh | 1.94 | 104.6 | 908.9 | 0.0 |
-| boltons / sdk-running | 1.78 | 108.3 | 908.9 | 0.0 |
-| boltons / saved-fresh | 2.06 | 107.3 | 908.9 | 204.1 |
-| boltons / saved-running | 1.84 | 106.9 | 908.9 | 204.1 |
-| jmespath / cli-fresh | 0.63 | 57.5 | 297.9 | 0.0 |
-| jmespath / sdk-fresh | 0.90 | 82.1 | 297.9 | 0.0 |
-| jmespath / sdk-running | 0.75 | 84.7 | 297.9 | 0.0 |
-| jmespath / saved-fresh | 1.10 | 83.6 | 297.9 | 872.1 |
-| jmespath / saved-running | 0.92 | 89.3 | 297.9 | 872.1 |
+| glob / cli-fresh | 0.71 | 55.4 | 153.7 | 0.0 |
+| glob / sdk-fresh | 1.07 | 76.5 | 153.7 | 0.0 |
+| glob / sdk-running | 0.86 | 79.6 | 153.7 | 0.0 |
+| glob / saved-fresh | 1.26 | 78.2 | 153.7 | 512.1 |
+| glob / saved-running | 1.01 | 80.1 | 153.7 | 512.1 |
+| boltons / cli-fresh | 2.55 | 77.0 | 908.9 | 0.0 |
+| boltons / sdk-fresh | 2.89 | 103.5 | 908.9 | 0.0 |
+| boltons / sdk-running | 2.67 | 104.1 | 908.9 | 0.0 |
+| boltons / saved-fresh | 2.96 | 105.3 | 908.9 | 196.1 |
+| boltons / saved-running | 2.71 | 107.3 | 908.9 | 196.1 |
+| jmespath / cli-fresh | 0.91 | 60.1 | 297.9 | 0.0 |
+| jmespath / sdk-fresh | 1.30 | 82.2 | 297.9 | 0.0 |
+| jmespath / sdk-running | 1.08 | 84.6 | 297.9 | 0.0 |
+| jmespath / saved-fresh | 1.60 | 83.2 | 297.9 | 864.1 |
+| jmespath / saved-running | 1.36 | 88.8 | 297.9 | 864.1 |
 
 Full answers remain local; clients reply with content fingerprints, which identify the answer bytes. Equal evidence objects share one recorded file. Evidence hashing, database snapshots and recording are instrumentation included in elapsed time. Evidence archives are separate from the production caches and saved data above. Directory and filesystem block overhead are unmeasured.
 
@@ -58,15 +58,15 @@ The installed SDK has precompiled modules checked against its exact source. Thes
 
 | Setup | Seconds |
 |---|---:|
-| boltons download seconds | 0.284 |
-| bytecode compile seconds | 0.107 |
-| glob download seconds | 0.176 |
-| jmespath download seconds | 0.237 |
-| wheel build seconds | 0.615 |
-| wheel install seconds | 0.314 |
+| boltons download seconds | 0.216 |
+| bytecode compile seconds | 0.150 |
+| glob download seconds | 0.139 |
+| jmespath download seconds | 0.155 |
+| wheel build seconds | 0.816 |
+| wheel install seconds | 0.415 |
 
 Native compilation, dependency provisioning and runner startup are workflow setup; inspect their durations in the linked run. Source archives, their licenses, exact versions, invocation arguments, individual timings and limits are retained in the raw record. Each session remains bounded by 20 elapsed seconds, 10 sampled CPU seconds, 512 MiB sampled memory and 16 MiB workspace growth. These trusted-runner process limits are sampled controls, not a security sandbox.
 
 All three projects were already familiar. The original first JMESPath evaluation remains unchanged and separately audited. Three repetitions cannot establish general savings. There is no live agent, model-token, billing or CodeGraph comparison here. Earlier measurements use different procedures and runners; compare approaches within this run.
 
-[Raw record](../tests/agent-eval/results/2026-10-22-project-sessions-42068271580/result.json) | [Workflow run](https://github.com/e6qu/fun-refactor/actions/runs/42068271580) | [Previous saved-answer comparison](distinct-answer-hashing.md)
+[Raw record](../tests/agent-eval/results/2026-10-22-project-sessions-42141105039/result.json) | [Workflow run](https://github.com/e6qu/fun-refactor/actions/runs/42141105039) | [Previous saved-answer comparison](distinct-answer-hashing.md)
