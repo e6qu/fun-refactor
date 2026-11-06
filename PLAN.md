@@ -79,7 +79,7 @@ waiting for model replies used the rest. Separate delivery turns cost Kimi two c
 2. `fr proof save --deliver change.patch` saves the checked proof, runs every check in
    `.fr/checks.json` and writes all saved proofs as one patch. A failing check keeps the
    proof and writes no patch. The skill teaches this single delivery call.
-3. Native admission is declared per study in its requirements and checked by one shared path.
+3. Each study's requirements declare its native admission, and one shared path checks it.
    Page-count admission rejects an unfinished draft and delivers the reference with `--deliver`.
 4. Refresh the source-bound evidence for the fr change, then pass the complete PR gate,
    hosted page-count controls and both local client admissions.

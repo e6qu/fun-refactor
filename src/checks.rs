@@ -408,7 +408,6 @@ pub fn check_requirement_satisfied(
     !requirement_present || configuration_matches && check_names_match
 }
 
-/// Declared check names and the configuration basis, or `None` without `.fr/checks.json`.
 pub fn declared(root: &Path) -> Result<Option<(Vec<String>, String)>> {
     let root = root.canonicalize()?;
     if !root.join(CONFIG).exists() {

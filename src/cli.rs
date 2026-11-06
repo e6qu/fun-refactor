@@ -1856,7 +1856,6 @@ fn present_proof_state(cli: &Cli, state: &crate::spec::ProofState) -> Result<()>
     Ok(())
 }
 
-/// Run every declared check, then export all applied saved proofs as one patch.
 fn deliver_saved_proofs(
     root: &Path,
     patch: &Path,
@@ -1952,7 +1951,7 @@ fn cmd_proof_save(
         let delivered = delivery["delivered"] == true;
         report["delivery"] = delivery;
         report["scope"] = serde_json::json!(if delivered {
-            "Lean accepted this target proof, every declared check passed and the patch was written."
+            "Lean accepted this target proof, every declared check passed and fr wrote the patch."
         } else {
             "Lean accepted and saved this target proof, but delivery stopped; read delivery."
         });
