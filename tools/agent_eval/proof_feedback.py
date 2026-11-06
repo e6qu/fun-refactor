@@ -420,6 +420,8 @@ def outcomes(rows, milestone):
                 for row, planned in zip(rows, schedule['attempts'])), 'diagnostic profile or condition changed')
     require(all(type(row['total_seconds']) in {int, float} and math.isfinite(row['total_seconds']) and
                 row['total_seconds'] >= 0 for row in rows), 'diagnostic times must be finite nonnegative seconds')
+    from .selected_local import study_limits
+    wall_seconds = study_limits(milestone)['wall_seconds']
     result = {}
     for profile in schedule['profiles']:
         counts = {}
@@ -441,7 +443,7 @@ def outcomes(rows, milestone):
                         require(row['reported_usage_complete'] is True and row['client_model_recorded'] is True,
                                 'incomplete native accounting cannot count as complete success')
                     require(row['native_status'] == 'completed' and row['stop_reason'] is None and
-                            row['complete_attempt_deadline_missed'] is False and row['total_seconds'] <= 150 and
+                            row['complete_attempt_deadline_missed'] is False and row['total_seconds'] <= wall_seconds and
                             not row['checking_input_changes'] and not row['collection_error_recorded'] and
                             row['independent_check']['patch_accepted'] is True,
                             'a timed-out diagnostic remains failed even if its patch passes')

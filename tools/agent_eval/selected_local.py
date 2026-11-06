@@ -21,6 +21,18 @@ from .selected_plan import ALGORITHM_STUDIES, ALGORITHM_TASKS, ADMISSION_STUDIES
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
 CLIENT_FINISH_SECONDS = 10
+# Studies frozen before 2026-11-06 declared 150 seconds; later proof studies declare 300.
+WALL_SECONDS_CHOICES = (150, 300)
+
+
+def study_limits(milestone):
+    """The study's declared limits; only the complete-attempt wall time may differ from LIMITS."""
+    declared = prepare(ROOT, milestone)['requirements']['limits']
+    limits = {name: declared[name] for name in LIMITS}
+    require(limits['wall_seconds'] in WALL_SECONDS_CHOICES and
+            all(limits[name] == LIMITS[name] for name in LIMITS if name != 'wall_seconds'),
+            'a study may choose only its declared complete-attempt wall time')
+    return limits
 TOOL_DEADLINE_MARKER = '<ATTEMPT_TOOL_DEADLINE_UNIX>'
 PUBLIC_CHECK_ENVIRONMENT = {'CARGO_BUILD_JOBS': '1', 'CARGO_INCREMENTAL': '0',
     'CARGO_PROFILE_DEV_DEBUG': '0', 'CARGO_PROFILE_DEV_OPT_LEVEL': '0', 'CARGO_PROFILE_TEST_DEBUG': '0'}
@@ -162,7 +174,7 @@ def prompt(task, setup, checkers, milestone):
             checking_files += ' and .fr/check-escape'
         checking_files += ', including during cleanup; changing or deleting them makes the attempt fail. '
     return (request + '\n\n'
-        f'The whole attempt has a {LIMITS["wall_seconds"]}-second deadline, including preparation, '
+        f'The whole attempt has a {study_limits(milestone)["wall_seconds"]}-second deadline, including preparation, '
         'model work, tools, checks, patch delivery and final session accounting. '
         'Leave time to deliver change.patch and finish the session. '
         'Review the complete patch against every requested requirement. A compile check alone does not establish '
@@ -263,8 +275,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
     require(sys.platform == 'darwin', 'this execution plan is for the requested local macOS CLIs')
     output.mkdir(parents=True, exist_ok=False)
     proposed = prepare(ROOT, milestone)
-    require(LIMITS == {name: proposed['requirements']['limits'][name] for name in LIMITS},
-            'execution limits differ from the frozen task requirements')
+    limits = study_limits(milestone)
     expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in PROOF_STUDIES | {'M1'} else
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
     if milestone in PROOF_STUDIES:
@@ -348,7 +359,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
              'live_calls_enabled': True,
              'seeds': seeds, 'prompts': packets, 'implementation': implementation_bindings(milestone),
              'checkers': checkers, 'checker_versions': checker_versions, 'python_packages': python_packages,
-             'limits': LIMITS, 'client_finish_seconds': CLIENT_FINISH_SECONDS,
+             'limits': limits, 'client_finish_seconds': CLIENT_FINISH_SECONDS,
              'public_check_environment': dict(PUBLIC_CHECK_ENVIRONMENT),
              'outer_guard': '/Users/zardoz/.codex/tools/fr-local-guard.py',
              'execution': 'User-requested local Codex and OpenCode2 CLIs with their existing account stores. No credential transfer.',
@@ -518,7 +529,8 @@ def attempt(plan_path, attempt_id):
     require(value['source']['native_inputs'] == checkout['native_inputs'] and value['schedule'] == prepare(ROOT, milestone),
             'committed native source or study requirements changed')
     require(value['implementation'] == implementation_bindings(milestone), 'study code, skills or checking inputs changed')
-    require(value['limits'] == LIMITS, 'local limits changed')
+    require(value['limits'] == study_limits(milestone), 'local limits changed')
+    limits = value['limits']
     require(value['client_finish_seconds'] == CLIENT_FINISH_SECONDS and
             value['public_check_environment'] == PUBLIC_CHECK_ENVIRONMENT,
             'public checking settings changed after freezing')
@@ -588,7 +600,7 @@ def attempt(plan_path, attempt_id):
                 from . import project_edits_public as checker
                 checker.install(project)
                 checking_inputs[checker.CHECKER] = hash_file(project / checker.CHECKER)
-            tool_deadline = entered_at + LIMITS['wall_seconds'] - value['client_finish_seconds']
+            tool_deadline = entered_at + limits['wall_seconds'] - value['client_finish_seconds']
             declared = [{**check, 'cwd': '.', 'timeout_seconds': 120, 'covers': ['public M2 project checks']}
                         for check in m2_checks(row['task'], {name: tool['path'] for name, tool in checkers.items()}, tool_deadline)]
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
@@ -625,11 +637,11 @@ def attempt(plan_path, attempt_id):
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
         prompt_text = execution_prompt(value['prompts'][attempt_id], started_at=entered_at,
-                                       wall_seconds=LIMITS['wall_seconds'], finish_seconds=value['client_finish_seconds'])
+                                       wall_seconds=limits['wall_seconds'], finish_seconds=value['client_finish_seconds'])
         initial_bytes = 0
         if milestone == 'M3-feedback':
             from . import proof_feedback
-            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started)
+            remaining = limits['wall_seconds'] - (elapsed_time() - started)
             require(remaining > 0, 'diagnostic deadline expired before its initial check')
             before = elapsed_time()
             initial, initial_bytes = proof_feedback.initial_check(value['binaries']['fr']['path'], project,
@@ -642,18 +654,18 @@ def attempt(plan_path, attempt_id):
             report['initial_feedback_supplied'] = row['setup'] == 'supplied-feedback'
             if report['initial_feedback_supplied']:
                 prompt_text += '\n\nInitial fr rejection report for the unchanged draft:\n' + initial
-        require(initial_bytes < LIMITS['transcript_bytes'], 'initial check exceeded the combined transcript budget')
+        require(initial_bytes < limits['transcript_bytes'], 'initial check exceeded the combined transcript budget')
         (output / 'prompt.txt').write_text(prompt_text)
         argv, stdin = invocation(profile, value['binaries'], project, output, prompt_text, 'workspace-write')
         tasks.save(output / 'command.json', argv)
         report['project'] = str(project)
         tasks.save(output / 'result.json', report)
         with (output / 'native.stdout').open('xb') as stdout, (output / 'native.stderr').open('xb') as stderr:
-            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started) - value['client_finish_seconds']
+            remaining = limits['wall_seconds'] - (elapsed_time() - started) - value['client_finish_seconds']
             require(remaining > 0, 'client deadline expired during preparation; preserve finishing time')
             process = bounded_run(argv, stdin, stdout, stderr, project, env=env, cwd=project,
-                                  **{**LIMITS, 'wall_seconds': remaining,
-                                     'transcript_bytes': LIMITS['transcript_bytes'] - initial_bytes})
+                                  **{**limits, 'wall_seconds': remaining,
+                                     'transcript_bytes': limits['transcript_bytes'] - initial_bytes})
         report['process'] = process
         events = []
         for line in (output / 'native.stdout').read_bytes().splitlines():
@@ -671,7 +683,7 @@ def attempt(plan_path, attempt_id):
                 session = argv[argv.index('--session') + 1]
                 require(all(event['sessionID'] == session for event in events), 'native stream belongs to another session')
                 record_opencode_accounting(report, value['binaries']['opencode2']['path'], session,
-                    project, env, output, profile, events, started + LIMITS['wall_seconds'])
+                    project, env, output, profile, events, started + limits['wall_seconds'])
         elif profile['client'] == 'codex' and report['usage']['complete_turns'] != 1:
             report['status'] = 'failed'
         report['fr_contribution'] = None
@@ -693,7 +705,7 @@ def attempt(plan_path, attempt_id):
             report['native_stdout_sha256'] = hash_file(output / 'native.stdout')
         report['finished_at'] = time.time()
         report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))
-        report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > LIMITS['wall_seconds']
+        report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > limits['wall_seconds']
         if report['complete_attempt_deadline_missed']:
             report.update(status='failed', complete_attempt_deadline_missed=True)
         tasks.save(output / 'result.json', report)
