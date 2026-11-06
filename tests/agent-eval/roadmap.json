@@ -70,28 +70,28 @@
       "sha256": "b4ba4ce2797c764759739fbf0cf49ff9ed94b74639e8109b6588008b4ebd45f6"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-06-fr-metadata-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-06-proof-deliver-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-06-fr-metadata-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-06-proof-deliver-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "2b0b51dce391e2eb5b1ace02a8d7dd06c0b98fb527343fff60ffc1764e583a03"
+      "sha256": "ee337e14c4cf73e15a67455dc9a06b9805335153160ae7ad1b605068afb5d2d7"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-06-fr-metadata-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-06-proof-deliver-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-06-fr-metadata-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-06-proof-deliver-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "ecc46be7ad9c4dcd863479c94bf72cb22dbefad52229502e676858f3bd5eb37b"
+      "sha256": "18d3e96ec205183d9de594adadc96edd2821a339286088e21630da797e2dfcef"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-06-fr-metadata-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-06-proof-deliver-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-06-fr-metadata-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-06-proof-deliver-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "77ba61e6cd61c4b752c44d699dab4d59ff4ab10368c45949a9f401f5746bd7c2"
+      "sha256": "b0f91330e1f5871eb4c4f1f73fa08402a0c29d02efad72956264dd6c37fe2ca2"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
