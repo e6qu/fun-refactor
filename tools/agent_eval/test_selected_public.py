@@ -92,7 +92,7 @@ class SelectedPublicTests(unittest.TestCase):
                     'checkers': {'lake': {'path': '/pinned/lake'}}, 'live_calls_enabled': True,
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
-            if milestone in public.ALGORITHM_TASKS:
+            if milestone in public.ADMISSION_STUDIES:
                 plan['admission'] = {'profiles': {}, 'receipts_sha256': 'a' * 64}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
@@ -129,6 +129,7 @@ class SelectedPublicTests(unittest.TestCase):
                     (directory / 'result.json').write_text(json.dumps(record))
                 elif milestone in public.ALGORITHM_TASKS:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
+                if milestone in public.ADMISSION_STUDIES:
                     resources = {'limits': {'wall_seconds': 150, 'rss_bytes': 805306368, 'cpu_seconds': 75,
                                  'disk_bytes': 536870912, 'transcript_bytes': 1048576},
                                  'stop_reason': 'wall_seconds', 'sampled_aggregate_rss_bytes': 100, 'elapsed_seconds': 3}
@@ -204,6 +205,14 @@ class SelectedPublicTests(unittest.TestCase):
             if milestone == 'M3-facts':
                 self.assertIsNone(result['provider_request_count'])
                 self.assertIsNone(result['attempts'][0]['proof_observations']['proof_write_seconds'])
+                self.assertEqual(result['native_admission'], plan['admission'])
+                self.assertIn('controller, native CLI and workers', result['resource_scope'])
+                receipt = root / 'attempt-monitors' / schedule['attempts'][0]['id'] / 'resources.json'
+                receipt.write_text('{}')
+                with patch.object(public.local, 'implementation_bindings', return_value={}), \
+                        patch.object(public.grading, 'core_digest', return_value='checker'), \
+                        self.assertRaisesRegex(ValueError, 'complete-attempt resource receipt changed'):
+                    public.export(plan_path, review, root / 'refused')
 
 
 if __name__ == '__main__':

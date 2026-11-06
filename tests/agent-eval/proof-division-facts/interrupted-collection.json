@@ -1,0 +1,133 @@
+{
+  "purpose": "Preserve an interrupted division-fact collection; no valid paired comparison or model-ability conclusion.",
+  "plan_sha256": "8e91018eac44e52bfedeb738e3cd56e28b1a4924ec2df139aeffe41e1c2a78c4",
+  "source_commit": "73d02656139ed8ca4655916b0154ec1fd2abd458",
+  "qualified_run": 42146258197,
+  "started_attempts": 1,
+  "unstarted_attempts": 7,
+  "submitted_patches": 0,
+  "reason": "The independent observer stopped the complete attempt above its unchanged 768 MiB RSS limit. A large fr process was indexing Lean library files. The exact unfinished command was not captured.",
+  "decision": "Keep this attempt failed and the other seven unstarted. Add single-import-file discovery to qualification and private command capture before preparing a new packet. Never rerun this slot.",
+  "elapsed_seconds": 107.37536170799285,
+  "complete_attempt_resources": {
+    "exit_code": 125,
+    "process_exit_code": -9,
+    "timed_out": false,
+    "stop_reason": "rss_bytes",
+    "launch_error": null,
+    "monitor_error": null,
+    "elapsed_seconds": 107.37536170799285,
+    "limits": {
+      "wall_seconds": 150,
+      "rss_bytes": 805306368,
+      "disk_bytes": 536870912,
+      "cpu_seconds": 75,
+      "transcript_bytes": 1048576
+    },
+    "sampled_aggregate_rss_bytes": 808108032,
+    "sampled_cpu_seconds": 55.949999999999996,
+    "sampled_disk_growth_bytes": 29380237,
+    "transcript_bytes": 0,
+    "suspended_seconds": 0
+  },
+  "record_sha256": "3c78a3e0de2cd0d27eadcddc2997ddae0b4a9f0912c1ab5eec6b253c43213f40",
+  "resource_receipt_sha256": "62872fc2724d7881d018c8c1eec08d2f04eae8dc08c1f98242c76c217d32df77",
+  "reported_usage_complete": false,
+  "actual_cost": null,
+  "native_stream_bytes": 31457,
+  "measurement_note": "The outer receipt transcript_bytes counts controller stdout/stderr, not the separately retained native stream. No zero token, request or charge total is inferred.",
+  "observed_actions": [
+    "Read the fixed task, shared Lean skill and arithmetic examples.",
+    "A guessed working directory was rejected; the agent inspected its directory and successfully started the fixed proof goal.",
+    "No completed proof-check or save event, delivered patch, or complete session accounting was retained."
+  ],
+  "library_cache_observation": {
+    "files": 1592,
+    "bytes": 29277273,
+    "scope": "Includes Init and unrelated Std source files; evidence of broad indexing, not the exact command text."
+  },
+  "attempts": [
+    {
+      "id": "opencode2-glm-flash-division-facts-select-facts-1",
+      "profile": "opencode2-glm-flash",
+      "task": "division-facts",
+      "setup": "select-facts",
+      "repetition": 1,
+      "status": "failed"
+    },
+    {
+      "id": "opencode2-glm-flash-division-facts-supplied-declarations-1",
+      "profile": "opencode2-glm-flash",
+      "task": "division-facts",
+      "setup": "supplied-declarations",
+      "repetition": 1,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-division-facts-supplied-declarations-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "division-facts",
+      "setup": "supplied-declarations",
+      "repetition": 1,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-division-facts-select-facts-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "division-facts",
+      "setup": "select-facts",
+      "repetition": 1,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-glm-flash-division-facts-supplied-declarations-2",
+      "profile": "opencode2-glm-flash",
+      "task": "division-facts",
+      "setup": "supplied-declarations",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-glm-flash-division-facts-select-facts-2",
+      "profile": "opencode2-glm-flash",
+      "task": "division-facts",
+      "setup": "select-facts",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-division-facts-select-facts-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "division-facts",
+      "setup": "select-facts",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    },
+    {
+      "id": "opencode2-kimi-k3-division-facts-supplied-declarations-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "division-facts",
+      "setup": "supplied-declarations",
+      "repetition": 2,
+      "status": "not-started-study-stopped"
+    }
+  ],
+  "publication": "Reviewed summary only. Native streams, session export, drafts, source/cache snapshots and execution packet stay local.",
+  "peak_by_executable": {
+    "Python": {
+      "processes": 2,
+      "sampled_rss_bytes": 68370432,
+      "sampled_cpu_seconds": 5.3100000000000005
+    },
+    "opencode2": {
+      "processes": 2,
+      "sampled_rss_bytes": 289980416,
+      "sampled_cpu_seconds": 4.33
+    },
+    "fr": {
+      "processes": 1,
+      "sampled_rss_bytes": 449757184,
+      "sampled_cpu_seconds": 45.3
+    }
+  }
+}

@@ -1,9 +1,10 @@
 {
   "lean": "4.28.0",
   "local_rust": "1.98.1",
-  "local_python": "3.14.6",
+  "local_python": "3.14.10",
   "hosted_rust": "1.99.1",
   "approved_axioms": ["Classical.choice", "Quot.sound", "propext"],
   "model_claim": "The fixed Int model has division_parts(a,b) <= a when 0 <= a and 1 <= b.",
-  "source_claim": "Source overflow and source-to-model equivalence remain unproved. This diagnostic cannot close M3."
+  "source_claim": "Source overflow and source-to-model equivalence remain unproved. This diagnostic cannot close M3.",
+  "lean_arguments": ["-j1"]
 }

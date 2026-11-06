@@ -45,6 +45,47 @@ class GuardedAttemptChecks(unittest.TestCase):
                 self.assertEqual(record['suspended_seconds'], 1.5)
                 self.assertEqual(bool(record['collection_errors']), status == 'started')
 
+    def test_running_fr_command_survives_an_interruption_without_reading_other_processes(self):
+        raw = '10 1 10 20 00:01 Python\n12 10 12 500 00:03 fr\n90 1 90 9999 00:01 other\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            sampler = guarded.IndependentSampler(directory)
+            sampled = subprocess.CompletedProcess([], 0, raw)
+            command = subprocess.CompletedProcess([], 0, 'fr -C /library/file.lean project find tdiv\n')
+            with patch.object(guarded.subprocess, 'run', side_effect=[sampled, command, sampled]) as run:
+                sampler(10)
+                sampler(10)
+            self.assertEqual(run.call_args_list[1].args[0], ['ps', '-p', '12', '-o', 'args='])
+            self.assertEqual(len(run.call_args_list), 3)
+            rows = [json.loads(line) for line in (directory / 'commands.jsonl').read_text().splitlines()]
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]['status'], 'captured')
+            self.assertEqual(rows[0]['command'], command.stdout.strip())
+            self.assertEqual(rows[0]['omitted_characters'], 0)
+
+    def test_process_exit_before_argv_read_stays_explicitly_unknown(self):
+        raw = '10 1 10 20 00:01 Python\n12 10 12 500 00:03 fr\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            with patch.object(guarded.subprocess, 'run', side_effect=[
+                    subprocess.CompletedProcess([], 0, raw), subprocess.CompletedProcess([], 1, '')]):
+                guarded.IndependentSampler(directory)(10)
+            row = json.loads((directory / 'commands.jsonl').read_text())
+            self.assertIsNone(row['command'])
+            self.assertEqual(row['status'], 'unavailable')
+
+    def test_command_timeout_preserves_resource_sampling_and_marks_missing_detail(self):
+        raw = '10 1 10 20 00:01 Python\n12 10 12 500 00:03 fr\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            with patch.object(guarded.subprocess, 'run', side_effect=[
+                    subprocess.CompletedProcess([], 0, raw), subprocess.TimeoutExpired('ps', 2)]):
+                measured = guarded.IndependentSampler(directory)(10)
+            self.assertEqual(measured, (520 * 1024, {10: 1, 12: 3}))
+            row = json.loads((directory / 'commands.jsonl').read_text())
+            self.assertEqual(row['error'], 'TimeoutExpired')
+            self.assertIsNone(row['command'])
+
     def test_expected_deadline_is_a_failed_attempt_not_a_broken_collection(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

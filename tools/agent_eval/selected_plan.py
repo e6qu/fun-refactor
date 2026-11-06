@@ -20,7 +20,7 @@ ALGORITHM_TASKS = ALGORITHM_STUDIES | {DELIVERY_STUDY}
 CASE_DIRECTORIES.update({name: Path('tests/agent-eval/proof-algorithms') for name in ALGORITHM_STUDIES})
 CASE_DIRECTORIES[DELIVERY_STUDY] = Path('tests/agent-eval/proof-delivery')
 PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY})
-ADMISSION_STUDIES = ALGORITHM_TASKS | {REPAIR_STUDY}
+ADMISSION_STUDIES = ALGORITHM_TASKS | {REPAIR_STUDY, 'M3-facts'}
 PROOF_STUDIES = PROOF_DIAGNOSTICS | ALGORITHM_TASKS | {'M3'}
 PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.json',
                  'M3': CASE_DIRECTORIES['M3'] / 'profiles.json',
@@ -131,7 +131,7 @@ def prepare(root, milestone):
     if milestone in {'M3-facts', REPAIR_STUDY}:
         require(tasks['attempts'] == expected_count == 8 and tasks['client_finish_seconds'] == 10,
                 'fact selection needs eight attempts and the original finishing reserve')
-    if milestone == REPAIR_STUDY:
+    if milestone in {REPAIR_STUDY, 'M3-facts'}:
         checkers = json.loads((root / case_directory / 'checkers.json').read_text())
         require(tasks['lean_arguments'] == checkers['lean_arguments'] == ['-j1'],
                 'both conditions require one explicit Lean compiler worker')

@@ -11,7 +11,7 @@ from . import selected_local as local
 from . import selected_local_grade as grading
 from . import selected_tasks as common
 from .project_edits_results import encoded_summary, DETAILS
-from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, REPAIR_STUDY, encoded, require
+from .selected_plan import ADMISSION_STUDIES, ALGORITHM_TASKS, DELIVERY_STUDY, CASE_DIRECTORIES, PROOF_STUDIES, PROOF_DIAGNOSTICS, REPAIR_STUDY, encoded, require
 
 
 def command_tokens(command):
@@ -237,7 +237,7 @@ def export(plan_path, review, destination):
             from .algorithm_results import validate_observations
             rows[-1]['algorithm_observations'] = validate_observations(
                 review[identity]['algorithm_observations'], record['elapsed_seconds'])
-        if milestone in ALGORITHM_TASKS | {REPAIR_STUDY}:
+        if milestone in ADMISSION_STUDIES:
             resources = record['complete_attempt_resources']
             require(resources['limits'] == {'wall_seconds': 150, 'rss_bytes': 805306368,
                     'cpu_seconds': 75, 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
@@ -302,13 +302,11 @@ def export(plan_path, review, destination):
         summary['native_admission'] = plan['admission']
         summary['scope'] = 'Eight fresh full page-count attempts; no ordinary-tool overhead baseline or M3 completion claim.'
     elif milestone == 'M3-facts':
+        summary['native_admission'] = plan['admission']
         summary['scope'] = 'Eight development-example attempts on selecting and applying division facts. No ordinary-tool timing baseline or full M3 claim.'
         summary['provider_request_count'] = None
     elif milestone in ALGORITHM_TASKS:
         summary['native_admission'] = plan['admission']
-        summary['resource_scope'] = ('Independent sampled limits cover the guard, controller, native CLI and workers, '
-            'including preparation and accounting. The observer stays outside the CPU throttle. '
-            'Short peaks and children reparented before discovery can still be missed.')
         summary['scope'] = ('Controlled development comparison on executable Lean Euclid, including termination and correctness. '
                             'No ordinary-tool overhead baseline, Rust/Python translation proof or M3 completion claim.')
         if milestone == DELIVERY_STUDY:
@@ -327,6 +325,10 @@ def export(plan_path, review, destination):
                 else:
                     files = install(project, condition, milestone)
                 summary['guidance_bytes'][condition] = {name: (project / name).stat().st_size for name in files}
+    if milestone in ADMISSION_STUDIES:
+        summary['resource_scope'] = ('Independent sampled limits cover the guard, controller, native CLI and workers, '
+            'including preparation and accounting. The observer stays outside the CPU throttle. '
+            'Short peaks and children reparented before discovery can still be missed.')
     (destination / 'summary.json').write_bytes(encoded_summary(summary))
     return summary
 

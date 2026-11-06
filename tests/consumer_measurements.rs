@@ -6,7 +6,7 @@ fn consumer_measurements_match_their_source_and_baseline() {
         .args([
             "tools/index-consumers-acceptance.py",
             "--verify",
-            "tests/agent-eval/results/2026-11-05-checked-proof-reader-index-consumers/result.json",
+            "tests/agent-eval/results/2026-11-06-fr-metadata-index-consumers/result.json",
         ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()

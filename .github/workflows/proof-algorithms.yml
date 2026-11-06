@@ -16,6 +16,14 @@ env:
   LEAN_NUM_THREADS: '1'
   RAYON_NUM_THREADS: '1'
 jobs:
+  division-fact-controls:
+    name: Check the division-fact experiment without model calls
+    needs: qualify
+    uses: ./.github/workflows/proof-feedback.yml
+    with:
+      study: M3-facts
+      operation: prepare
+      artifact_run: ${{ format('{0}', github.run_id) }}
   page-count-diagnosis:
     name: Distinguish division facts from their application without model calls
     needs: qualify
@@ -117,8 +125,10 @@ jobs:
           agent_eval.test_selected_local agent_eval.test_selected_grading
           agent_eval.test_selected_guarded
           agent_eval.test_algorithm_admission
+          agent_eval.test_proof_feedback agent_eval.test_proof_division_facts agent_eval.test_argument_repair
           agent_eval.test_proof_delivery
           agent_eval.test_host.BoundedHost agent_eval.test_darwin_sampling
+      - run: python3 -B tools/test-native-source-inputs.py
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2
         with:
@@ -128,7 +138,7 @@ jobs:
         run: |
           lean -j1 -DwarningAsError=true tests/fixtures/lean-recursive-algorithms.lean
           lean -j1 -DwarningAsError=true tests/fixtures/lean-lambda-continuations.lean
-          cargo test --locked --test lean --test lean_grammar -- --test-threads=1
+          cargo test --locked --test lean --test lean_grammar --test native_fingerprint -- --test-threads=1
           cargo test --locked --test history_patch_cli --test history_git_cli -- --test-threads=1
           cargo test --locked --lib spec::proof_state::tests -- --test-threads=1
           cargo test --locked --lib spec::tests -- --test-threads=1

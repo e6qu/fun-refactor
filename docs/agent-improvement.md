@@ -63,7 +63,7 @@ Do not keep changing wording or repeat the full study until one run happens to p
 
 | Observation | What it establishes | What still needs checking |
 | --- | --- | --- |
-| The shell command exits successfully | The process returned normally | Read `passed` and the diagnostics; fr can return a rejected proof in successful JSON output |
+| The shell command exits successfully | The process returned normally | Read the result and diagnostics; a closed cursor branch is not an accepted whole proof |
 | The agent invokes fr | Tool use occurred | Did the returned information help the next action? |
 | A draft receives useful feedback | The checker exposed a relevant goal or error | Did the agent interpret it and repair the proof? |
 | An intermediate goal passes | That proof step works | Does the entire unchanged theorem pass? |
@@ -216,7 +216,7 @@ Then review the first unresolved proof or delivery step and the task requirement
 Do not assume that another wording change will make the complete page-count proof fit the existing limit.
 The four new records stay separate from the 335 M3 outcomes and twelve earlier diagnostic outcomes.
 
-### Earlier unrun plan: select current division facts
+### Next diagnostic: select current division facts
 
 The [eight-slot protocol](../tests/agent-eval/proof-division-facts/README.md) uses a smaller fixed division claim.
 Both conditions have the same task, fr, instructions, library and complete 150-second deadline.
@@ -226,8 +226,15 @@ It does not isolate every obstacle in the complete page-count proof.
 
 The runner checks the declarations against pinned Lean output and protects each condition's handout.
 Changed settings, late successes, missing checks and damaged handouts remain failures.
-The hosted tool qualification passed. No calls started and no execution plan was frozen.
+The earlier qualification predates the current commands and client accounting checks.
+Fresh controls must cover both handouts, actual goals, rejection, saving, package checking,
+patch replay and final accounting. Use the independent observer for the entire local client tree.
+No calls have started and no execution plan is frozen.
 The protocol fixes separate per-agent decisions, including harm, mixed outcomes and invalid execution.
+The later argument-repair comparison did not observe its predicted error and produced no patch.
+This is a different question: can the agents apply the needed facts when their current types
+are supplied, and can they find those facts without that handout? It does not repeat a failed
+wording change or measure the new CLI against the previous CLI.
 
 ### Next comparison: prove an executable algorithm
 

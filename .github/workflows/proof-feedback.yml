@@ -74,7 +74,7 @@ jobs:
             agent_eval.test_selected_native agent_eval.test_proof_writing_artifact
       - uses: actions/download-artifact@v8
         with:
-          name: ${{ inputs.operation == 'prepare' && (inputs.study == 'M3-argument-repair' && 'algorithm-linux-tool' || 'm3-linux-tool') || 'diagnostic-linux-tool' }}
+          name: ${{ inputs.operation == 'prepare' && (contains(fromJSON('["M3-argument-repair","M3-facts"]'), inputs.study) && 'algorithm-linux-tool' || 'm3-linux-tool') || 'diagnostic-linux-tool' }}
           path: ${{ runner.temp }}/feedback-tool
           run-id: ${{ inputs.artifact_run }}
           github-token: ${{ github.token }}
@@ -84,7 +84,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TOOL_RUN: ${{ inputs.artifact_run }}
-          BUILD_KIND: ${{ inputs.study == 'M3-argument-repair' && 'algorithms' || 'numeric-models' }}
+          BUILD_KIND: ${{ contains(fromJSON('["M3-argument-repair","M3-facts"]'), inputs.study) && 'algorithms' || 'numeric-models' }}
         run: >-
           python3 -B -m agent_eval.proof_writing_artifact --build-kind "$BUILD_KIND" --run "$TOOL_RUN"
           --fr "$RUNNER_TEMP/feedback-tool/fr" --output "$RUNNER_TEMP/feedback-build.json"
@@ -100,6 +100,19 @@ jobs:
           PY
           python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/feedback-tool/fr" \
             --profiles "$RUNNER_TEMP/diagnostic-profiles.json" --output "$RUNNER_TEMP/feedback-native"
+      - name: Check declaration discovery in the imported Lean file
+        if: inputs.operation == 'prepare' && inputs.study == 'M3-facts'
+        run: |
+          LEAN_DECLARATIONS="$(lean --print-prefix)/src/lean/Init/Data/Int/DivMod/Lemmas.lean"
+          "$RUNNER_TEMP/feedback-tool/fr" --json -C "$LEAN_DECLARATIONS" \
+            project find tdiv --contains --signature --limit 4 > "$RUNNER_TEMP/library-lookup.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'library-lookup.json').read_text())
+          assert report['coverage']['indexed_files'] == 1
+          assert report['rows'] and 'signature' in report['columns']
+          PY
       - name: Reject bad drafts and patches in isolated checkouts
         id: controls
         if: inputs.operation == 'prepare'

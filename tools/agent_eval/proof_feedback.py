@@ -10,6 +10,7 @@ import shutil
 import re
 import subprocess
 import tempfile
+import tomllib
 
 from . import proof_writing_tasks as proof
 from . import selected_tasks as common
@@ -105,6 +106,15 @@ def prepare_inputs(binary, project, output, milestone):
                 'goal_digest': goals['catalog'][0]['id'], 'property': claim, 'model': plan['kernel']['lean_definition'],
                 'assumptions': plan['assumptions'],
                 'arithmetic': details['arithmetic']}
+    if milestone == 'M3-facts':
+        settings = prepare(ROOT, milestone)['requirements']
+        arguments = tomllib.loads((project / 'specs/lakefile.toml').read_text())['lean_lib'][0]['moreLeanArgs']
+        require(arguments == settings['lean_arguments'] == ['-j1'] and
+                (project / spec).read_text().startswith('prelude\nimport Init.Data.Int.DivMod.Lemmas\n') and
+                (project / 'specs/FrSpecs.lean').read_text().startswith('prelude\n') and
+                settings['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'],
+                'qualify the generated division imports and one compiler worker without setup rewrites')
+        prepared.update(lean_arguments=arguments, lean_imports=settings['lean_imports'])
     common.save(output / 'project.json', prepared)
     common.retain_seed(project, prepared, output)
     return prepared
@@ -115,19 +125,25 @@ def prompt(checkers, milestone):
         request = prepare(ROOT, milestone)['requirements']['tasks']['page-count']['request']
         return (request + '\n\nTactics are proof steps. Read all parts of the fixed claim before writing a draft. '
                 'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
-                str(checkers['lean']['source_root']) + '. A successful fr command can report passed=false; read the report. '
+                str(checkers['lean']['source_root']) + '. A rejected fr proof check exits 1 with passed=false; read the report. '
                 'Only the marked proof region may change. Preserve .fr/checks.json; store reports elsewhere.')
     if milestone in {'M3-construction', 'M3-facts'}:
         request = prepare(ROOT, milestone)['requirements']['tasks'][case_details(milestone)['task']]['request']
+        library = str(checkers['lean']['source_root'])
+        if milestone == 'M3-facts':
+            library = ('the imported division module ' +
+                       str(Path(library) / 'Init/Data/Int/DivMod/Lemmas.lean') +
+                       '. Use that file as fr -C when finding declarations. '
+                       'Do not index the whole Lean source tree; --limit bounds results, not input work')
         return (request + '\n\nTactics are proof steps. Read the fixed claim before writing a draft. '
                 'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
-                str(checkers['lean']['source_root']) + '. A successful fr command can report passed=false; read the report. '
+                library + '. A rejected fr proof check exits 1 with passed=false; read the report. '
                 'Only the marked proof region may change. Preserve .fr/checks.json; store reports elsewhere.')
     require(milestone == 'M3-feedback', 'choose the explicit prompt study')
     request = json.loads((ROOT / DIRECTORY / 'tasks.json').read_text())['tasks'][TASK]['request']
     return (request + '\n\nFr and the project skill are available. Read the skill before choosing commands. '
             'Tactics are proof steps. The theorem assumes a nonnegative dividend and a positive divisor. '
-            'Read passed in fr JSON: a successful process exit can still report passed=false. '
+            'A rejected fr proof check exits 1 with passed=false; read its diagnostics. '
             'Keep .fr/checks.json. Only the fixed theorem proof region may change in the delivered patch. '
             'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
             str(checkers['lean']['source_root']) + '. Run the supplied package check: ' +
@@ -157,17 +173,24 @@ def install_repair_instruction(project, condition):
     return path
 
 
-def install_repair_admission(project, condition, lean_root, prepared):
+def install_diagnostic_admission(project, condition, lean_root, prepared, study):
     """Scripted controls receive reference drafts; live attempts never receive them."""
-    from .page_count_diagnosis import drafts, REFERENCE
     from . import selected_local as local
+    require(study in {REPAIR_STUDY, 'M3-facts'}, 'choose the complete diagnostic admission explicitly')
     shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
-    handout = install_repair_instruction(project, condition)
+    if study == REPAIR_STUDY:
+        from .page_count_diagnosis import drafts, REFERENCE
+        handout = install_repair_instruction(project, condition)
+        reference = REFERENCE.read_text()
+        bad = drafts(reference)['integer-instead-of-proof']
+    else:
+        handout = install_declarations(project, condition)
+        reference = (ROOT / CASE_DIRECTORIES[study] / 'controls/reference.lean').read_text()
+        bad = 'refine ?_\n'
     directory = project / '.fr'
     (directory / 'admission-target.txt').write_text(prepared['target'])
-    (directory / 'admission-start.lean').write_text('skip\n')
-    (directory / 'admission-reference.lean').write_text(REFERENCE.read_text())
-    (directory / 'admission-bad.lean').write_text(drafts(REFERENCE.read_text())['integer-instead-of-proof'])
+    (directory / 'admission-reference.lean').write_text(reference)
+    (directory / 'admission-bad.lean').write_text(bad)
     common.save(directory / 'checks.json', {'schema': 1, 'checks': [{'name': 'lean',
         'argv': [str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail'], 'cwd': '.',
         'timeout_seconds': 120, 'covers': ['fixed Lean theorem without proof gaps']}]})
@@ -176,20 +199,31 @@ def install_repair_admission(project, condition, lean_root, prepared):
             for path in paths if path.is_file()}
 
 
-def repair_admission_script(lean_root, search_path, condition):
-    require(condition in {'shared-skill', 'argument-repair'}, 'admit the explicit repair condition')
+def diagnostic_admission_script(lean_root, search_path, condition, study):
+    require(study in {REPAIR_STUDY, 'M3-facts'} and
+            condition in prepare(ROOT, study)['requirements']['setups'], 'admit the explicit diagnostic condition')
     from .algorithm_admission import MARKER
+    handout = '.fr/argument-repair.txt' if study == REPAIR_STUDY else '.fr/declarations.txt'
+    diagnostic = ('assert any(d["draft_location"] and "Int" in str(d["context"]) '
+                  'and "0 ≤" in str(d["context"]) for d in r["diagnostics"])' if study == REPAIR_STUDY else
+                  'assert any("unsolved goals" in d["message"].lower() for d in r["diagnostics"])')
     lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
-             'cat .agents/skills/fr/SKILL.md .fr/argument-repair.txt > /dev/null',
+             'cat .agents/skills/fr/SKILL.md ' + handout + ' > /dev/null',
+             *([shlex.join(['fr', '--json', '-C', str(lean_root / 'src/lean/Init/Data/Int/DivMod/Lemmas.lean'),
+                           'project', 'find', 'tdiv', '--contains', '--signature', '--limit', '4']) +
+                ' > .fr/admission-library.json',
+                shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-library.json")); '
+                    'assert r["coverage"]["indexed_files"] == 1 and r["rows"]; '
+                    'assert "signature" in r["columns"]'])] if study == 'M3-facts' else []),
              'proof_target=$(cat .fr/admission-target.txt)',
+             'fr --json proof start "$proof_target" --draft .fr/admission-start.lean --bytes 4096 --timeout-seconds 30 > .fr/admission-start.json',
              'fr --json proof state "$proof_target" --draft .fr/admission-start.lean --at end --bytes 4096 --timeout-seconds 30 > .fr/admission-state.json',
              shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-state.json")); '
-                 'assert r["goals"] and r["acceptance"] == "not-checked"']),
+                 'assert r["goals"] and r["acceptance"] == "not-checked"; '
+                 'assert all(isinstance(g["context"], str) and isinstance(g["goal"], str) for g in r["goals"])']),
              'if fr --json proof check "$proof_target" --draft .fr/admission-bad.lean --bytes 4096 --timeout-seconds 30 > .fr/admission-rejected.json; then exit 1; else test $? = 1; fi',
              shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-rejected.json")); '
-                'assert r["passed"] is False and r["receipt"] is None; '
-                'assert any(d["draft_location"] and "Int" in str(d["context"]) '
-                'and "0 ≤" in str(d["context"]) for d in r["diagnostics"])'])]
+                'assert r["passed"] is False and r["receipt"] is None and r["diagnostics"]; ' + diagnostic])]
     for operation, field in [('check', 'passed'), ('save', 'applied')]:
         report = '.fr/admission-' + operation + '.json'
         lines += ['fr --json proof ' + operation + ' "$proof_target" --draft .fr/admission-reference.lean ' +
@@ -244,14 +278,17 @@ def validate_controls(value, milestone):
     fields = {'passed', 'live_model_calls', 'source_commit', 'run', 'bindings',
             'study', rejection, 'native_exchanges', 'controls', 'private', 'fr_sha256', 'core_checker_sha256'}
     if milestone == 'M3-facts':
-        fields |= {'declarations_sha256', 'handout_changes_rejected'}
+        fields |= {'declarations_sha256', 'handout_changes_rejected', 'lean_arguments', 'lean_imports', 'run_attempt'}
     if milestone == REPAIR_STUDY:
         fields |= {'repair_instruction_sha256', 'handout_changes_rejected', 'argument_type_error_rejected',
                    'lean_arguments', 'lean_imports', 'run_attempt'}
     require(value['study'] == milestone and set(value) == fields, 'diagnostic controls need their exact declared fields')
     if milestone == 'M3-facts':
         require(value['declarations_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] / 'fixtures/declarations.txt')
-                and value['handout_changes_rejected'] is True, 'qualify the exact declarations and protected handout')
+                and value['handout_changes_rejected'] is True and value['lean_arguments'] == ['-j1'] and
+                value['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'] and
+                type(value['run_attempt']) is int and value['run_attempt'] == 1,
+                'qualify the exact declarations, protected handout and explicit compiler settings')
     if milestone == REPAIR_STUDY:
         require(value['repair_instruction_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                 'fixtures/argument-repair.txt') and value['handout_changes_rejected'] is True and
@@ -302,7 +339,9 @@ def controls(binary, output, native, milestone):
               'fr_sha256': common.digest(binary), 'core_checker_sha256': public.core_digest(milestone)}
     common.save(output / 'controls.json', result)
     if milestone == 'M3-facts':
-        result.update(declarations_sha256=qualify_declarations(output), handout_changes_rejected=True)
+        result.update(declarations_sha256=qualify_declarations(output), handout_changes_rejected=True,
+                      lean_arguments=prepared['lean_arguments'], lean_imports=prepared['lean_imports'],
+                      run_attempt=int(os.environ['GITHUB_RUN_ATTEMPT']))
         common.save(output / 'controls.json', result)
     if milestone == REPAIR_STUDY:
         from .page_count_diagnosis import drafts, REFERENCE
@@ -394,8 +433,11 @@ def outcomes(rows, milestone):
                 require(validity in {'valid', 'service-failed', 'collection-failed', 'unknown'}, 'review execution validity explicitly')
                 usable = usable and validity == 'valid' and not row['collection_error_recorded'] and not row['checking_input_changes']
                 usable = usable and row['stop_reason'] in {None, 'wall_seconds'} and row['suspended_seconds'] < 1
+                if milestone == 'M3-facts':
+                    usable = usable and (row['stop_reason'] == 'wall_seconds' or
+                        (row['reported_usage_complete'] is True and row['client_model_recorded'] is True))
                 if row['independent_outcome'] == 'passed':
-                    if milestone == REPAIR_STUDY:
+                    if milestone in {REPAIR_STUDY, 'M3-facts'}:
                         require(row['reported_usage_complete'] is True and row['client_model_recorded'] is True,
                                 'incomplete native accounting cannot count as complete success')
                     require(row['native_status'] == 'completed' and row['stop_reason'] is None and
@@ -548,7 +590,7 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
                 accepted = row['native_status'] == 'completed' and verdict['passed']
                 if milestone in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY}:
                     accepted = accepted and construction_checks_passed(row)
-                if milestone == REPAIR_STUDY:
+                if milestone in {REPAIR_STUDY, 'M3-facts'}:
                     accepted = accepted and row['reported_usage_complete'] is True and row['client_model_recorded'] is True
                 result['attempts'][row['id']] = {'status': 'checked', 'native_status': row['native_status'],
                     'patch_sha256': row['patch_sha256'], 'patch_accepted': verdict['passed'],

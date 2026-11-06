@@ -57,9 +57,12 @@ def core_digest(milestone):
             paths += [ROOT / TASK_PATHS[milestone], feedback / 'checkers.json', ROOT / PROFILE_PATHS[milestone]]
             paths += [path for path in (feedback / 'fixtures').rglob('*') if path.is_file()]
             paths += list((feedback / 'controls').glob('*.lean'))
-            if milestone == REPAIR_STUDY:
+            if milestone in {REPAIR_STUDY, 'M3-facts'}:
                 paths += [ROOT / 'tools/agent_eval' / name for name in
-                          ('algorithm_admission.py', 'selected_guarded.py', 'test_argument_repair.py')]
+                          ('algorithm_admission.py', 'selected_guarded.py',
+                           'test_argument_repair.py' if milestone == REPAIR_STUDY else 'test_proof_division_facts.py')]
+            if milestone == 'M3-facts':
+                paths += [ROOT / '.github/workflows/proof-algorithms.yml']
         elif milestone in ALGORITHM_TASKS:
             directory = ROOT / CASE_DIRECTORIES['M3-algorithm-facts']
             paths += [ROOT / 'tools/agent_eval/proof_algorithms.py', ROOT / 'tools/agent_eval/algorithm_guidance.py',

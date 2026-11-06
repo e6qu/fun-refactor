@@ -1,10 +1,24 @@
 # Can the agents select and apply current division facts?
 
-The hosted tool qualification passed, but no agent attempts started and no execution plan was frozen.
-The [algorithm study](../proof-algorithms/README.md) and supplied-proof delivery study have finished.
-The next step is the no-model page-count diagnosis described in the [handoff](../../../docs/continuity.md#current-work).
-This older plan still names OpenCode2 2.0.32; do not launch it as a current comparison.
-Keep this plan as a supporting diagnostic; it cannot replace an algorithm proof or close M3.
+The [first collection](interrupted-collection.json) stopped after one GLM session
+exceeded the unchanged 768 MiB memory limit. Seven slots never started.
+No patch was delivered, and complete accounting is unavailable. This is not a valid comparison.
+Its cache contains roughly 1,600 files from across Lean's source tree, including unrelated `Std` modules.
+The peak identifies a large `fr` process; the exact interrupted command remains unknown.
+The event stream records completed tools, so it lost the running command when the controller stopped.
+
+The next setup must check discovery too: search the imported division file before
+starting, checking, saving and delivering the control proof. Shared instructions now
+give that file explicitly. The observer records bounded command lines for owned `fr`
+processes privately, before their tools finish. New qualification and a new frozen
+packet are required before another collection. Never resume or replace the interrupted slot.
+
+The [argument-repair comparison](../proof-argument-repair/README.md) observed no mapped argument-type error
+and delivered no patch. Repeating that instruction would not test its proposed repair.
+This diagnostic instead asks whether the agents can select and apply suitable division declarations.
+It uses the commands merged in [#603](https://github.com/e6qu/fun-refactor/pull/603).
+Fresh hosted controls and complete local client checks must pass before calls.
+This is a supporting diagnostic; it cannot replace an algorithm proof or close M3.
 The [earlier page-count attempts](../proof-page-count/README.md) keep their original failures.
 
 ## The question
@@ -33,6 +47,7 @@ It cannot close M3.
 ## Change one input
 
 Both conditions have the same task, unfinished theorem, fr, skill, instructions, library and checks.
+Editing or deleting a supplied skill file fails the attempt, as does changing the handout or check settings.
 Both receive a protected `.fr/declarations.txt` file:
 
 | Condition | Handout |
@@ -45,9 +60,16 @@ The supplied names are `Int.mul_le_mul_of_nonneg_right`, `Int.tdiv_nonneg`,
 Their types describe their inputs and conclusions. The handout supplies no tactics, intermediate proof or completed proof.
 The control proof stays outside both agent projects.
 
+Both conditions also receive the [arithmetic skill](../../../skills/fr/references/lean-arithmetic.md).
+It already demonstrates `Int.tdiv_nonneg` and `Int.mul_le_mul_of_nonneg_right` in separate examples.
+The comparison tests the extra four-type handout on top of that shared help.
+The selection condition must still find a suitable remainder identity and assemble the complete argument.
+
 The [requirements](requirements.json) fix two repetitions per condition for each pinned GLM Flash and Kimi K3 low-reasoning profile.
 That gives eight fresh local OpenCode2 sessions, with condition order balanced between repetitions and profiles.
-Use OpenCode2 2.0.32 and Lean 4.28.0. Freeze fr, client executables, inputs and checker identities before calls.
+Use OpenCode2 2.2.5, Lean 4.28.0 and the copied Python 3.14.10 installation.
+Both projects use the same generated explicit division import and one Lean compiler worker.
+Freeze fr, client executables, inputs and checker identities before calls.
 No other model, retry, old study plan or extra attempt can replace a scheduled failure.
 
 Each complete attempt keeps 150 seconds, including preparation, handout installation, replies, tools, checks, delivery and session accounting.
@@ -58,17 +80,24 @@ The comparison cannot treat this prepared handout as free work or establish fr o
 ## Qualify before spending model calls
 
 1. Pass the existing complete CI gate and the new diagnostic's focused checks.
-2. Generate the fixed project on GitHub with `proof-facts-prepare`, using the exact passing M3 native build run.
+2. Generate the fixed project on GitHub using the checked algorithm-tool build.
+   The `proof-algorithms.yml` workflow now calls the reusable `proof-feedback.yml` workflow
+   with study `M3-facts` and operation `prepare`. It makes no model calls.
    Accept the isolated reference and reject unfinished tactics, altered source or claims, missing patches and wrong patches.
 3. Compare the handout against Lean's actual `#check` output for all four declarations.
    Reject changing or deleting either condition's handout, as well as changed checker settings.
-4. Run the four scripted client exchanges with no upstream model access.
-   Audit the real controller: both conditions must keep fr access, shared instructions and the same deadline.
+4. Require four fresh complete local client checks: each agent with each handout.
+   Scripted replies must find declarations in the imported Lean file, verify that only
+   that file was indexed, start a draft, inspect actual context and goals, reject unfinished tactics,
+   check and save the supplied control proof, build the package, replay the delivered patch
+   and finish session accounting. These control drafts never enter live projects.
+   Keep the original 60-second control limit, 768 MiB ceiling and 128 MiB memory reserve.
+   Both conditions must keep fr access, shared instructions and the same deadline.
 5. Freeze all eight slots and input identities only after these checks pass. Start every slot once.
 
 The shared evaluator keeps the theorem, assumptions, source, proof markers and settings fixed.
 The reference proof and a false stronger mathematical claim have separate manual controls; neither is supplied to an agent.
-After calls, `proof-facts-grade` checks each original patch independently on GitHub,
+After calls, the same reusable workflow with operation `grade` checks each original patch independently on GitHub,
 using the same qualified tool and fresh task, with exact patch undo and redo.
 
 ## Judge complete delivery
@@ -79,6 +108,9 @@ A passing proof from a timed-out session remains failed.
 Changing the handout or check settings also remains failed.
 
 Record the first proof check, first passing proof, accepted write, package check, patch delivery and final session finish.
+Both prompts name the exact theorem target and the explicit `fr proof start` command.
+The independent resource observer stays outside the CPU throttle and includes the controller,
+native client and detached workers. Missing or altered observer records reject export.
 Missing times, unfinished usage and actual account charges stay unknown.
 One CLI session can make several provider requests; do not equate the session count with a request count.
 
@@ -96,6 +128,8 @@ A service, collection or unexpected resource failure blocks an ability conclusio
 Keep the failure, fix its cause and distinguish it from an arithmetic mistake.
 Two repetitions guide the next diagnostic; they establish no general success rate or definitive cause.
 Keep the complete comparison paused until the recorded decision supports a concrete change and its checks pass.
+If the local guard refuses a workload, stop local checking and move affected work to GitHub;
+do not raise limits or bypass the guard. A local admission refusal cannot be replaced by a hosted spot check.
 
 Publish only submitted patches and reviewed summaries of local attempts.
 Prompts, transcripts, drafts, snapshots and session exports stay local.

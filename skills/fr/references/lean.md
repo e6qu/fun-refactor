@@ -44,15 +44,19 @@ For `h : P ∧ Q`, `rcases h with ⟨hp, hq⟩` names two proofs.
 An implication `h : P → Q` instead needs a proof of `P` to yield `Q`.
 See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
-For a missing fact, obtain `lean --print-prefix` from `specs/`, choose a narrow
-folder such as `<PREFIX>/src/lean/Init/Data/Int`, and search its declarations:
+Read the model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
+for its toolchain. For `import Init.Data.Int.DivMod.Lemmas`, search that file:
+`<LIBRARY_FILE>` is `<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean`.
 
 ```sh
-fr -C '<LIBRARY_FOLDER>' project find '<NAME_FRAGMENT>' --contains --signature --limit 4
+fr -C '<LIBRARY_FILE>' project find '<NAME_FRAGMENT>' --contains --signature --limit 4
 ```
 
-Text mode labels results. For a program, use `--json` and its actual `columns`
-and `rows`, or the SDK decoder. Empty results with omissions prove no absence.
+`-C` bounds input files; `--limit` bounds output rows.
+A whole-library scan exceeded 768 MiB. Start with the imported file.
+
+Text labels results. JSON uses `columns` and `rows`, or the SDK decoder.
+If results were omitted, an empty page cannot prove no match.
 
 ## Check, save, deliver
 

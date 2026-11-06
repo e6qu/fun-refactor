@@ -8,26 +8,46 @@ Complete each milestone in one PR, including its checks, required attempts and t
 
 ## Current branch
 
-PR [#601](https://github.com/e6qu/fun-refactor/pull/601) is merged.
-Its [final CI gate](https://github.com/e6qu/fun-refactor/actions/runs/41919641540)
-passed all 92 jobs; companion workflows also passed.
+PRs [#601](https://github.com/e6qu/fun-refactor/pull/601) and
+[#603](https://github.com/e6qu/fun-refactor/pull/603) are merged.
+The [#603 CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
+passed all 92 jobs; all companion workflows passed too.
 The [argument-repair comparison](../tests/agent-eval/proof-argument-repair/README.md)
 retains all eight new attempts, each run once. All timed out without a patch.
 One Kimi draft passed checking near 135 seconds but was not saved or delivered.
 No mapped argument-type error was observed. The proposed repair instruction has no
 measured benefit. Earlier interrupted and unstarted slots remain separate.
 
-PR [#603](https://github.com/e6qu/fun-refactor/pull/603), branch
-`improve/clear-proof-and-cli-workflows`, improves the commands and proof workflow.
-The [expanded command checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146)
-pass the complete skill exercise, proof lesson, JSON refusals, stalled-process controls and Lean reader tests.
-The [reader generator](https://github.com/e6qu/fun-refactor/actions/runs/42036519082)
-passes the syntax fixtures and affected project files.
-Both fixed-repository reader comparisons pass.
-The [reviewed inventory](../tests/agent-eval/index-consumers/lean-reader-current.json) records every changed declaration and reference.
-The current measurement records and their audits pass.
-Read the [complete PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
-We made no new model calls for this change.
+PR [#604](https://github.com/e6qu/fun-refactor/pull/604) uses
+`improve/check-division-fact-guidance` and remains draft.
+Refresh the [division-fact diagnostic](../tests/agent-eval/proof-division-facts/README.md),
+whose first collection stopped after one memory-limited session and seven unstarted slots.
+The [record](../tests/agent-eval/proof-division-facts/interrupted-collection.json)
+preserves that invalid comparison. The question is whether the
+agents can find suitable division declarations and apply their current types.
+This tests a different obstacle from the unobserved argument-repair prediction.
+The old qualification cannot admit the changed CLI, client or monitor.
+Require fresh hosted controls and all four complete local client checks before freezing calls.
+Keep the full 150-second limit, ten-second collection reserve and independent resource observer.
+The roadmap lists the eight-slot comparison and its fixed decisions. Keep this work in one PR.
+Publish only reviewed summaries and submitted patches; leave raw native records private.
+
+The original hosted proof controls passed. They covered protected skills, complete
+usage and full resource records. Fr's source identity excludes generated `.fr`
+and `.fr-history` directories, including history created under `src`.
+Fresh reports preserve the earlier records and their original source identities.
+The [release replay](https://github.com/e6qu/fun-refactor/actions/runs/42137806778)
+passes all 21 changes and both renames with `0.89.2` and the corrected input policy.
+Release planning now requests this replay and full CI before merging a release.
+
+Keep the refreshed records in this same PR. Require complete CI and fresh hosted
+qualification on its final source. Next pass all four local scripted client checks,
+including declaration discovery in the imported Lean file, and freeze a new packet.
+The original four controls omitted this lookup. The stopped session indexed about
+1,600 library files and exceeded 768 MiB before delivering a patch.
+Private command capture now retains an owned `fr` process's arguments before completion.
+The old stream lost the unfinished command, so its exact text remains unknown.
+Review the new packet's exact material and provider destinations before more calls.
 
 ## Interface decisions
 

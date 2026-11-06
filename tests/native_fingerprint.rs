@@ -124,6 +124,8 @@ fn generated_outputs_and_documentation_do_not_move_the_source_namespace() {
     for path in [
         "target/binary",
         "src/target/cache",
+        "src/.fr-history/state.json",
+        "src/.fr/cache/index.json",
         "grammars/python/node_modules/package/index.js",
         "docs/lesson.md",
     ] {
@@ -132,6 +134,14 @@ fn generated_outputs_and_documentation_do_not_move_the_source_namespace() {
         fs::write(path, "generated or documented output").unwrap();
     }
     assert_eq!(before, digest(root.path()));
+    fs::write(
+        root.path().join("src/.fr-history/state.json"),
+        "new history",
+    )
+    .unwrap();
+    assert_eq!(before, digest(root.path()));
+    fs::write(root.path().join("src/.fr-history.rs"), "real source").unwrap();
+    assert_ne!(before, digest(root.path()));
 }
 
 #[test]

@@ -3,7 +3,7 @@
 Use this page when fr refuses a command, gives a wrong answer, or cannot finish your task.
 The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and an incorrect answer need different reports.
 
-## Command and reader repairs in PR #603
+## Merged command and reader repairs
 
 A rejected `fr proof check` now exits 1.
 With `--json`, errors use one JSON report on stdout, the normal output stream.
@@ -18,7 +18,45 @@ The proof-delivery control checks supplied tactics, reviews the edit, exports a 
 A timed-out attempt still fails. The control makes no model call.
 The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/42083635146) pass, including the new reader regression and stalled-process controls.
 The new measurement records and their audits pass.
-Read the complete [PR checks](https://github.com/e6qu/fun-refactor/pull/603/checks) before merging.
+The repairs shipped in PR [#603](https://github.com/e6qu/fun-refactor/pull/603).
+Its [complete CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
+and all companion workflows passed. These checks establish tool behavior, not improved model success.
+
+The interrupted division-fact diagnostic needs fresh admission with the current CLI,
+OpenCode2 2.2.5 and complete resource observer. An old successful setup receipt cannot
+admit a changed client or tool. Its [protocol](tests/agent-eval/proof-division-facts/README.md)
+keeps the hosted controls and four complete local client checks ahead of model calls.
+
+## Repairs in PR #604
+
+The first division-fact session exceeded its unchanged 768 MiB budget during library discovery.
+Its cache includes roughly 1,600 Lean source files; no patch or complete accounting survived.
+Seven slots remain unstarted. This cannot establish whether the agent can write the proof.
+Shared instructions now name the imported division file for declaration searches.
+Fresh setup checks must run that lookup and verify one indexed file before proving.
+The observer also records owned `fr` command lines privately before a tool finishes.
+The original run lacked that detail, so its exact interrupted command remains unknown.
+Qualification of these repairs is pending. No timeout or memory limit increased.
+
+The source-input repair in PR #604 excludes fr's generated `.fr` and `.fr-history`
+directories from the native source identity. For example, a history file under
+`src/.fr-history` previously made unchanged Rust source look different.
+Both Rust and Python checks cover that case and still detect real source changes,
+including a file named `src/.fr-history.rs`. Existing history files stay intact.
+The input-policy change requires fresh current reports; earlier records retain
+their original source identities and outcomes.
+
+CI also rejected a project replay from release `0.89.1` while building `0.89.2`.
+The [fresh replay](https://github.com/e6qu/fun-refactor/actions/runs/42137806778)
+passes all 21 saved changes and both renames under the corrected source policy.
+Release planning now requests that checked replay for the proposed version,
+then starts full CI on the branch containing its results. Exact hash checks stay intact.
+
+The division-fact evaluator also protects the supplied fr skill against edits and deletion.
+It requires complete usage and resource records before interpreting agent success.
+A checked patch with missing accounting still fails the complete attempt.
+The original hosted and four local controls passed, but omitted library discovery.
+The first live session exposed that gap; the next qualification must exercise it.
 
 ## Merged repairs and remaining limits
 

@@ -16,6 +16,7 @@ class DivisionFactsTests(unittest.TestCase):
         return [{**row, 'native_status': 'completed', 'stop_reason': None, 'total_seconds': 20.0,
                  'patch_file': 'patches/' + row['id'] + '.patch',
                  'complete_attempt_deadline_missed': False, 'independent_check': {'patch_accepted': True},
+                 'reported_usage_complete': True, 'client_model_recorded': True,
                  'proof_observations': {'execution_validity': 'valid', 'proof_check_passed': True,
                                         'proof_written_with_fr': True, 'package_check_passed': True},
                  'collection_error_recorded': False, 'checking_input_changes': [], 'suspended_seconds': 0,
@@ -49,6 +50,8 @@ class DivisionFactsTests(unittest.TestCase):
                          'Preserve provided .fr/checks.json', 'Do not start a nested guard',
                          'Run the supplied checks once', 'call another model']:
             self.assertIn(required, supplied)
+        self.assertIn('/pinned/lean/Init/Data/Int/DivMod/Lemmas.lean', supplied)
+        self.assertIn('--limit bounds results, not input work', supplied)
         for hidden in ['Int.tdiv_nonneg', 'Int.tmod_add_mul_tdiv', 'controls/reference.lean', 'Fr is not provided']:
             self.assertNotIn(hidden, supplied)
 
@@ -114,16 +117,43 @@ class DivisionFactsTests(unittest.TestCase):
                    'private': {'image': 'sha256:' + 'b' * 64, 'image_archive_sha256': 'c' * 64},
                    'fr_sha256': 'd' * 64, 'core_checker_sha256': 'checker',
                    'declarations_sha256': local.hash_file(plan.ROOT / plan.CASE_DIRECTORIES['M3-facts'] / 'fixtures/declarations.txt'),
-                   'handout_changes_rejected': True}
+                   'handout_changes_rejected': True, 'lean_arguments': ['-j1'],
+                   'lean_imports': ['Init.Data.Int.DivMod.Lemmas'], 'run_attempt': 1}
         with patch.object(local, 'implementation_bindings', return_value={}), \
                 patch.object(public, 'core_digest', return_value='checker'):
             feedback.validate_controls(receipt, 'M3-facts')
-            for mutation in [{'declarations_sha256': '0' * 64}, {'handout_changes_rejected': False}]:
+            for mutation in [{'declarations_sha256': '0' * 64}, {'handout_changes_rejected': False},
+                             {'lean_arguments': []}, {'lean_imports': ['Init']}, {'run_attempt': 2}, {'run_attempt': True}]:
                 with self.assertRaises(ValueError):
                     feedback.validate_controls({**receipt, **mutation}, 'M3-facts')
             missing = dict(receipt);missing.pop('declarations_sha256')
             with self.assertRaisesRegex(ValueError, 'exact declared fields'):
                 feedback.validate_controls(missing, 'M3-facts')
+
+    def test_complete_native_setup_keeps_reference_tactics_out_of_live_inputs(self):
+        from agent_eval.algorithm_admission import script
+        from agent_eval.proof_delivery import input_changes
+        self.assertIn('M3-facts', plan.ADMISSION_STUDIES)
+        for setup in ('select-facts', 'supplied-declarations'):
+            commands = script(Path('/lean'), '/tools:/usr/bin:/bin', 'M3-facts', setup)
+            for required in (' proof start ', ' proof state ', ' proof check ', ' proof save ',
+                             '.fr/declarations.txt', '"context"', '"goal"', 'unsolved goals',
+                             '/lean/bin/lake -d specs build --wfail', 'git diff --binary HEAD'):
+                self.assertIn(required, commands)
+            self.assertIn('/lean/src/lean/Init/Data/Int/DivMod/Lemmas.lean', commands)
+            self.assertIn('project find tdiv --contains --signature --limit 4', commands)
+            self.assertIn('r["coverage"]["indexed_files"] == 1', commands)
+            with tempfile.TemporaryDirectory() as temporary:
+                project = Path(temporary)
+                protected = feedback.install_diagnostic_admission(project, setup, Path('/lean'),
+                    {'target': 'specs/Parts.lean::at_most_input'}, 'M3-facts')
+                self.assertFalse((project / '.fr/admission-start.lean').exists())
+                self.assertEqual(input_changes(project, protected), [])
+                self.assertIn('.fr/declarations.txt', protected)
+                self.assertIn('.agents/skills/fr/SKILL.md', protected)
+                (project / '.fr/declarations.txt').write_text('changed')
+                self.assertEqual(input_changes(project, protected), ['.fr/declarations.txt'])
+                self.assertNotIn('.fr/admission-reference.lean', protected)
 
     def test_late_or_unobserved_success_is_refused_and_bad_execution_blocks_inference(self):
         for change in [{'total_seconds': 150.01}, {'checking_input_changes': ['.fr/declarations.txt']},
@@ -148,6 +178,22 @@ class DivisionFactsTests(unittest.TestCase):
         self.assertIn('neither supplies a proof', report)
         self.assertIn('cannot establish full page-count success', report)
         self.assertNotIn('initial visibility', report)
+
+    def test_incomplete_accounting_blocks_an_ability_conclusion_even_for_a_correct_patch(self):
+        for field in ('reported_usage_complete', 'client_model_recorded'):
+            rows = self.rows(2, 2)
+            rows[0][field] = False
+            with self.assertRaisesRegex(ValueError, 'incomplete native accounting'):
+                feedback.decisions(rows, 'M3-facts')
+            rows[0]['independent_outcome'] = 'failed'
+            rows[0]['native_status'] = 'failed'
+            decisions = feedback.decisions(rows, 'M3-facts')
+            self.assertFalse(decisions[rows[0]['profile']]['execution_usable'])
+            self.assertIn('Repair or clarify experiment execution', decisions[rows[0]['profile']]['decision'])
+        rows = self.rows(0, 0)
+        rows[0].update(reported_usage_complete=False, stop_reason='wall_seconds', native_status='failed')
+        decisions = feedback.decisions(rows, 'M3-facts')
+        self.assertTrue(decisions[rows[0]['profile']]['execution_usable'])
 
 
 if __name__ == '__main__':

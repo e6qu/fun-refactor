@@ -2,7 +2,7 @@
   "purpose": "Distinguish choosing current facts for truncating division from applying their declarations; this is not an M3 completion comparison",
   "tasks": {
     "division-facts": {
-      "request": "Write proof steps for the one fixed Lean theorem. For nonnegative a and positive b, the quotient plus remainder must be at most a. For example, eleven divided by five gives quotient two and remainder one; their sum three is at most eleven. The theorem starts without a proof. Read .fr/declarations.txt: one condition supplies library declarations, the other requires selecting facts from the same installed library. Keep that handout, source, model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved."
+      "request": "Write proof steps for the one fixed Lean theorem. For nonnegative a and positive b, the quotient plus remainder must be at most a. For example, eleven divided by five gives quotient two and remainder one; their sum three is at most eleven. The theorem starts without a proof. Read .fr/declarations.txt: one condition supplies library declarations, the other requires selecting facts from the same installed library. Keep that handout, supplied fr skill, source, model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved."
     }
   },
   "profiles_file": "../proof-writing/profiles.json",
@@ -19,6 +19,25 @@
     "parallel_attempts": 1
   },
   "client_finish_seconds": 10,
+  "lean_arguments": ["-j1"],
+  "lean_imports": ["Init.Data.Int.DivMod.Lemmas"],
+  "native_admission": {
+    "complete_workflow_required": true,
+    "interactive_goal_required": true,
+    "library_lookup_required": true,
+    "unfinished_draft_rejected_required": true,
+    "independent_patch_replay_required": true,
+    "session_accounting_required": true,
+    "conditions": ["select-facts", "supplied-declarations"],
+    "client_context_reserve_bytes": 134217728,
+    "control_limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    }
+  },
   "decisions": {
     "2,0": "Test better selection of current facts for the modeled operation; this diagnostic alone cannot establish complete page-count success",
     "2,2": "The small case does not reproduce the full-task obstacle; inspect the remaining branches and delivery",
