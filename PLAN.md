@@ -66,32 +66,25 @@ measures delivery of given answers; it cannot replace proof discovery.
 Its [92-job CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
 and all companion workflows passed. These tool checks establish no improvement in GLM or Kimi success.
 
-**PR #604: distinguish finding division facts from applying them.**
+**Completed:** [#604](https://github.com/e6qu/fun-refactor/pull/604) ran the
+[eight division-fact sessions](tests/agent-eval/proof-division-facts/README.md) at 150 seconds.
+Four delivered accepted patches in time, two delivered accepted patches late, one timed out
+and one stopped on an observer race now fixed. Tools used 6 to 33 seconds of each session;
+waiting for model replies used the rest. Separate delivery turns cost Kimi two correct proofs.
 
-The original hosted controls passed: they checked real proofs, rejected wrong
-patches and protected the supplied skill. The refreshed project replay also passes
-with release `0.89.2`. Fr now ignores its own generated history and cache when
-identifying program source. Earlier records keep their original hashes and outcomes.
-The complete PR gate and four local client checks still precede the eight calls.
-The first new session exceeded its unchanged memory limit during broad library
-indexing. No patch was delivered; seven slots remain unstarted. M3 stays open.
-The [interrupted collection](tests/agent-eval/proof-division-facts/interrupted-collection.json)
-cannot establish agent ability. Repair and qualify library discovery before freezing
-another packet; preserve the original failed slot and all unstarted slots.
+**PR #606: page count with 300 seconds and one-call delivery.**
 
-1. Refresh the [eight-attempt diagnostic](tests/agent-eval/proof-division-facts/README.md)
-   for the current commands and OpenCode2 2.2.5. Prove that a quotient plus its remainder
-   is at most the nonnegative input when the divisor is positive.
-   For example, eleven divided by five gives two plus one, and three is at most eleven.
-2. Give both conditions the same theorem, tools, skills and 150-second complete-attempt limit.
-   One condition receives four current library declaration types; the other must select facts
-   from the same installed library. Neither receives a completed proof.
-3. Pass independent hosted proof and patch controls, then all four complete local client checks.
-   Cover one-import-file declaration lookup, actual goal inspection, rejected tactics, saving, package checks, delivered patch replay
-   and final accounting. Keep the resource reserve and observe detached workers.
-4. Freeze the eight slots before calls. Run each once; independently grade every original patch.
-   Report complete successes, timeouts, usage and unknown charges. Review the first proof check,
-   first accepted proof, save and delivery. Make the per-agent decision fixed in the protocol.
+1. New proof sessions get 300 seconds. Each study declares its own complete-attempt time,
+   so earlier results keep their recorded 150-second judgments. The workstation guard allows 330 seconds.
+2. `fr proof save --deliver change.patch` saves the checked proof, runs every check in
+   `.fr/checks.json` and writes all saved proofs as one patch. A failing check keeps the
+   proof and writes no patch. The skill teaches this single delivery call.
+3. Native admission is declared per study in its requirements and checked by one shared path.
+   Page-count admission rejects an unfinished draft and delivers the reference with `--deliver`.
+4. Refresh the source-bound evidence for the fr change, then pass the complete PR gate,
+   hosted page-count controls and both local client admissions.
+5. Freeze four page-count sessions (GLM and Kimi, two each) and run them only after approval.
+   Independently grade every patch and report where the time went.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
