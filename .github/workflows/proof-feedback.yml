@@ -100,6 +100,19 @@ jobs:
           PY
           python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/feedback-tool/fr" \
             --profiles "$RUNNER_TEMP/diagnostic-profiles.json" --output "$RUNNER_TEMP/feedback-native"
+      - name: Check declaration discovery in the imported Lean file
+        if: inputs.operation == 'prepare' && inputs.study == 'M3-facts'
+        run: |
+          LEAN_DECLARATIONS="$(lean --print-prefix)/src/lean/Init/Data/Int/DivMod/Lemmas.lean"
+          "$RUNNER_TEMP/feedback-tool/fr" --json -C "$LEAN_DECLARATIONS" \
+            project find tdiv --contains --signature --limit 4 > "$RUNNER_TEMP/library-lookup.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'library-lookup.json').read_text())
+          assert report['coverage']['indexed_files'] == 1
+          assert report['rows'] and 'signature' in report['columns']
+          PY
       - name: Reject bad drafts and patches in isolated checkouts
         id: controls
         if: inputs.operation == 'prepare'
