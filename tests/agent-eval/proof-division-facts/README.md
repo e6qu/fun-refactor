@@ -19,7 +19,7 @@ This diagnostic instead asks whether the agents can select and apply suitable di
 It uses the commands merged in [#603](https://github.com/e6qu/fun-refactor/pull/603).
 Fresh hosted controls and complete local client checks must pass before calls.
 This is a supporting diagnostic; it cannot replace an algorithm proof or close M3.
-The [earlier page-count attempts](../proof-page-count/README.md) keep their original failures.
+The [earlier page-count attempts](../proof-page-count/results-150s/diagnosis.md) keep their original failures.
 
 ## The question
 

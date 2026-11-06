@@ -175,7 +175,7 @@ An [exact replay](../tests/agent-eval/proof-construction/diagnostic-control-summ
 
 ### Page-count result: the prediction failed
 
-The [four page-count attempts](../tests/agent-eval/proof-page-count/local-results/README.md) all reached 150 seconds without a patch.
+The [four page-count attempts](../tests/agent-eval/proof-page-count/results-150s/README.md) all reached 150 seconds without a patch.
 Independent checking retained all four failures. Neither agent delivered the predicted complete result.
 The full comparison stays paused.
 
