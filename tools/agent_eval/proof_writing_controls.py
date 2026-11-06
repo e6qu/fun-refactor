@@ -63,7 +63,9 @@ def drift_checks(case, binary, original, prepared, tactics, output):
         otherwise = '-99' if case == 'page-count' else 'false'
         wrapped = head + ':=\n  if M3Dependency.enabled then\n' + indent(dedent(body), '    ') + '\n  else\n    ' + otherwise
         require(model_text.count(definition) == 1, 'dependency control needs the one generated model definition')
-        model_path.write_text('import FrSpecs.M3Dependency\n' + model_text.replace(definition, wrapped, 1))
+        header = 'prelude\n' if model_text.startswith('prelude\n') else ''
+        model_path.write_text(header + 'import FrSpecs.M3Dependency\n'
+                              + model_text.removeprefix(header).replace(definition, wrapped, 1))
         dependency_tactics = output / 'dependency-tactics.lean'
         model_name = head.split('def ', 1)[1].split(' ', 1)[0]
         dependency_tactics.write_text(tactics.read_text().replace(

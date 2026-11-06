@@ -382,16 +382,21 @@ class BoundedHost(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == 'darwin', 'macOS process inventory')
     def test_unreaped_zombie_child_does_not_stop_the_monitor(self):
-        child = subprocess.Popen([sys.executable, '-c', 'pass'])
+        parent = subprocess.Popen([sys.executable, '-c', 'import os, sys, time\npid = os.fork()\nif pid == 0:\n'
+                                   '    os._exit(0)\nprint(pid, flush=True)\ntime.sleep(30)'],
+                                  stdout=subprocess.PIPE, text=True, process_group=0)
         try:
+            child = int(parent.stdout.readline())
             deadline = time.monotonic() + 5
-            while subprocess.run(['ps', '-o', 'stat=', '-p', str(child.pid)], capture_output=True,
+            while subprocess.run(['ps', '-o', 'stat=', '-p', str(child)], capture_output=True,
                                  text=True).stdout.strip()[:1] != 'Z' and time.monotonic() < deadline:
                 time.sleep(0.05)
-            host.process_identity(child.pid)
-            host.darwin_sample(os.getpgrp())
+            host.process_identity(child)
+            host.darwin_sample(parent.pid)
         finally:
-            child.wait()
+            parent.kill()
+            parent.wait()
+            parent.stdout.close()
 
     def test_cleanup_does_not_kill_a_reused_pid(self):
         with patch.object(host.os, 'killpg') as group, patch.object(host.os, 'kill') as kill, \
