@@ -410,7 +410,7 @@ pub fn check_requirement_satisfied(
 
 pub fn declared(root: &Path) -> Result<Option<(Vec<String>, String)>> {
     let root = root.canonicalize()?;
-    if !root.join(CONFIG).exists() {
+    if !crate::vfs::exists(root.join(CONFIG)) {
         return Ok(None);
     }
     let (config, basis) = configuration(&root)?;
