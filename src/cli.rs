@@ -1857,7 +1857,11 @@ fn present_proof_state(cli: &Cli, state: &crate::spec::ProofState) -> Result<()>
 }
 
 /// Run every declared check, then export all applied saved proofs as one patch.
-fn deliver_saved_proofs(root: &Path, patch: &Path, output_bytes: usize) -> Result<serde_json::Value> {
+fn deliver_saved_proofs(
+    root: &Path,
+    patch: &Path,
+    output_bytes: usize,
+) -> Result<serde_json::Value> {
     let mut checks = serde_json::Value::Null;
     if let Some((names, basis)) = crate::checks::declared(root)? {
         let options = crate::checks::Options {

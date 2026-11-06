@@ -62,27 +62,15 @@ If results were omitted, an empty page cannot prove no match.
 
 ```sh
 fr --json proof check '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
-fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
+fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30 --deliver change.patch
 ```
 
 A rejected check exits 1 with `passed: false` and diagnostics. Inspect
 `draft_location`, `context`, warnings and omission counts; `tail` can hide errors.
-`save` checks and writes in one call; a separate final check is unnecessary.
-`written` supplies the saved edit's `transaction` ID as `<EDIT_ID>`.
-`already-present` creates no new edit. Neither accepts other unfinished proofs.
-
-Deliver in the same call when the project declares `.fr/checks.json`:
-
-```sh
-fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30 --deliver change.patch
-```
-
-`--deliver` runs every declared check, then writes all saved proofs as one patch.
-`delivery.delivered: true` means the package passed and the patch exists; no
-further build or diff is needed. A failing check exits 1, keeps the saved proof
-and writes no patch; fix it and save again with `--deliver`.
-Without declared checks, run the package check, then
-`fr history patch '<EDIT_ID>' --output change.patch`.
-Preserve `.fr/checks.json`. A passing draft, a saved proof, a passing package
-and a delivered patch are separate stages.
+`save` checks and writes; `--deliver` then runs `.fr/checks.json` and writes all
+saved proofs as one patch. `delivery.delivered: true` means done. A failing check
+exits 1 and writes no patch; fix it and save again. `already-present` creates no edit.
+Without checks, omit `--deliver`, run the package check, then
+`fr history patch '<EDIT_ID>' --output change.patch` with the `transaction` ID.
+Preserve `.fr/checks.json`.
 For claims, read [Create a claim](lean-claims.md).

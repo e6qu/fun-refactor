@@ -25,9 +25,14 @@ CLIENT_FINISH_SECONDS = 10
 WALL_SECONDS_CHOICES = (150, 300)
 
 
-def study_limits(milestone):
-    """The study's declared limits; only the complete-attempt wall time may differ from LIMITS."""
-    declared = prepare(ROOT, milestone)['requirements']['limits']
+def study_limits(milestone, schedule=None):
+    """The study's declared limits; only the complete-attempt wall time may differ from LIMITS.
+
+    M1 predates the shared limit names and always used LIMITS."""
+    schedule = prepare(ROOT, milestone) if schedule is None else schedule
+    declared = schedule.get('requirements', {}).get('limits', {})
+    if 'wall_seconds' not in declared:
+        return dict(LIMITS)
     limits = {name: declared[name] for name in LIMITS}
     require(limits['wall_seconds'] in WALL_SECONDS_CHOICES and
             all(limits[name] == LIMITS[name] for name in LIMITS if name != 'wall_seconds'),
@@ -529,7 +534,7 @@ def attempt(plan_path, attempt_id):
     require(value['source']['native_inputs'] == checkout['native_inputs'] and value['schedule'] == prepare(ROOT, milestone),
             'committed native source or study requirements changed')
     require(value['implementation'] == implementation_bindings(milestone), 'study code, skills or checking inputs changed')
-    require(value['limits'] == study_limits(milestone), 'local limits changed')
+    require(value['limits'] == study_limits(milestone, value['schedule']), 'local limits changed')
     limits = value['limits']
     require(value['client_finish_seconds'] == CLIENT_FINISH_SECONDS and
             value['public_check_environment'] == PUBLIC_CHECK_ENVIRONMENT,
