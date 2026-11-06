@@ -563,11 +563,9 @@ def lean_workflow(exercise, root):
     exercise.values["<TARGET>"] = exercise.values["<LEAN_TARGET>"]
     prefix = subprocess.run(["lake", "env", "lean", "--print-prefix"], cwd=root / "specs",
                             capture_output=True, text=True, check=True, timeout=10)
-    library = Path(prefix.stdout.strip()) / "src/lean/Init/Data/Int"
-    assert library.is_dir()
-    exercise.values["<LEAN_LIBRARY_DIR>"] = str(library)
-    exercise.values["<LIBRARY_FOLDER>"] = str(library)
-    exercise.values["<LIBRARY_QUERY>"] = "tdiv"
+    library = Path(prefix.stdout.strip()) / "src/lean/Init/Data/Int/DivMod/Lemmas.lean"
+    assert library.is_file()
+    exercise.values["<LIBRARY_FILE>"] = str(library)
     exercise.values["<NAME_FRAGMENT>"] = "tdiv"
     (root / ".fr/proof-tactics").write_text("rfl\n")
     original, original_program = model.read_bytes(), source.read_bytes()
@@ -600,8 +598,9 @@ def lean_workflow(exercise, root):
             assert part["assumptions"] == [] and len(part["conclusions"]) == 1
             assert "allowedModel" in part["conclusions"][0] and "value" in part["conclusions"][0]
             assert value["token_budget"]["used_upper_bound"] <= int(command[command.index("--bytes") + 1])
-        if "<LIBRARY_QUERY>" in command or "<NAME_FRAGMENT>" in command:
+        if "<NAME_FRAGMENT>" in command:
             assert value["rows"] and value["page"]["returned"] <= 4
+            assert value["coverage"]["indexed_files"] == 1
             assert "source" not in value["columns"]
             signature = value["columns"].index("signature")
             assert all(row[signature]["basis"] == "syntax-header" for row in value["rows"])

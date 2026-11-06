@@ -46,9 +46,10 @@ See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
 Read the model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
 for its toolchain. For `import Init.Data.Int.DivMod.Lemmas`, search that file:
+`<LIBRARY_FILE>` is `<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean`.
 
 ```sh
-fr -C '<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean' project find '<NAME>' --contains --signature --limit 4
+fr -C '<LIBRARY_FILE>' project find '<NAME_FRAGMENT>' --contains --signature --limit 4
 ```
 
 `-C` bounds input files; `--limit` bounds output rows.
