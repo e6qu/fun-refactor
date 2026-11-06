@@ -71,14 +71,18 @@ A rejected check exits 1 with `passed: false` and diagnostics. Inspect
 `written` supplies the saved edit's `transaction` ID as `<EDIT_ID>`.
 `already-present` creates no new edit. Neither accepts other unfinished proofs.
 
-Run the supplied package check once and export the selected saved edit:
+Deliver in the same call when the project declares `.fr/checks.json`:
 
 ```sh
-lake -d specs build --wfail
-fr history patch '<EDIT_ID>' --output change.patch
+fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30 --deliver change.patch
 ```
 
-For two saved proofs, pass both IDs in save order. Review the complete patch.
+`--deliver` runs every declared check, then writes all saved proofs as one patch.
+`delivery.delivered: true` means the package passed and the patch exists; no
+further build or diff is needed. A failing check exits 1, keeps the saved proof
+and writes no patch; fix it and save again with `--deliver`.
+Without declared checks, run the package check, then
+`fr history patch '<EDIT_ID>' --output change.patch`.
 Preserve `.fr/checks.json`. A passing draft, a saved proof, a passing package
-and a delivered patch are separate stages. Combine known serial commands in one shell call; stop on failure.
+and a delivered patch are separate stages.
 For claims, read [Create a claim](lean-claims.md).

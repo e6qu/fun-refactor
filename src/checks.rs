@@ -408,6 +408,19 @@ pub fn check_requirement_satisfied(
     !requirement_present || configuration_matches && check_names_match
 }
 
+/// Declared check names and the configuration basis, or `None` without `.fr/checks.json`.
+pub fn declared(root: &Path) -> Result<Option<(Vec<String>, String)>> {
+    let root = root.canonicalize()?;
+    if !root.join(CONFIG).exists() {
+        return Ok(None);
+    }
+    let (config, basis) = configuration(&root)?;
+    Ok(Some((
+        config.checks.into_iter().map(|check| check.name).collect(),
+        basis,
+    )))
+}
+
 pub fn report(root: &Path, options: &Options) -> Result<Value> {
     if options.no_declarations && options.run.is_empty() {
         bail!("Declaration omission requires selected checks and a reviewed configuration basis.");
