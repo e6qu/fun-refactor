@@ -4,6 +4,13 @@ Use this list to see what shipped in each release. A release label identifies a 
 For example, a fix about imported values applies only to the supported cases described in the [Python guide](docs/python-contract.md).
 An entry's technical shorthand is historical release wording. Read the [tutorial](TUTORIAL.md) for a first use and the [current status](docs/roadmap-status.md) for remaining work.
 
+## [0.89.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.89.2...fun-refactor-v0.89.3) (2026-11-06)
+
+
+### Tests
+
+* check whether division facts help agents finish proofs ([#604](https://github.com/e6qu/fun-refactor/issues/604)) ([bff33bf](https://github.com/e6qu/fun-refactor/commit/bff33bf4f0f5f743df0efa11c2dc6b8ed72717e6))
+
 ## [0.89.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.89.1...fun-refactor-v0.89.2) (2026-11-05)
 
 
