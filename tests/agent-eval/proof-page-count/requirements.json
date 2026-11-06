@@ -24,6 +24,25 @@
   "parallel_attempts": 1
  },
  "client_finish_seconds": 10,
+ "native_admission": {
+  "complete_workflow_required": true,
+  "interactive_goal_required": true,
+  "unfinished_draft_rejected_required": true,
+  "one_call_delivery_required": true,
+  "independent_patch_replay_required": true,
+  "session_accounting_required": true,
+  "conditions": [
+   "fr"
+  ],
+  "client_context_reserve_bytes": 134217728,
+  "control_limits": {
+   "wall_seconds": 60,
+   "rss_bytes": 805306368,
+   "cpu_limit_seconds": 25,
+   "disk_bytes": 67108864,
+   "transcript_bytes": 131072
+  }
+ },
  "decision_if_prediction_met": "Each agent delivered at least one accepted complete proof within 300 seconds. Record the fr actions that contributed; M3 still needs its remaining language and numeric cases.",
  "decision_if_prediction_fails": "Inspect where the time went (replies, tools, delivery) and the first unresolved proof step before choosing another change.",
  "publication": "Patches and reviewed summaries only; native records, prompts, drafts, snapshots and account data stay local"

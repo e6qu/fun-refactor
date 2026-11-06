@@ -107,6 +107,34 @@ class AlgorithmAdmissionChecks(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'every profile'):
                     admission.validate_receipts(fact_rows, binaries, 'c' * 64, '12', 'M3-facts', checkers)
 
+    def test_every_admitted_study_is_described_by_its_requirements(self):
+        from agent_eval.selected_plan import ADMISSION_STUDIES
+        kinds = {}
+        for study in sorted(ADMISSION_STUDIES):
+            spec = admission.admission(study)
+            kinds[study] = spec['kind']
+            self.assertTrue(spec['features'] and set(spec['features']) <= set(admission.FEATURES))
+            self.assertEqual(spec['by_condition'], spec['kind'] != 'algorithm')
+        self.assertEqual(kinds['M3-page-count'], 'diagnostic')
+        self.assertEqual(admission.admission('M3-page-count')['features'],
+                         ('interactive_goal', 'unfinished_draft_rejected', 'one_call_delivery', 'independent_patch_replay'))
+        with self.assertRaises(ValueError):
+            admission.admission('M3-construction')
+
+    def test_page_count_admission_delivers_with_one_save_call(self):
+        script = admission.script(Path('/pinned-lean'), '/pinned-tools:/usr/bin:/bin', 'M3-page-count', 'fr')
+        self.assertIn('--deliver change.patch', script)
+        self.assertIn('d["delivered"] is True and d["checks"]["passed"] is True', script)
+        self.assertIn('unsolved goals', script)
+        self.assertNotIn('git diff --binary HEAD', script)
+        self.assertNotIn('/pinned-lean/bin/lake', script)
+        self.assertNotIn('project find', script)
+        for study in ('M3-facts', 'M3-argument-repair'):
+            setup = admission.admission(study)['conditions'][0]
+            older = admission.script(Path('/pinned-lean'), '/bin', study, setup)
+            self.assertIn('git diff --binary HEAD > change.patch', older)
+            self.assertNotIn('--deliver', older)
+
     def test_delivery_admission_uses_supplied_drafts_and_both_saved_edits(self):
         for setup in admission.delivery.SETUPS:
             script = admission.script(Path('/pinned-lean'), '/pinned-tools:/usr/bin:/bin', admission.DELIVERY_STUDY, setup)

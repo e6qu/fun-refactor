@@ -25,7 +25,29 @@ CONTROL_LIMITS = {'wall_seconds': 60, 'rss_bytes': 805306368, 'cpu_limit_seconds
 RESERVE_BYTES = 128 * 1024**2
 MARKER = 'COMPLETE_ALGORITHM_WORKFLOW'
 NATIVE_REQUIREMENTS = ROOT / 'tests/agent-eval/selected-agents/native-requirements.txt'
-CONDITION_STUDIES = {DELIVERY_STUDY, REPAIR_STUDY, 'M3-facts'}
+FEATURES = ('recursive_loop_rejected', 'argument_type_rejection', 'interactive_goal', 'library_lookup',
+            'unfinished_draft_rejected', 'supplied_proofs', 'saved_edit_export', 'one_call_delivery',
+            'independent_patch_replay')
+POLICY = {'complete_workflow_required', 'session_accounting_required', 'conditions',
+          'client_context_reserve_bytes', 'control_limits'}
+
+
+def admission(study):
+    """One admission description per study, read from its frozen requirements."""
+    from .proof_feedback import DIAGNOSTIC_ADMISSIONS
+    require(study in ADMISSION_STUDIES, 'choose the native admission study explicitly')
+    requirements = prepare(ROOT, study)['requirements']['native_admission']
+    features = tuple(name.removesuffix('_required').replace('recursive_loop_rejection', 'recursive_loop_rejected')
+                     for name in requirements if name not in POLICY)
+    require(all(requirements[name] is True for name in requirements if name.endswith('_required')) and
+            set(features) <= set(FEATURES) and all(name in requirements for name in POLICY - {'conditions'}),
+            'declare every admission feature as required and known')
+    kind = ('algorithm' if study in ALGORITHM_STUDIES else 'delivery' if study == DELIVERY_STUDY else 'diagnostic')
+    require(kind != 'diagnostic' or study in DIAGNOSTIC_ADMISSIONS, 'describe the diagnostic admission controls')
+    conditions = requirements.get('conditions')
+    require((conditions is None) == (kind == 'algorithm'), 'only algorithm admission has one implicit workflow')
+    return {'kind': kind, 'features': features, 'conditions': tuple(conditions or ('workflow',)),
+            'by_condition': conditions is not None, 'requirements': requirements}
 
 
 def server_packages():
@@ -48,32 +70,19 @@ def native_python(expected_python):
 
 
 def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, checkers):
-    plan = prepare(ROOT, study)
-    requirements = plan['requirements']['native_admission']
-    require(requirements['complete_workflow_required'] is True and requirements['session_accounting_required'] is True
-            and requirements['client_context_reserve_bytes'] == RESERVE_BYTES and
+    plan, spec = prepare(ROOT, study), admission(study)
+    requirements, features = spec['requirements'], spec['features']
+    require(requirements['client_context_reserve_bytes'] == RESERVE_BYTES and
             requirements['control_limits'] == CONTROL_LIMITS, 'admission policy differs from the frozen requirements')
-    profiles = (plan['profiles'] if study in {REPAIR_STUDY, 'M3-facts'} else
+    if spec['kind'] == 'delivery':
+        require(spec['conditions'] == tuple(delivery.SETUPS), 'qualify both delivery setups')
+    elif spec['kind'] == 'diagnostic':
+        require(spec['conditions'] == tuple(plan['requirements']['setups']), 'qualify every declared condition')
+    profiles = (plan['profiles'] if spec['kind'] == 'diagnostic' else
                 json.loads((ROOT / 'tests/agent-eval/proof-writing/profiles.json').read_text()))
-    setups = requirements['conditions'] if study in CONDITION_STUDIES else ('workflow',)
-    expected = {(name + '/' + setup if study in CONDITION_STUDIES else name): (name, setup)
-                for name in profiles for setup in setups}
+    expected = {(name + '/' + setup if spec['by_condition'] else name): (name, setup)
+                for name in profiles for setup in spec['conditions']}
     require(set(receipts) == set(expected), 'qualify every profile and required setup before calls')
-    features = (('interactive_goal', 'argument_type_rejection', 'independent_patch_replay') if study == REPAIR_STUDY else
-                ('interactive_goal', 'library_lookup', 'unfinished_draft_rejected', 'independent_patch_replay') if study == 'M3-facts' else
-                ('supplied_proofs', 'saved_edit_export', 'independent_patch_replay') if study == DELIVERY_STUDY else ('recursive_loop_rejected',))
-    if study == REPAIR_STUDY:
-        require(requirements['conditions'] == ['shared-skill', 'argument-repair'] and
-                all(requirements[name + '_required'] is True for name in features), 'qualify both repair conditions')
-    elif study == DELIVERY_STUDY:
-        require(requirements['conditions'] == list(delivery.SETUPS) and
-                all(requirements[name + '_required'] is True for name in features), 'qualify both delivery setups')
-    elif study == 'M3-facts':
-        require(requirements['conditions'] == ['select-facts', 'supplied-declarations'] and
-                all(requirements[name + '_required'] is True for name in features), 'qualify both declaration conditions')
-    else:
-        require(study in ALGORITHM_STUDIES and requirements['recursive_loop_rejection_required'] is True,
-                'choose an explicit algorithm admission study')
     implementation = local.implementation_bindings(study)
     compact = {}
     for identity, (name, setup) in expected.items():
@@ -113,10 +122,11 @@ def validate_receipts(receipts, binaries, archive_sha256, qualified_run, study, 
 
 
 def script(lean_root, search_path, study, setup):
-    if study in {REPAIR_STUDY, 'M3-facts'}:
+    kind = admission(study)['kind']
+    if kind == 'diagnostic':
         from .proof_feedback import diagnostic_admission_script
         return diagnostic_admission_script(lean_root, search_path, setup, study)
-    if study == DELIVERY_STUDY:
+    if kind == 'delivery':
         return delivery_script(lean_root, search_path, setup)
     require(study in ALGORITHM_STUDIES and setup == 'workflow', 'choose the complete algorithm workflow explicitly')
     target = 'specs/FrSpecs/Euclid.lean::'
@@ -168,17 +178,18 @@ def delivery_script(lean_root, search_path, setup):
 
 
 def child(args):
-    require(args.study in ADMISSION_STUDIES, 'choose the native admission study explicitly')
+    spec = admission(args.study)
+    require(args.setup in spec['conditions'], 'admit one declared condition of the selected study')
     from . import proof_feedback
-    validator = (proof_feedback.validate_controls if args.study in {REPAIR_STUDY, 'M3-facts'} else
-                 delivery.validate_controls if args.study == DELIVERY_STUDY else algorithms.validate_controls)
+    validator = {'diagnostic': proof_feedback.validate_controls, 'delivery': delivery.validate_controls,
+                 'algorithm': algorithms.validate_controls}[spec['kind']]
     validator(json.loads(args.controls.read_text()), args.study)
     local.identity()
     profile = json.loads((ROOT / 'tests/agent-eval/proof-writing/profiles.json').read_text())[args.profile]
     project = args.output / 'project'
     seed = json.loads((args.inputs / 'seed.json').read_text())
     local.unpack(args.inputs / 'original.tar.gz', seed, project)
-    if args.study == REPAIR_STUDY:
+    if args.study in {REPAIR_STUDY, 'M3-page-count'}:
         prepared = json.loads((args.inputs / 'project.json').read_text())
         require(prepared['task'] == 'page-count' and common.sources(project) == prepared['original'] and
                 prepared['lean_arguments'] == ['-j1'] and
@@ -201,9 +212,9 @@ def child(args):
     directory = project / '.fr'
     directory.mkdir(exist_ok=True)
     protected = {}
-    if args.study in {REPAIR_STUDY, 'M3-facts'}:
+    if spec['kind'] == 'diagnostic':
         protected = proof_feedback.install_diagnostic_admission(project, args.setup, args.lean_root, prepared, args.study)
-    elif args.study == DELIVERY_STUDY:
+    elif spec['kind'] == 'delivery':
         protected = delivery.install(project, args.setup, args.lean_root / 'bin/lake')
     else:
         require(args.setup == 'workflow', 'original algorithm admission needs the complete workflow')
@@ -240,7 +251,7 @@ def child(args):
     provider.chat = local_chat
     transport = provider.websocket_provider if profile['client'] == 'codex' else provider.chat_provider
     command = shlex.join(['/bin/bash', str(control_script)])
-    expected_output = [MARKER] if args.study in CONDITION_STUDIES else ['not-checked', 'euclid a b', MARKER]
+    expected_output = [MARKER] if spec['by_condition'] else ['not-checked', 'euclid a b', MARKER]
     with transport(profile, command, expected_output, args.output) as (endpoint, requests, errors, warmups):
         if profile['client'] == 'opencode2':
             config = scripted_configuration(profile, endpoint)
@@ -268,7 +279,7 @@ def child(args):
                     'Codex admission requires a completed native turn')
         require(not errors and len(requests) == 2, 'accounting caused an extra scripted provider request')
         require(common.digest(directory / 'checks.json') == check_digest, 'admission changed check settings')
-        if args.study in CONDITION_STUDIES:
+        if spec['by_condition']:
             patch, error = delivery.submission(project, protected)
             require(error is None, 'the native workflow did not preserve its supplied inputs and root patch')
             receiver = args.output / 'receiver'
@@ -277,13 +288,7 @@ def child(args):
             require(common.sources(receiver) == common.sources(project), 'the delivered patch omits saved work')
         common.save(args.output / 'child.json', {'passed': True, 'scripted_requests': len(requests),
             'scripted_errors': len(errors), 'complete_workflow': True,
-            'recursive_loop_rejected': args.study in ALGORITHM_STUDIES,
-            'argument_type_rejection': args.study == REPAIR_STUDY,
-            'interactive_goal': args.study in {REPAIR_STUDY, 'M3-facts'},
-            'library_lookup': args.study == 'M3-facts',
-            'unfinished_draft_rejected': args.study == 'M3-facts',
-            'supplied_proofs': args.study == DELIVERY_STUDY, 'saved_edit_export': args.study == DELIVERY_STUDY,
-            'independent_patch_replay': args.study in CONDITION_STUDIES,
+            **{name: name in spec['features'] for name in FEATURES},
             'session_accounting': True, 'warmups': len(warmups)})
 
 
@@ -334,7 +339,8 @@ if __name__ == '__main__':
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--profile', required=True)
     parser.add_argument('--study', choices=tuple(sorted(ADMISSION_STUDIES)), required=True)
-    parser.add_argument('--setup', choices=('workflow', *delivery.SETUPS, 'argument-repair', 'select-facts', 'supplied-declarations'), required=True)
+    parser.add_argument('--setup', choices=('workflow', 'fr', *delivery.SETUPS, 'shared-skill', 'argument-repair',
+                        'select-facts', 'supplied-declarations'), required=True)
     args = parser.parse_args()
     for name in ('fr', 'client', 'lean_root', 'inputs', 'controls', 'output', 'guard'):
         setattr(args, name, getattr(args, name).resolve())

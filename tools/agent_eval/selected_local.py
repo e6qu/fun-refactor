@@ -434,13 +434,13 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
     if milestone in ADMISSION_STUDIES:
         from .selected_guarded import contract
-        from .algorithm_admission import server_packages, validate_receipts
+        from .algorithm_admission import admission, server_packages, validate_receipts
         value['resource_monitor'] = contract()
-        admission_task = ('page-count' if milestone == REPAIR_STUDY else
-                          'division-facts' if milestone == 'M3-facts' else 'euclid')
+        spec = admission(milestone)
+        admission_task, = (proposed['requirements']['tasks'] if spec['kind'] == 'diagnostic' else ['euclid'])
         value['admission'] = validate_receipts(json.loads(runtime['admission'].read_text()), paths,
             seeds[admission_task]['receipt']['archive_sha256'], value['controls']['run'], milestone, checkers)
-        if milestone in {DELIVERY_STUDY, REPAIR_STUDY, 'M3-facts'}:
+        if spec['by_condition']:
             packages = subprocess.run([checkers['python']['path'], '-c',
                 'import importlib.metadata,json; print(json.dumps({"websockets":importlib.metadata.version("websockets")}))'],
                 capture_output=True, text=True, timeout=10)

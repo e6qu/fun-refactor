@@ -173,48 +173,60 @@ def install_repair_instruction(project, condition):
     return path
 
 
+UNSOLVED = 'assert any("unsolved goals" in d["message"].lower() for d in r["diagnostics"])'
+DIAGNOSTIC_ADMISSIONS = {
+    REPAIR_STUDY: {'handout': '.fr/argument-repair.txt', 'library_lookup': False, 'delivery': 'package-diff',
+                   'rejection': 'assert any(d["draft_location"] and "Int" in str(d["context"]) '
+                                'and "0 ≤" in str(d["context"]) for d in r["diagnostics"])'},
+    'M3-facts': {'handout': '.fr/declarations.txt', 'library_lookup': True, 'delivery': 'package-diff',
+                 'rejection': UNSOLVED},
+    'M3-page-count': {'handout': None, 'library_lookup': False, 'delivery': 'deliver', 'rejection': UNSOLVED},
+}
+
+
+def admission_drafts(study):
+    """The reference and rejected drafts given only to scripted admission controls."""
+    if study in {REPAIR_STUDY, 'M3-page-count'}:
+        from .page_count_diagnosis import drafts, REFERENCE
+        reference = REFERENCE.read_text()
+        return reference, (drafts(reference)['integer-instead-of-proof'] if study == REPAIR_STUDY else 'refine ?_\n')
+    return (ROOT / CASE_DIRECTORIES[study] / 'controls/reference.lean').read_text(), 'refine ?_\n'
+
+
 def install_diagnostic_admission(project, condition, lean_root, prepared, study):
     """Scripted controls receive reference drafts; live attempts never receive them."""
     from . import selected_local as local
-    require(study in {REPAIR_STUDY, 'M3-facts'}, 'choose the complete diagnostic admission explicitly')
+    require(study in DIAGNOSTIC_ADMISSIONS, 'choose the complete diagnostic admission explicitly')
     shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
-    if study == REPAIR_STUDY:
-        from .page_count_diagnosis import drafts, REFERENCE
-        handout = install_repair_instruction(project, condition)
-        reference = REFERENCE.read_text()
-        bad = drafts(reference)['integer-instead-of-proof']
-    else:
-        handout = install_declarations(project, condition)
-        reference = (ROOT / CASE_DIRECTORIES[study] / 'controls/reference.lean').read_text()
-        bad = 'refine ?_\n'
+    handout = {REPAIR_STUDY: install_repair_instruction, 'M3-facts': install_declarations}.get(study)
+    handouts = [handout(project, condition)] if handout else []
+    reference, bad = admission_drafts(study)
     directory = project / '.fr'
+    directory.mkdir(exist_ok=True)
     (directory / 'admission-target.txt').write_text(prepared['target'])
     (directory / 'admission-reference.lean').write_text(reference)
     (directory / 'admission-bad.lean').write_text(bad)
     common.save(directory / 'checks.json', {'schema': 1, 'checks': [{'name': 'lean',
         'argv': [str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail'], 'cwd': '.',
         'timeout_seconds': 120, 'covers': ['fixed Lean theorem without proof gaps']}]})
-    paths = [handout, directory / 'checks.json', *(project / '.agents/skills/fr').rglob('*')]
+    paths = [*handouts, directory / 'checks.json', *(project / '.agents/skills/fr').rglob('*')]
     return {str(path.relative_to(project)): {'sha256': local.hash_file(path), 'mode': path.stat().st_mode & 0o7777}
             for path in paths if path.is_file()}
 
 
 def diagnostic_admission_script(lean_root, search_path, condition, study):
-    require(study in {REPAIR_STUDY, 'M3-facts'} and
+    require(study in DIAGNOSTIC_ADMISSIONS and
             condition in prepare(ROOT, study)['requirements']['setups'], 'admit the explicit diagnostic condition')
     from .algorithm_admission import MARKER
-    handout = '.fr/argument-repair.txt' if study == REPAIR_STUDY else '.fr/declarations.txt'
-    diagnostic = ('assert any(d["draft_location"] and "Int" in str(d["context"]) '
-                  'and "0 ≤" in str(d["context"]) for d in r["diagnostics"])' if study == REPAIR_STUDY else
-                  'assert any("unsolved goals" in d["message"].lower() for d in r["diagnostics"])')
+    spec = DIAGNOSTIC_ADMISSIONS[study]
     lines = ['set -eu', 'export PATH=' + shlex.quote(search_path),
-             'cat .agents/skills/fr/SKILL.md ' + handout + ' > /dev/null',
+             'cat ' + ' '.join(['.agents/skills/fr/SKILL.md', *([spec['handout']] if spec['handout'] else [])]) + ' > /dev/null',
              *([shlex.join(['fr', '--json', '-C', str(lean_root / 'src/lean/Init/Data/Int/DivMod/Lemmas.lean'),
                            'project', 'find', 'tdiv', '--contains', '--signature', '--limit', '4']) +
                 ' > .fr/admission-library.json',
                 shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-library.json")); '
                     'assert r["coverage"]["indexed_files"] == 1 and r["rows"]; '
-                    'assert "signature" in r["columns"]'])] if study == 'M3-facts' else []),
+                    'assert "signature" in r["columns"]'])] if spec['library_lookup'] else []),
              'proof_target=$(cat .fr/admission-target.txt)',
              'fr --json proof start "$proof_target" --draft .fr/admission-start.lean --bytes 4096 --timeout-seconds 30 > .fr/admission-start.json',
              'fr --json proof state "$proof_target" --draft .fr/admission-start.lean --at end --bytes 4096 --timeout-seconds 30 > .fr/admission-state.json',
@@ -223,15 +235,27 @@ def diagnostic_admission_script(lean_root, search_path, condition, study):
                  'assert all(isinstance(g["context"], str) and isinstance(g["goal"], str) for g in r["goals"])']),
              'if fr --json proof check "$proof_target" --draft .fr/admission-bad.lean --bytes 4096 --timeout-seconds 30 > .fr/admission-rejected.json; then exit 1; else test $? = 1; fi',
              shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-rejected.json")); '
-                'assert r["passed"] is False and r["receipt"] is None and r["diagnostics"]; ' + diagnostic])]
-    for operation, field in [('check', 'passed'), ('save', 'applied')]:
-        report = '.fr/admission-' + operation + '.json'
-        lines += ['fr --json proof ' + operation + ' "$proof_target" --draft .fr/admission-reference.lean ' +
-                  '--bytes 4096 --timeout-seconds 30' + ' > ' + report,
-                  shlex.join(['python3', '-c', 'import json; assert json.load(open(' + repr(report) + '))[' + repr(field) + '] is True'])]
-    lines += [shlex.join([str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail']) +
-              ' > .fr/admission-package.log 2>&1', 'git diff --binary HEAD > change.patch',
-              'test -s change.patch', 'printf ' + shlex.quote(MARKER + '\n')]
+                'assert r["passed"] is False and r["receipt"] is None and r["diagnostics"]; ' + spec['rejection']])]
+    if spec['delivery'] == 'deliver':
+        # The live request asks for exactly this call: check, save, package check and patch together.
+        lines += ['fr --json proof check "$proof_target" --draft .fr/admission-reference.lean --bytes 4096 '
+                  '--timeout-seconds 30 > .fr/admission-check.json',
+                  shlex.join(['python3', '-c', 'import json; assert json.load(open(".fr/admission-check.json"))["passed"] is True']),
+                  'fr --json proof save "$proof_target" --draft .fr/admission-reference.lean --bytes 4096 '
+                  '--timeout-seconds 30 --deliver change.patch > .fr/admission-save.json',
+                  shlex.join(['python3', '-c', 'import json; r=json.load(open(".fr/admission-save.json")); '
+                      'assert r["status"] == "written" and r["proof_checked"] is True; '
+                      'd=r["delivery"]; assert d["delivered"] is True and d["checks"]["passed"] is True; '
+                      'assert d["transactions"] == [r["transaction"]]'])]
+    else:
+        for operation, field in [('check', 'passed'), ('save', 'applied')]:
+            report = '.fr/admission-' + operation + '.json'
+            lines += ['fr --json proof ' + operation + ' "$proof_target" --draft .fr/admission-reference.lean ' +
+                      '--bytes 4096 --timeout-seconds 30' + ' > ' + report,
+                      shlex.join(['python3', '-c', 'import json; assert json.load(open(' + repr(report) + '))[' + repr(field) + '] is True'])]
+        lines += [shlex.join([str(lean_root / 'bin/lake'), '-d', 'specs', 'build', '--wfail']) +
+                  ' > .fr/admission-package.log 2>&1', 'git diff --binary HEAD > change.patch']
+    lines += ['test -s change.patch', 'printf ' + shlex.quote(MARKER + '\n')]
     return '\n'.join(lines) + '\n'
 
 
