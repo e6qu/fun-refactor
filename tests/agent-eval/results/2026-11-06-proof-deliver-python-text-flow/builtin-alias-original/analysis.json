@@ -1,0 +1,1330 @@
+{
+  "assignment_control": {
+    "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+    "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+    "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+    "implicit_exceptions": false,
+    "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+    "schema": "fr-scalar-assignment"
+  },
+  "assumptions": [
+    "scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.",
+    "branch feasibility unchecked",
+    "external rules are caller-supplied contracts.",
+    "Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.",
+    "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.",
+    "Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."
+  ],
+  "budget": {
+    "call_depth": 8,
+    "response_bytes": 262144,
+    "steps": 4096,
+    "used": 12
+  },
+  "call_binding": {
+    "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+    "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+    "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+    "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+    "evaluation": "Evaluate explicit values once in source order before binding.",
+    "implicit_exceptions": false,
+    "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+    "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+    "schema": "fr-call-binding",
+    "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+  },
+  "claim": "possible-value-propagation",
+  "complete": true,
+  "completion": {
+    "may_raise": false,
+    "normal_return": true
+  },
+  "context": "html",
+  "context_basis": "frcb1:939df84760f5a2459d27df4138a2b3cecb8fae2f23348fed88ed80bc872a1132",
+  "control_flow": {
+    "subject.py::entry": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "entry",
+          "to": 2
+        }
+      ],
+      "entry": 3,
+      "exceptional_exit": 1,
+      "function": "subject.py::entry",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+              "id": "fro1:1938088cd7f0a2baca46bd70736e07eff55c775b60e364cefcf951504d85ed26",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 43,
+                    "line": 3
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 3
+                  }
+                },
+                "span": {
+                  "end": 88,
+                  "start": 50
+                }
+              },
+              "path": "subject.py",
+              "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+              "id": "fro1:b40eb1e4c8c6810eceb3f1124f5254f4df84ea458de41f44f0c868b64d4f053a",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 43,
+                    "line": 3
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 88,
+                  "start": 33
+                }
+              },
+              "path": "subject.py",
+              "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    }
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 2,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 7,
+    "unsupported_files": 0
+  },
+  "cutoffs": [],
+  "effect_limits": [],
+  "events": [
+    {
+      "control_node": [
+        "subject.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:9f5aab42ce8e0fd3cc213d97020a75e9325c2821d50dfcdab32eec8cae915dfa",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 2
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 33
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:cfa733a7badb0d2dde50391fb4ffdda09a2f67f26aebe0e8b781d6944ef5b1b8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 5,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 50
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:481c5a5cd113336813891cc367e51ba3b62963c814ea7f68c9a7a8a5cbfeee7c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 12,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 57
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:9d9517619985fb2ea2f2a589ad3d6b61ae1c89143c34e43d8e2304a10b8912e2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 42,
+              "line": 3
+            },
+            "start": {
+              "col": 17,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 87,
+            "start": 62
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:4b3c71addb3ba8c424a846a6ec3d2892bc2395a185bcebcd06db4992d42cf038",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 3
+            },
+            "start": {
+              "col": 17,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 79,
+            "start": 62
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:027bc8087058c948617640e3c5c0098f1f6c6ee0efd5f2442a96bcff4616c038",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 3
+            },
+            "start": {
+              "col": 22,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 78,
+            "start": 67
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:9f5aab42ce8e0fd3cc213d97020a75e9325c2821d50dfcdab32eec8cae915dfa",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 2
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 33
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:cfa733a7badb0d2dde50391fb4ffdda09a2f67f26aebe0e8b781d6944ef5b1b8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 5,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 50
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:481c5a5cd113336813891cc367e51ba3b62963c814ea7f68c9a7a8a5cbfeee7c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 12,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 57
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:9d9517619985fb2ea2f2a589ad3d6b61ae1c89143c34e43d8e2304a10b8912e2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 42,
+              "line": 3
+            },
+            "start": {
+              "col": 17,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 87,
+            "start": 62
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:4b3c71addb3ba8c424a846a6ec3d2892bc2395a185bcebcd06db4992d42cf038",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 3
+            },
+            "start": {
+              "col": 17,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 79,
+            "start": 62
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "subject.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:027bc8087058c948617640e3c5c0098f1f6c6ee0efd5f2442a96bcff4616c038",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 3
+            },
+            "start": {
+              "col": 22,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 78,
+            "start": 67
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "use"
+      }
+    }
+  ],
+  "exceptional_returns": {},
+  "execution": {
+    "analysis_steps": 12,
+    "kind": "analyzed",
+    "reason": "no-retained-result"
+  },
+  "expression_control": {
+    "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+    "comparisons": "ordered operands; each comparison result may be true or false.",
+    "effects": "join normal, sink and explicit-raise alternatives.",
+    "evaluation": "left-to-right; each operand once per expression transfer.",
+    "path_feasibility": false,
+    "schema": "fr-expression-control",
+    "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+    "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+  },
+  "function_summaries": {
+    "claim": "may-value derivations in the declared model; neither feasible paths nor runtime termination.",
+    "context": "symbolic explicit parameters; bind each call independently and fill omitted immutable scalar defaults.",
+    "converged": true,
+    "effects": "explicit scalar returns, sink contracts and explicit raises; no heap effects.",
+    "enabled": true,
+    "function_limit": 64,
+    "functions": {
+      "subject.py::entry": {
+        "callees": [],
+        "evaluations": 2,
+        "exceptional_returns": {},
+        "may_raise": false,
+        "normal_return": true,
+        "parameters": [],
+        "returns": {
+          "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                "id": "fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 33,
+                      "line": 3
+                    },
+                    "start": {
+                      "col": 22,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 78,
+                    "start": 67
+                  }
+                },
+                "path": "subject.py",
+                "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                "role": "source"
+              },
+              {
+                "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                "id": "fro1:76de3d246b08c98545e3ec7b55adb56605a72fb4ea7cab029cf9df67c4b7b38f",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 34,
+                      "line": 3
+                    },
+                    "start": {
+                      "col": 17,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 79,
+                    "start": 62
+                  }
+                },
+                "path": "subject.py",
+                "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                "id": "fro1:9373fc5e8498ef0ee5107c5f29fb5bb69e3a334e1ac0acd59f15e766463c4161",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 42,
+                      "line": 3
+                    },
+                    "start": {
+                      "col": 17,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 87,
+                    "start": 62
+                  }
+                },
+                "path": "subject.py",
+                "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                "role": "standard-call-result"
+              },
+              {
+                "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                "id": "fro1:195295f7815b6ee4facf01374a02b06a95d3582152938d6c7aeca9dd93461bb3",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 43,
+                      "line": 3
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 88,
+                    "start": 50
+                  }
+                },
+                "path": "subject.py",
+                "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                "role": "return"
+              }
+            ],
+            "origin": "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33"
+          }
+        },
+        "signature": [],
+        "sinks": {
+          "fro1:3f0d72eb19ab4a4f676cee3d265b2e5e564e9daf89e45c3c2434f16a6854a859": {
+            "flow": {
+              "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33": {
+                "occurrences": [
+                  {
+                    "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                    "id": "fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 33,
+                          "line": 3
+                        },
+                        "start": {
+                          "col": 22,
+                          "line": 3
+                        }
+                      },
+                      "span": {
+                        "end": 78,
+                        "start": 67
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                    "role": "source"
+                  },
+                  {
+                    "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                    "id": "fro1:76de3d246b08c98545e3ec7b55adb56605a72fb4ea7cab029cf9df67c4b7b38f",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 34,
+                          "line": 3
+                        },
+                        "start": {
+                          "col": 17,
+                          "line": 3
+                        }
+                      },
+                      "span": {
+                        "end": 79,
+                        "start": 62
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                    "role": "standard-call-result"
+                  },
+                  {
+                    "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                    "id": "fro1:9373fc5e8498ef0ee5107c5f29fb5bb69e3a334e1ac0acd59f15e766463c4161",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 42,
+                          "line": 3
+                        },
+                        "start": {
+                          "col": 17,
+                          "line": 3
+                        }
+                      },
+                      "span": {
+                        "end": 87,
+                        "start": 62
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                    "role": "standard-call-result"
+                  },
+                  {
+                    "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+                    "id": "fro1:3f0d72eb19ab4a4f676cee3d265b2e5e564e9daf89e45c3c2434f16a6854a859",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 43,
+                          "line": 3
+                        },
+                        "start": {
+                          "col": 12,
+                          "line": 3
+                        }
+                      },
+                      "span": {
+                        "end": 88,
+                        "start": 57
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+                    "role": "sink"
+                  }
+                ],
+                "origin": "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33"
+              }
+            },
+            "sink": "send",
+            "site": {
+              "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+              "id": "fro1:3f0d72eb19ab4a4f676cee3d265b2e5e564e9daf89e45c3c2434f16a6854a859",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 43,
+                    "line": 3
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 3
+                  }
+                },
+                "span": {
+                  "end": 88,
+                  "start": 57
+                }
+              },
+              "path": "subject.py",
+              "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+              "role": "sink"
+            }
+          }
+        }
+      }
+    },
+    "mutation_authority": false,
+    "recursion": "monotone least fixed point over finite origin and effect sets.",
+    "rounds": 2,
+    "schema": "fr-function-summaries"
+  },
+  "handle_prefix": "frp1:346a289e113d9556ee52037a85e898ac:",
+  "initialization": {
+    "by_file": {},
+    "omitted": 0,
+    "sites": []
+  },
+  "input_digest": "afe70d696f4c31cff86c917911b50d37434da2af332c40b01014b009effe2b2c",
+  "inputs": {
+    "analyzer": "c09043062a0a7e8e4d4f176046960ceba2e20de92a0c2ac21b4e1d5c082e94bf",
+    "assignment_control": {
+      "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+      "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+      "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+      "implicit_exceptions": false,
+      "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+      "schema": "fr-scalar-assignment"
+    },
+    "budget": {
+      "bytes": 262144,
+      "depth": 8,
+      "steps": 4096
+    },
+    "call_binding": {
+      "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+      "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+      "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+      "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+      "evaluation": "Evaluate explicit values once in source order before binding.",
+      "implicit_exceptions": false,
+      "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+      "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+      "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+      "schema": "fr-call-binding",
+      "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+    },
+    "completion_control": {
+      "block_limit": 512,
+      "classes": [
+        "ValueError",
+        "TypeError",
+        "Exception",
+        "BaseException"
+      ],
+      "except": "Ordered unbound builtin handlers; explicit raises only.",
+      "finally": "Capture values before cleanup; cleanup may replace exits; nest separately.",
+      "handler_nodes": 128,
+      "implicit_exceptions": false,
+      "local_call_raises": true,
+      "reraise": "Lexically active known error.",
+      "schema": "fr-scalar-completion"
+    },
+    "configuration": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "context": "html",
+    "dependency_scope": "static module closure, import candidates including missing paths, configuration, rules and analyzer.",
+    "expression_control": {
+      "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+      "comparisons": "ordered operands; each comparison result may be true or false.",
+      "effects": "join normal, sink and explicit-raise alternatives.",
+      "evaluation": "left-to-right; each operand once per expression transfer.",
+      "path_feasibility": false,
+      "schema": "fr-expression-control",
+      "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+      "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+    },
+    "modules": {
+      "complete": true,
+      "cutoffs": [],
+      "entry": {
+        "admitted": true,
+        "candidates": {
+          "subject": {
+            "status": "missing"
+          },
+          "subject.py": {
+            "digest": "0da4a78d3b396cd703926c9568511a98e6b9f9856eb836dfc29f6d1efbcc8f6a",
+            "status": "source"
+          },
+          "subject.pyi": {
+            "status": "missing"
+          },
+          "subject/__init__.py": {
+            "status": "missing"
+          },
+          "subject/__init__.pyi": {
+            "status": "missing"
+          }
+        },
+        "module": "subject",
+        "namespaces": [],
+        "opaque_candidates": [],
+        "packages": [],
+        "target": "subject.py"
+      },
+      "files": {
+        "subject.py": "0da4a78d3b396cd703926c9568511a98e6b9f9856eb836dfc29f6d1efbcc8f6a"
+      },
+      "function_aliases": [],
+      "limits": {
+        "binding_chain": 16,
+        "imports": 128,
+        "module_components": 16,
+        "modules": 16,
+        "names_per_import": 128,
+        "source_bytes": 262144
+      },
+      "lookups": [],
+      "metadata_imports": [],
+      "namespaces": [],
+      "policy": "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Supported future directives need absent local __future__ candidates. Imported non-entry modules may omit one exact main guard without other __name__ uses or alternatives. Dynamic imports, merged namespaces and search paths stay unchecked.",
+      "schema": "fr-flow-modules",
+      "standard_imports": [
+        {
+          "admitted": false,
+          "alias": "text",
+          "candidates": {
+            "builtins": {
+              "status": "missing"
+            },
+            "builtins.py": {
+              "status": "missing"
+            },
+            "builtins.pyi": {
+              "status": "missing"
+            },
+            "builtins/__init__.py": {
+              "status": "missing"
+            },
+            "builtins/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "subject.py",
+          "member": "str",
+          "module": "builtins",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "text",
+          "target": null
+        }
+      ],
+      "standard_library": {
+        "boundary": "Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching, overloaded protocols or implicit exception model.",
+        "calls": "Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
+        "imports": "Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.",
+        "modules": {
+          "builtins": [
+            "abs",
+            "int",
+            "float",
+            "str",
+            "bool",
+            "round",
+            "min",
+            "max",
+            "ValueError",
+            "TypeError",
+            "Exception",
+            "BaseException"
+          ]
+        },
+        "namespace_digest": "d566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7",
+        "runtime": "CPython 3.14.8",
+        "schema": "fr-python-standard-library",
+        "string_methods": {
+          "arguments": "Positional text arguments only; stripping also accepts None, and replacement counts require literal integers.",
+          "boundary": "Unknown receivers, expanded arguments and unsupported signatures remain incomplete. These calls do not establish runtime exception safety.",
+          "evaluation": "Receiver once, then arguments left-to-right; preserve all possible origins without mutating the receiver.",
+          "methods": [
+            [
+              "lower",
+              0,
+              0
+            ],
+            [
+              "upper",
+              0,
+              0
+            ],
+            [
+              "casefold",
+              0,
+              0
+            ],
+            [
+              "capitalize",
+              0,
+              0
+            ],
+            [
+              "swapcase",
+              0,
+              0
+            ],
+            [
+              "title",
+              0,
+              0
+            ],
+            [
+              "strip",
+              0,
+              1
+            ],
+            [
+              "lstrip",
+              0,
+              1
+            ],
+            [
+              "rstrip",
+              0,
+              1
+            ],
+            [
+              "removeprefix",
+              1,
+              1
+            ],
+            [
+              "removesuffix",
+              1,
+              1
+            ],
+            [
+              "replace",
+              2,
+              3
+            ]
+          ],
+          "receiver": "Plain str from literals, checked str conversions, local bindings and normal helper summaries; annotations do not establish runtime types.",
+          "receiver_nodes": 128
+        }
+      },
+      "standard_shadowing": [],
+      "value_aliases": [],
+      "value_bindings": []
+    },
+    "rule_file": "rules.json",
+    "rules": "b80ce443ca03896ea1fdc8cf450a07dd45ac4563f46efc355b77adb2ef76380b",
+    "selection": {
+      "name": "entry",
+      "span": {
+        "end": 88,
+        "start": 33
+      }
+    },
+    "source": {
+      "digest": "0da4a78d3b396cd703926c9568511a98e6b9f9856eb836dfc29f6d1efbcc8f6a",
+      "path": "subject.py"
+    },
+    "summary_mode": true
+  },
+  "origins": {
+    "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33": {
+      "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+      "id": "fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33",
+      "location": {
+        "range": {
+          "end": {
+            "col": 33,
+            "line": 3
+          },
+          "start": {
+            "col": 22,
+            "line": 3
+          }
+        },
+        "span": {
+          "end": 78,
+          "start": 67
+        }
+      },
+      "path": "subject.py",
+      "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+      "role": "source"
+    }
+  },
+  "returns": {
+    "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33": {
+      "occurrences": [
+        {
+          "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+          "id": "fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33",
+          "location": {
+            "range": {
+              "end": {
+                "col": 33,
+                "line": 3
+              },
+              "start": {
+                "col": 22,
+                "line": 3
+              }
+            },
+            "span": {
+              "end": 78,
+              "start": 67
+            }
+          },
+          "path": "subject.py",
+          "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+          "role": "source"
+        },
+        {
+          "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+          "id": "fro1:76de3d246b08c98545e3ec7b55adb56605a72fb4ea7cab029cf9df67c4b7b38f",
+          "location": {
+            "range": {
+              "end": {
+                "col": 34,
+                "line": 3
+              },
+              "start": {
+                "col": 17,
+                "line": 3
+              }
+            },
+            "span": {
+              "end": 79,
+              "start": 62
+            }
+          },
+          "path": "subject.py",
+          "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+          "role": "standard-call-result"
+        },
+        {
+          "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+          "id": "fro1:9373fc5e8498ef0ee5107c5f29fb5bb69e3a334e1ac0acd59f15e766463c4161",
+          "location": {
+            "range": {
+              "end": {
+                "col": 42,
+                "line": 3
+              },
+              "start": {
+                "col": 17,
+                "line": 3
+              }
+            },
+            "span": {
+              "end": 87,
+              "start": 62
+            }
+          },
+          "path": "subject.py",
+          "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+          "role": "standard-call-result"
+        },
+        {
+          "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+          "id": "fro1:195295f7815b6ee4facf01374a02b06a95d3582152938d6c7aeca9dd93461bb3",
+          "location": {
+            "range": {
+              "end": {
+                "col": 43,
+                "line": 3
+              },
+              "start": {
+                "col": 5,
+                "line": 3
+              }
+            },
+            "span": {
+              "end": 88,
+              "start": 50
+            }
+          },
+          "path": "subject.py",
+          "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+          "role": "return"
+        }
+      ],
+      "origin": "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33"
+    }
+  },
+  "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+  "rules_digest": "b80ce443ca03896ea1fdc8cf450a07dd45ac4563f46efc355b77adb2ef76380b",
+  "runtime_effects": {
+    "complete_means": "The scalar model finished; it does not check runtime exception safety or shared mutable objects.",
+    "exception_safety_established": false,
+    "shared_mutable_values_supported": false
+  },
+  "schema": "fr-dataflow-1",
+  "scope": "selected function and static workspace-local module/package closure.",
+  "semantics": "python-scalar-summaries",
+  "summaries": [
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "subject.py::entry",
+      "inputs": [],
+      "return_origins": [
+        "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33"
+      ]
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "subject.py::entry",
+      "inputs": [],
+      "return_origins": [
+        "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33"
+      ]
+    }
+  ],
+  "target": "frp1:346a289e113d9556ee52037a85e898ac:8",
+  "witnesses": [
+    {
+      "claim": "possible-value-propagation; path feasibility unchecked.",
+      "context": "html",
+      "rules": "text-flow",
+      "sink": "send",
+      "site": {
+        "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+        "id": "fro1:3f0d72eb19ab4a4f676cee3d265b2e5e564e9daf89e45c3c2434f16a6854a859",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 3
+            },
+            "start": {
+              "col": 12,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 88,
+            "start": 57
+          }
+        },
+        "path": "subject.py",
+        "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+        "role": "sink"
+      },
+      "trace": {
+        "occurrences": [
+          {
+            "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+            "id": "fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 33,
+                  "line": 3
+                },
+                "start": {
+                  "col": 22,
+                  "line": 3
+                }
+              },
+              "span": {
+                "end": 78,
+                "start": 67
+              }
+            },
+            "path": "subject.py",
+            "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+            "role": "source"
+          },
+          {
+            "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+            "id": "fro1:76de3d246b08c98545e3ec7b55adb56605a72fb4ea7cab029cf9df67c4b7b38f",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 34,
+                  "line": 3
+                },
+                "start": {
+                  "col": 17,
+                  "line": 3
+                }
+              },
+              "span": {
+                "end": 79,
+                "start": 62
+              }
+            },
+            "path": "subject.py",
+            "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+            "role": "standard-call-result"
+          },
+          {
+            "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+            "id": "fro1:9373fc5e8498ef0ee5107c5f29fb5bb69e3a334e1ac0acd59f15e766463c4161",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 42,
+                  "line": 3
+                },
+                "start": {
+                  "col": 17,
+                  "line": 3
+                }
+              },
+              "span": {
+                "end": 87,
+                "start": 62
+              }
+            },
+            "path": "subject.py",
+            "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+            "role": "standard-call-result"
+          },
+          {
+            "enclosing": "frp1:346a289e113d9556ee52037a85e898ac:8",
+            "id": "fro1:3f0d72eb19ab4a4f676cee3d265b2e5e564e9daf89e45c3c2434f16a6854a859",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 43,
+                  "line": 3
+                },
+                "start": {
+                  "col": 12,
+                  "line": 3
+                }
+              },
+              "span": {
+                "end": 88,
+                "start": 57
+              }
+            },
+            "path": "subject.py",
+            "revision": "346a289e113d9556ee52037a85e898acf3ad6308bb2695466fabe0f15f5dd87e",
+            "role": "sink"
+          }
+        ],
+        "origin": "text-flow:read_user:fro1:558fa32ce378e128a50a8d87c891473c0584ff5c280a103649b89190612d5b33"
+      }
+    }
+  ]
+}
