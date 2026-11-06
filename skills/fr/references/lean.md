@@ -44,22 +44,18 @@ For `h : P ∧ Q`, `rcases h with ⟨hp, hq⟩` names two proofs.
 An implication `h : P → Q` instead needs a proof of `P` to yield `Q`.
 See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
-For a missing fact, read the model's imports.
-Run `lean --print-prefix` from `specs/` to select its declared toolchain.
-Map the imported module to one source file. For example,
-`Init.Data.Int.DivMod.Lemmas` lives at
-`<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean`:
+Read the model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
+for its toolchain. For `import Init.Data.Int.DivMod.Lemmas`, search that file:
 
 ```sh
-fr -C '<IMPORTED_FILE.lean>' project find '<NAME_FRAGMENT>' --contains --signature --limit 4
+fr -C '<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean' project find '<NAME>' --contains --signature --limit 4
 ```
 
-`-C` selects the files to scan. `--limit` only bounds returned rows.
-Indexing the whole Lean source tree exceeded a complete attempt's memory limit.
-Start with the imported file; keep library discovery inside the attempt budget.
+`-C` bounds input files; `--limit` bounds output rows.
+A whole-library scan exceeded 768 MiB. Start with the imported file.
 
-Text mode labels results. For a program, use `--json` and its actual `columns`
-and `rows`, or the SDK decoder. Empty results with omissions prove no absence.
+Text labels results. JSON uses `columns` and `rows`, or the SDK decoder.
+If results were omitted, an empty page cannot prove no match.
 
 ## Check, save, deliver
 
