@@ -1773,6 +1773,21 @@ fn proof_region_span(source: &str, name: &str) -> Result<(std::ops::Range<usize>
     bail!("formal model needs one ordered proof region for `{name}`.")
 }
 
+fn proof_input_refusal(proof: &str) -> Option<&'static str> {
+    if proof.split_whitespace().next() == Some("by") {
+        Some("proof input contains tactics only; omit the leading `by`.")
+    } else if ["sorry", "admit", "fr:proof-", "fr:debt"]
+        .iter()
+        .any(|forbidden| proof.contains(forbidden))
+    {
+        Some("proof input cannot carry admissions, debt or proof-region markers.")
+    } else if proof.contains("native_decide") || proof.contains("ofReduceBool") {
+        Some("native_decide trusts compiled code through the axiom Lean.ofReduceBool, which checked proofs exclude; use decide.")
+    } else {
+        None
+    }
+}
+
 fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
     let (spec, obligation) = proof_target(target)?;
     let path = root.join(&spec);
@@ -1783,14 +1798,8 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
     if proof.trim().is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
-    if proof.split_whitespace().next() == Some("by") {
-        bail!("proof input contains tactics only; omit the leading `by`.");
-    }
-    if ["sorry", "admit", "fr:proof-", "fr:debt"]
-        .iter()
-        .any(|forbidden| proof.contains(forbidden))
-    {
-        bail!("proof input cannot carry admissions, debt or proof-region markers.");
+    if let Some(refusal) = proof_input_refusal(proof) {
+        bail!("{refusal}");
     }
     let (content, _) = proof_region_span(&original, &obligation)?;
     let rendered = proof
@@ -5117,6 +5126,19 @@ mod tests {
         let unicode = context.draft_location.as_ref().unwrap();
         assert_eq!((unicode.line, unicode.column), (3, 1));
         assert!(unicode.source_excerpt.as_ref().unwrap().contains('名'));
+    }
+
+    #[test]
+    fn proof_input_refuses_compiled_evaluation() {
+        assert!(proof_input_refusal("constructor\n· native_decide")
+            .unwrap()
+            .contains("use decide"));
+        assert!(proof_input_refusal("exact Lean.ofReduceBool _ _ rfl").is_some());
+        assert!(proof_input_refusal("sorry").unwrap().contains("admissions"));
+        assert!(proof_input_refusal("by decide")
+            .unwrap()
+            .contains("leading `by`"));
+        assert_eq!(proof_input_refusal("constructor\n· decide"), None);
     }
 
     #[test]
