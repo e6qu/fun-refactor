@@ -2321,6 +2321,16 @@ fn lean_diagnostics(
                 context: Vec::new(),
                 context_omitted_lines: 0,
             });
+        } else if line.starts_with("Try this:") {
+            diagnostics.push(ProofDiagnostic {
+                severity: "info".into(),
+                code: None,
+                draft_location: None,
+                checked_location: None,
+                message: bounded_text(line, 512),
+                context: Vec::new(),
+                context_omitted_lines: 0,
+            });
         } else if let Some(diagnostic) = diagnostics.last_mut() {
             if !line.trim().is_empty() {
                 diagnostic.context.push(line.into());
@@ -5107,6 +5117,42 @@ mod tests {
         let unicode = context.draft_location.as_ref().unwrap();
         assert_eq!((unicode.line, unicode.column), (3, 1));
         assert!(unicode.source_excerpt.as_ref().unwrap().contains('名'));
+    }
+
+    #[test]
+    fn proof_diagnostics_keep_library_search_suggestions() {
+        let source = "theorem claim : True := by\n  -- fr:proof-begin claim\n    exact?\n  -- fr:proof-end claim\n";
+        let prepared = super::ProofPlan {
+            spec: PathBuf::from("specs/Claim.lean"),
+            obligation: "claim".into(),
+            original: source.into(),
+            updated: source.into(),
+            proof_source: "exact?\n".into(),
+            goal_id: String::new(),
+            proof_digest: String::new(),
+            receipt: String::new(),
+        };
+        let output = "Try this:\n  [apply] exact Int.tdiv_nonneg ha hb\n/tmp/check.lean:1:0: error: unsolved goals\n⊢ True\n";
+        let diagnostics = super::lean_diagnostics(
+            output,
+            Path::new("/tmp/check.lean"),
+            Path::new("/workspace"),
+            source,
+            &prepared,
+            Path::new("draft.tactics"),
+            false,
+        )
+        .unwrap();
+        assert_eq!(diagnostics.len(), 2);
+        assert_eq!(diagnostics[0].severity, "info");
+        assert_eq!(diagnostics[0].message, "Try this:");
+        assert_eq!(
+            diagnostics[0].context,
+            ["  [apply] exact Int.tdiv_nonneg ha hb"]
+        );
+        assert!(diagnostics[0].draft_location.is_none());
+        assert_eq!(diagnostics[1].severity, "error");
+        assert_eq!(diagnostics[1].context, ["⊢ True"]);
     }
 
     #[test]

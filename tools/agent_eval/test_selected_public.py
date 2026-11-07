@@ -87,7 +87,7 @@ class SelectedPublicTests(unittest.TestCase):
             root = Path(temporary)
             schedule = prepare(ROOT, milestone)
             plan = {'schedule': schedule, 'implementation': {}, 'source': {'native_inputs': {}, 'commit': 'source'},
-                    'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {},
+                    'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': dict(public.local.LIMITS), 'controls': {}, 'shared_setup': {},
                     'binaries': {}, 'components': {}, 'client_finish_seconds': 10, 'formal_inputs': {},
                     'checkers': {'lake': {'path': '/pinned/lake'}}, 'live_calls_enabled': True,
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),

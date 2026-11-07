@@ -1,5 +1,7 @@
 """Provider and host regressions using synthetic responses and small subprocesses."""
 import copy
+import ctypes
+import errno
 import io
 import json
 import os
@@ -361,6 +363,58 @@ class BoundedHost(unittest.TestCase):
             self.assertGreater(result['sampled_aggregate_rss_bytes'], 4 * 1024**2)
             time.sleep(0.9)
             self.assertFalse(Path(sentinel).exists())
+
+    def test_darwin_briefly_refused_worker_is_asked_again(self):
+        class Library:
+            calls = 0
+            def proc_pidinfo(self, pid, flavor, argument, buffer, size):
+                self.calls += 1
+                ctypes.set_errno(errno.EPERM if self.calls < 3 else 0)
+                return 0 if self.calls < 3 else size
+        library, info = Library(), host.DarwinBsdInfo()
+        with patch.object(host, 'darwin_exited', return_value=False), patch.object(host.time, 'sleep'):
+            self.assertEqual(host.darwin_info(library, 1, 3, info), (ctypes.sizeof(info), 0))
+        self.assertEqual(library.calls, 3)
+        refused = Library()
+        refused.calls = -10
+        with patch.object(host, 'darwin_exited', return_value=False), patch.object(host.time, 'sleep'):
+            self.assertEqual(host.darwin_info(refused, 1, 3, info), (0, errno.EPERM))
+        self.assertEqual(refused.calls, -5)
+
+    def test_darwin_exiting_worker_is_gone_not_a_monitor_failure(self):
+        zombie = subprocess.CompletedProcess([], 0, stdout='Z\n')
+        exiting = subprocess.CompletedProcess([], 0, stdout='E\n')
+        running = subprocess.CompletedProcess([], 0, stdout='S\n')
+        self.assertTrue(host.darwin_exited(1, errno.ESRCH))
+        self.assertFalse(host.darwin_exited(1, errno.EACCES))
+        with patch.object(host.os, 'kill', side_effect=ProcessLookupError):
+            self.assertTrue(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill', side_effect=PermissionError):
+            self.assertFalse(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill'), patch.object(host.subprocess, 'run', return_value=zombie):
+            self.assertTrue(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill'), patch.object(host.subprocess, 'run', return_value=exiting):
+            self.assertTrue(host.darwin_exited(1, errno.EPERM))
+        with patch.object(host.os, 'kill'), patch.object(host.subprocess, 'run', return_value=running):
+            self.assertFalse(host.darwin_exited(1, errno.EPERM))
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'macOS process inventory')
+    def test_unreaped_zombie_child_does_not_stop_the_monitor(self):
+        parent = subprocess.Popen([sys.executable, '-c', 'import os, sys, time\npid = os.fork()\nif pid == 0:\n'
+                                   '    os._exit(0)\nprint(pid, flush=True)\ntime.sleep(30)'],
+                                  stdout=subprocess.PIPE, text=True, process_group=0)
+        try:
+            child = int(parent.stdout.readline())
+            deadline = time.monotonic() + 5
+            while subprocess.run(['ps', '-o', 'stat=', '-p', str(child)], capture_output=True,
+                                 text=True).stdout.strip()[:1] != 'Z' and time.monotonic() < deadline:
+                time.sleep(0.05)
+            host.process_identity(child)
+            host.darwin_sample(parent.pid)
+        finally:
+            parent.kill()
+            parent.wait()
+            parent.stdout.close()
 
     def test_cleanup_does_not_kill_a_reused_pid(self):
         with patch.object(host.os, 'killpg') as group, patch.object(host.os, 'kill') as kill, \

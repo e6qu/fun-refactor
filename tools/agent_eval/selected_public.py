@@ -239,8 +239,10 @@ def export(plan_path, review, destination):
                 review[identity]['algorithm_observations'], record['elapsed_seconds'])
         if milestone in ADMISSION_STUDIES:
             resources = record['complete_attempt_resources']
-            require(resources['limits'] == {'wall_seconds': 150, 'rss_bytes': 805306368,
-                    'cpu_seconds': 75, 'disk_bytes': 536870912, 'transcript_bytes': 1048576},
+            limits = plan['limits']
+            require(resources['limits'] == {'wall_seconds': limits['wall_seconds'], 'rss_bytes': limits['rss_bytes'],
+                    'cpu_seconds': limits['cpu_limit_seconds'], 'disk_bytes': limits['disk_bytes'],
+                    'transcript_bytes': limits['transcript_bytes']},
                     'retain the complete guarded attempt measurement')
             receipt = plan_path.parent / 'attempt-monitors' / identity / 'resources.json'
             require(common.digest(receipt) == record['complete_attempt_resources_sha256'] and

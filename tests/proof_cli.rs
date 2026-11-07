@@ -173,6 +173,68 @@ fn one_save_checks_and_writes_then_package_check_and_history_deliver_the_patch()
     assert!(patch.contains("+  rfl"));
 }
 
+fn declare_check(root: &Path, argv: &[&str]) {
+    std::fs::create_dir_all(root.join(".fr")).unwrap();
+    let config = serde_json::json!({"schema": 1, "checks": [{
+        "name": "package", "argv": argv, "cwd": ".", "timeout_seconds": 120,
+        "covers": ["fixed Lean theorem without proof gaps"],
+    }]});
+    std::fs::write(root.join(".fr/checks.json"), config.to_string()).unwrap();
+}
+
+fn save_and_deliver(root: &Path) -> Output {
+    std::fs::write(root.join("ready.tactics"), "rfl\n").unwrap();
+    run(
+        root,
+        &[
+            "proof",
+            "save",
+            TARGET,
+            "--draft",
+            "ready.tactics",
+            "--bytes",
+            "8192",
+            "--timeout-seconds",
+            "30",
+            "--deliver",
+            "change.patch",
+        ],
+    )
+}
+
+#[test]
+fn save_with_deliver_checks_the_package_and_writes_the_patch_in_one_call() {
+    let root = project();
+    declare_check(root.path(), &["lake", "-d", "specs", "build", "--wfail"]);
+    let saved = save_and_deliver(root.path());
+    assert!(saved.status.success(), "{}", report(&saved));
+    let saved = report(&saved);
+    assert_eq!(saved["status"], "written");
+    assert_eq!(saved["proof_checked"], true);
+    assert_eq!(saved["delivery"]["delivered"], true);
+    assert_eq!(saved["delivery"]["checks"]["passed"], true);
+    assert_eq!(
+        saved["delivery"]["transactions"],
+        serde_json::json!([saved["transaction"]])
+    );
+    let patch = std::fs::read_to_string(root.path().join("change.patch")).unwrap();
+    assert!(patch.contains("SrcLibRsKeep.lean"));
+    assert!(patch.contains("+  rfl"));
+}
+
+#[test]
+fn save_with_deliver_keeps_the_proof_but_writes_no_patch_when_a_check_fails() {
+    let root = project();
+    declare_check(root.path(), &["false"]);
+    let saved = save_and_deliver(root.path());
+    assert_eq!(saved.status.code(), Some(1), "{}", report(&saved));
+    let saved = report(&saved);
+    assert_eq!(saved["status"], "written");
+    assert_eq!(saved["delivery"]["delivered"], false);
+    assert_eq!(saved["delivery"]["stage"], "checks");
+    assert!(!root.path().join("change.patch").exists());
+}
+
 #[test]
 fn argument_errors_honor_json_and_do_not_create_a_draft() {
     let root = tempfile::tempdir().unwrap();

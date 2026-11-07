@@ -36,7 +36,7 @@ class GuardedAttemptChecks(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temporary:
                 directory = Path(temporary)
                 resources = {'elapsed_seconds': 80, 'stop_reason': 'rss_bytes', 'exit_code': 125,
-                             'suspended_seconds': 1.5}
+                             'suspended_seconds': 1.5, 'limits': {'wall_seconds': 150}}
                 (directory / 'resources.json').write_text(json.dumps(resources))
                 record = {'status': status, 'collection_errors': [], 'elapsed_seconds': 50}
                 guarded.attach(record, resources, directory)
@@ -90,7 +90,7 @@ class GuardedAttemptChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             resources = {'elapsed_seconds': 150.01, 'stop_reason': 'wall_seconds', 'exit_code': 124,
-                         'suspended_seconds': 0.2}
+                         'suspended_seconds': 0.2, 'limits': {'wall_seconds': 150}}
             (directory / 'resources.json').write_text(json.dumps(resources))
             record = {'status': 'started', 'collection_errors': [], 'elapsed_seconds': 0}
             guarded.attach(record, resources, directory)

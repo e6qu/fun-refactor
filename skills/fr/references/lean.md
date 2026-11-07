@@ -44,7 +44,8 @@ For `h : P ∧ Q`, `rcases h with ⟨hp, hq⟩` names two proofs.
 An implication `h : P → Q` instead needs a proof of `P` to yield `Q`.
 See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
-Read the model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
+For a missing fact, try `exact?` first (see Arithmetic). Otherwise read the
+model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
 for its toolchain. For `import Init.Data.Int.DivMod.Lemmas`, search that file:
 `<LIBRARY_FILE>` is `<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean`.
 
@@ -62,23 +63,15 @@ If results were omitted, an empty page cannot prove no match.
 
 ```sh
 fr --json proof check '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
-fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30
+fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout-seconds 30 --deliver change.patch
 ```
 
 A rejected check exits 1 with `passed: false` and diagnostics. Inspect
 `draft_location`, `context`, warnings and omission counts; `tail` can hide errors.
-`save` checks and writes in one call; a separate final check is unnecessary.
-`written` supplies the saved edit's `transaction` ID as `<EDIT_ID>`.
-`already-present` creates no new edit. Neither accepts other unfinished proofs.
-
-Run the supplied package check once and export the selected saved edit:
-
-```sh
-lake -d specs build --wfail
-fr history patch '<EDIT_ID>' --output change.patch
-```
-
-For two saved proofs, pass both IDs in save order. Review the complete patch.
-Preserve `.fr/checks.json`. A passing draft, a saved proof, a passing package
-and a delivered patch are separate stages. Combine known serial commands in one shell call; stop on failure.
+`save` checks and writes; `--deliver` then runs `.fr/checks.json` and writes all
+saved proofs as one patch. `delivery.delivered: true` means done. A failing check
+exits 1 and writes no patch; fix it and save again. `already-present` creates no edit.
+Without checks, omit `--deliver`, run the package check, then
+`fr history patch '<EDIT_ID>' --output change.patch` with the `transaction` ID.
+Preserve `.fr/checks.json`.
 For claims, read [Create a claim](lean-claims.md).

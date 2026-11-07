@@ -46,7 +46,7 @@ def complete(row, patch_accepted, study):
     return (patch_accepted and row['native_status'] == 'completed' and row['stop_reason'] is None and
             resources['stop_reason'] is None and resources['exit_code'] == 0 and
             resources['sampled_aggregate_rss_bytes'] <= 805306368 and resources['sampled_cpu_seconds'] <= 75 and
-            not row['complete_attempt_deadline_missed'] and row['total_seconds'] <= 150 and
+            not row['complete_attempt_deadline_missed'] and row['total_seconds'] <= local.study_limits(study)['wall_seconds'] and
             not row['checking_input_changes'] and not row['collection_error_recorded'] and
             observation['execution_validity'] == 'valid' and all(observation[name] is True for name in CHECKS))
 

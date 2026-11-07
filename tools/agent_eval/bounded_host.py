@@ -64,15 +64,41 @@ class DarwinBsdInfo(ctypes.Structure):
     _fields_ += [('nice', ctypes.c_int32), ('start_seconds', ctypes.c_uint64), ('start_microseconds', ctypes.c_uint64)]
 
 
+def darwin_exited(pid, error):
+    """macOS reports EPERM, not ESRCH, for a worker caught while it exits."""
+    if error == errno.ESRCH:
+        return True
+    if error != errno.EPERM:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        return False
+    state = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)], capture_output=True, text=True, timeout=2)
+    return state.stdout.strip()[:1] in {'', 'E', 'Z'}  # gone, exiting or zombie
+
+
+def darwin_info(library, pid, flavor, info):
+    """A short-lived worker can refuse inspection while it starts or exits; ask again briefly."""
+    for attempt in range(5):
+        ctypes.set_errno(0)
+        size = library.proc_pidinfo(pid, flavor, 0, ctypes.byref(info), ctypes.sizeof(info))
+        error = ctypes.get_errno()
+        if size == ctypes.sizeof(info) or error != errno.EPERM or darwin_exited(pid, error):
+            return size, error
+        time.sleep(0.01)
+    return size, error
+
+
 def process_identity(pid):
     """A PID can be reused after a sampled worker exits; never kill its replacement."""
     if sys.platform == 'darwin':
         library = ctypes.CDLL('/usr/lib/libproc.dylib', use_errno=True)
         info = DarwinBsdInfo()
-        ctypes.set_errno(0)
-        size = library.proc_pidinfo(pid, 3, 0, ctypes.byref(info), ctypes.sizeof(info))
-        error = ctypes.get_errno()
-        if size == 0 and error == errno.ESRCH:
+        size, error = darwin_info(library, pid, 3, info)
+        if size == 0 and darwin_exited(pid, error):
             return None
         if size != ctypes.sizeof(info):
             raise OSError(error or errno.EIO, 'cannot identify a monitored macOS process')
@@ -130,10 +156,8 @@ def darwin_sample(group):
     memory, cpu = 0, {}
     for pid in sorted(members):
         info = DarwinTaskInfo()
-        ctypes.set_errno(0)
-        size = library.proc_pidinfo(pid, 4, 0, ctypes.byref(info), ctypes.sizeof(info))
-        error = ctypes.get_errno()
-        if size == 0 and error == errno.ESRCH:
+        size, error = darwin_info(library, pid, 4, info)
+        if size == 0 and darwin_exited(pid, error):
             continue
         if size != ctypes.sizeof(info):
             raise OSError(error or errno.EIO, 'cannot sample a monitored macOS process')

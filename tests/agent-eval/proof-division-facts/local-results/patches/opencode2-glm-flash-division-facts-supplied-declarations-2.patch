@@ -1,0 +1,22 @@
+diff --git "a/specs/FrSpecs/SrcPartsRsDivisionParts.lean" "b/specs/FrSpecs/SrcPartsRsDivisionParts.lean"
+--- "a/specs/FrSpecs/SrcPartsRsDivisionParts.lean"
++++ "b/specs/FrSpecs/SrcPartsRsDivisionParts.lean"
+@@ -13,8 +13,16 @@
+ -- fr:property agent unproved
+ theorem division_partsModel_at_most_input (a : Int) (b : Int) : ((((0 : Int)) ≤ (a)) ∧ (((1 : Int)) ≤ (b))) → ((division_partsModel (a) (b)) ≤ (a)) := by
+   -- fr:proof-begin division_partsModel_at_most_input
+-  -- fr:debt division_partsModel_at_most_input
+-  sorry
++  intro ⟨ha, hb⟩
++  have hb0 : 0 ≤ b := by omega
++  have hq : 0 ≤ a.tdiv b := Int.tdiv_nonneg ha hb0
++  have hm : 1 * a.tdiv b ≤ b * a.tdiv b :=
++    Int.mul_le_mul_of_nonneg_right hb hq
++  simp only [division_partsModel]
++  calc a.tdiv b + a.tmod b
++      = a.tmod b + 1 * a.tdiv b := by omega
++    _ ≤ a.tmod b + b * a.tdiv b := Int.add_le_add_left hm (a.tmod b)
++    _ = a := Int.tmod_add_mul_tdiv a b
+   -- fr:proof-end division_partsModel_at_most_input
+ -- fr:generated-end formal-kernel
+ 

@@ -1,7 +1,7 @@
 # Next diagnostic: finish the page-count proof
 
 This diagnostic ran all four frozen slots once after its checker controls passed.
-All four timed out without patches. The [results and observed actions](../proof-page-count/local-results/README.md) retain every failure.
+All four timed out without patches. The [results and observed actions](../proof-page-count/results-150s/README.md) retain every failure.
 The prediction below failed, so the full thirty-six-attempt comparison stays paused.
 The following protocol records the choices fixed before the calls; do not reuse its closed plan.
 
