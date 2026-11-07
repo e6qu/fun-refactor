@@ -5074,8 +5074,8 @@ fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
 mod tests {
     use super::{
         anchors_in, check, check_strict, ci, debts_in, declaration_hash, init, lean_package,
-        obligations_in, render_agent_proposition, scaffold, source_signature, sync,
-        AgentProposition, AgentTerm, FormalBinding, FormalFunction, Status,
+        obligations_in, proof_input_refusal, render_agent_proposition, scaffold, source_signature,
+        sync, AgentProposition, AgentTerm, FormalBinding, FormalFunction, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
