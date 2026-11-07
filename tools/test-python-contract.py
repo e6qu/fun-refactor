@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-11-07-proof-suggestions-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-08-native-decide-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):
