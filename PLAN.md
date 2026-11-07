@@ -93,8 +93,8 @@ waiting for model replies used the rest. Separate delivery turns cost Kimi two c
    Done: Kimi delivered both of its proofs, at 241 and 116 seconds; neither GLM session did.
    No session used `exact?`. The grade accepted one Kimi proof. It rejected the other because
    `native_decide` adds the axiom `Lean.ofReduceBool`.
-7. `fr proof check` and `fr proof save` refuse `native_decide` and point to `decide`, since a
-   passing local check must not deliver a proof the grade rejects. Refresh the evidence, then
+7. `fr proof check` and `fr proof save` refuse `native_decide` and point to `decide`.
+   A passing local check must not deliver a proof the grade rejects. Refresh the evidence, then
    run another four-session study after approval.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
