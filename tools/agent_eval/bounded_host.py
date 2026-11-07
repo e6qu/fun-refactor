@@ -80,14 +80,24 @@ def darwin_exited(pid, error):
     return state.stdout.strip()[:1] in {'', 'E', 'Z'}  # gone, exiting or zombie
 
 
+def darwin_info(library, pid, flavor, info):
+    """A short-lived worker can refuse inspection while it starts or exits; ask again briefly."""
+    for attempt in range(5):
+        ctypes.set_errno(0)
+        size = library.proc_pidinfo(pid, flavor, 0, ctypes.byref(info), ctypes.sizeof(info))
+        error = ctypes.get_errno()
+        if size == ctypes.sizeof(info) or error != errno.EPERM or darwin_exited(pid, error):
+            return size, error
+        time.sleep(0.01)
+    return size, error
+
+
 def process_identity(pid):
     """A PID can be reused after a sampled worker exits; never kill its replacement."""
     if sys.platform == 'darwin':
         library = ctypes.CDLL('/usr/lib/libproc.dylib', use_errno=True)
         info = DarwinBsdInfo()
-        ctypes.set_errno(0)
-        size = library.proc_pidinfo(pid, 3, 0, ctypes.byref(info), ctypes.sizeof(info))
-        error = ctypes.get_errno()
+        size, error = darwin_info(library, pid, 3, info)
         if size == 0 and darwin_exited(pid, error):
             return None
         if size != ctypes.sizeof(info):
@@ -146,9 +156,7 @@ def darwin_sample(group):
     memory, cpu = 0, {}
     for pid in sorted(members):
         info = DarwinTaskInfo()
-        ctypes.set_errno(0)
-        size = library.proc_pidinfo(pid, 4, 0, ctypes.byref(info), ctypes.sizeof(info))
-        error = ctypes.get_errno()
+        size, error = darwin_info(library, pid, 4, info)
         if size == 0 and darwin_exited(pid, error):
             continue
         if size != ctypes.sizeof(info):

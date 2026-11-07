@@ -1,5 +1,6 @@
 """Provider and host regressions using synthetic responses and small subprocesses."""
 import copy
+import ctypes
 import errno
 import io
 import json
@@ -362,6 +363,23 @@ class BoundedHost(unittest.TestCase):
             self.assertGreater(result['sampled_aggregate_rss_bytes'], 4 * 1024**2)
             time.sleep(0.9)
             self.assertFalse(Path(sentinel).exists())
+
+    def test_darwin_briefly_refused_worker_is_asked_again(self):
+        class Library:
+            calls = 0
+            def proc_pidinfo(self, pid, flavor, argument, buffer, size):
+                self.calls += 1
+                ctypes.set_errno(errno.EPERM if self.calls < 3 else 0)
+                return 0 if self.calls < 3 else size
+        library, info = Library(), host.DarwinBsdInfo()
+        with patch.object(host, 'darwin_exited', return_value=False), patch.object(host.time, 'sleep'):
+            self.assertEqual(host.darwin_info(library, 1, 3, info), (ctypes.sizeof(info), 0))
+        self.assertEqual(library.calls, 3)
+        refused = Library()
+        refused.calls = -10
+        with patch.object(host, 'darwin_exited', return_value=False), patch.object(host.time, 'sleep'):
+            self.assertEqual(host.darwin_info(refused, 1, 3, info), (0, errno.EPERM))
+        self.assertEqual(refused.calls, -5)
 
     def test_darwin_exiting_worker_is_gone_not_a_monitor_failure(self):
         zombie = subprocess.CompletedProcess([], 0, stdout='Z\n')
