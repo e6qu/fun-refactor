@@ -44,7 +44,8 @@ For `h : P ∧ Q`, `rcases h with ⟨hp, hq⟩` names two proofs.
 An implication `h : P → Q` instead needs a proof of `P` to yield `Q`.
 See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
-Read the model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
+For a missing fact, try `exact?` first (see Arithmetic). Otherwise read the
+model's imports. From `specs/`, `lean --print-prefix` prints `<PREFIX>`
 for its toolchain. For `import Init.Data.Int.DivMod.Lemmas`, search that file:
 `<LIBRARY_FILE>` is `<PREFIX>/src/lean/Init/Data/Int/DivMod/Lemmas.lean`.
 

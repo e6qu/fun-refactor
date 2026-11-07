@@ -60,10 +60,12 @@ Products of two changing values can need extra facts. Check each step before ano
 
 ## Ask Lean for a missing fact
 
-`exact?` searches available theorems for the current goal. `Std` includes this tactic:
+Mathlib names such as `le_of_lt` are unavailable. Before searching files, end
+one missing step with `exact?` and run `fr proof check`. An `info` diagnostic,
+`Try this:`, names the fact in its context:
 
 ```lean
-import Std
+import Init
 example (a b : Int) (ha : 0 ≤ a) (hb : 1 ≤ b) : a ≤ b * a := by
   have h : 1 * a ≤ b * a := by
     exact?
@@ -71,5 +73,5 @@ example (a b : Int) (ha : 0 ≤ a) (hb : 1 ≤ b) : a ≤ b * a := by
 ```
 
 Lean suggests `exact Int.mul_le_mul_of_nonneg_right hb ha` for `h`.
-`simpa using h` reduces `1 * a` to `a`. Replace the search with the suggested step.
-Search a specific missing fact; `exact?` does not solve every goal.
+`simpa using h` reduces `1 * a` to `a`. Replace `exact?` with the suggestion.
+Ask about one small step; `exact?` does not solve every goal.

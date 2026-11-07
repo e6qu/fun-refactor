@@ -85,6 +85,11 @@ waiting for model replies used the rest. Separate delivery turns cost Kimi two c
    hosted page-count controls and both local client admissions.
 5. Freeze four page-count sessions (GLM and Kimi, two each) and run them only after approval.
    Independently grade every patch and report where the time went.
+   Done: no session delivered a proof. Low disk stopped one Kimi session at 113 seconds. The
+   others spent minutes searching library files and guessing absent Mathlib names.
+6. `fr proof check` returns Lean's `exact?` suggestions as `info` diagnostics; it used to drop them.
+   The skill asks for one missing fact with `exact?` before any file search. Refresh the
+   evidence, then run a new four-session page-count study after approval.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit

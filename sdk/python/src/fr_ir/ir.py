@@ -1843,7 +1843,7 @@ class ProofAttempt:
                 diagnostic, {"severity", "code", "draft_location", "checked_location", "message", "context",
                              "context_omitted_lines"}, "proof diagnostic"
             )
-            if diagnostic["severity"] not in ("error", "warning"):
+            if diagnostic["severity"] not in ("error", "warning", "info"):
                 raise IrError("proof diagnostic severity is invalid")
             code = diagnostic["code"]
             if code is not None and (not isinstance(code, str) or not code):
