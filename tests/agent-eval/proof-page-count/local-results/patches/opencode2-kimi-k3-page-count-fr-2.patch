@@ -1,0 +1,45 @@
+diff --git "a/specs/FrSpecs/SrcPagesRsPageCount.lean" "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+--- "a/specs/FrSpecs/SrcPagesRsPageCount.lean"
++++ "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+@@ -20,8 +20,39 @@
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  refine ⟨?_, ?_, ?_⟩
++  · intro h
++    have hguard : (((items < 0) || (size ≤ 0)) = true) := by
++      rcases h with h1 | h2 <;> simp [*]
++    simp [page_countModel, hguard]
++  · intro h
++    rcases h with ⟨h0i, _hi, h1s, _hs⟩
++    have hs0 : (0 : Int) ≤ size := by omega
++    have hsne : size ≠ 0 := by omega
++    have hdiv : Int.tdiv items size = items / size := Int.tdiv_eq_ediv_of_nonneg h0i
++    have hmod : Int.tmod items size = items % size := Int.tmod_eq_emod_of_nonneg h0i
++    have hq0 : (0 : Int) ≤ items / size := Int.ediv_nonneg h0i hs0
++    have hr0 : (0 : Int) ≤ items % size := Int.emod_nonneg items hsne
++    have hsum : items / size * size + items % size = items := Int.ediv_mul_add_emod items size
++    have hqs : items / size ≤ items / size * size := by
++      have hm := Int.mul_le_mul_of_nonneg_left h1s hq0
++      rwa [Int.mul_one] at hm
++    have hguard : ¬ ((((items < 0) || (size ≤ 0)) = true)) := by
++      simp only [Bool.or_eq_true, decide_eq_true_eq]
++      omega
++    simp only [page_countModel]
++    rw [if_neg hguard]
++    rw [hdiv, hmod]
++    by_cases hr : items % size = 0
++    · have hpos : ((items % size == 0) = true) := by simpa using hr
++      rw [if_pos hpos]
++      omega
++    · have hneg : ¬ (((items % size == 0) = true)) := by
++        rw [beq_iff_eq]
++        exact hr
++      rw [if_neg hneg]
++      omega
++  · decide
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 
