@@ -1,0 +1,19 @@
+{
+  "schema": "fr-checked-outcomes-task-1",
+  "baseline": "1ca1aa43",
+  "requirement": "A compile-valid repair or feature must not complete its task or deliver its patch until separately declared post-change behavioral checks pass. Original and restored states may fail that behavior while passing lifecycle checks.",
+  "cases": [
+    "compile-valid wrong repair refuses acceptance and patch delivery",
+    "correct multi-file change checks acceptance after apply and redo",
+    "retained outcome completes an explicit checked plan step in a fresh process",
+    "source, checker, configuration and declared environment drift refuse stale outcomes",
+    "failed and interrupted stages remain incomplete and retain diagnostic reports"
+  ],
+  "oracle": "Independent compiled runtime cases and separate patch receiver, plus adversarial protocol tests. No new live-agent or source-equivalence claim.",
+  "resources": {
+    "workers": 1,
+    "check_timeout_seconds": 30,
+    "output_bytes": 2048
+  },
+  "edit_boundary": "The bounded fr guide inspected workflow execution. Cross-cutting Rust, Python, Lean, protocol, test and documentation edits exceed a single admitted author operation and use direct edits."
+}
