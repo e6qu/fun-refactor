@@ -174,7 +174,7 @@ fn retained_proof_acceptance_matches_its_inputs_and_replays_delivery() {
         .args([
             "tools/proof-evidence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-11-08-library-facts-retained-proofs/result.json",
+            "tests/agent-eval/results/2026-11-08-release-merge-retained-proofs/result.json",
         ])
         .output()
         .unwrap();

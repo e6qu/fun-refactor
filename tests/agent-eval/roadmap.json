@@ -70,28 +70,28 @@
       "sha256": "93cdf3ffbc8956ff3c6b948f5c4c82cf64dbdc9eb43eed949c5377877774d06c"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-08-library-facts-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-08-release-merge-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-08-library-facts-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-08-release-merge-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "953f7595f6e718ede10ad3c001d17f8edf9915ab373457fd61ef93456131e314"
+      "sha256": "213ef82b1cad3f2c70eac5393afe7e36e8dcfaf69c301e2d5fb4c92a43bea3bd"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-08-library-facts-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-08-release-merge-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-08-library-facts-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-08-release-merge-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "f19760a2295e765c2279733d3c30605abbee84233a6bee4d487efdf2e0d951ad"
+      "sha256": "dbf2499d586a363d1bc0203e0d0ee411b3cc368c6cba317a077daf3c18ce18b0"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-08-library-facts-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-08-release-merge-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-08-library-facts-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-08-release-merge-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "10e1463714b430609da83cd2ed9786b222681066e09264fe7232cd5cbd26cf47"
+      "sha256": "d5ff73ccb145c1887bbf38e9e11ee26061349fd77d9c4d29dfdd12714ce0d60c"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
