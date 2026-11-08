@@ -756,6 +756,12 @@ enum ProofCommand {
         bytes: usize,
         #[arg(long, value_name = "SECONDS")]
         timeout_seconds: u64,
+        #[arg(
+            long,
+            value_name = "PATCH",
+            help = "After saving, run every check in .fr/checks.json and write all saved proofs as one Git patch here."
+        )]
+        deliver: Option<PathBuf>,
     },
 }
 
@@ -1214,7 +1220,15 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 draft,
                 bytes,
                 timeout_seconds,
-            } => cmd_proof_save(cli, target, draft, *bytes, *timeout_seconds),
+                deliver,
+            } => cmd_proof_save(
+                cli,
+                target,
+                draft,
+                *bytes,
+                *timeout_seconds,
+                deliver.as_deref(),
+            ),
         },
         Command::Project { command } => cmd_project(cli, command),
         Command::TaskChange(options) => cmd_task_change(cli, options),
@@ -1842,12 +1856,60 @@ fn present_proof_state(cli: &Cli, state: &crate::spec::ProofState) -> Result<()>
     Ok(())
 }
 
+fn deliver_saved_proofs(
+    root: &Path,
+    patch: &Path,
+    output_bytes: usize,
+) -> Result<serde_json::Value> {
+    let mut checks = serde_json::Value::Null;
+    if let Some((names, basis)) = crate::checks::declared(root)? {
+        let options = crate::checks::Options {
+            toolchain: false,
+            run: names,
+            basis: Some(basis),
+            output_bytes: output_bytes.min(4096),
+            quiet_success: true,
+            no_declarations: true,
+            record_for: None,
+        };
+        let report = crate::checks::report(root, &options)?;
+        let passed = report["passed"] == true;
+        checks = report;
+        if !passed {
+            return Ok(serde_json::json!({
+                "delivered": false, "stage": "checks", "checks": checks,
+                "next": "Fix the failing check, then save again with --deliver.",
+            }));
+        }
+    }
+    let history = crate::history::History::read(root)?;
+    let ids = history
+        .applied
+        .iter()
+        .copied()
+        .filter(|id| {
+            history
+                .record(*id)
+                .is_ok_and(|record| record.validation == "lean-proof-v1")
+        })
+        .collect::<Vec<_>>();
+    let export = crate::history::export_patch(root, &ids, false)?;
+    write_patch_artifact(root, patch, &export.patch)?;
+    Ok(serde_json::json!({
+        "delivered": true, "stage": "complete", "checks": checks,
+        "patch": patch, "transactions": ids, "files": export.files,
+        "patch_bytes": export.patch.len(),
+        "patch_sha256": hex::encode(Sha256::digest(export.patch.as_bytes())),
+    }))
+}
+
 fn cmd_proof_save(
     cli: &Cli,
     target: &str,
     from: &Path,
     token_limit: usize,
     timeout_seconds: u64,
+    deliver: Option<&Path>,
 ) -> Result<()> {
     let root = workspace_root(cli);
     let proof_path = if from.is_absolute() {
@@ -1884,6 +1946,26 @@ fn cmd_proof_save(
     let transaction = persist_changes(cli, &[change], true, "lean-proof-v1")?;
     report["transaction"] = serde_json::to_value(transaction)?;
     report["applied"] = serde_json::json!(transaction.is_some());
+    if let Some(patch) = deliver {
+        let delivery = deliver_saved_proofs(&root, patch, token_limit / 4)?;
+        let delivered = delivery["delivered"] == true;
+        report["delivery"] = delivery;
+        report["scope"] = serde_json::json!(if delivered {
+            "Lean accepted this target proof, every declared check passed and fr wrote the patch."
+        } else {
+            "Lean accepted and saved this target proof, but delivery stopped; read delivery."
+        });
+        if cli.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            println!("Saved checked proof: {target}");
+            println!("{}", serde_json::to_string_pretty(&report["delivery"])?);
+        }
+        if !delivered {
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {

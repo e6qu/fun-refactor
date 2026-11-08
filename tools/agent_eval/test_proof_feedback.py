@@ -90,7 +90,7 @@ class ProofFeedbackTests(unittest.TestCase):
                          ['opencode2-glm-flash', 'opencode2-kimi-k3'] * 2)
         self.assertEqual({row['task'] for row in schedule['attempts']}, {'page-count'})
         self.assertEqual({row['setup'] for row in schedule['attempts']}, {'fr'})
-        self.assertEqual(schedule['requirements']['limits'], {**local.LIMITS, 'parallel_attempts': 1})
+        self.assertEqual(schedule['requirements']['limits'], {**local.LIMITS, 'wall_seconds': 300, 'parallel_attempts': 1})
         self.assertEqual(schedule['requirements']['client_finish_seconds'], 10)
         self.assertTrue(all(profile['model']['variant'] == 'low' for profile in schedule['profiles'].values()))
         self.assertEqual(feedback.property_for({'object_digest': 'fixed'}, 'M3-page-count'),
@@ -270,7 +270,7 @@ class ProofFeedbackTests(unittest.TestCase):
                 checkers['lean']['source_root'] = str(library)
                 packet = {'source': {'native_inputs': {}}, 'schedule': schedule, 'implementation': {},
                           'live_calls_enabled': True,
-                          'limits': dict(local.LIMITS), 'client_finish_seconds': local.CLIENT_FINISH_SECONDS,
+                          'limits': local.study_limits(milestone, schedule), 'client_finish_seconds': local.CLIENT_FINISH_SECONDS,
                           'public_check_environment': dict(local.PUBLIC_CHECK_ENVIRONMENT),
                           'binaries': {'fr': dict(binary), 'opencode2': dict(binary)}, 'components': {},
                           'checkers': checkers, 'seeds': {row['task']: {'archive': str(inputs / 'original.tar.gz'), 'receipt': receipt}},
@@ -290,7 +290,8 @@ class ProofFeedbackTests(unittest.TestCase):
                     return initial, len(initial.encode())
 
                 def native(argv, stdin, stdout, stderr, workspace, **kwargs):
-                    self.assertEqual(kwargs['wall_seconds'], 137 if milestone == 'M3-feedback' else 140)
+                    wall = local.study_limits(milestone, schedule)['wall_seconds'] - local.CLIENT_FINISH_SECONDS
+                    self.assertEqual(kwargs['wall_seconds'], wall - 3 if milestone == 'M3-feedback' else wall)
                     self.assertEqual(kwargs['transcript_bytes'], local.LIMITS['transcript_bytes'] -
                                      (len(initial.encode()) if milestone == 'M3-feedback' else 0))
                     prompts[condition] = argv[-1]

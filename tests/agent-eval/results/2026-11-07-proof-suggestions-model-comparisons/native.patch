@@ -1,0 +1,47 @@
+diff --git "a/main.rs" "b/main.rs"
+--- "a/main.rs"
++++ "b/main.rs"
+@@ -1,19 +1,19 @@
+ mod subject;
+ fn main() {
+-    let result = subject::allowed(false, false, false);
++    let result = subject::permits(false, false);
+     println!("{result}");
+-    let result = subject::allowed(false, false, true);
++    let result = subject::permits(false, false);
+     println!("{result}");
+-    let result = subject::allowed(false, true, false);
++    let result = subject::permits(false, true);
+     println!("{result}");
+-    let result = subject::allowed(false, true, true);
++    let result = subject::permits(false, true);
+     println!("{result}");
+-    let result = subject::allowed(true, false, false);
++    let result = subject::permits(true, false);
+     println!("{result}");
+-    let result = subject::allowed(true, false, true);
++    let result = subject::permits(true, false);
+     println!("{result}");
+-    let result = subject::allowed(true, true, false);
++    let result = subject::permits(true, true);
+     println!("{result}");
+-    let result = subject::allowed(true, true, true);
++    let result = subject::permits(true, true);
+     println!("{result}");
+ }
+diff --git "a/subject.rs" "b/subject.rs"
+--- "a/subject.rs"
++++ "b/subject.rs"
+@@ -1 +1 @@
+-pub fn allowed(a: bool, b: bool, unused: bool) -> bool { a && !b }
++pub fn permits(a: bool, b: bool) -> bool { a && !b }
+diff --git "a/translation.py" "b/translation.py"
+--- "a/translation.py"
++++ "b/translation.py"
+@@ -1,5 +1,5 @@
+ def permits(b: bool, a: bool) -> bool:
+-    return a and not b
++    return not b and a
+ 
+ 
+ def restricted(a: bool, b: bool, extra: bool) -> bool:

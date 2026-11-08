@@ -1,35 +1,40 @@
-# Why the page-count diagnostic failed
+# Can each agent deliver the complete page-count proof in 300 seconds?
 
+GLM Flash and Kimi K3 each get two fresh sessions, four in total, on the unchanged
+page-count theorem with fr. For example, eleven items at five per page need three pages.
 
-The prediction failed: neither agent delivered a complete accepted result in its two attempts.
-All four reached the unchanged 150-second limit without a patch.
-[Independent checking](https://github.com/e6qu/fun-refactor/actions/runs/41289141428) retained all four failures.
-No service error, collection failure, changed checking input or resource stop other than the deadline appeared in these records.
+## Why this study, and why 300 seconds
 
-| Attempt | First returned proof-check response | Observed obstacle |
-| --- | ---: | --- |
-| GLM 1 | 33.157 seconds | Admitted steps were refused; later drafts had Lean errors. Some reports were cut off with `head`. |
-| Kimi 1 | No draft check | Read the claim and searched division lemmas until the deadline. |
-| GLM 2 | 56.614 seconds | Fr rejected nested assumption patterns; later drafts reached Lean but still failed. |
-| Kimi 2 | 110.385 seconds | Late checking exposed unresolved goals and a deprecated library name. One report was cut off with `tail`. |
+The [first page-count attempts](results-150s/diagnosis.md) all ran out of time at 150 seconds.
+The [division-fact sessions](../proof-division-facts/local-results/summary.json) then showed
+both agents finding and applying the needed facts. They lost on time instead:
 
-The first-response times include refusals before Lean runs; they do not mean a proof passed.
-No accepted proof write or passing package check was observed.
-Unavailable stage times remain unknown.
+- tools used only 6–33 seconds of each session; the rest was waiting on model replies;
+- Kimi saved two correct proofs at about 112 seconds, then missed the deadline on separate
+  build and diff turns;
+- one small lemma used 55–75% of the old 150-second budget.
 
-For example, `⟨⟨a, b⟩, c⟩` unpacks grouped assumptions.
-A separate minimal program confirms that Lean accepts these nested patterns while the measured fr rejects them.
-That establishes a reader defect. It does not establish that the complete submitted drafts would otherwise pass.
-A [direct Lean check of the exact affected draft](direct-lean-control-summary.json) confirms independent proof errors.
-The draft tries to introduce an assumption that is already present and uses an unavailable tactic. Lean also reports an unfinished final example.
-Later manual checks show that some messages disappear when earlier errors change; each message need not represent an independent mistake.
-The recursive-pattern repair comes after these frozen attempts and cannot reclassify them.
+So this study changes two things, both decided before any calls:
 
-The repaired reader passed all 29 hosted preparation checks.
-An [exact replay](reader-control-summary.json) now reaches Lean and still rejects the original draft.
-The [manual error review](draft-error-review.json) separates assumption grouping, Boolean conditions and missing division facts.
-Its final manual control proves the unchanged complete claim; it supplies no new agent result or timing comparison.
-The full comparison stays paused. Freeze a small diagnostic about finding and using the missing facts before another paid study.
-Keep the manually completed proof out of agent inputs.
-These four attempts have no ordinary-tool baseline, so they cannot measure fr overhead or establish a causal improvement.
-The 335 earlier M3 outcomes and twelve earlier diagnostic outcomes remain unchanged.
+1. **300 seconds** per complete session: preparation, replies, tools, checks, delivery
+   and accounting. The 10-second finishing reserve and all other limits are unchanged.
+   Earlier studies keep their 150-second outcomes.
+2. **One-call delivery:** `fr proof save ... --deliver change.patch` saves the checked
+   proof, runs the supplied package check from `.fr/checks.json` and writes the patch.
+
+## Success and decision
+
+A success is an independently accepted patch delivered within 300 seconds, with an
+accepted fr proof write and a passing package check. A correct proof from a late session
+stays failed.
+
+| Result | Next step |
+| --- | --- |
+| Each agent has at least one success | Record which fr actions contributed; M3 still needs its other cases |
+| An agent has none | Break down where its time went and find the first unresolved proof step |
+
+Two sessions per agent establish no success rate. A service, collection or unexpected
+resource failure blocks a conclusion for that session; no slot is replaced.
+
+Publish only submitted patches and reviewed summaries. Prompts, transcripts, drafts
+and session exports stay local.

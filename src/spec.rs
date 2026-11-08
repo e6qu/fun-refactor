@@ -1773,6 +1773,21 @@ fn proof_region_span(source: &str, name: &str) -> Result<(std::ops::Range<usize>
     bail!("formal model needs one ordered proof region for `{name}`.")
 }
 
+fn proof_input_refusal(proof: &str) -> Option<&'static str> {
+    if proof.split_whitespace().next() == Some("by") {
+        Some("proof input contains tactics only; omit the leading `by`.")
+    } else if ["sorry", "admit", "fr:proof-", "fr:debt"]
+        .iter()
+        .any(|forbidden| proof.contains(forbidden))
+    {
+        Some("proof input cannot carry admissions, debt or proof-region markers.")
+    } else if proof.contains("native_decide") || proof.contains("ofReduceBool") {
+        Some("native_decide trusts compiled code through the axiom Lean.ofReduceBool, which checked proofs exclude; use decide.")
+    } else {
+        None
+    }
+}
+
 fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
     let (spec, obligation) = proof_target(target)?;
     let path = root.join(&spec);
@@ -1783,14 +1798,8 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
     if proof.trim().is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
-    if proof.split_whitespace().next() == Some("by") {
-        bail!("proof input contains tactics only; omit the leading `by`.");
-    }
-    if ["sorry", "admit", "fr:proof-", "fr:debt"]
-        .iter()
-        .any(|forbidden| proof.contains(forbidden))
-    {
-        bail!("proof input cannot carry admissions, debt or proof-region markers.");
+    if let Some(refusal) = proof_input_refusal(proof) {
+        bail!("{refusal}");
     }
     let (content, _) = proof_region_span(&original, &obligation)?;
     let rendered = proof
@@ -2318,6 +2327,16 @@ fn lean_diagnostics(
                 draft_location,
                 checked_location,
                 message: bounded_text(&line[marker.end()..], 512),
+                context: Vec::new(),
+                context_omitted_lines: 0,
+            });
+        } else if line.starts_with("Try this:") {
+            diagnostics.push(ProofDiagnostic {
+                severity: "info".into(),
+                code: None,
+                draft_location: None,
+                checked_location: None,
+                message: bounded_text(line, 512),
                 context: Vec::new(),
                 context_omitted_lines: 0,
             });
@@ -5055,8 +5074,8 @@ fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
 mod tests {
     use super::{
         anchors_in, check, check_strict, ci, debts_in, declaration_hash, init, lean_package,
-        obligations_in, render_agent_proposition, scaffold, source_signature, sync,
-        AgentProposition, AgentTerm, FormalBinding, FormalFunction, Status,
+        obligations_in, proof_input_refusal, render_agent_proposition, scaffold, source_signature,
+        sync, AgentProposition, AgentTerm, FormalBinding, FormalFunction, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
@@ -5107,6 +5126,55 @@ mod tests {
         let unicode = context.draft_location.as_ref().unwrap();
         assert_eq!((unicode.line, unicode.column), (3, 1));
         assert!(unicode.source_excerpt.as_ref().unwrap().contains('名'));
+    }
+
+    #[test]
+    fn proof_input_refuses_compiled_evaluation() {
+        assert!(proof_input_refusal("constructor\n· native_decide")
+            .unwrap()
+            .contains("use decide"));
+        assert!(proof_input_refusal("exact Lean.ofReduceBool _ _ rfl").is_some());
+        assert!(proof_input_refusal("sorry").unwrap().contains("admissions"));
+        assert!(proof_input_refusal("by decide")
+            .unwrap()
+            .contains("leading `by`"));
+        assert_eq!(proof_input_refusal("constructor\n· decide"), None);
+    }
+
+    #[test]
+    fn proof_diagnostics_keep_library_search_suggestions() {
+        let source = "theorem claim : True := by\n  -- fr:proof-begin claim\n    exact?\n  -- fr:proof-end claim\n";
+        let prepared = super::ProofPlan {
+            spec: PathBuf::from("specs/Claim.lean"),
+            obligation: "claim".into(),
+            original: source.into(),
+            updated: source.into(),
+            proof_source: "exact?\n".into(),
+            goal_id: String::new(),
+            proof_digest: String::new(),
+            receipt: String::new(),
+        };
+        let output = "Try this:\n  [apply] exact Int.tdiv_nonneg ha hb\n/tmp/check.lean:1:0: error: unsolved goals\n⊢ True\n";
+        let diagnostics = super::lean_diagnostics(
+            output,
+            Path::new("/tmp/check.lean"),
+            Path::new("/workspace"),
+            source,
+            &prepared,
+            Path::new("draft.tactics"),
+            false,
+        )
+        .unwrap();
+        assert_eq!(diagnostics.len(), 2);
+        assert_eq!(diagnostics[0].severity, "info");
+        assert_eq!(diagnostics[0].message, "Try this:");
+        assert_eq!(
+            diagnostics[0].context,
+            ["  [apply] exact Int.tdiv_nonneg ha hb"]
+        );
+        assert!(diagnostics[0].draft_location.is_none());
+        assert_eq!(diagnostics[1].severity, "error");
+        assert_eq!(diagnostics[1].context, ["⊢ True"]);
     }
 
     #[test]

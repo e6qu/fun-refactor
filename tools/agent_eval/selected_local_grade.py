@@ -94,7 +94,7 @@ def verify(summary, milestone):
     require(summary['core_checker_sha256'] == core_digest(milestone), 'independent task checks changed after collection')
     require(summary['native_inputs'] == local.identity()['native_inputs'], 'fr source differs from the measured source')
     if milestone in PROOF_STUDIES | {'M2'}:
-        require(summary['limits'] == local.LIMITS and summary['provider_request_cap_enforced'] is False and
+        require(summary['limits'] == local.study_limits(milestone) and summary['provider_request_cap_enforced'] is False and
                 summary['token_cap_enforced'] is False, 'retain the actual limits and unavailable token/request caps')
     rows = summary['attempts']
     require(len(rows) == len(expected['attempts']), 'public summary must retain all scheduled slots')
@@ -109,7 +109,7 @@ def verify(summary, milestone):
             require(supplied['actual_cost'] is None, 'no observed account charges were collected by this CLI study')
             require(supplied['patch_file'] in {None, 'patches/' + supplied['id'] + '.patch'}, 'unsafe public patch path')
             if milestone in PROOF_STUDIES | {'M2'} and supplied['native_status'] == 'completed':
-                require(0 <= supplied['total_seconds'] <= local.LIMITS['wall_seconds'] and
+                require(0 <= supplied['total_seconds'] <= summary['limits']['wall_seconds'] and
                         supplied['stop_reason'] is None and not supplied['complete_attempt_deadline_missed'],
                         'a stopped or late native attempt must remain failed')
     return rows

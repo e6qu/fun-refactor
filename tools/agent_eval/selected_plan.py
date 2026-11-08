@@ -20,7 +20,7 @@ ALGORITHM_TASKS = ALGORITHM_STUDIES | {DELIVERY_STUDY}
 CASE_DIRECTORIES.update({name: Path('tests/agent-eval/proof-algorithms') for name in ALGORITHM_STUDIES})
 CASE_DIRECTORIES[DELIVERY_STUDY] = Path('tests/agent-eval/proof-delivery')
 PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY})
-ADMISSION_STUDIES = ALGORITHM_TASKS | {REPAIR_STUDY, 'M3-facts'}
+ADMISSION_STUDIES = ALGORITHM_TASKS | {REPAIR_STUDY, 'M3-facts', 'M3-page-count'}
 PROOF_STUDIES = PROOF_DIAGNOSTICS | ALGORITHM_TASKS | {'M3'}
 PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.json',
                  'M3': CASE_DIRECTORIES['M3'] / 'profiles.json',
