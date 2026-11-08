@@ -42,6 +42,8 @@ pub struct ProofState {
     pub scope: &'static str,
     pub check: Vec<String>,
     pub token_budget: FormalGoalBudget,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub library_facts: Option<super::LibraryFacts>,
 }
 
 pub fn proof_cursor(source: &str, position: &str) -> Result<(usize, usize)> {
@@ -161,6 +163,7 @@ pub fn proof_state(
             used_upper_bound: token_limit,
             measurement: "serialized_utf8_bytes",
         },
+        library_facts: None,
     };
     let upper_bound = serde_json::to_vec_pretty(&report)?.len() + 1;
     if upper_bound > token_limit {

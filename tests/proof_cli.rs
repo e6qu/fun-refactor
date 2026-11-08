@@ -79,6 +79,11 @@ fn proof_start_creates_a_draft_and_returns_the_actual_goal_without_overwriting()
     assert_eq!(state["operation"], "proof-start");
     assert_eq!(state["target"], TARGET);
     assert_eq!(state["acceptance"], "not-checked");
+    assert!(state["library_facts"]["facts"].is_array());
+    assert!(
+        state["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 8192,
+        "{state}"
+    );
     assert!(state["goals"][0]["context"]
         .as_str()
         .unwrap()

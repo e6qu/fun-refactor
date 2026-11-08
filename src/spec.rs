@@ -1,6 +1,8 @@
+mod library_facts;
 mod proof_claim;
 mod proof_state;
 
+pub use library_facts::LibraryFacts;
 pub use proof_state::{proof_cursor, proof_state, ProofGoal, ProofState, ProofStateStatus};
 pub mod refinement;
 pub mod retained;
@@ -1771,6 +1773,16 @@ fn proof_region_span(source: &str, name: &str) -> Result<(std::ops::Range<usize>
         offset += line.len();
     }
     bail!("formal model needs one ordered proof region for `{name}`.")
+}
+
+pub fn proof_library_facts(root: &Path, target: &str, available: usize) -> Result<LibraryFacts> {
+    let root = root.canonicalize()?;
+    let (spec, _) = proof_target(target)?;
+    let spec = root.join(spec);
+    let package = checked_proof_package(&root, &spec)?;
+    let mut facts = library_facts::lookup(&package, &crate::vfs::read_to_string(&spec)?)?;
+    library_facts::fit(&mut facts, available);
+    Ok(facts)
 }
 
 fn proof_input_refusal(proof: &str) -> Option<&'static str> {

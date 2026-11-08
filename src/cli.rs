@@ -1800,6 +1800,22 @@ fn cmd_proof_start(
     let mut state = crate::spec::proof_state(&root, target, &path, (1, 5), bytes, timeout_seconds)
         .with_context(|| format!("created draft {}; initial inspection failed; keep the draft and use `fr proof state` to inspect it", draft.display()))?;
     state.operation = "proof-start";
+    let available = bytes.saturating_sub(state.token_budget.used_upper_bound + 512);
+    let mut facts = crate::spec::proof_library_facts(&root, target, available)?;
+    loop {
+        state.library_facts = Some(facts.clone());
+        let used = serde_json::to_vec_pretty(&state)?.len() + 1;
+        if used <= bytes {
+            state.token_budget.used_upper_bound = used;
+            break;
+        }
+        if facts.facts.is_empty() {
+            state.library_facts = None;
+            break;
+        }
+        facts.facts.pop();
+        facts.omitted += 1;
+    }
     present_proof_state(cli, &state)
 }
 
@@ -1846,6 +1862,20 @@ fn present_proof_state(cli: &Cli, state: &crate::spec::ProofState) -> Result<()>
             }
             crate::spec::ProofStateStatus::NoTacticAtPosition => {
                 println!("No tactic proof at this position.")
+            }
+        }
+        if let Some(facts) = state
+            .library_facts
+            .as_ref()
+            .filter(|facts| !facts.facts.is_empty())
+        {
+            println!(
+                "\nLibrary facts about {} ({} more omitted):",
+                facts.operations.join(", "),
+                facts.omitted
+            );
+            for fact in &facts.facts {
+                println!("  {fact}");
             }
         }
         println!(

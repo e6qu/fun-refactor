@@ -1905,10 +1905,22 @@ class ProofState:
 
     @classmethod
     def from_data(cls, value: Any) -> ProofState:
-        value = _exact_mapping(value, {
+        keys = {
             "operation", "target", "goal_id", "proof_digest", "checker", "theorem",
             "draft_location", "status", "goals", "acceptance", "scope", "check", "token_budget",
-        }, "proof state")
+        }
+        if isinstance(value, Mapping) and "library_facts" in value:
+            keys.add("library_facts")
+        value = _exact_mapping(value, keys, "proof state")
+        if "library_facts" in value:
+            facts = _exact_mapping(value["library_facts"], {"operations", "facts", "omitted", "source"},
+                                   "proof state library facts")
+            if (value["operation"] != "proof-start"
+                    or not all(isinstance(facts[key], list) and all(isinstance(item, str) and item for item in facts[key])
+                               for key in ("operations", "facts"))
+                    or type(facts["omitted"]) is not int or facts["omitted"] < 0
+                    or not isinstance(facts["source"], str) or not facts["source"]):
+                raise IrError("proof start library facts need text lists, an omission count and a source")
         if value["operation"] not in {"proof-start", "proof-state"} or value["acceptance"] != "not-checked":
             raise IrError("proof state is inspection and cannot accept a proof")
         if not all(_is_digest(value[key]) for key in ("goal_id", "proof_digest")):
