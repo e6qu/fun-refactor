@@ -74,7 +74,7 @@ waiting for model replies used the rest. Separate delivery turns cost Kimi two c
 
 **Completed:** [#606](https://github.com/e6qu/fun-refactor/pull/606) gave proof sessions 300 seconds
 and delivered saved proofs with one `fr proof save --deliver` call. `fr proof check` now shows Lean's
-`exact?` suggestions and refuses `native_decide`. In the [second page-count study](tests/agent-eval/proof-page-count/local-results/summary.json)
+`exact?` suggestions and refuses `native_decide`. In the [second page-count study](tests/agent-eval/proof-page-count/results-300s-native-decide/summary.json)
 Kimi delivered both proofs and GLM none; the grade rejected one Kimi proof for `native_decide`.
 No session used `exact?`. One GLM session hit the client step limit, the other its CPU budget.
 
