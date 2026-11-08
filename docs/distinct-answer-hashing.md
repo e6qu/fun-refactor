@@ -46,9 +46,9 @@ Builds, dependency installation and initial downloads remain separate in raw rep
 
 | Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |
 |---|---:|---:|---:|---:|---:|---:|
-| boltons | 3.068 | 3.077 | +0.3% | 2.986 | 2.980 | +3.2% |
-| glob | 1.404 | 1.327 | -5.5% | 1.116 | 1.126 | +17.9% |
-| jmespath | 1.818 | 1.702 | -6.4% | 1.363 | 1.379 | +23.4% |
+| boltons | 3.395 | 3.391 | -0.1% | 3.263 | 3.271 | +3.7% |
+| glob | 1.581 | 1.483 | -6.2% | 1.240 | 1.253 | +18.4% |
+| jmespath | 2.018 | 1.839 | -8.8% | 1.492 | 1.494 | +23.1% |
 
 Negative change means less time than the previous saved approach.
 Positive overhead means saving costs more than asking again with the current SDK.
@@ -75,12 +75,12 @@ One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.
 
 | Project / SDK | Unchanged reuse seconds | Request CPU seconds | Largest observed memory MiB | Edits with no memory sample | Final saved KiB |
 |---|---:|---:|---:|---:|---:|
-| boltons / previous | 0.251 | 2.964 | 88.3 | 0 | 200.1 |
-| boltons / current | 0.250 | 2.971 | 87.0 | 0 | 200.1 |
-| glob / previous | 0.263 | 1.308 | 58.7 | 0 | 520.1 |
-| glob / current | 0.265 | 1.233 | 58.7 | 0 | 520.1 |
-| jmespath / previous | 0.300 | 1.708 | 60.8 | 0 | 868.1 |
-| jmespath / current | 0.307 | 1.581 | 61.0 | 0 | 868.1 |
+| boltons / previous | 0.284 | 3.268 | 78.4 | 0 | 196.1 |
+| boltons / current | 0.286 | 3.262 | 87.0 | 0 | 196.1 |
+| glob / previous | 0.295 | 1.448 | 54.4 | 0 | 524.1 |
+| glob / current | 0.295 | 1.364 | 54.6 | 0 | 524.1 |
+| jmespath / previous | 0.334 | 1.879 | 56.2 | 0 | 856.1 |
+| jmespath / current | 0.336 | 1.715 | 59.1 | 0 | 856.1 |
 
 ## What the checks establish
 
@@ -102,4 +102,4 @@ These scripted requests establish no general agent, model-token or billing savin
 All projects are familiar. The original first JMESPath result remains unchanged and separately audited.
 The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.
 
-[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-42420605496/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-42420605496/publication.json) | [Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)
+[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-42430785750/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-42430785750/publication.json) | [Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)
