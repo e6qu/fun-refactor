@@ -89,13 +89,13 @@ pub fn collect(
         }) else {
             continue;
         };
-        let index: Value = serde_json::from_slice(&std::fs::read(&index)?)?;
+        let index: Value = serde_json::from_str(&crate::vfs::read_to_string(&index)?)?;
         for imported in index["directImports"].as_array().into_iter().flatten() {
             if let Some(name) = imported[0].as_str() {
                 pending.push(name.to_owned());
             }
         }
-        let Ok(text) = std::fs::read_to_string(&source) else {
+        let Ok(text) = crate::vfs::read_to_string(&source) else {
             continue;
         };
         let lines = text.lines().collect::<Vec<_>>();
