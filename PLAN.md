@@ -86,10 +86,13 @@ No session used `exact?`. One GLM session hit the client step limit, the other i
    Independently grade every patch and report where the time went.
    Done: no session delivered a proof, and none used `exact?`. Each spent minutes searching
    library files. Another workload lowered free disk and the guard stopped one Kimi session.
+   Results: [third study](tests/agent-eval/proof-page-count/results-300s-refused-native-decide/summary.json).
 3. `fr proof start` lists `library_facts`: theorems from the model's imports whose statements
    use the model's operations. Lean's `.ilean` indexes give exact names. The list skips `@[simp]`,
    private and deprecated facts. The skill points to this list instead of file search.
 4. Refresh the evidence, then run another four-session study after approval.
+   Done: no session delivered a proof. Sessions named listed facts and searched files twice.
+   No session used `exact?`. Each ran out of time while fixing Lean errors.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
