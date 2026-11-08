@@ -70,28 +70,28 @@
       "sha256": "2d1aa62948b3fb6d05cf49ec171b978b7c91944c140d21457a20a8f973ee1294"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-08-native-decide-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-08-native-decide-main-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-08-native-decide-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-08-native-decide-main-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "d7cb717ce5cf2451be3545e9359f2d78417bb63a31c4f71f8075e614f291c2b2"
+      "sha256": "f6378b7ba51f6f214a4ba36fc53a3395d984c9df9d013363f5665de065599890"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-08-native-decide-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-08-native-decide-main-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-08-native-decide-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-08-native-decide-main-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "284abbb07d57fde74810d9de09de493826e6012260677bf4987f2723689bbc21"
+      "sha256": "94e0e3b2d7cb6b563b3f9079686ffeccf3764d705110750a53365d160e5dedbf"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-08-native-decide-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-08-native-decide-main-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-08-native-decide-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-08-native-decide-main-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "63b5bbaf56ac7f00eb16a0503b0f9e91c60cf70c0389974860e5af36097061d3"
+      "sha256": "69dfe9bdb9efbe639d9aae719726eb039802c76fd9acdbfa9fe2a896c30cc77a"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
