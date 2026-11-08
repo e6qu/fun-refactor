@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('recovery', ROOT / 'tools/recovery-delivery-context.py')
 recovery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(recovery)
-REPORT = ROOT / 'tests/agent-eval/results/2026-11-08-native-decide-workflows/recovery-delivery-context.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-08-native-decide-main-workflows/recovery-delivery-context.json'
 
 
 class RecoveryEvidence(unittest.TestCase):
