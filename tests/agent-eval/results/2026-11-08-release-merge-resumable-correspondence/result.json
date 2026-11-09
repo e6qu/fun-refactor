@@ -1,0 +1,4315 @@
+{
+  "schema": "fr-correspondence-acceptance-1",
+  "repository_revision": "b80eb2655ca01b5af31d619e64d2992669b6d452",
+  "source_bindings": {
+    "tools/correspondence-acceptance.py": "53c9e7dc25e276a04d3cc45352e90fa07f176d77fbcdaef5ed46c7e6d40a6315",
+    "tools/evidence_basis.py": "07b2b4cdc2c29e0d93c21120fc6eda2e95b08aa266c95198f9d058e22855afdc",
+    "src/project/correspondence.rs": "737711b97ba57035126fea8b37284c1d9f8cc0294a106ac95773c6490a31bad3",
+    "src/project/investigation.rs": "c8b394c758636a8a738ce55813fa2499ce234dc18f8e7c8a82243ba39f557117",
+    "src/project/occurrence.rs": "82abfedebd940f7a2267cc2f15f37aa0276f175dc44cc1eed5a50cd4798bce43",
+    "src/project.rs": "5d31bfd2507661d7ec70aab477f99974c7b7d43b81c8f7d64bc916386af35f4a",
+    "src/parse.rs": "0350455e231b482f63f56569d930f8f7004ed5a5411ae56861df53db68cc9a7b",
+    "src/span.rs": "b12451598b58f7e003a7aa136f397f22dc576d195de6fb230ca39423dbd6cd42",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c",
+    "sdk/python/src/fr_ir/correspondence.py": "30d2d0b7fe1cffdf46a882853cbecb1c40c0077f8fcf590717851ad052a4d245",
+    "sdk/python/src/fr_ir/investigation_session.py": "32ab173adecd839b370bac03b2033f30fc02bbebe0ab9d962688c0103b087807",
+    "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+    "sdk/python/src/fr_ir/context.py": "8ab57704750885ebe673e96a9bc758000211e358b7f38a6fcb5e411f1804093a",
+    "sdk/python/src/fr_ir/runtime.py": "2e9390ff56af548f0c1f3ca306e7a5735b3c0ac16c620c572b34ff80c93b9595",
+    "kernels/FrKernels/Correspondence.lean": "945cd4be8179dae1122de98133c67c06f1cc9c97adbb751038e1785be782ddac",
+    "kernels/CorrespondenceMain.lean": "81f0d107b4f84c62e9130d9e760ec8184b99f3b77eabda3de6c98881294ec8ba",
+    "tests/agent-eval/resumable-correspondence/task.json": "28eced138dd89db8eb3ac1cb4fc52656c9c72e811fe27383cebabb847c78deff",
+    "tests/agent-eval/resumable-correspondence/subject.py": "08a7fb248695b598bc8db2e42d0b1de2da94eb2d5ef553b70d457724bb21ff48",
+    "tests/agent-eval/resumable-correspondence/oracle.py": "f6f9e72e705544d75e5f57db4cacad79b989a536fa332e2b1ca78edef6b3e9f9",
+    "tests/agent-eval/resumable-correspondence/baseline.json": "573c8323b63e45a5aaf1c71938ccefd43f75a3907fc428a99b1275d7a52edd7d",
+    "tests/agent-eval/resumable-correspondence/diagnostics.json": "750a01ac2875f769c84fe131579923e267f108e6051bfeac2138170ddf736038"
+  },
+  "binary_sha256": "d4181079cc74e0e3485127f8bccdf8d26dfde42f4a3c97a1ab32ce7b23414905",
+  "platform": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+  "oracle": {
+    "declarations": [
+      {
+        "name": "café",
+        "span": {
+          "start": 0,
+          "end": 38
+        }
+      },
+      {
+        "name": "stable",
+        "span": {
+          "start": 41,
+          "end": 80
+        }
+      }
+    ],
+    "outcomes": [
+      -1,
+      1,
+      8
+    ]
+  },
+  "coordinates": [
+    {
+      "name": "café",
+      "span": {
+        "start": 0,
+        "end": 38
+      }
+    },
+    {
+      "name": "stable",
+      "span": {
+        "start": 41,
+        "end": 80
+      }
+    }
+  ],
+  "ordinary_ast": {
+    "seconds": 0.001072856000007505,
+    "source_reveals": 1,
+    "context_bytes": 174,
+    "tokens": null
+  },
+  "baseline": {
+    "schema": "fr-correspondence-baseline-1",
+    "repository_revision": "36297fb18cc463cbab3f176c93f9de63537ccc20",
+    "capture_seconds": 0.9306939999805763,
+    "compare_seconds": 0.12606612499803305,
+    "capture": {
+      "claim": "syntactic correspondence candidates; no semantic equivalence or mutation authority",
+      "context_basis": "frcb1:77d6b33f5ffabd45bc7878646dff891579def591af7552b3c2cad8db67d4bd4b",
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 1,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 0,
+        "unsupported_files": 0
+      },
+      "graph_policy": "declaration objects exclude graph edges; shared or cyclic references use revision-bound handles",
+      "handle_prefix": "frp1:be744cb5d124c6bf6403c2380061963e:",
+      "items": [
+        {
+          "handle": "frp1:be744cb5d124c6bf6403c2380061963e:2",
+          "kind": "function",
+          "name": "target",
+          "object_digest": "99eda615502c017100fa686f60fe2a0022406e32e463df935111d3c005c6b644",
+          "path": "original.py",
+          "revision": "be744cb5d124c6bf6403c2380061963e37aa67e91659570d5f9bba907838df25"
+        }
+      ],
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 1,
+        "total": 1
+      },
+      "query": "identities",
+      "revision": "be744cb5d124c6bf6403c2380061963e37aa67e91659570d5f9bba907838df25",
+      "schema": "fr-project-1"
+    },
+    "comparison": {
+      "claim": "syntactic correspondence candidates; no semantic equivalence or mutation authority",
+      "context_basis": "frcb1:0f33f7d171f24cacb4776d630674ac714b82afdca514d190c86eea88378ef797",
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 2,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 0,
+        "unsupported_files": 0
+      },
+      "graph_policy": "declaration objects exclude graph edges; shared or cyclic references use revision-bound handles",
+      "handle_prefix": "frp1:988ff02eca78695e09d2f062f92b7018:",
+      "items": [
+        {
+          "action_rebound": false,
+          "basis": "identical-declaration-content",
+          "candidates": [
+            {
+              "handle": "frp1:988ff02eca78695e09d2f062f92b7018:2",
+              "kind": "function",
+              "name": "target",
+              "object_digest": "99eda615502c017100fa686f60fe2a0022406e32e463df935111d3c005c6b644",
+              "path": "copy.py",
+              "revision": "988ff02eca78695e09d2f062f92b701830b87042e90900118c298ac70533f54a"
+            }
+          ],
+          "previous": {
+            "handle": "frp1:be744cb5d124c6bf6403c2380061963e:2",
+            "kind": "function",
+            "name": "target",
+            "object_digest": "99eda615502c017100fa686f60fe2a0022406e32e463df935111d3c005c6b644",
+            "path": "original.py",
+            "revision": "be744cb5d124c6bf6403c2380061963e37aa67e91659570d5f9bba907838df25"
+          },
+          "status": "matched"
+        }
+      ],
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 1,
+        "total": 1
+      },
+      "query": "correspondence",
+      "revision": "988ff02eca78695e09d2f062f92b701830b87042e90900118c298ac70533f54a",
+      "schema": "fr-project-1"
+    },
+    "finding": "An unchanged copy hides the changed original because content matching takes precedence over path/name matching.",
+    "live_agent": false
+  },
+  "snapshot": {
+    "schema": "fr-declaration-snapshot-1",
+    "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+    "selection": "explicit-declarations",
+    "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+    "items": [
+      {
+        "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+        "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+        "path": "subject.py",
+        "name": "café",
+        "kind": "function",
+        "language": "python",
+        "scope": [],
+        "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+        "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+        "occurrence": {
+          "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+          "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+          "path": "subject.py",
+          "location": {
+            "span": {
+              "start": 0,
+              "end": 38
+            },
+            "range": {
+              "start": {
+                "line": 1,
+                "col": 1
+              },
+              "end": {
+                "line": 2,
+                "col": 21
+              }
+            }
+          },
+          "role": "declaration",
+          "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4"
+        }
+      }
+    ],
+    "complete": true
+  },
+  "snapshot_root": "e1804e882e56c62962f2469bb2147f2acc495d830a4faa9197c619ab0ce116e3",
+  "session": {
+    "schema": "fr-investigation-session-1",
+    "plan": {
+      "goal": "resume the selected diagnosis",
+      "acceptance": [
+        "diagnosed"
+      ],
+      "steps": [
+        {
+          "id": "target",
+          "question": "which declaration implements the result?",
+          "inputs": [
+            {
+              "kind": "workspace",
+              "key": "selected-project",
+              "digest": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d"
+            },
+            {
+              "kind": "declaration-analyzer",
+              "key": "declaration-correspondence",
+              "digest": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1"
+            }
+          ],
+          "depends_on": [],
+          "state": "satisfied",
+          "evidence": [
+            {
+              "id": "coordinates",
+              "kind": "observation",
+              "input_digest": "a8eb2e4553ad768e02bcdb4930069cec2aba6ccb6bab2b989be36c58d82e58cf",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "required_checks": [],
+          "satisfies": [
+            "diagnosed"
+          ],
+          "action": [
+            "project",
+            "show",
+            "frp1:709a5da8e5253a8893c01e448834c83e:4"
+          ],
+          "action_input": null,
+          "required_proofs": []
+        },
+        {
+          "id": "dependent",
+          "question": "what depends on this finding?",
+          "inputs": [
+            {
+              "kind": "source",
+              "key": "subject.py",
+              "digest": "3388e0dd03b1c5b6941bec8d4e34a1e7835a08b682137995ade2b5a1472a7c2a"
+            }
+          ],
+          "depends_on": [
+            "target"
+          ],
+          "state": "satisfied",
+          "evidence": [
+            {
+              "id": "coordinates",
+              "kind": "observation",
+              "input_digest": "5f3ef1ac1d11c4884ae173e8183472554b865461e53368e98298f418237b8027",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "required_checks": [],
+          "satisfies": [],
+          "action": [],
+          "action_input": null,
+          "required_proofs": []
+        },
+        {
+          "id": "independent",
+          "question": "does the unrelated observation remain valid?",
+          "inputs": [
+            {
+              "kind": "source",
+              "key": "independent.py",
+              "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa"
+            }
+          ],
+          "depends_on": [],
+          "state": "satisfied",
+          "evidence": [
+            {
+              "id": "coordinates",
+              "kind": "observation",
+              "input_digest": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "required_checks": [],
+          "satisfies": [],
+          "action": [],
+          "action_input": null,
+          "required_proofs": []
+        }
+      ],
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1"
+    },
+    "targets": {
+      "target": {
+        "schema": "fr-declaration-snapshot-1",
+        "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+        "selection": "explicit-declarations",
+        "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+        "items": [
+          {
+            "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+            "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+            "path": "subject.py",
+            "name": "café",
+            "kind": "function",
+            "language": "python",
+            "scope": [],
+            "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+            "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+            "occurrence": {
+              "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+              "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+              "path": "subject.py",
+              "location": {
+                "span": {
+                  "start": 0,
+                  "end": 38
+                },
+                "range": {
+                  "start": {
+                    "line": 1,
+                    "col": 1
+                  },
+                  "end": {
+                    "line": 2,
+                    "col": 21
+                  }
+                }
+              },
+              "role": "declaration",
+              "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4"
+            }
+          }
+        ],
+        "complete": true
+      }
+    }
+  },
+  "session_root": "4dbab66426f6e57930f65a1864f479d6d8094c8275235d3c9ba0b7c437f75a49",
+  "reopened": {
+    "check_attachment": null,
+    "claim": "validated agent-reported evidence; references do not attest tool execution.",
+    "complete": false,
+    "context_basis": "frcb1:4bc7473cb18af76a2df704ee3161394075d634ed8f0dcf2dc0401fdf58c45be6",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 2,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 0,
+      "unsupported_files": 0
+    },
+    "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+    "handle_prefix": "frp1:709a5da8e5253a8893c01e448834c83e:",
+    "input_digests": {
+      "dependent": "5f3ef1ac1d11c4884ae173e8183472554b865461e53368e98298f418237b8027",
+      "independent": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
+      "target": "a8eb2e4553ad768e02bcdb4930069cec2aba6ccb6bab2b989be36c58d82e58cf"
+    },
+    "invalidated": [],
+    "mutation_authority": false,
+    "plan": {
+      "acceptance": [
+        "diagnosed"
+      ],
+      "goal": "resume the selected diagnosis",
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1",
+      "steps": [
+        {
+          "action": [
+            "project",
+            "show",
+            "frp1:709a5da8e5253a8893c01e448834c83e:4"
+          ],
+          "depends_on": [],
+          "evidence": [],
+          "id": "target",
+          "inputs": [
+            {
+              "digest": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+              "key": "selected-project",
+              "kind": "workspace"
+            },
+            {
+              "digest": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+              "key": "declaration-correspondence",
+              "kind": "declaration-analyzer"
+            }
+          ],
+          "question": "which declaration implements the result?",
+          "required_checks": [],
+          "satisfies": [
+            "diagnosed"
+          ],
+          "state": "ready"
+        },
+        {
+          "action": [],
+          "depends_on": [
+            "target"
+          ],
+          "evidence": [
+            {
+              "id": "coordinates",
+              "input_digest": "5f3ef1ac1d11c4884ae173e8183472554b865461e53368e98298f418237b8027",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "id": "dependent",
+          "inputs": [
+            {
+              "digest": "3388e0dd03b1c5b6941bec8d4e34a1e7835a08b682137995ade2b5a1472a7c2a",
+              "key": "subject.py",
+              "kind": "source"
+            }
+          ],
+          "question": "what depends on this finding?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "stale"
+        },
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "coordinates",
+              "input_digest": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "id": "independent",
+          "inputs": [
+            {
+              "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+              "key": "independent.py",
+              "kind": "source"
+            }
+          ],
+          "question": "does the unrelated observation remain valid?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "satisfied"
+        }
+      ]
+    },
+    "proof_attachment": null,
+    "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+    "schema": "fr-investigation-resume-1"
+  },
+  "resumed": {
+    "check_attachment": null,
+    "claim": "validated agent-reported evidence; references do not attest tool execution.",
+    "complete": false,
+    "context_basis": "frcb1:8dbe56ae3d82017333245269958fcf523fb3b4f14eabda12f888c97354fa68b2",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 2,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 0,
+      "unsupported_files": 0
+    },
+    "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+    "handle_prefix": "frp1:91ce347b176f2e755a98683a4f1da043:",
+    "input_digests": {
+      "dependent": "5f3ef1ac1d11c4884ae173e8183472554b865461e53368e98298f418237b8027",
+      "independent": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
+      "target": "a8eb2e4553ad768e02bcdb4930069cec2aba6ccb6bab2b989be36c58d82e58cf"
+    },
+    "invalidated": [
+      "target",
+      "dependent"
+    ],
+    "mutation_authority": false,
+    "plan": {
+      "acceptance": [
+        "diagnosed"
+      ],
+      "goal": "resume the selected diagnosis",
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1",
+      "steps": [
+        {
+          "action": [
+            "project",
+            "show",
+            "frp1:709a5da8e5253a8893c01e448834c83e:4"
+          ],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "coordinates",
+              "input_digest": "a8eb2e4553ad768e02bcdb4930069cec2aba6ccb6bab2b989be36c58d82e58cf",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "id": "target",
+          "inputs": [
+            {
+              "digest": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+              "key": "selected-project",
+              "kind": "workspace"
+            },
+            {
+              "digest": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+              "key": "declaration-correspondence",
+              "kind": "declaration-analyzer"
+            }
+          ],
+          "question": "which declaration implements the result?",
+          "required_checks": [],
+          "satisfies": [
+            "diagnosed"
+          ],
+          "state": "stale"
+        },
+        {
+          "action": [],
+          "depends_on": [
+            "target"
+          ],
+          "evidence": [
+            {
+              "id": "coordinates",
+              "input_digest": "5f3ef1ac1d11c4884ae173e8183472554b865461e53368e98298f418237b8027",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "id": "dependent",
+          "inputs": [
+            {
+              "digest": "3388e0dd03b1c5b6941bec8d4e34a1e7835a08b682137995ade2b5a1472a7c2a",
+              "key": "subject.py",
+              "kind": "source"
+            }
+          ],
+          "question": "what depends on this finding?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "stale"
+        },
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "coordinates",
+              "input_digest": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "id": "independent",
+          "inputs": [
+            {
+              "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+              "key": "independent.py",
+              "kind": "source"
+            }
+          ],
+          "question": "does the unrelated observation remain valid?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "satisfied"
+        }
+      ]
+    },
+    "proof_attachment": null,
+    "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+    "schema": "fr-investigation-resume-1"
+  },
+  "refreshed": {
+    "schema": "fr-investigation-session-1",
+    "plan": {
+      "goal": "resume the selected diagnosis",
+      "acceptance": [
+        "diagnosed"
+      ],
+      "steps": [
+        {
+          "id": "target",
+          "question": "which declaration implements the result?",
+          "inputs": [
+            {
+              "kind": "workspace",
+              "key": "selected-project",
+              "digest": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f"
+            },
+            {
+              "kind": "declaration-analyzer",
+              "key": "declaration-correspondence",
+              "digest": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1"
+            },
+            {
+              "kind": "source",
+              "key": "moved.py",
+              "digest": "3388e0dd03b1c5b6941bec8d4e34a1e7835a08b682137995ade2b5a1472a7c2a"
+            }
+          ],
+          "depends_on": [],
+          "state": "ready",
+          "evidence": [],
+          "required_checks": [],
+          "satisfies": [
+            "diagnosed"
+          ],
+          "action": [],
+          "action_input": null,
+          "required_proofs": []
+        },
+        {
+          "id": "dependent",
+          "question": "what depends on this finding?",
+          "inputs": [
+            {
+              "kind": "source",
+              "key": "subject.py",
+              "digest": "3388e0dd03b1c5b6941bec8d4e34a1e7835a08b682137995ade2b5a1472a7c2a"
+            }
+          ],
+          "depends_on": [
+            "target"
+          ],
+          "state": "stale",
+          "evidence": [
+            {
+              "id": "coordinates",
+              "kind": "observation",
+              "input_digest": "5f3ef1ac1d11c4884ae173e8183472554b865461e53368e98298f418237b8027",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "required_checks": [],
+          "satisfies": [],
+          "action": [],
+          "action_input": null,
+          "required_proofs": []
+        },
+        {
+          "id": "independent",
+          "question": "does the unrelated observation remain valid?",
+          "inputs": [
+            {
+              "kind": "source",
+              "key": "independent.py",
+              "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa"
+            }
+          ],
+          "depends_on": [],
+          "state": "satisfied",
+          "evidence": [
+            {
+              "id": "coordinates",
+              "kind": "observation",
+              "input_digest": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
+              "passed": true,
+              "reference": "independent-ast-oracle"
+            }
+          ],
+          "required_checks": [],
+          "satisfies": [],
+          "action": [],
+          "action_input": null,
+          "required_proofs": []
+        }
+      ],
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1"
+    },
+    "targets": {
+      "target": {
+        "schema": "fr-declaration-snapshot-1",
+        "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+        "selection": "explicit-declarations",
+        "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+        "items": [
+          {
+            "handle": "frp1:91ce347b176f2e755a98683a4f1da043:4",
+            "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+            "path": "moved.py",
+            "name": "café",
+            "kind": "function",
+            "language": "python",
+            "scope": [],
+            "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+            "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+            "occurrence": {
+              "id": "fro1:6c65e95f42c18f666390c9253e8f892376e316440d83792ffde677f0b81fb735",
+              "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+              "path": "moved.py",
+              "location": {
+                "span": {
+                  "start": 0,
+                  "end": 38
+                },
+                "range": {
+                  "start": {
+                    "line": 1,
+                    "col": 1
+                  },
+                  "end": {
+                    "line": 2,
+                    "col": 21
+                  }
+                }
+              },
+              "role": "declaration",
+              "enclosing": "frp1:91ce347b176f2e755a98683a4f1da043:4"
+            }
+          }
+        ],
+        "complete": true
+      }
+    }
+  },
+  "cases": {
+    "move": {
+      "pages": [
+        {
+          "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+          "basis": "frpc1:2a7a0da88be8f11f13fc133ca56d8d2c",
+          "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+          "complete": true,
+          "context_basis": "frcb1:8dbe56ae3d82017333245269958fcf523fb3b4f14eabda12f888c97354fa68b2",
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 2,
+            "manifests": {
+              "discovered": 0,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 0,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 0,
+            "unsupported_files": 0
+          },
+          "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+          "handle_prefix": "frp1:91ce347b176f2e755a98683a4f1da043:",
+          "identity_contract": "fr-declaration-identities-2",
+          "input_complete": true,
+          "input_digest": "2a0c6ab92ef3205b7ef984423c0718eb2878a0de9bc87a3da33cee2834445666",
+          "items": [
+            {
+              "action_rebound": false,
+              "candidate_count": 1,
+              "candidates": [
+                {
+                  "handle": "frp1:91ce347b176f2e755a98683a4f1da043:4",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "café",
+                  "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                  "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                  "occurrence": {
+                    "enclosing": "frp1:91ce347b176f2e755a98683a4f1da043:4",
+                    "id": "fro1:6c65e95f42c18f666390c9253e8f892376e316440d83792ffde677f0b81fb735",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 38,
+                        "start": 0
+                      }
+                    },
+                    "path": "moved.py",
+                    "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+                    "role": "declaration"
+                  },
+                  "path": "moved.py",
+                  "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+                  "scope": []
+                }
+              ],
+              "candidates_complete": true,
+              "conflicts": [],
+              "previous": {
+                "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                "occurrence": {
+                  "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                  "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "subject.py",
+                  "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                  "role": "declaration"
+                },
+                "path": "subject.py",
+                "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                "scope": []
+              },
+              "reasons": [
+                {
+                  "content_equal": true,
+                  "handle": "frp1:91ce347b176f2e755a98683a4f1da043:4",
+                  "rules": [
+                    "identical-declaration-content",
+                    "identical-except-declaration-name"
+                  ]
+                }
+              ],
+              "status": "matched"
+            }
+          ],
+          "limits": {
+            "bytes": 32768,
+            "candidates": 16,
+            "limit": 16
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 1
+          },
+          "query": "correspondence",
+          "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+          "schema": "fr-project-1",
+          "selection": "."
+        }
+      ],
+      "complete": true,
+      "seconds": 0.01363238600001182,
+      "context_bytes": 3107
+    },
+    "rename": {
+      "pages": [
+        {
+          "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+          "basis": "frpc1:ba0258635d8bb1f10fd89f8897a5deef",
+          "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+          "complete": true,
+          "context_basis": "frcb1:3b02a6726fc7d8219211fdbd1c790c379eb23116bbb7d0ce217448149d5a337b",
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 2,
+            "manifests": {
+              "discovered": 0,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 0,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 0,
+            "unsupported_files": 0
+          },
+          "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+          "handle_prefix": "frp1:0b4d7e1cd1004a388f4d564a799a37d8:",
+          "identity_contract": "fr-declaration-identities-2",
+          "input_complete": true,
+          "input_digest": "2a0c6ab92ef3205b7ef984423c0718eb2878a0de9bc87a3da33cee2834445666",
+          "items": [
+            {
+              "action_rebound": false,
+              "candidate_count": 1,
+              "candidates": [
+                {
+                  "handle": "frp1:0b4d7e1cd1004a388f4d564a799a37d8:4",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "renamed",
+                  "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                  "object_digest": "62688e8a0f27052440a7f3fdb336f43d8d026fde1b5a5d66207070af54cb8b6f",
+                  "occurrence": {
+                    "enclosing": "frp1:0b4d7e1cd1004a388f4d564a799a37d8:4",
+                    "id": "fro1:e13248c48392b5d4e4fa1aa92416d530a97f0caeb8e0901b4297e1b3b3439a3e",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 40,
+                        "start": 0
+                      }
+                    },
+                    "path": "moved.py",
+                    "revision": "0b4d7e1cd1004a388f4d564a799a37d802c9d704eefa460ab30edaee8cb91896",
+                    "role": "declaration"
+                  },
+                  "path": "moved.py",
+                  "revision": "0b4d7e1cd1004a388f4d564a799a37d802c9d704eefa460ab30edaee8cb91896",
+                  "scope": []
+                }
+              ],
+              "candidates_complete": true,
+              "conflicts": [],
+              "previous": {
+                "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                "occurrence": {
+                  "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                  "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "subject.py",
+                  "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                  "role": "declaration"
+                },
+                "path": "subject.py",
+                "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                "scope": []
+              },
+              "reasons": [
+                {
+                  "content_equal": false,
+                  "handle": "frp1:0b4d7e1cd1004a388f4d564a799a37d8:4",
+                  "rules": [
+                    "identical-except-declaration-name"
+                  ]
+                }
+              ],
+              "status": "matched"
+            }
+          ],
+          "limits": {
+            "bytes": 32768,
+            "candidates": 16,
+            "limit": 16
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 1
+          },
+          "query": "correspondence",
+          "revision": "0b4d7e1cd1004a388f4d564a799a37d802c9d704eefa460ab30edaee8cb91896",
+          "schema": "fr-project-1",
+          "selection": "."
+        }
+      ],
+      "complete": true,
+      "seconds": 0.1796255480000184,
+      "context_bytes": 3078
+    },
+    "changed": {
+      "pages": [
+        {
+          "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+          "basis": "frpc1:a35f10f7f55bffe21fcbd2142ac93298",
+          "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+          "complete": true,
+          "context_basis": "frcb1:e0fb3446b23f67d0184714fd18ddea8386d0275f7bb2ce96dda6ec50d1dbfdac",
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 2,
+            "manifests": {
+              "discovered": 0,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 0,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 0,
+            "unsupported_files": 0
+          },
+          "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+          "handle_prefix": "frp1:e319f469a15be24cbe17ceb165740b0b:",
+          "identity_contract": "fr-declaration-identities-2",
+          "input_complete": true,
+          "input_digest": "2a0c6ab92ef3205b7ef984423c0718eb2878a0de9bc87a3da33cee2834445666",
+          "items": [
+            {
+              "action_rebound": false,
+              "candidate_count": 1,
+              "candidates": [
+                {
+                  "handle": "frp1:e319f469a15be24cbe17ceb165740b0b:4",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "café",
+                  "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+                  "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+                  "occurrence": {
+                    "enclosing": "frp1:e319f469a15be24cbe17ceb165740b0b:4",
+                    "id": "fro1:a1cdb74015b2a7439c0cae00ed90e32d495014dff26790dded6cdcb99c6b341b",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 38,
+                        "start": 0
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "e319f469a15be24cbe17ceb165740b0b21f98365d22c2ca2873ed4e6f512bdf5",
+                    "role": "declaration"
+                  },
+                  "path": "subject.py",
+                  "revision": "e319f469a15be24cbe17ceb165740b0b21f98365d22c2ca2873ed4e6f512bdf5",
+                  "scope": []
+                }
+              ],
+              "candidates_complete": true,
+              "conflicts": [],
+              "previous": {
+                "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                "occurrence": {
+                  "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                  "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "subject.py",
+                  "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                  "role": "declaration"
+                },
+                "path": "subject.py",
+                "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                "scope": []
+              },
+              "reasons": [
+                {
+                  "content_equal": false,
+                  "handle": "frp1:e319f469a15be24cbe17ceb165740b0b:4",
+                  "rules": [
+                    "same-path-scope-name-kind"
+                  ]
+                }
+              ],
+              "status": "matched"
+            }
+          ],
+          "limits": {
+            "bytes": 32768,
+            "candidates": 16,
+            "limit": 16
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 1
+          },
+          "query": "correspondence",
+          "revision": "e319f469a15be24cbe17ceb165740b0b21f98365d22c2ca2873ed4e6f512bdf5",
+          "schema": "fr-project-1",
+          "selection": "."
+        }
+      ],
+      "complete": true,
+      "seconds": 0.16323568600000726,
+      "context_bytes": 3072
+    },
+    "copy-and-change": {
+      "pages": [
+        {
+          "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+          "basis": "frpc1:bc0da4bdc93d038a6bdd606b9069f9d8",
+          "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+          "complete": true,
+          "context_basis": "frcb1:3d02982b98d1c97e187b9be55738fe7d8b86114eadca4d415f60eb7757470592",
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 3,
+            "manifests": {
+              "discovered": 0,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 0,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 0,
+            "unsupported_files": 0
+          },
+          "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+          "handle_prefix": "frp1:732c424e621629230e2a2ffdd333d05d:",
+          "identity_contract": "fr-declaration-identities-2",
+          "input_complete": true,
+          "input_digest": "2a0c6ab92ef3205b7ef984423c0718eb2878a0de9bc87a3da33cee2834445666",
+          "items": [
+            {
+              "action_rebound": false,
+              "candidate_count": 2,
+              "candidates": [
+                {
+                  "handle": "frp1:732c424e621629230e2a2ffdd333d05d:2",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "café",
+                  "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                  "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                  "occurrence": {
+                    "enclosing": "frp1:732c424e621629230e2a2ffdd333d05d:2",
+                    "id": "fro1:5282b9f11f8bfa9b8a9da00856d5493213da21ae78c18e76a6eb29be6b76c055",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 38,
+                        "start": 0
+                      }
+                    },
+                    "path": "copy.py",
+                    "revision": "732c424e621629230e2a2ffdd333d05de1cc0ba44717f4ac4686a9877acded36",
+                    "role": "declaration"
+                  },
+                  "path": "copy.py",
+                  "revision": "732c424e621629230e2a2ffdd333d05de1cc0ba44717f4ac4686a9877acded36",
+                  "scope": []
+                },
+                {
+                  "handle": "frp1:732c424e621629230e2a2ffdd333d05d:9",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "café",
+                  "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+                  "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+                  "occurrence": {
+                    "enclosing": "frp1:732c424e621629230e2a2ffdd333d05d:9",
+                    "id": "fro1:4faef65ca0d6d06113f27a20de1c0bef39f8ff7bc53df7f498da5b2fec69fab0",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 38,
+                        "start": 0
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "732c424e621629230e2a2ffdd333d05de1cc0ba44717f4ac4686a9877acded36",
+                    "role": "declaration"
+                  },
+                  "path": "subject.py",
+                  "revision": "732c424e621629230e2a2ffdd333d05de1cc0ba44717f4ac4686a9877acded36",
+                  "scope": []
+                }
+              ],
+              "candidates_complete": true,
+              "conflicts": [],
+              "previous": {
+                "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                "occurrence": {
+                  "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                  "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "subject.py",
+                  "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                  "role": "declaration"
+                },
+                "path": "subject.py",
+                "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                "scope": []
+              },
+              "reasons": [
+                {
+                  "content_equal": true,
+                  "handle": "frp1:732c424e621629230e2a2ffdd333d05d:2",
+                  "rules": [
+                    "identical-declaration-content",
+                    "identical-except-declaration-name"
+                  ]
+                },
+                {
+                  "content_equal": false,
+                  "handle": "frp1:732c424e621629230e2a2ffdd333d05d:9",
+                  "rules": [
+                    "same-path-scope-name-kind"
+                  ]
+                }
+              ],
+              "status": "ambiguous"
+            }
+          ],
+          "limits": {
+            "bytes": 32768,
+            "candidates": 16,
+            "limit": 16
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 1
+          },
+          "query": "correspondence",
+          "revision": "732c424e621629230e2a2ffdd333d05de1cc0ba44717f4ac4686a9877acded36",
+          "schema": "fr-project-1",
+          "selection": "."
+        }
+      ],
+      "complete": true,
+      "seconds": 0.01816806900001211,
+      "context_bytes": 3975
+    },
+    "duplicates": {
+      "pages": [
+        {
+          "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+          "basis": "frpc1:c6398f07e016db3087437cf4df37163c",
+          "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+          "complete": true,
+          "context_basis": "frcb1:4eea72faa65f67f1524d993a0cda8a151436e53678270d567ad6d7c8179438a0",
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 3,
+            "manifests": {
+              "discovered": 0,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 0,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 0,
+            "unsupported_files": 0
+          },
+          "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+          "handle_prefix": "frp1:91a37dda30227096b227d3781740fb0e:",
+          "identity_contract": "fr-declaration-identities-2",
+          "input_complete": true,
+          "input_digest": "2a0c6ab92ef3205b7ef984423c0718eb2878a0de9bc87a3da33cee2834445666",
+          "items": [
+            {
+              "action_rebound": false,
+              "candidate_count": 2,
+              "candidates": [
+                {
+                  "handle": "frp1:91a37dda30227096b227d3781740fb0e:2",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "café",
+                  "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                  "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                  "occurrence": {
+                    "enclosing": "frp1:91a37dda30227096b227d3781740fb0e:2",
+                    "id": "fro1:a34808bc8f29e4db17108fe8d9c208e2ea9d8722229494b69340e523313065b3",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 38,
+                        "start": 0
+                      }
+                    },
+                    "path": "copy.py",
+                    "revision": "91a37dda30227096b227d3781740fb0e1eeefb1b4f3f15ae97d17474dd2b5a80",
+                    "role": "declaration"
+                  },
+                  "path": "copy.py",
+                  "revision": "91a37dda30227096b227d3781740fb0e1eeefb1b4f3f15ae97d17474dd2b5a80",
+                  "scope": []
+                },
+                {
+                  "handle": "frp1:91a37dda30227096b227d3781740fb0e:9",
+                  "kind": "function",
+                  "language": "python",
+                  "name": "café",
+                  "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                  "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                  "occurrence": {
+                    "enclosing": "frp1:91a37dda30227096b227d3781740fb0e:9",
+                    "id": "fro1:c5ee208654e56db2d18b60478254491d64df2c0687531cad098f49570b64f084",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 21,
+                          "line": 2
+                        },
+                        "start": {
+                          "col": 1,
+                          "line": 1
+                        }
+                      },
+                      "span": {
+                        "end": 38,
+                        "start": 0
+                      }
+                    },
+                    "path": "subject.py",
+                    "revision": "91a37dda30227096b227d3781740fb0e1eeefb1b4f3f15ae97d17474dd2b5a80",
+                    "role": "declaration"
+                  },
+                  "path": "subject.py",
+                  "revision": "91a37dda30227096b227d3781740fb0e1eeefb1b4f3f15ae97d17474dd2b5a80",
+                  "scope": []
+                }
+              ],
+              "candidates_complete": true,
+              "conflicts": [],
+              "previous": {
+                "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                "occurrence": {
+                  "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                  "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "subject.py",
+                  "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                  "role": "declaration"
+                },
+                "path": "subject.py",
+                "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                "scope": []
+              },
+              "reasons": [
+                {
+                  "content_equal": true,
+                  "handle": "frp1:91a37dda30227096b227d3781740fb0e:2",
+                  "rules": [
+                    "identical-declaration-content",
+                    "identical-except-declaration-name"
+                  ]
+                },
+                {
+                  "content_equal": true,
+                  "handle": "frp1:91a37dda30227096b227d3781740fb0e:9",
+                  "rules": [
+                    "identical-declaration-content",
+                    "identical-except-declaration-name",
+                    "same-path-scope-name-kind"
+                  ]
+                }
+              ],
+              "status": "ambiguous"
+            }
+          ],
+          "limits": {
+            "bytes": 32768,
+            "candidates": 16,
+            "limit": 16
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 1
+          },
+          "query": "correspondence",
+          "revision": "91a37dda30227096b227d3781740fb0e1eeefb1b4f3f15ae97d17474dd2b5a80",
+          "schema": "fr-project-1",
+          "selection": "."
+        }
+      ],
+      "complete": true,
+      "seconds": 0.01247255199999131,
+      "context_bytes": 4042
+    },
+    "deleted": {
+      "pages": [
+        {
+          "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+          "basis": "frpc1:374066a3adbd760ae15905e3d2497310",
+          "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+          "complete": true,
+          "context_basis": "frcb1:d7fcb0ac91856f17c8c2da30ef1616a47c34c4cc4b8ef34619ddf7d65c2a1604",
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "manifests": {
+              "discovered": 0,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 0,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 0,
+            "unsupported_files": 0
+          },
+          "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+          "handle_prefix": "frp1:3c8e220ac06a459c17f0a09625379682:",
+          "identity_contract": "fr-declaration-identities-2",
+          "input_complete": true,
+          "input_digest": "2a0c6ab92ef3205b7ef984423c0718eb2878a0de9bc87a3da33cee2834445666",
+          "items": [
+            {
+              "action_rebound": false,
+              "candidate_count": 0,
+              "candidates": [],
+              "candidates_complete": true,
+              "conflicts": [],
+              "previous": {
+                "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
+                "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
+                "occurrence": {
+                  "enclosing": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+                  "id": "fro1:64a28c211800002b63cef96348a2679e51c976a788cb4e568e31f811b0145df8",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "subject.py",
+                  "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                  "role": "declaration"
+                },
+                "path": "subject.py",
+                "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+                "scope": []
+              },
+              "reasons": [],
+              "status": "missing"
+            }
+          ],
+          "limits": {
+            "bytes": 32768,
+            "candidates": 16,
+            "limit": 16
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 1
+          },
+          "query": "correspondence",
+          "revision": "3c8e220ac06a459c17f0a096253796825fab522ebf22da92215dac62ff019f9d",
+          "schema": "fr-project-1",
+          "selection": "."
+        }
+      ],
+      "complete": true,
+      "seconds": 0.011919700000021294,
+      "context_bytes": 2206
+    }
+  },
+  "stale_review_refusal": "stale or invalid project handle; obtain a fresh project map.",
+  "old_review": {
+    "author": {
+      "atomic_snapshot": false,
+      "behavior_checked": false,
+      "changed": true,
+      "context_inherited": [
+        "coverage",
+        "revision",
+        "handle_prefix"
+      ],
+      "diff": "--- a/subject.py\n+++ b/subject.py\n@@ -1,5 +1,5 @@\n def café(value):\n-    return value + 1\n+    return value + 2\n \n \n def stable(value):\n",
+      "files_changed": 1,
+      "postconditions": [
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "files-changed"
+        },
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "edits"
+        },
+        {
+          "actual": [
+            "subject.py"
+          ],
+          "expected": [
+            "subject.py"
+          ],
+          "held": true,
+          "postcondition": "paths-changed"
+        }
+      ],
+      "postconditions_held": true,
+      "query": "batch",
+      "schema": "fr-author-batch-1",
+      "span_basis": "original-source",
+      "steps": [
+        {
+          "after_bytes": 16,
+          "after_sha256": "c3f9e16f1ff19c0804ae55ec092cff6d8cc5005875e5cdab2a841a8426ad9a47",
+          "before_bytes": 16,
+          "before_sha256": "6eaf18ef2bc7094ca01b678f9b12599eed7ae280790bc8f2a1ec215d77ccc2ce",
+          "before_span": {
+            "end": 38,
+            "start": 22
+          },
+          "changed": true,
+          "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+          "operation": "replace-body",
+          "path": "subject.py",
+          "preservation": "bytes outside the selected body",
+          "signature": {
+            "basis": "syntax-header",
+            "text": "def café(value):"
+          }
+        }
+      ],
+      "validation": "reparse-strict"
+    },
+    "checks": {
+      "basis": "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+      "command": [
+        "fr",
+        "checks",
+        "--run",
+        "syntax",
+        "--basis",
+        "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+        "--quiet-success",
+        "--no-declarations"
+      ],
+      "coverage": [
+        {
+          "covers": [
+            "independent Python parser; behavior checked separately"
+          ],
+          "name": "syntax"
+        }
+      ],
+      "names": [
+        "syntax"
+      ],
+      "selected": true
+    },
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 2,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 0,
+      "unsupported_files": 0
+    },
+    "delivery": {
+      "check_original": true,
+      "check_output_bytes": 2048,
+      "compact_success": true,
+      "exercise_reversal": true,
+      "patch": null
+    },
+    "executed": false,
+    "manifest_sha256": "82185f1f9a55f783d1c1df8df1c76f8b391373ecc36d003d2722f72fea1ddfe0",
+    "passed": null,
+    "ready": true,
+    "requests": [],
+    "revision": "709a5da8e5253a8893c01e448834c83e5c9477e673c2f2c2e404f4bcd1a7ec5d",
+    "schema": "fr-task-change-1",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "pending"
+      },
+      {
+        "stage": "apply",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "undo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-restored",
+        "status": "pending"
+      },
+      {
+        "stage": "redo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      }
+    ],
+    "targets": [
+      {
+        "eligibility": "target-supported",
+        "handle": "frp1:709a5da8e5253a8893c01e448834c83e:4",
+        "id": "repair",
+        "kind": "function",
+        "language": "python",
+        "operation": "replace-body",
+        "path": "subject.py",
+        "scalar": null,
+        "syntax_preflighted": false
+      }
+    ],
+    "task_basis": "frpt1:f23f3fa2ae6ce920bd427fed09a17db31889982d83304df44ba5b253ed55c53e",
+    "task_change_basis": "frtc1:c40d21ffeea48ee7010ecc832a8dc40b9d6bb09f914ed9557306c6e10f6aeb86",
+    "task_resolution_basis": "frpt2:54baf9c74debde9e9b0d8362c578befe61e70e6cd6221901a392e8b27b6058e1"
+  },
+  "fresh_review": {
+    "author": {
+      "atomic_snapshot": false,
+      "behavior_checked": false,
+      "changed": true,
+      "context_inherited": [
+        "coverage",
+        "revision",
+        "handle_prefix"
+      ],
+      "diff": "--- a/moved.py\n+++ b/moved.py\n@@ -1,5 +1,5 @@\n def café(value):\n-    return value + 1\n+    return value + 2\n \n \n def stable(value):\n",
+      "files_changed": 1,
+      "postconditions": [
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "files-changed"
+        },
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "edits"
+        },
+        {
+          "actual": [
+            "moved.py"
+          ],
+          "expected": [
+            "moved.py"
+          ],
+          "held": true,
+          "postcondition": "paths-changed"
+        }
+      ],
+      "postconditions_held": true,
+      "query": "batch",
+      "schema": "fr-author-batch-1",
+      "span_basis": "original-source",
+      "steps": [
+        {
+          "after_bytes": 16,
+          "after_sha256": "c3f9e16f1ff19c0804ae55ec092cff6d8cc5005875e5cdab2a841a8426ad9a47",
+          "before_bytes": 16,
+          "before_sha256": "6eaf18ef2bc7094ca01b678f9b12599eed7ae280790bc8f2a1ec215d77ccc2ce",
+          "before_span": {
+            "end": 38,
+            "start": 22
+          },
+          "changed": true,
+          "handle": "frp1:91ce347b176f2e755a98683a4f1da043:4",
+          "operation": "replace-body",
+          "path": "moved.py",
+          "preservation": "bytes outside the selected body",
+          "signature": {
+            "basis": "syntax-header",
+            "text": "def café(value):"
+          }
+        }
+      ],
+      "validation": "reparse-strict"
+    },
+    "checks": {
+      "basis": "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+      "command": [
+        "fr",
+        "checks",
+        "--run",
+        "syntax",
+        "--basis",
+        "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+        "--quiet-success",
+        "--no-declarations"
+      ],
+      "coverage": [
+        {
+          "covers": [
+            "independent Python parser; behavior checked separately"
+          ],
+          "name": "syntax"
+        }
+      ],
+      "names": [
+        "syntax"
+      ],
+      "selected": true
+    },
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 2,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 0,
+      "unsupported_files": 0
+    },
+    "delivery": {
+      "check_original": true,
+      "check_output_bytes": 2048,
+      "compact_success": true,
+      "exercise_reversal": true,
+      "patch": "artifacts/resumed.patch"
+    },
+    "executed": false,
+    "manifest_sha256": "7136bcc75ceb63a4178de234c94f4f9e56c0c0d5f82a0f4538b663161fac67e2",
+    "passed": null,
+    "ready": true,
+    "requests": [],
+    "revision": "91ce347b176f2e755a98683a4f1da0436c59f27cb0674907b92b95cc3200f67f",
+    "schema": "fr-task-change-1",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "pending"
+      },
+      {
+        "stage": "apply",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "undo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-restored",
+        "status": "pending"
+      },
+      {
+        "stage": "redo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "deliver-patch",
+        "status": "pending"
+      }
+    ],
+    "targets": [
+      {
+        "eligibility": "target-supported",
+        "handle": "frp1:91ce347b176f2e755a98683a4f1da043:4",
+        "id": "repair",
+        "kind": "function",
+        "language": "python",
+        "operation": "replace-body",
+        "path": "moved.py",
+        "scalar": null,
+        "syntax_preflighted": false
+      }
+    ],
+    "task_basis": "frpt1:d9aace36755d9e8ff06f4356118365f99f13b628b148a6cb23bfec7c927056cb",
+    "task_change_basis": "frtc1:ee1ea87bb0b6ec697acfcf8f07163cf0161d10522f7b13742f28490ff8e4ba18",
+    "task_resolution_basis": "frpt2:b134011b92fd305c307ae6af13f331ed1b69628138a3d1fdf4c359e012bee77d"
+  },
+  "delivery": {
+    "executed": true,
+    "manifest_sha256": "7136bcc75ceb63a4178de234c94f4f9e56c0c0d5f82a0f4538b663161fac67e2",
+    "passed": true,
+    "reused_transaction": false,
+    "reviewed_context_omitted": [
+      "revision",
+      "task_basis",
+      "task_resolution_basis",
+      "coverage",
+      "requests",
+      "targets",
+      "checks",
+      "delivery",
+      "author",
+      "stages",
+      "ready"
+    ],
+    "saved": true,
+    "schema": "fr-task-change-1",
+    "task_change_basis": "frtc1:ee1ea87bb0b6ec697acfcf8f07163cf0161d10522f7b13742f28490ff8e4ba18",
+    "transaction": 1,
+    "workflow": {
+      "executed": true,
+      "manifest_sha256": "88f74dff400fa355e0b82f0c5a40adaed3d148b814cedb80be1325ebbe88e4c8",
+      "passed": true,
+      "reviewed_context_omitted": [
+        "manifest_sha256",
+        "record_basis",
+        "transaction_context_basis",
+        "checks",
+        "exercise_reversal",
+        "check_original",
+        "compact_success",
+        "patch",
+        "ready"
+      ],
+      "schema": "fr-workflow-1",
+      "stages": [
+        {
+          "result": {
+            "basis": "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+            "passed": true,
+            "recorded_evidence": null,
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "syntax",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "ef3622ad230127a9665e0d65ffc28a08352ac15aa740e46e320836d9142817c5",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-original",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "action": "apply",
+            "applied": true,
+            "changes": [
+              {
+                "after_exists": true,
+                "after_kind": "regular",
+                "after_mode": 420,
+                "before_exists": true,
+                "before_kind": "regular",
+                "before_mode": 420,
+                "diff_bytes": 133,
+                "path": "moved.py"
+              }
+            ],
+            "context_basis": "frtb2:e9a13b975f86d6cc9b649f00bb8f0e6f101f6a596b0b33776229dffe470d443d",
+            "context_omitted": [
+              "changes[].diff"
+            ],
+            "transaction": 1
+          },
+          "stage": "apply",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "basis": "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+            "passed": true,
+            "recorded_evidence": {
+              "created": true,
+              "receipt": "frce1:f840905adb14934b81a4ff04710b0047040fd5bdd79fda0749e6e7b31ceb92ff",
+              "transaction": 1
+            },
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "syntax",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "9b26a9532582489797465e532e0e959e0780aa264f9694ef4dada16e9c801d42",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "action": "undo",
+            "applied": true,
+            "changes": [
+              {
+                "after_exists": true,
+                "after_kind": "regular",
+                "after_mode": 420,
+                "before_exists": true,
+                "before_kind": "regular",
+                "before_mode": 420,
+                "path": "moved.py"
+              }
+            ],
+            "diffs_omitted": true,
+            "transaction": 1
+          },
+          "stage": "undo",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "basis": "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+            "passed": true,
+            "recorded_evidence": null,
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "syntax",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "ef3622ad230127a9665e0d65ffc28a08352ac15aa740e46e320836d9142817c5",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-restored",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "action": "redo",
+            "applied": true,
+            "changes": [
+              {
+                "after_exists": true,
+                "after_kind": "regular",
+                "after_mode": 420,
+                "before_exists": true,
+                "before_kind": "regular",
+                "before_mode": 420,
+                "diff_bytes": 133,
+                "path": "moved.py"
+              }
+            ],
+            "context_basis": "frtb2:e9a13b975f86d6cc9b649f00bb8f0e6f101f6a596b0b33776229dffe470d443d",
+            "context_omitted": [
+              "changes[].diff"
+            ],
+            "transaction": 1
+          },
+          "stage": "redo",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "basis": "a31375b11bd0d084a284467311ca2c9460f8896cfa7fa5c397fd58da85f0101b",
+            "passed": true,
+            "recorded_evidence": {
+              "created": false,
+              "receipt": "frce1:f840905adb14934b81a4ff04710b0047040fd5bdd79fda0749e6e7b31ceb92ff",
+              "transaction": 1
+            },
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "syntax",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "9b26a9532582489797465e532e0e959e0780aa264f9694ef4dada16e9c801d42",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "bytes": 174,
+            "output": "artifacts/resumed.patch",
+            "sha256": "88aa11c9c96d71ec0361fe5e86f7a2fbc05807ea39fea3c7bf2b257aae08bebe"
+          },
+          "stage": "deliver-patch",
+          "status": "passed"
+        }
+      ],
+      "transaction": 1,
+      "transaction_status": "applied",
+      "workflow_basis": "frwb1:add8ae504c20774185fa3377b17aa18f82de12de2b38402fc0a953af9147bf09"
+    }
+  },
+  "patch": "diff --git \"a/moved.py\" \"b/moved.py\"\n--- \"a/moved.py\"\n+++ \"b/moved.py\"\n@@ -1,5 +1,5 @@\n def café(value):\n-    return value + 1\n+    return value + 2\n \n \n def stable(value):\n",
+  "receiver_behavior": [
+    0,
+    2,
+    9
+  ],
+  "arms": {
+    "cold": {
+      "report": {
+        "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+        "basis": "frpc1:b582f5e7adbdae652e477f5da841c321",
+        "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+        "complete": true,
+        "context_basis": "frcb1:023059a0f4dce201d0f9156738a45c5f19376d779713f95e8271630bf35793e0",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 1,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 0,
+          "unsupported_files": 0
+        },
+        "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+        "handle_prefix": "frp1:54dc97424e79e3e509a6fe843094b50a:",
+        "identity_contract": "fr-declaration-identities-2",
+        "input_complete": true,
+        "input_digest": "0bc7dbf1438555ad0a48273ef7d1dc8119ba1ba55721baad02076c3d97df204b",
+        "items": [
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+                "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                  "id": "fro1:e71ab6919e791acab7044666f71ec8d538bf84614309fd76319c4a365eca6bf9",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+              "kind": "function",
+              "language": "python",
+              "name": "café",
+              "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+              "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "id": "fro1:e71ab6919e791acab7044666f71ec8d538bf84614309fd76319c4a365eca6bf9",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 2
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 38,
+                    "start": 0
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "kind": "function",
+                "language": "python",
+                "name": "stable",
+                "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+                "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                  "id": "fro1:2cf7023d5ac964f93ea4311e29b64fcabf5c8b1df64b5b1a66bd7f3f66d7210d",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 6
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 80,
+                      "start": 41
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+              "kind": "function",
+              "language": "python",
+              "name": "stable",
+              "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+              "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "id": "fro1:2cf7023d5ac964f93ea4311e29b64fcabf5c8b1df64b5b1a66bd7f3f66d7210d",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 6
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 80,
+                    "start": 41
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                  "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                  "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:5"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 15,
+                      "line": 1
+                    },
+                    "start": {
+                      "col": 10,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 15,
+                    "start": 10
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:café"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                  "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                  "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:3"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 5
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 57,
+                    "start": 52
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:stable"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          }
+        ],
+        "limits": {
+          "bytes": 32768,
+          "candidates": 16,
+          "limit": 16
+        },
+        "page": {
+          "before": 0,
+          "next": null,
+          "remaining": 0,
+          "returned": 4,
+          "total": 4
+        },
+        "query": "correspondence",
+        "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+        "schema": "fr-project-1",
+        "selection": "."
+      },
+      "elapsed_seconds": 0.16759635100001447,
+      "context_bytes": 10623,
+      "peak_native_child_rss_bytes": 40722432,
+      "peak_worker_rss_bytes": 36925440,
+      "process_calls": 1,
+      "source_reveals": 0,
+      "tokens": null,
+      "correspondence_recomputed": true,
+      "index_cache": true
+    },
+    "warm": {
+      "report": {
+        "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+        "basis": "frpc1:b582f5e7adbdae652e477f5da841c321",
+        "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+        "complete": true,
+        "context_basis": "frcb1:023059a0f4dce201d0f9156738a45c5f19376d779713f95e8271630bf35793e0",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 1,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 0,
+          "unsupported_files": 0
+        },
+        "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+        "handle_prefix": "frp1:54dc97424e79e3e509a6fe843094b50a:",
+        "identity_contract": "fr-declaration-identities-2",
+        "input_complete": true,
+        "input_digest": "0bc7dbf1438555ad0a48273ef7d1dc8119ba1ba55721baad02076c3d97df204b",
+        "items": [
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+                "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                  "id": "fro1:e71ab6919e791acab7044666f71ec8d538bf84614309fd76319c4a365eca6bf9",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+              "kind": "function",
+              "language": "python",
+              "name": "café",
+              "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+              "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "id": "fro1:e71ab6919e791acab7044666f71ec8d538bf84614309fd76319c4a365eca6bf9",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 2
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 38,
+                    "start": 0
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "kind": "function",
+                "language": "python",
+                "name": "stable",
+                "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+                "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                  "id": "fro1:2cf7023d5ac964f93ea4311e29b64fcabf5c8b1df64b5b1a66bd7f3f66d7210d",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 6
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 80,
+                      "start": 41
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+              "kind": "function",
+              "language": "python",
+              "name": "stable",
+              "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+              "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "id": "fro1:2cf7023d5ac964f93ea4311e29b64fcabf5c8b1df64b5b1a66bd7f3f66d7210d",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 6
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 80,
+                    "start": 41
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                  "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                  "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:5"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 15,
+                      "line": 1
+                    },
+                    "start": {
+                      "col": 10,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 15,
+                    "start": 10
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:café"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                  "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                  "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:3"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 5
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 57,
+                    "start": 52
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:stable"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          }
+        ],
+        "limits": {
+          "bytes": 32768,
+          "candidates": 16,
+          "limit": 16
+        },
+        "page": {
+          "before": 0,
+          "next": null,
+          "remaining": 0,
+          "returned": 4,
+          "total": 4
+        },
+        "query": "correspondence",
+        "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+        "schema": "fr-project-1",
+        "selection": "."
+      },
+      "elapsed_seconds": 0.016852734999986296,
+      "context_bytes": 10623,
+      "peak_native_child_rss_bytes": 39030784,
+      "peak_worker_rss_bytes": 36925440,
+      "process_calls": 1,
+      "source_reveals": 0,
+      "tokens": null,
+      "correspondence_recomputed": true,
+      "index_cache": true
+    },
+    "single-edit": {
+      "report": {
+        "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+        "basis": "frpc1:aa8c0c2a6eba8807fcb7d2acf71d3bd0",
+        "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+        "complete": true,
+        "context_basis": "frcb1:49005af0cb3bf038da05397f0ad8aca10b031ee82d36966e61eec0123e7fbbe9",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 1,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 0,
+          "unsupported_files": 0
+        },
+        "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+        "handle_prefix": "frp1:e3319dee6f03a59ba56806bcce241497:",
+        "identity_contract": "fr-declaration-identities-2",
+        "input_complete": true,
+        "input_digest": "0bc7dbf1438555ad0a48273ef7d1dc8119ba1ba55721baad02076c3d97df204b",
+        "items": [
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:2",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+                "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:2",
+                  "id": "fro1:1da3bbaac5aa453872bb5311352eb6b54d18e9e4149d7a2a5d5d2c8cd9338513",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+              "kind": "function",
+              "language": "python",
+              "name": "café",
+              "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+              "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "id": "fro1:e71ab6919e791acab7044666f71ec8d538bf84614309fd76319c4a365eca6bf9",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 2
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 38,
+                    "start": 0
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:2",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:4",
+                "kind": "function",
+                "language": "python",
+                "name": "stable",
+                "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+                "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:4",
+                  "id": "fro1:abe20b8b177b129149bad8faa45a0669f16e6428ac1b9973e3a90ad4f768ef40",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 6
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 80,
+                      "start": 41
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+              "kind": "function",
+              "language": "python",
+              "name": "stable",
+              "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+              "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "id": "fro1:2cf7023d5ac964f93ea4311e29b64fcabf5c8b1df64b5b1a66bd7f3f66d7210d",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 6
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 80,
+                    "start": 41
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:4",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                  "id": "fro1:2838423ea704cb0da0637544725f812ce8fd33a0c3b6657755d3fb1ef5f4da07",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                  "id": "fro1:3c09be53e2d1ffb12e01494ba7e38466f5bc21c4da136473a37393ad2ddfd659",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:5"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 15,
+                      "line": 1
+                    },
+                    "start": {
+                      "col": 10,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 15,
+                    "start": 10
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:café"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                  "id": "fro1:2838423ea704cb0da0637544725f812ce8fd33a0c3b6657755d3fb1ef5f4da07",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                  "id": "fro1:3c09be53e2d1ffb12e01494ba7e38466f5bc21c4da136473a37393ad2ddfd659",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:3"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 5
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 57,
+                    "start": 52
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:stable"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          }
+        ],
+        "limits": {
+          "bytes": 32768,
+          "candidates": 16,
+          "limit": 16
+        },
+        "page": {
+          "before": 0,
+          "next": null,
+          "remaining": 0,
+          "returned": 4,
+          "total": 4
+        },
+        "query": "correspondence",
+        "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+        "schema": "fr-project-1",
+        "selection": "."
+      },
+      "elapsed_seconds": 0.1644713270000011,
+      "context_bytes": 10623,
+      "peak_native_child_rss_bytes": 40624128,
+      "peak_worker_rss_bytes": 36925440,
+      "process_calls": 1,
+      "source_reveals": 0,
+      "tokens": null,
+      "correspondence_recomputed": true,
+      "index_cache": true
+    },
+    "clean-rebuild": {
+      "report": {
+        "analyzer": "22d9540b98fd1c47e31cf02bd02487388d76f3ebe1585f8c57de21358bd43cf1",
+        "basis": "frpc1:aa8c0c2a6eba8807fcb7d2acf71d3bd0",
+        "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
+        "complete": true,
+        "context_basis": "frcb1:49005af0cb3bf038da05397f0ad8aca10b031ee82d36966e61eec0123e7fbbe9",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 1,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 0,
+          "unsupported_files": 0
+        },
+        "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
+        "handle_prefix": "frp1:e3319dee6f03a59ba56806bcce241497:",
+        "identity_contract": "fr-declaration-identities-2",
+        "input_complete": true,
+        "input_digest": "0bc7dbf1438555ad0a48273ef7d1dc8119ba1ba55721baad02076c3d97df204b",
+        "items": [
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:2",
+                "kind": "function",
+                "language": "python",
+                "name": "café",
+                "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+                "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:2",
+                  "id": "fro1:1da3bbaac5aa453872bb5311352eb6b54d18e9e4149d7a2a5d5d2c8cd9338513",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 2
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 38,
+                      "start": 0
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+              "kind": "function",
+              "language": "python",
+              "name": "café",
+              "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
+              "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:2",
+                "id": "fro1:e71ab6919e791acab7044666f71ec8d538bf84614309fd76319c4a365eca6bf9",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 2
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 38,
+                    "start": 0
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:2",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 1,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:4",
+                "kind": "function",
+                "language": "python",
+                "name": "stable",
+                "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+                "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:4",
+                  "id": "fro1:abe20b8b177b129149bad8faa45a0669f16e6428ac1b9973e3a90ad4f768ef40",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 21,
+                        "line": 6
+                      },
+                      "start": {
+                        "col": 1,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 80,
+                      "start": 41
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": []
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+              "kind": "function",
+              "language": "python",
+              "name": "stable",
+              "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
+              "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:4",
+                "id": "fro1:2cf7023d5ac964f93ea4311e29b64fcabf5c8b1df64b5b1a66bd7f3f66d7210d",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 21,
+                      "line": 6
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 80,
+                    "start": 41
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": []
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:4",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "matched"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                  "id": "fro1:2838423ea704cb0da0637544725f812ce8fd33a0c3b6657755d3fb1ef5f4da07",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                  "id": "fro1:3c09be53e2d1ffb12e01494ba7e38466f5bc21c4da136473a37393ad2ddfd659",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:5"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:3",
+                "id": "fro1:38a3a8ef7e7d4e410b8f28b7f79a80565a02e342b5a1377458144053510341ce",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 15,
+                      "line": 1
+                    },
+                    "start": {
+                      "col": 10,
+                      "line": 1
+                    }
+                  },
+                  "span": {
+                    "end": 15,
+                    "start": 10
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:café"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          },
+          {
+            "action_rebound": false,
+            "candidate_count": 2,
+            "candidates": [
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                  "id": "fro1:2838423ea704cb0da0637544725f812ce8fd33a0c3b6657755d3fb1ef5f4da07",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 15,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 10,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 15,
+                      "start": 10
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:café"
+                ]
+              },
+              {
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "kind": "parameter",
+                "language": "python",
+                "name": "value",
+                "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+                "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+                "occurrence": {
+                  "enclosing": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                  "id": "fro1:3c09be53e2d1ffb12e01494ba7e38466f5bc21c4da136473a37393ad2ddfd659",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 17,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 57,
+                      "start": 52
+                    }
+                  },
+                  "path": "moved.py",
+                  "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                  "role": "declaration"
+                },
+                "path": "moved.py",
+                "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+                "scope": [
+                  "function:stable"
+                ]
+              }
+            ],
+            "candidates_complete": true,
+            "conflicts": [
+              "frp1:54dc97424e79e3e509a6fe843094b50a:3"
+            ],
+            "previous": {
+              "handle": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+              "kind": "parameter",
+              "language": "python",
+              "name": "value",
+              "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
+              "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
+              "occurrence": {
+                "enclosing": "frp1:54dc97424e79e3e509a6fe843094b50a:5",
+                "id": "fro1:bec614c17387d1f7763102ae9ca735ace44ee042a78c9bd290ba967f83ba7c64",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 5
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 5
+                    }
+                  },
+                  "span": {
+                    "end": 57,
+                    "start": 52
+                  }
+                },
+                "path": "moved.py",
+                "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+                "role": "declaration"
+              },
+              "path": "moved.py",
+              "revision": "54dc97424e79e3e509a6fe843094b50a7f928108c2e4f7aa75297dab6d5f4e8f",
+              "scope": [
+                "function:stable"
+              ]
+            },
+            "reasons": [
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:3",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name"
+                ]
+              },
+              {
+                "content_equal": true,
+                "handle": "frp1:e3319dee6f03a59ba56806bcce241497:5",
+                "rules": [
+                  "identical-declaration-content",
+                  "identical-except-declaration-name",
+                  "same-path-scope-name-kind"
+                ]
+              }
+            ],
+            "status": "ambiguous"
+          }
+        ],
+        "limits": {
+          "bytes": 32768,
+          "candidates": 16,
+          "limit": 16
+        },
+        "page": {
+          "before": 0,
+          "next": null,
+          "remaining": 0,
+          "returned": 4,
+          "total": 4
+        },
+        "query": "correspondence",
+        "revision": "e3319dee6f03a59ba56806bcce241497cd766c8c2479d1b0ae769bb286255010",
+        "schema": "fr-project-1",
+        "selection": "."
+      },
+      "elapsed_seconds": 0.16216090800000416,
+      "context_bytes": 10623,
+      "peak_native_child_rss_bytes": 40259584,
+      "peak_worker_rss_bytes": 36925440,
+      "process_calls": 1,
+      "source_reveals": 0,
+      "tokens": null,
+      "correspondence_recomputed": true,
+      "index_cache": false
+    }
+  },
+  "scope": "Finite deterministic Python syntax fixture. Rename means only the declaration name changed. Old plan observations remain agent records. Native mutation review, reversal and independent patch replay cover the fresh edit. Each timing arm recomputes correspondence with the existing index cache; RSS records isolated worker and largest child maxima. No new cache granularity, semantic equivalence, live-agent, token or general performance claim."
+}

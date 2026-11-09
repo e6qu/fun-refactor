@@ -98,7 +98,8 @@ jobs:
           assert run.isdigit()
           value = json.loads(subprocess.check_output(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + run]))
           assert value['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
-          jobs = json.loads(subprocess.check_output(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + run + '/jobs?per_page=100']))['jobs']
+          pages = json.loads(subprocess.check_output(['gh', 'api', '--paginate', '--slurp', 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + run + '/jobs?per_page=30']))
+          jobs = [job for page in pages for job in page['jobs']]
           producer, = [job for job in jobs if job['name'].endswith('Reject incomplete changes in private containers')]
           assert producer['status'] == 'completed' and producer['conclusion'] == 'success'
           assert os.environ['CONTROL_POLICY'] in {'frozen', 'fresh'}

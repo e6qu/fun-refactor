@@ -561,12 +561,6 @@ def lean_workflow(exercise, root):
     model = root / "specs/FrSpecs" / (plan["kernel"]["module"] + ".lean")
     exercise.values["<LEAN_TARGET>"] = str(model.relative_to(root)) + "::" + plan["properties"][0]["name"]
     exercise.values["<TARGET>"] = exercise.values["<LEAN_TARGET>"]
-    prefix = subprocess.run(["lake", "env", "lean", "--print-prefix"], cwd=root / "specs",
-                            capture_output=True, text=True, check=True, timeout=10)
-    library = Path(prefix.stdout.strip()) / "src/lean/Init/Data/Int/DivMod/Lemmas.lean"
-    assert library.is_file()
-    exercise.values["<LIBRARY_FILE>"] = str(library)
-    exercise.values["<NAME_FRAGMENT>"] = "tdiv"
     (root / ".fr/proof-tactics").write_text("rfl\n")
     original, original_program = model.read_bytes(), source.read_bytes()
     proof_examples = [(SKILL / "SKILL.md", command) for command in commands(SKILL / "SKILL.md")
@@ -584,6 +578,7 @@ def lean_workflow(exercise, root):
             assert len(state["goals"]) == 1 and state["goals"][0]["goal"]
             assert "value : Bool" in state["goals"][0]["context"]
             assert state["draft_location"]["line"] == 1 and state["draft_location"]["column"] == 5
+            assert "start" not in command or isinstance(state["library_facts"]["facts"], list)
             assert model.read_bytes() == original
             tactics.write_text("rfl\n")
             value = state
@@ -598,13 +593,6 @@ def lean_workflow(exercise, root):
             assert part["assumptions"] == [] and len(part["conclusions"]) == 1
             assert "allowedModel" in part["conclusions"][0] and "value" in part["conclusions"][0]
             assert value["token_budget"]["used_upper_bound"] <= int(command[command.index("--bytes") + 1])
-        if "<NAME_FRAGMENT>" in command:
-            assert value["rows"] and value["page"]["returned"] <= 4
-            assert value["coverage"]["indexed_files"] == 1
-            assert "source" not in value["columns"]
-            signature = value["columns"].index("signature")
-            assert all(row[signature]["basis"] == "syntax-header" for row in value["rows"])
-            assert "coverage" in value and "omitted" in value
         if "proof" in command and "save" in command:
             exercise.values["<EDIT_ID>"] = str(value["transaction"])
         if "proof" in command and "check" in command:

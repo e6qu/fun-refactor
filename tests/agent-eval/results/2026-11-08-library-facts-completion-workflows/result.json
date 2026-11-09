@@ -1,0 +1,489 @@
+{
+  "schema": "fr-completion-workflows-1",
+  "bindings": {
+    "tools/completion-workflows.py": "03d639ed5829f2031b32fa269daa51b486bf125069b4449b8562e3b6fbbe92bf",
+    "src/audit.rs": "49df8961be99d17ef62838de0f77dbe93ae3f6eac6bcb6c676cc2ff15e76f47b",
+    "src/capabilities.rs": "9b6a8d242da97517aa6d82755cb70c5ff92916f2db31015edf543104c9f0ab9e",
+    "src/cli.rs": "0c42164a1a5044bde0d389ca286717f692d935d0c42c7ac38758a0be68cd8374",
+    "src/project/agent_guide.rs": "e5dd86d04f59c0392d4244ac5bd2c6cf4c786a2cc57b331cc62d67e79ca49e69",
+    "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
+    "src/project/task_change.rs": "228f37e0df863d61d99dd11ee54ded9b0add4fb4dcef760d8202470f8717ff02",
+    "src/project/migration.rs": "d4e408c0eb95b7f4bd6d8d4939bcbe2a4e225222eb67b6a117a501d39128c6b4",
+    "src/spec.rs": "a0147858c31da95f2925802a253afdbbd2dab146b5fb0f1df3a7695a031e668a"
+  },
+  "binary_sha256": "3979952e2c1c428fc8895298acec10086a0298e702e07bd54e28edf9bf2227b1",
+  "workflows": [
+    {
+      "id": "understanding",
+      "route": "evidence",
+      "state": "ready",
+      "guide_basis": "frag1:af1354e643861dc2026738874d59cde6b4f794a5f4c28fa8bde08ea8fbecb557",
+      "guide_object_root": "ac484dd902a61683d0b32293f1e0bc261e4e975f0f910f82366ecfd1785c7469",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 67,
+        "response_bytes": 5196,
+        "events": [
+          {
+            "arguments": [
+              "project",
+              "--help"
+            ],
+            "request_bytes": 34,
+            "response_bytes": 4014,
+            "response_sha256": "389918544198a977921d2d43b80396d3afa1b7bf4976c0d91df4a30d1a3c37de"
+          },
+          {
+            "arguments": [
+              "intent",
+              "--help"
+            ],
+            "request_bytes": 33,
+            "response_bytes": 1182,
+            "response_sha256": "172de3ed1f1d3fa1d6156a22aa6b7993b072a75f4ede87b586a85527c5a13ed2"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 204,
+        "guide_response_bytes": 3586,
+        "executable_actions": 1,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "intent",
+              "--from",
+              "-"
+            ],
+            "response_sha256": "0fdf2e5931ebf2ee14ec8750751a7107c22f59dcd8564f6e100728e688bc9715"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    },
+    {
+      "id": "tracing",
+      "route": "evidence",
+      "state": "ready",
+      "guide_basis": "frag1:4dcfa28bc4d9d99d43e48b859fbc1b390bb8acbeb0f0ee60a03067977620abe2",
+      "guide_object_root": "4df41d23781052bd9192ae7515e525ffb28f428595270092eea97b74edebb2d2",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 67,
+        "response_bytes": 5196,
+        "events": [
+          {
+            "arguments": [
+              "project",
+              "--help"
+            ],
+            "request_bytes": 34,
+            "response_bytes": 4014,
+            "response_sha256": "389918544198a977921d2d43b80396d3afa1b7bf4976c0d91df4a30d1a3c37de"
+          },
+          {
+            "arguments": [
+              "intent",
+              "--help"
+            ],
+            "request_bytes": 33,
+            "response_bytes": 1182,
+            "response_sha256": "172de3ed1f1d3fa1d6156a22aa6b7993b072a75f4ede87b586a85527c5a13ed2"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 199,
+        "guide_response_bytes": 3708,
+        "executable_actions": 1,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "intent",
+              "--from",
+              "-"
+            ],
+            "response_sha256": "37a640384373e8c27298739ad8f1848dc45c9cea7d440f4307c0f74bb2809949"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    },
+    {
+      "id": "direct-change",
+      "route": "direct-capability",
+      "state": "ready",
+      "guide_basis": "frag1:c428612a4cb7bb484c3fd8c05c0d91b1ebad806a11de4102fdc1d855ba194fca",
+      "guide_object_root": "2bb5c7b89535ce2c5e11dcd2642a7777377481eeba9714a16507f6694b24c86f",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 57,
+        "response_bytes": 5716,
+        "events": [
+          {
+            "arguments": [
+              "--help"
+            ],
+            "request_bytes": 24,
+            "response_bytes": 4619,
+            "response_sha256": "adc53316b468c7a35b4cdfcfbf48e203fbc1d886359d5f8252c22a2ab81ba5a1"
+          },
+          {
+            "arguments": [
+              "rename",
+              "--help"
+            ],
+            "request_bytes": 33,
+            "response_bytes": 1097,
+            "response_sha256": "cae762b2b2c4a0aa6e0e332dff3199acaab061640dd86f617b09ab76821c7e44"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 259,
+        "guide_response_bytes": 3401,
+        "executable_actions": 1,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "rename",
+              "src/lib.rs:1:8",
+              "compute"
+            ],
+            "response_sha256": "31618c76e12d575039ed06e9c8c203a992cd36d26bea7e3cd33d6bf5c94522e0"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    },
+    {
+      "id": "recipe",
+      "route": "recipe",
+      "state": "needs-authoring",
+      "guide_basis": "frag1:bb4c3aa69520fa1fdab7bab4a333eb89af5b74f37b9b8863ae004faddb618fa9",
+      "guide_object_root": "072fbf28c1869fb26e5fdecf4fa8715153cc2cba93aacbd286076a4ee04f0d59",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 72,
+        "response_bytes": 4931,
+        "events": [
+          {
+            "arguments": [
+              "recipe",
+              "--help"
+            ],
+            "request_bytes": 33,
+            "response_bytes": 1583,
+            "response_sha256": "c82776b9d0e3d9919205481b1aca231f25c19d4366514880a8d0f421901bd858"
+          },
+          {
+            "arguments": [
+              "recipe",
+              "--vocabulary"
+            ],
+            "request_bytes": 39,
+            "response_bytes": 3348,
+            "response_sha256": "5a154c279054e97642fadc1681cd768303395588d0caa05cef93641f4b35dad6"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 213,
+        "guide_response_bytes": 4484,
+        "executable_actions": 1,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "recipe",
+              "rename.recipe"
+            ],
+            "response_sha256": "ed2a519606c78cd671dc019d48543894ecf74fec1570230640e3a43bb443adee"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    },
+    {
+      "id": "semantic-edit",
+      "route": "semantic-scalar",
+      "state": "ready",
+      "guide_basis": "frag1:5d2045265ac3ba3b4dd62469a382a379c8ecf91a4f1d15c42768aa27121aa621",
+      "guide_object_root": "bd897b164b36efa46e841593ca23ad67d7b0b8c11cea8a6c19ef19c73d320774",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 83,
+        "response_bytes": 6356,
+        "events": [
+          {
+            "arguments": [
+              "author",
+              "guide"
+            ],
+            "request_bytes": 32,
+            "response_bytes": 3747,
+            "response_sha256": "0561d5be947cc28ff78bbfca8f2315feabbf4a0f248587a1db10f7444ae5bdcd"
+          },
+          {
+            "arguments": [
+              "author",
+              "semantic-schema",
+              "intent"
+            ],
+            "request_bytes": 51,
+            "response_bytes": 2609,
+            "response_sha256": "476fba1f5633c472699e078f8bbd13dee24fc9e09fba9f97fe7dde779125ecb0"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 248,
+        "guide_response_bytes": 4354,
+        "executable_actions": 2,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "project",
+              "semantic",
+              "frp1:39ccec95d2fca2dd4056b15c3870ab51:52",
+              "--body",
+              "--locator-op",
+              "set-int",
+              "--nodes",
+              "4096",
+              "--minimal",
+              "--locator-from",
+              "7",
+              "--intent-to",
+              "9"
+            ],
+            "response_sha256": "476debc70156ef65130ecbcbb35e554448a304e43cf27896db377c5c185b66f8"
+          },
+          {
+            "arguments": [
+              "author",
+              "edit-body-scalar",
+              "frp1:39ccec95d2fca2dd4056b15c3870ab51:52",
+              "--operation",
+              "set-int",
+              "--from",
+              "7",
+              "--to",
+              "9"
+            ],
+            "response_sha256": "fcfb8052b8ab57a0a09d7c7a1628e686da0e84655829db019edfcac599899474"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    },
+    {
+      "id": "framework-migration",
+      "route": "framework-migration",
+      "state": "ready",
+      "guide_basis": "frag1:f3127bdf5ae907465cf9c25c0fdfa3c700a8e441b72a0ec8e75ac089089939ed",
+      "guide_object_root": "11fd9e0c54d18be9fa79e26a8dc570c359368fdec4c330a07f6246fd313e5ef9",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 70,
+        "response_bytes": 26275,
+        "events": [
+          {
+            "arguments": [
+              "migrate",
+              "--help"
+            ],
+            "request_bytes": 34,
+            "response_bytes": 1153,
+            "response_sha256": "0255a470c6982ee955bbbe76859de26e87a7ee504c75252038bdc406e5b20edc"
+          },
+          {
+            "arguments": [
+              "audit",
+              "frameworks"
+            ],
+            "request_bytes": 36,
+            "response_bytes": 25122,
+            "response_sha256": "041abf3f4d369a81bdc70869adc6f802ddd194dff39497ebfdddf594735813b0"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 241,
+        "guide_response_bytes": 4862,
+        "executable_actions": 2,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "project",
+              "features",
+              "frp1:f5a2e51b8a41d540d4f7324726cf89f6:4",
+              "--limit",
+              "8"
+            ],
+            "response_sha256": "c967ecbb256c433123c8c1f3275c3c1cfd15e32a283a97cbf43d1b0167feaecc"
+          },
+          {
+            "arguments": [
+              "migrate",
+              "feature",
+              "frff1:9a9b64dc567afd0cac180af1c89f1684",
+              "--to",
+              "fastapi",
+              "--out",
+              "converted/signals.py"
+            ],
+            "response_sha256": "d451537beb22eec96dff77f76accc1e562fa54c551c4f68d88f01a628de2affb"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    },
+    {
+      "id": "proof",
+      "route": "proof",
+      "state": "ready",
+      "guide_basis": "frag1:820e4d10290043527245f735c9320243aba1584466c560a8a99dadec37a624b7",
+      "guide_object_root": "46b14ae936d0e39a87f727035594a158fdda0f3ff175642babe50b36a5061e46",
+      "manual_discovery": {
+        "calls": 2,
+        "request_bytes": 63,
+        "response_bytes": 5097,
+        "events": [
+          {
+            "arguments": [
+              "spec",
+              "--help"
+            ],
+            "request_bytes": 31,
+            "response_bytes": 2001,
+            "response_sha256": "6c0c249f97fc7a2fca25cfeab9d9882f8bd5fa63d61a760eb9b98faa61a9c366"
+          },
+          {
+            "arguments": [
+              "audit",
+              "proofs"
+            ],
+            "request_bytes": 32,
+            "response_bytes": 3096,
+            "response_sha256": "be592bc19cc72b7801ec1bb95b086550f458513ad99f2f928a0a80739392d75f"
+          }
+        ]
+      },
+      "guided": {
+        "guide_calls": 1,
+        "guide_request_bytes": 251,
+        "guide_response_bytes": 3821,
+        "executable_actions": 2,
+        "post_guide_exploratory_calls": 0,
+        "outputs": [
+          {
+            "arguments": [
+              "proof",
+              "show",
+              "specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity",
+              "--bytes",
+              "4096"
+            ],
+            "response_sha256": "7acf2c73729a8796fc88054cf016e4738ae0b79000bec6f5abe2ed535413d5a5"
+          },
+          {
+            "arguments": [
+              "proof",
+              "check",
+              "specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity",
+              "--draft",
+              "proof.lean",
+              "--bytes",
+              "4096",
+              "--timeout-seconds",
+              "30"
+            ],
+            "response_sha256": "f5002bfd37a6c94ee72ba1c8ca2c4ce4c3a092bb6f02584333262df8128c823d"
+          }
+        ]
+      },
+      "omitted_measurements": [
+        "hidden reasoning",
+        "model tokenizer counts",
+        "billed quota"
+      ],
+      "source_state": {
+        "unchanged": true,
+        "sha256": "a6c2ef77e198c5936303dd8aeeb1216df048f529b87f1846d395847bad9e5230",
+        "files": 11
+      }
+    }
+  ],
+  "totals": {
+    "workflow_families": 7,
+    "manual_exploratory_calls": 14,
+    "post_guide_exploratory_calls": 0
+  },
+  "claim": "Deterministic command and byte accounting. No model, tokenizer, quota or population claim."
+}

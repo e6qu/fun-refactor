@@ -73,6 +73,15 @@ class TestIr:
         for status in ("closed-at-position", "no-tactic-at-position"):
             closed = {**state, "status": status, "goals": []}
             assert ProofState.from_data(closed).to_data() == closed
+        facts = {"operations": ["Int.tdiv"], "facts": ["Int.tdiv_nonneg {a b : Int} : 0 ≤ a.tdiv b"],
+                 "omitted": 2, "source": "Lean .ilean indexes"}
+        started = {**state, "operation": "proof-start", "library_facts": facts}
+        assert ProofState.from_data(started).to_data() == started
+        for bad in ({**facts, "omitted": -1}, {**facts, "facts": [""]}, {**facts, "extra": 1}):
+            with pytest.raises(IrError):
+                ProofState.from_data({**started, "library_facts": bad})
+        with pytest.raises(IrError):
+            ProofState.from_data({**state, "library_facts": facts})
         for mutation in (
             {"acceptance": "accepted"}, {"status": "closed-at-position"},
             {"goals": [""]}, {"status": "accepted"}, {"status": []},

@@ -116,6 +116,8 @@ jobs:
       - name: Reject bad drafts and patches in isolated checkouts
         id: controls
         if: inputs.operation == 'prepare'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >-
           python3 -B -m agent_eval.proof_feedback controls --fr "$RUNNER_TEMP/feedback-tool/fr"
           --native "$RUNNER_TEMP/feedback-native/summary.json" --output "$RUNNER_TEMP/feedback-controls" --study "$STUDY"
@@ -163,8 +165,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CONTROL_RUN: ${{ inputs.artifact_run }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CONTROL_RUN/attempts/1" > "$RUNNER_TEMP/feedback-run.json"
-          python3 -c 'import json,os; from pathlib import Path; v=json.loads((Path(os.environ["RUNNER_TEMP"])/"feedback-run.json").read_text()); assert v["run_attempt"]==1 and v["status"]=="completed" and v["conclusion"]=="success"'
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          run = 'repos/%s/actions/runs/%s' % (os.environ['GITHUB_REPOSITORY'], os.environ['CONTROL_RUN'])
+          get = lambda path: json.loads(subprocess.check_output(['gh', 'api', path], text=True))
+          latest = get(run)
+          assert latest['status'] == 'completed' and latest['conclusion'] == 'success', latest['conclusion']
+          for earlier in range(1, latest['run_attempt']):
+              held = get('%s/attempts/%d' % (run, earlier))
+              assert held['conclusion'] == 'action_required', 'controls were rerun after an executed attempt'
+              assert get('%s/attempts/%d/jobs' % (run, earlier))['total_count'] == 0
+          PY
       - uses: actions/download-artifact@v8
         if: inputs.operation == 'grade'
         with:

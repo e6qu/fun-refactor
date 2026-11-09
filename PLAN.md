@@ -72,30 +72,27 @@ Four delivered accepted patches in time, two delivered accepted patches late, on
 and one stopped on an observer race now fixed. Tools used 6 to 33 seconds of each session;
 waiting for model replies used the rest. Separate delivery turns cost Kimi two correct proofs.
 
-**PR #606: page count with 300 seconds and one-call delivery.**
+**Completed:** [#606](https://github.com/e6qu/fun-refactor/pull/606) gave proof sessions 300 seconds
+and delivered saved proofs with one `fr proof save --deliver` call. `fr proof check` now shows Lean's
+`exact?` suggestions and refuses `native_decide`. In the [second page-count study](tests/agent-eval/proof-page-count/results-300s-native-decide/summary.json)
+Kimi delivered both proofs and GLM none; the grade rejected one Kimi proof for `native_decide`.
+No session used `exact?`. One GLM session hit the client step limit, the other its CPU budget.
 
-1. New proof sessions get 300 seconds. Each study declares its own complete-attempt time,
-   so earlier results keep their recorded 150-second judgments. The workstation guard allows 330 seconds.
-2. `fr proof save --deliver change.patch` saves the checked proof, runs every check in
-   `.fr/checks.json` and writes all saved proofs as one patch. A failing check keeps the
-   proof and writes no patch. The skill teaches this single delivery call.
-3. Each study's requirements declare its native admission, and one shared path checks it.
-   Page-count admission rejects an unfinished draft and delivers the reference with `--deliver`.
-4. Refresh the source-bound evidence for the fr change, then pass the complete PR gate,
+**[PR #607](https://github.com/e6qu/fun-refactor/pull/607): page count with library facts.**
+
+1. Refresh the source-bound evidence for the merged fr change and pass the complete PR gate,
    hosted page-count controls and both local client admissions.
-5. Freeze four page-count sessions (GLM and Kimi, two each) and run them only after approval.
+2. Freeze four page-count sessions (GLM and Kimi, two each) and run them only after approval.
    Independently grade every patch and report where the time went.
-   Done: no session delivered a proof. Low disk stopped one Kimi session at 113 seconds. The
-   others spent minutes searching library files and guessing absent Mathlib names.
-6. `fr proof check` returns Lean's `exact?` suggestions as `info` diagnostics; it used to drop them.
-   The skill asks for one missing fact with `exact?` before any file search. Refresh the
-   evidence, then run a new four-session page-count study after approval.
-   Done: Kimi delivered both of its proofs, at 241 and 116 seconds; neither GLM session did.
-   No session used `exact?`. The grade accepted one Kimi proof. It rejected the other because
-   `native_decide` adds the axiom `Lean.ofReduceBool`.
-7. `fr proof check` and `fr proof save` refuse `native_decide` and point to `decide`.
-   A passing local check must not deliver a proof the grade rejects. Refresh the evidence, then
-   run another four-session study after approval.
+   Done: no session delivered a proof, and none used `exact?`. Each spent minutes searching
+   library files. Another workload lowered free disk and the guard stopped one Kimi session.
+   Results: [third study](tests/agent-eval/proof-page-count/results-300s-refused-native-decide/summary.json).
+3. `fr proof start` lists `library_facts`: theorems from the model's imports whose statements
+   use the model's operations. Lean's `.ilean` indexes give exact names. The list skips `@[simp]`,
+   private and deprecated facts. The skill points to this list instead of file search.
+4. Refresh the evidence, then run another four-session study after approval.
+   Done: no session delivered a proof. Sessions named listed facts and searched files twice.
+   No session used `exact?`. Each ran out of time while fixing Lean errors.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
