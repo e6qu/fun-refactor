@@ -5206,15 +5206,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!(diagnostics.len(), 2);
-        assert_eq!(diagnostics[0].severity, "info");
-        assert_eq!(diagnostics[0].message, "Try this:");
+        assert_eq!(diagnostics[0].severity, "error");
+        assert_eq!(diagnostics[0].context, ["⊢ True"]);
+        assert_eq!(diagnostics[1].severity, "info");
+        assert_eq!(diagnostics[1].message, "Try this:");
         assert_eq!(
-            diagnostics[0].context,
+            diagnostics[1].context,
             ["  [apply] exact Int.tdiv_nonneg ha hb"]
         );
-        assert!(diagnostics[0].draft_location.is_none());
-        assert_eq!(diagnostics[1].severity, "error");
-        assert_eq!(diagnostics[1].context, ["⊢ True"]);
+        assert!(diagnostics[1].draft_location.is_none());
     }
 
     #[test]
