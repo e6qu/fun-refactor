@@ -158,12 +158,12 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-42657688335",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-42681316925",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-42657688335/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-42681316925/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "29eb9b36121339ae6280513cf740454ddd021fcbd7010c069404d18ba1efeaf2"
+      "sha256": "948eedc8d42a25885fb8e1b0cf1c8842230fcbd6a7e8f574dd33a839bbe98461"
     },
     {
       "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-checked-translation",
