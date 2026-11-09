@@ -2049,26 +2049,31 @@ fn check_prepared_proof(
                 },
             });
         }
-        let mut shortened = false;
-        for diagnostic in diagnostics.iter_mut().rev() {
-            if let Some(index) = diagnostic
-                .context
-                .iter()
-                .position(|line| !line.trim_start().starts_with('⊢'))
-            {
-                diagnostic.context.remove(index);
-                diagnostic.context_omitted_lines += 1;
-                shortened = true;
-                break;
-            }
-        }
-        if shortened {
-            continue;
-        }
-        if diagnostics.pop().is_none() {
+        if !shorten_proof_report(&mut diagnostics) {
             bail!("proof check report cannot fit the selected response ceiling.");
         }
     }
+}
+
+fn shorten_proof_report(diagnostics: &mut Vec<ProofDiagnostic>) -> bool {
+    if diagnostics
+        .last()
+        .is_some_and(|last| last.severity == "warning")
+        && diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.severity == "error")
+    {
+        diagnostics.pop();
+        return true;
+    }
+    for diagnostic in diagnostics.iter_mut().rev() {
+        if let Some(index) = removable_context_line(&diagnostic.context) {
+            diagnostic.context.remove(index);
+            diagnostic.context_omitted_lines += 1;
+            return true;
+        }
+    }
+    diagnostics.pop().is_some()
 }
 
 fn check_generated_formal_module(package: &Path, source: &str) -> Result<()> {
@@ -2251,16 +2256,34 @@ fn proof_draft_location(
     })
 }
 
+fn omega_atom_definitions_start(lines: &[String]) -> Option<usize> {
+    lines.iter().position(|line| line.trim() == "where")
+}
+
+fn removable_context_line(lines: &[String]) -> Option<usize> {
+    let key = omega_atom_definitions_start(lines).unwrap_or(lines.len());
+    let removable = |index: &usize| !lines[*index].trim_start().starts_with('⊢');
+    (0..key)
+        .find(removable)
+        .or_else(|| (key..lines.len()).rev().find(removable))
+}
+
 fn bound_proof_context(diagnostic: &mut ProofDiagnostic) {
     let lines = std::mem::take(&mut diagnostic.context);
     let mut selected = BTreeSet::new();
+    let mut limit = 8;
+    if let Some(key) = omega_atom_definitions_start(&lines) {
+        let atoms = lines[key..].iter().take(9).count();
+        selected.extend(key..key + atoms);
+        limit += atoms;
+    }
     // Keep the goal before filling the remaining space with assumptions.
     for (index, line) in lines.iter().enumerate() {
         if !line.trim_start().starts_with('⊢') {
             continue;
         }
         for (next, continuation) in lines.iter().enumerate().skip(index) {
-            if selected.len() == 8
+            if selected.len() == limit
                 || (next > index && !continuation.starts_with(char::is_whitespace))
             {
                 break;
@@ -2269,7 +2292,7 @@ fn bound_proof_context(diagnostic: &mut ProofDiagnostic) {
         }
     }
     for index in 0..lines.len() {
-        if selected.len() == 8 {
+        if selected.len() == limit {
             break;
         }
         selected.insert(index);
@@ -2376,6 +2399,11 @@ fn lean_diagnostics(
     for diagnostic in &mut diagnostics {
         bound_proof_context(diagnostic);
     }
+    diagnostics.sort_by_key(|diagnostic| match diagnostic.severity.as_str() {
+        "error" => 0,
+        "info" => 1,
+        _ => 2,
+    });
     Ok(diagnostics)
 }
 
@@ -5230,21 +5258,87 @@ mod tests {
         );
         assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().line, 3);
         assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().column, 11);
-        assert_eq!(diagnostics[1].severity, "warning");
-        assert_eq!(
-            diagnostics[1].code.as_deref(),
-            Some("linter.unusedVariables")
-        );
+        assert!(diagnostics[1].code.is_none());
         assert!(diagnostics[1].draft_location.is_none());
         assert_eq!(diagnostics[1].checked_location.as_ref().unwrap().column, 1);
+        assert_eq!(diagnostics[1].context, ["⊢ True"]);
+        assert_eq!(diagnostics[2].severity, "warning");
         assert_eq!(
-            diagnostics[1].checked_location.as_ref().unwrap().path,
-            Path::new("Dependency.lean")
+            diagnostics[2].code.as_deref(),
+            Some("linter.unusedVariables")
         );
-        assert!(diagnostics[2].code.is_none());
         assert!(diagnostics[2].draft_location.is_none());
         assert_eq!(diagnostics[2].checked_location.as_ref().unwrap().column, 1);
-        assert_eq!(diagnostics[2].context, ["⊢ True"]);
+        assert_eq!(
+            diagnostics[2].checked_location.as_ref().unwrap().path,
+            Path::new("Dependency.lean")
+        );
+    }
+
+    #[test]
+    fn shortened_reports_drop_warnings_before_error_detail() {
+        let diagnostic = |severity: &str, context: &[&str]| super::ProofDiagnostic {
+            severity: severity.into(),
+            code: None,
+            draft_location: None,
+            checked_location: None,
+            message: String::new(),
+            context: context.iter().map(|line| line.to_string()).collect(),
+            context_omitted_lines: 0,
+        };
+        let mut report = vec![
+            diagnostic("error", &["h : 0 < size", "⊢ goal"]),
+            diagnostic("warning", &["unused"]),
+        ];
+        assert!(super::shorten_proof_report(&mut report));
+        assert_eq!(report.len(), 1);
+        assert!(super::shorten_proof_report(&mut report));
+        assert_eq!(
+            (report[0].context.clone(), report[0].context_omitted_lines),
+            (vec!["⊢ goal".to_string()], 1)
+        );
+        assert!(super::shorten_proof_report(&mut report));
+        assert!(report.is_empty());
+        assert!(!super::shorten_proof_report(&mut report));
+        let mut warnings = vec![diagnostic("warning", &["declaration uses sorry"])];
+        assert!(super::shorten_proof_report(&mut warnings));
+        assert!(warnings[0].context.is_empty());
+    }
+
+    #[test]
+    fn omega_counterexamples_keep_the_definitions_of_their_atoms() {
+        let mut lines = vec!["a possible counterexample may satisfy the constraints".to_string()];
+        lines.extend((0..9).map(|index| format!("  c{index} ≥ 0")));
+        lines.push("where".into());
+        lines.extend(
+            ["a := size", "b := items", "c := items.tdiv size"].map(|atom| format!(" {atom}")),
+        );
+        let mut diagnostic = super::ProofDiagnostic {
+            severity: "error".into(),
+            code: None,
+            draft_location: None,
+            checked_location: None,
+            message: "omega could not prove the goal:".into(),
+            context: lines,
+            context_omitted_lines: 0,
+        };
+        super::bound_proof_context(&mut diagnostic);
+        assert_eq!(diagnostic.context.len(), 12);
+        assert_eq!(diagnostic.context_omitted_lines, 2);
+        assert!(diagnostic.context.ends_with(&[
+            "where".to_string(),
+            " a := size".into(),
+            " b := items".into(),
+            " c := items.tdiv size".into(),
+        ]));
+        let first = super::removable_context_line(&diagnostic.context).unwrap();
+        assert_eq!(first, 0);
+        let constraints = vec![
+            "where".to_string(),
+            " a := size".into(),
+            " b := items".into(),
+        ];
+        assert_eq!(super::removable_context_line(&constraints), Some(2));
     }
 
     #[test]

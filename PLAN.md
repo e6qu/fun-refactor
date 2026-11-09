@@ -78,21 +78,23 @@ and delivered saved proofs with one `fr proof save --deliver` call. `fr proof ch
 Kimi delivered both proofs and GLM none; the grade rejected one Kimi proof for `native_decide`.
 No session used `exact?`. One GLM session hit the client step limit, the other its CPU budget.
 
-**[PR #607](https://github.com/e6qu/fun-refactor/pull/607): page count with library facts.**
+**Completed:** [#607](https://github.com/e6qu/fun-refactor/pull/607) made `fr proof start` list
+library theorems about the model's operations, with exact names from Lean's `.ilean` indexes.
+In the [fourth page-count study](tests/agent-eval/proof-page-count/local-results/summary.json)
+sessions named listed facts and searched library files twice instead of four to eight times.
+None delivered a proof; each ran out of time while fixing Lean errors.
 
-1. Refresh the source-bound evidence for the merged fr change and pass the complete PR gate,
-   hosted page-count controls and both local client admissions.
-2. Freeze four page-count sessions (GLM and Kimi, two each) and run them only after approval.
-   Independently grade every patch and report where the time went.
-   Done: no session delivered a proof, and none used `exact?`. Each spent minutes searching
-   library files. Another workload lowered free disk and the guard stopped one Kimi session.
-   Results: [third study](tests/agent-eval/proof-page-count/results-300s-refused-native-decide/summary.json).
-3. `fr proof start` lists `library_facts`: theorems from the model's imports whose statements
-   use the model's operations. Lean's `.ilean` indexes give exact names. The list skips `@[simp]`,
-   private and deprecated facts. The skill points to this list instead of file search.
+**Next PR: proof-check errors that fit and explain themselves.**
+
+Across the fourth study's checks, `omega` failed 14 times and lint warnings appeared 14 times.
+The response showed omega's counterexample without the `where` lines naming each variable,
+so a model could not tell which term omega treated as unknown. Warnings shared the byte
+budget with errors, and one omega error lost its whole context.
+
+1. List errors first, then Lean's suggestions, then warnings.
+2. Keep omega's variable definitions; drop constraint lines first when space runs short.
+3. Drop warnings before shortening any error while errors remain.
 4. Refresh the evidence, then run another four-session study after approval.
-   Done: no session delivered a proof. Sessions named listed facts and searched files twice.
-   No session used `exact?`. Each ran out of time while fixing Lean errors.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
