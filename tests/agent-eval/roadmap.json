@@ -166,28 +166,28 @@
       "sha256": "273b845ee32a7b4f8195a89701b8766af99a302445571470ba21b32d86cb661f"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-08-release-merge-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-08-release-merge-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-checked-translation/result.json",
+      "sha256": "42bd8d4f852ba122903a3a5d6ea69d896791d31bf1bdb1be51875e05b001036c",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "cd426edb96356adb2153061eaa5567b5fdcd0338415103c4e4b4da8cd1862228"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-09-proof-check-diagnostics-checked-translation"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-08-release-merge-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-08-release-merge-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-python-effects/result.json",
+      "sha256": "7faeb46d1532392a4f8dc031adaa034b8ccb1db4870f478aff144dbd768c562d",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "sha256": "861d2c97f136f49df56d7d944bd2c1b6d29ac70a600cb9a6374c79f8e75e2395"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-09-proof-check-diagnostics-python-effects"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-08-release-merge-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-08-release-merge-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-python-text-flow/result.json",
+      "sha256": "97f40f964a09ee23fb5c8aefd5fe13ad188bd92caf7da11ae9ac4e5f6829bf72",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "be279f53a37f71a8c2ed4da6d118de282f478c65ced9eb209deac912ae1072da"
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-09-proof-check-diagnostics-python-text-flow"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -415,29 +415,29 @@
       "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
+          "evidence": "python-effects",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9,
-              "pointer": "/coverage/examples"
+              "pointer": "/coverage/examples",
+              "equals": 9
             },
             {
-              "equals": 18,
-              "pointer": "/coverage/renamed_and_moved_cases"
+              "pointer": "/coverage/renamed_and_moved_cases",
+              "equals": 18
             },
             {
-              "equals": 36,
-              "pointer": "/coverage/runtime_executions"
+              "pointer": "/coverage/runtime_executions",
+              "equals": 36
             },
             {
-              "equals": true,
-              "pointer": "/coverage/preserves_model_runtime_difference"
+              "pointer": "/coverage/preserves_model_runtime_difference",
+              "equals": true
             }
-          ],
-          "evidence": "python-effects"
+          ]
         }
       ],
       "title": "Handle exceptions and shared mutable values honestly"
@@ -613,29 +613,29 @@
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
       "requires": [
         {
+          "evidence": "checked-translation",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9030,
-              "pointer": "/coverage/exhaustive_pairs"
+              "pointer": "/coverage/exhaustive_pairs",
+              "equals": 9030
             },
             {
-              "equals": 11,
-              "pointer": "/coverage/boundary_pairs"
+              "pointer": "/coverage/boundary_pairs",
+              "equals": 11
             },
             {
-              "equals": 2,
-              "pointer": "/coverage/directions"
+              "pointer": "/coverage/directions",
+              "equals": 2
             },
             {
-              "equals": true,
-              "pointer": "/coverage/renamed_and_moved"
+              "pointer": "/coverage/renamed_and_moved",
+              "equals": true
             }
-          ],
-          "evidence": "checked-translation"
+          ]
         }
       ],
       "title": "Translate a function without changing its promised behavior"
