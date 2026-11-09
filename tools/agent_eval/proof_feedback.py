@@ -295,6 +295,28 @@ def initial_check(binary, project, prepared, env, output, seconds):
     return result.stdout, len(result.stdout.encode()) + len(result.stderr.encode())
 
 
+def unexecuted_prior_attempts():
+    """Count earlier attempts of this run that GitHub held for approval and never ran.
+
+    Approving a held pull-request run starts attempt 2, so the attempt number alone
+    cannot tell an approval from a rerun. Any earlier attempt that ran a job is a rerun.
+    """
+    attempt = int(os.environ['GITHUB_RUN_ATTEMPT'])
+    run = 'repos/%s/actions/runs/%s/attempts/' % (os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_RUN_ID'])
+    for earlier in range(1, attempt):
+        summary = json.loads(subprocess.check_output(['gh', 'api', run + str(earlier)], text=True))
+        jobs = json.loads(subprocess.check_output(['gh', 'api', run + str(earlier) + '/jobs'], text=True))
+        require(summary['conclusion'] == 'action_required' and jobs['total_count'] == 0,
+                'controls rerun after attempt %d ran; start a new run instead' % earlier)
+    return attempt - 1
+
+
+def first_executed_attempt(value):
+    held = value.get('unexecuted_prior_attempts', 0)
+    return (type(value['run_attempt']) is int and type(held) is int and held >= 0
+            and value['run_attempt'] == held + 1)
+
+
 def validate_controls(value, milestone):
     from . import selected_local as local
     from . import selected_local_grade as public
@@ -306,19 +328,22 @@ def validate_controls(value, milestone):
     if milestone == REPAIR_STUDY:
         fields |= {'repair_instruction_sha256', 'handout_changes_rejected', 'argument_type_error_rejected',
                    'lean_arguments', 'lean_imports', 'run_attempt'}
-    require(value['study'] == milestone and set(value) == fields, 'diagnostic controls need their exact declared fields')
+    require(value['study'] == milestone and set(value) - {'unexecuted_prior_attempts'} == fields,
+            'diagnostic controls need their exact declared fields')
+    require('unexecuted_prior_attempts' not in value or milestone in {'M3-facts', REPAIR_STUDY},
+            'diagnostic controls need their exact declared fields')
     if milestone == 'M3-facts':
         require(value['declarations_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] / 'fixtures/declarations.txt')
                 and value['handout_changes_rejected'] is True and value['lean_arguments'] == ['-j1'] and
                 value['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'] and
-                type(value['run_attempt']) is int and value['run_attempt'] == 1,
+                first_executed_attempt(value),
                 'qualify the exact declarations, protected handout and explicit compiler settings')
     if milestone == REPAIR_STUDY:
         require(value['repair_instruction_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                 'fixtures/argument-repair.txt') and value['handout_changes_rejected'] is True and
                 value['argument_type_error_rejected'] is True and value['lean_arguments'] == ['-j1'] and
                 value['lean_imports'] == ['Init.Data.Int.DivMod.Lemmas'] and
-                type(value['run_attempt']) is int and value['run_attempt'] == 1,
+                first_executed_attempt(value),
                 'qualify the exact repair instruction and protected handout')
     expected = {variant: {'status': 'passed', 'accepted': variant == 'reference'} for variant in VARIANTS}
     require(value['passed'] is True and value['live_model_calls'] == 0 and value['controls'] == expected,
@@ -365,7 +390,8 @@ def controls(binary, output, native, milestone):
     if milestone == 'M3-facts':
         result.update(declarations_sha256=qualify_declarations(output), handout_changes_rejected=True,
                       lean_arguments=prepared['lean_arguments'], lean_imports=prepared['lean_imports'],
-                      run_attempt=int(os.environ['GITHUB_RUN_ATTEMPT']))
+                      run_attempt=int(os.environ['GITHUB_RUN_ATTEMPT']),
+                      unexecuted_prior_attempts=unexecuted_prior_attempts())
         common.save(output / 'controls.json', result)
     if milestone == REPAIR_STUDY:
         from .page_count_diagnosis import drafts, REFERENCE
@@ -388,6 +414,7 @@ def controls(binary, output, native, milestone):
                     'reject deleted repair handouts')
         result.update(argument_type_error_rejected=True, lean_arguments=prepared['lean_arguments'],
                       lean_imports=prepared['lean_imports'], run_attempt=int(os.environ['GITHUB_RUN_ATTEMPT']),
+                      unexecuted_prior_attempts=unexecuted_prior_attempts(),
                       repair_instruction_sha256=common.digest(ROOT / CASE_DIRECTORIES[milestone] /
                       'fixtures/argument-repair.txt'), handout_changes_rejected=True)
         common.save(output / 'controls.json', result)

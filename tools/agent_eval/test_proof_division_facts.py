@@ -129,6 +129,32 @@ class DivisionFactsTests(unittest.TestCase):
             missing = dict(receipt);missing.pop('declarations_sha256')
             with self.assertRaisesRegex(ValueError, 'exact declared fields'):
                 feedback.validate_controls(missing, 'M3-facts')
+            feedback.validate_controls({**receipt, 'run_attempt': 2, 'unexecuted_prior_attempts': 1}, 'M3-facts')
+            for held in [{'run_attempt': 3, 'unexecuted_prior_attempts': 1},
+                         {'run_attempt': 2, 'unexecuted_prior_attempts': True},
+                         {'run_attempt': 0, 'unexecuted_prior_attempts': -1}]:
+                with self.assertRaises(ValueError):
+                    feedback.validate_controls({**receipt, **held}, 'M3-facts')
+
+    def test_only_attempts_held_for_approval_precede_qualifying_controls(self):
+        def api(held, ran):
+            def answer(command, text):
+                path = command[-1]
+                if path.endswith('/jobs'):
+                    return '{"total_count": %d}' % (ran if path.endswith('/2/jobs') else 0)
+                return '{"conclusion": "%s"}' % held
+            return answer
+        environment = {'GITHUB_RUN_ATTEMPT': '3', 'GITHUB_REPOSITORY': 'o/r', 'GITHUB_RUN_ID': '9'}
+        with patch.dict(feedback.os.environ, environment), \
+                patch.object(feedback.subprocess, 'check_output', side_effect=api('action_required', 0)):
+            self.assertEqual(feedback.unexecuted_prior_attempts(), 2)
+        for held, ran in [('failure', 0), ('action_required', 4)]:
+            with patch.dict(feedback.os.environ, environment), \
+                    patch.object(feedback.subprocess, 'check_output', side_effect=api(held, ran)), \
+                    self.assertRaisesRegex(ValueError, 'start a new run'):
+                feedback.unexecuted_prior_attempts()
+        with patch.dict(feedback.os.environ, {**environment, 'GITHUB_RUN_ATTEMPT': '1'}):
+            self.assertEqual(feedback.unexecuted_prior_attempts(), 0)
 
     def test_complete_native_setup_keeps_reference_tactics_out_of_live_inputs(self):
         from agent_eval.algorithm_admission import script

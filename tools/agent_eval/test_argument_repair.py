@@ -160,6 +160,9 @@ class ArgumentRepairTests(unittest.TestCase):
                            {'lean_imports': ['Init']}, {'run_attempt': 2}, {'run_attempt': True}):
                 with self.assertRaises(ValueError):
                     feedback.validate_controls({**receipt, **change}, STUDY)
+            feedback.validate_controls({**receipt, 'run_attempt': 2, 'unexecuted_prior_attempts': 1}, STUDY)
+            with self.assertRaises(ValueError):
+                feedback.validate_controls({**receipt, 'run_attempt': 2, 'unexecuted_prior_attempts': 0}, STUDY)
 
 
 if __name__ == '__main__':
