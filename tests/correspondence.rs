@@ -182,7 +182,7 @@ fn retained_correspondence_acceptance_matches_its_inputs() {
         .args([
             "tools/correspondence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-11-09-proof-check-error-order-resumable-correspondence/result.json",
+            "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-resumable-correspondence/result.json",
         ])
         .output()
         .unwrap();
