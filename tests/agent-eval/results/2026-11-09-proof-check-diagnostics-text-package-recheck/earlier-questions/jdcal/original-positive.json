@@ -1,0 +1,4728 @@
+{
+  "assignment_control": {
+    "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+    "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+    "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+    "implicit_exceptions": false,
+    "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+    "schema": "fr-scalar-assignment"
+  },
+  "assumptions": [
+    "scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.",
+    "branch feasibility unchecked",
+    "external rules are caller-supplied contracts.",
+    "Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.",
+    "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.",
+    "Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."
+  ],
+  "budget": {
+    "call_depth": 8,
+    "response_bytes": 1048576,
+    "steps": 4096,
+    "used": 73
+  },
+  "call_binding": {
+    "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+    "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+    "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+    "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+    "evaluation": "Evaluate explicit values once in source order before binding.",
+    "implicit_exceptions": false,
+    "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+    "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+    "schema": "fr-call-binding",
+    "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+  },
+  "claim": "possible-value-propagation",
+  "complete": true,
+  "completion": {
+    "may_raise": false,
+    "normal_return": true
+  },
+  "context": "html",
+  "context_basis": "frcb1:beb7ffd58138b570bd5e06b5a47e749d41f705d3ba95eef1c461f5323154d710",
+  "control_flow": {
+    "jdcal.py::is_leap": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "next",
+          "to": 2
+        },
+        {
+          "from": 4,
+          "rule": "next",
+          "to": 3
+        },
+        {
+          "from": 5,
+          "rule": "next",
+          "to": 4
+        },
+        {
+          "from": 6,
+          "rule": "next",
+          "to": 5
+        },
+        {
+          "from": 7,
+          "rule": "next",
+          "to": 6
+        },
+        {
+          "from": 8,
+          "rule": "next",
+          "to": 7
+        },
+        {
+          "from": 9,
+          "rule": "entry",
+          "to": 8
+        }
+      ],
+      "entry": 9,
+      "exceptional_exit": 1,
+      "function": "jdcal.py::is_leap",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+              "id": "fro1:7c6a879c26629db9e91c81f8267b70cd8e257d6322e4aab5e8449b564b822dda",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 34,
+                    "line": 59
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 59
+                  }
+                },
+                "span": {
+                  "end": 2092,
+                  "start": 2063
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+              "id": "fro1:be52ad6a40190cca74874f454256dc7836eef043b0458a880fd7c9d44816bf53",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 55,
+                    "line": 58
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 58
+                  }
+                },
+                "span": {
+                  "end": 2058,
+                  "start": 2008
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 4,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+              "id": "fro1:b1ddc8350ad08952cd86d56e3f3e97ed2126d5694de8b014207a48d5b714bcb2",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 57
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 57
+                  }
+                },
+                "span": {
+                  "end": 2003,
+                  "start": 1982
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 5,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+              "id": "fro1:93324866fb8d49b54bd5c75b7cac1d9aad9fd95f68720d53775bc51d1bb47057",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 19,
+                    "line": 55
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 55
+                  }
+                },
+                "span": {
+                  "end": 1976,
+                  "start": 1962
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 6,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+              "id": "fro1:2e4f4ce14cba074e96fb0a0a5f52edf94d1d4e9fc587aa0e808879b84bf677c2",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 19,
+                    "line": 54
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 54
+                  }
+                },
+                "span": {
+                  "end": 1957,
+                  "start": 1943
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 7,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+              "id": "fro1:a50a93e9b26efc047fdbde11930cd36012d85e16fb6dfe63f18023fd85bd7f6c",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 53
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 53
+                  }
+                },
+                "span": {
+                  "end": 1938,
+                  "start": 1926
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 8,
+          "operation": "statement",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+              "id": "fro1:c86d3b748e30a366e0dd02135326bd4d51544115018db41227d32e925f456331",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 54,
+                    "line": 52
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 52
+                  }
+                },
+                "span": {
+                  "end": 1921,
+                  "start": 1872
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 9,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+              "id": "fro1:4f854394b34e3dd72801513662b9fdec7ba562dfc2b283a06c213d945052e762",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 34,
+                    "line": 59
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 51
+                  }
+                },
+                "span": {
+                  "end": 2092,
+                  "start": 1849
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    },
+    "question.py::entry": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "entry",
+          "to": 2
+        }
+      ],
+      "entry": 3,
+      "exceptional_exit": 1,
+      "function": "question.py::entry",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+              "id": "fro1:6421266fba582182c0231ef25861ce5454eb3c4f8adb8fffbce4434729cc24b9",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 45,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 93,
+                  "start": 53
+                }
+              },
+              "path": "question.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+              "id": "fro1:68b634f3de09f477bc7831b9401f035f5cb5acc1455a7a8d9175bc6cf975ce0f",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 45,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 3
+                  }
+                },
+                "span": {
+                  "end": 93,
+                  "start": 36
+                }
+              },
+              "path": "question.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    }
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 5,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 124,
+    "unsupported_files": 7
+  },
+  "cutoffs": [],
+  "effect_limits": [
+    {
+      "kind": "implicit-exception",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:7a045499f9efcbf2c1eeeea719e81ce2579c85d55f74173ac48acf4aee7284b7",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 9,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1930
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "unchecked-effect"
+      },
+      "reason": "The scalar model follows values through this operation; it does not establish that arithmetic finishes without an exception."
+    },
+    {
+      "kind": "implicit-exception",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:d2abe47a0daca3dc6dbda13ebb9e67aeaf75514eec1c7d523a7b0339f56e6d99",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 9,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1947
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "unchecked-effect"
+      },
+      "reason": "The scalar model follows values through this operation; it does not establish that arithmetic finishes without an exception."
+    },
+    {
+      "kind": "implicit-exception",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:7cb93e968f25bda2665bd194382be600a7a23a13275f8a602eb974c0cdaac7ff",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 9,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1966
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "unchecked-effect"
+      },
+      "reason": "The scalar model follows values through this operation; it does not establish that arithmetic finishes without an exception."
+    }
+  ],
+  "events": [
+    {
+      "control_node": [
+        "question.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:86f79181b9e55a3a11e79dd27d21553be596de2f038ef7c9999d8436acedf744",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 36
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:11fbb0a37cf2ee77789cbfff30d3c00aef47166d04c7fe04aee52ab3c2d0d86a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 53
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:14fb7f9972c86625eff627446391851d48a50075fee449c1b4cb2d0369f31e0c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 60
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:555b7adfad246cc83b307c21ef2b36ae5ddf8fbdd727b49fa0814d995df7fc99",
+        "location": {
+          "range": {
+            "end": {
+              "col": 44,
+              "line": 4
+            },
+            "start": {
+              "col": 25,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 92,
+            "start": 73
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:fd28e821c8f825ed3d73ca256575fcfc9da162c05c5b80819c377e71afa87ce8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 4
+            },
+            "start": {
+              "col": 31,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 79
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        9
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:520deab33425a93395e1a9c49fcfdb0a2154c78ff914e79db31afba80f7515b8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 1,
+              "line": 51
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 1849
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        8
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:d8c6099d1fa587046411c9e45a25caa13fdea2e18d2ceff7261e465f55a3c7a0",
+        "location": {
+          "range": {
+            "end": {
+              "col": 54,
+              "line": 52
+            },
+            "start": {
+              "col": 5,
+              "line": 52
+            }
+          },
+          "span": {
+            "end": 1921,
+            "start": 1872
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        8
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:adde42554a814e8a61735182e730ec745072ea4740fdf3bfa55728ec269254be",
+        "location": {
+          "range": {
+            "end": {
+              "col": 54,
+              "line": 52
+            },
+            "start": {
+              "col": 5,
+              "line": 52
+            }
+          },
+          "span": {
+            "end": 1921,
+            "start": 1872
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:b31c4a889cf68c044c43619b745258e430ecbbb57fade293e9b36c3a527739cf",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 5,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1926
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:ca33bcdf208f871b92c62be7dea29f671e974b48c0059d9b68b1ef750d34472c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 9,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1930
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 53
+            },
+            "start": {
+              "col": 9,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1934,
+            "start": 1930
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:b65c79616be215642db4f30183ae8b98733c37764e8793a986da466834066136",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 16,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1937
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 53
+            },
+            "start": {
+              "col": 5,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1927,
+            "start": 1926
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:577c4b5ce2237c1fc77632c901f67c63d443c62f543c1687bd140cc49cb75168",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 5,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1943
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:003b004da5816fa9ffc16ff6d66e9379fed7f7b17addf84644f30cc68f3ccea4",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 9,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1947
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:5b22cf003f2d77b1b05d232dd2702b7c0810a1de06e4da01441a7e0278eb0df2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 54
+            },
+            "start": {
+              "col": 9,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1951,
+            "start": 1947
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:f1933a1f4eac1af6280b44e11aa9bee311bc3ad23927cdb706889f0922811cb9",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 16,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1954
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:0d1fdca9e8ac92c0427df7fd843feb66354489c51a56776b0487e81c04c9cb9a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 54
+            },
+            "start": {
+              "col": 5,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1944,
+            "start": 1943
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:d57a0a05addd5495947f9576327e77c1b4c09c8a71b9e9af58c784fc294e03a2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 5,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1962
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:8e9ece6312035f190bbaee137dfd24225824b714225b956cf5f3539c88ac3108",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 9,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1966
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:6fc2dbf8a310c0913c68a975c38ab94411203abf2d0c2f38a7965bc8410dd78f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 55
+            },
+            "start": {
+              "col": 9,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1970,
+            "start": 1966
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:a2b2b1e2a1883d6cd28e25d729ba443ee2c151d1dda91a28ebb5d16c88280225",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 16,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1973
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:af293aff2bced2fa5db3809e7f5ed1134a7af01b4efcb6414b34fae5d32d1b7b",
+        "location": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 55
+            },
+            "start": {
+              "col": 5,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1963,
+            "start": 1962
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:1e7be07ba87eb2ec6f36e16328ec7bcb85780772aca542285dd2c88eafa2fb12",
+        "location": {
+          "range": {
+            "end": {
+              "col": 26,
+              "line": 57
+            },
+            "start": {
+              "col": 5,
+              "line": 57
+            }
+          },
+          "span": {
+            "end": 2003,
+            "start": 1982
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:5d7ab5354b371e44c17198270556ab5504523835a2407eaf50bea1478b35514c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 55,
+              "line": 58
+            },
+            "start": {
+              "col": 5,
+              "line": 58
+            }
+          },
+          "span": {
+            "end": 2058,
+            "start": 2008
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:c45c1990643b3728d8e72a84de12e015cf6f2e3664c6cbc8ae2a7d6c54a279c2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 5,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 2063
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:c44095a003ca58461088e25cb9d6956034578bca8ba4329c68b656e2d3c9f9de",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 12,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 2070
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:c83ab8e1ea1920f47108dff613dd671d86c09fd305e0940ce5d41f628d8a865a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 59
+            },
+            "start": {
+              "col": 12,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2075,
+            "start": 2070
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 59
+            },
+            "start": {
+              "col": 16,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2075,
+            "start": 2074
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:89735fc6e435b5cdb4cfb7dbb55f2ce3244cf1e7bd6a70079d3a0bd570a7fdd6",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 22,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 2080
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:d428a2dbac0ddaef81beee8695c1a5e0aa6d48fa428485d01fea8c89ece4b4d0",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 59
+            },
+            "start": {
+              "col": 23,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2091,
+            "start": 2081
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:71776af449c09b4ba82d00d27d0fb10d11044e2700f136873e9ac706d163671e",
+        "location": {
+          "range": {
+            "end": {
+              "col": 24,
+              "line": 59
+            },
+            "start": {
+              "col": 23,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2082,
+            "start": 2081
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:4fb11530367e0b9a847993f5bd4b85240de375b8aea984f2e0a929f174fc79d1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 59
+            },
+            "start": {
+              "col": 28,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2091,
+            "start": 2086
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:8c8b6ff7b1705d479ce1403cf82bba26aa92d764e69bbbb5e5f78b5a71a7bc67",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 59
+            },
+            "start": {
+              "col": 32,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2091,
+            "start": 2090
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:86f79181b9e55a3a11e79dd27d21553be596de2f038ef7c9999d8436acedf744",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 36
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:11fbb0a37cf2ee77789cbfff30d3c00aef47166d04c7fe04aee52ab3c2d0d86a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 53
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:14fb7f9972c86625eff627446391851d48a50075fee449c1b4cb2d0369f31e0c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 60
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:555b7adfad246cc83b307c21ef2b36ae5ddf8fbdd727b49fa0814d995df7fc99",
+        "location": {
+          "range": {
+            "end": {
+              "col": 44,
+              "line": 4
+            },
+            "start": {
+              "col": 25,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 92,
+            "start": 73
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:fd28e821c8f825ed3d73ca256575fcfc9da162c05c5b80819c377e71afa87ce8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 4
+            },
+            "start": {
+              "col": 31,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 79
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        9
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:520deab33425a93395e1a9c49fcfdb0a2154c78ff914e79db31afba80f7515b8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 1,
+              "line": 51
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 1849
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        8
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:d8c6099d1fa587046411c9e45a25caa13fdea2e18d2ceff7261e465f55a3c7a0",
+        "location": {
+          "range": {
+            "end": {
+              "col": 54,
+              "line": 52
+            },
+            "start": {
+              "col": 5,
+              "line": 52
+            }
+          },
+          "span": {
+            "end": 1921,
+            "start": 1872
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        8
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:adde42554a814e8a61735182e730ec745072ea4740fdf3bfa55728ec269254be",
+        "location": {
+          "range": {
+            "end": {
+              "col": 54,
+              "line": 52
+            },
+            "start": {
+              "col": 5,
+              "line": 52
+            }
+          },
+          "span": {
+            "end": 1921,
+            "start": 1872
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:b31c4a889cf68c044c43619b745258e430ecbbb57fade293e9b36c3a527739cf",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 5,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1926
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:ca33bcdf208f871b92c62be7dea29f671e974b48c0059d9b68b1ef750d34472c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 9,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1930
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 53
+            },
+            "start": {
+              "col": 9,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1934,
+            "start": 1930
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:b65c79616be215642db4f30183ae8b98733c37764e8793a986da466834066136",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 53
+            },
+            "start": {
+              "col": 16,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1938,
+            "start": 1937
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        7
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+        "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 53
+            },
+            "start": {
+              "col": 5,
+              "line": 53
+            }
+          },
+          "span": {
+            "end": 1927,
+            "start": 1926
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:577c4b5ce2237c1fc77632c901f67c63d443c62f543c1687bd140cc49cb75168",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 5,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1943
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:003b004da5816fa9ffc16ff6d66e9379fed7f7b17addf84644f30cc68f3ccea4",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 9,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1947
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:5b22cf003f2d77b1b05d232dd2702b7c0810a1de06e4da01441a7e0278eb0df2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 54
+            },
+            "start": {
+              "col": 9,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1951,
+            "start": 1947
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:f1933a1f4eac1af6280b44e11aa9bee311bc3ad23927cdb706889f0922811cb9",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 54
+            },
+            "start": {
+              "col": 16,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1957,
+            "start": 1954
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        6
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:8",
+        "id": "fro1:0d1fdca9e8ac92c0427df7fd843feb66354489c51a56776b0487e81c04c9cb9a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 54
+            },
+            "start": {
+              "col": 5,
+              "line": 54
+            }
+          },
+          "span": {
+            "end": 1944,
+            "start": 1943
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:d57a0a05addd5495947f9576327e77c1b4c09c8a71b9e9af58c784fc294e03a2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 5,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1962
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:8e9ece6312035f190bbaee137dfd24225824b714225b956cf5f3539c88ac3108",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 9,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1966
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:6fc2dbf8a310c0913c68a975c38ab94411203abf2d0c2f38a7965bc8410dd78f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 55
+            },
+            "start": {
+              "col": 9,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1970,
+            "start": 1966
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:a2b2b1e2a1883d6cd28e25d729ba443ee2c151d1dda91a28ebb5d16c88280225",
+        "location": {
+          "range": {
+            "end": {
+              "col": 19,
+              "line": 55
+            },
+            "start": {
+              "col": 16,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1976,
+            "start": 1973
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        5
+      ],
+      "kind": "definition",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:9",
+        "id": "fro1:af293aff2bced2fa5db3809e7f5ed1134a7af01b4efcb6414b34fae5d32d1b7b",
+        "location": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 55
+            },
+            "start": {
+              "col": 5,
+              "line": 55
+            }
+          },
+          "span": {
+            "end": 1963,
+            "start": 1962
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "definition"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        4
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:1e7be07ba87eb2ec6f36e16328ec7bcb85780772aca542285dd2c88eafa2fb12",
+        "location": {
+          "range": {
+            "end": {
+              "col": 26,
+              "line": 57
+            },
+            "start": {
+              "col": 5,
+              "line": 57
+            }
+          },
+          "span": {
+            "end": 2003,
+            "start": 1982
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:5d7ab5354b371e44c17198270556ab5504523835a2407eaf50bea1478b35514c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 55,
+              "line": 58
+            },
+            "start": {
+              "col": 5,
+              "line": 58
+            }
+          },
+          "span": {
+            "end": 2058,
+            "start": 2008
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:c45c1990643b3728d8e72a84de12e015cf6f2e3664c6cbc8ae2a7d6c54a279c2",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 5,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 2063
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:c44095a003ca58461088e25cb9d6956034578bca8ba4329c68b656e2d3c9f9de",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 12,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 2070
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:c83ab8e1ea1920f47108dff613dd671d86c09fd305e0940ce5d41f628d8a865a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 59
+            },
+            "start": {
+              "col": 12,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2075,
+            "start": 2070
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 17,
+              "line": 59
+            },
+            "start": {
+              "col": 16,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2075,
+            "start": 2074
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:89735fc6e435b5cdb4cfb7dbb55f2ce3244cf1e7bd6a70079d3a0bd570a7fdd6",
+        "location": {
+          "range": {
+            "end": {
+              "col": 34,
+              "line": 59
+            },
+            "start": {
+              "col": 22,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2092,
+            "start": 2080
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:d428a2dbac0ddaef81beee8695c1a5e0aa6d48fa428485d01fea8c89ece4b4d0",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 59
+            },
+            "start": {
+              "col": 23,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2091,
+            "start": 2081
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:71776af449c09b4ba82d00d27d0fb10d11044e2700f136873e9ac706d163671e",
+        "location": {
+          "range": {
+            "end": {
+              "col": 24,
+              "line": 59
+            },
+            "start": {
+              "col": 23,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2082,
+            "start": 2081
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:4fb11530367e0b9a847993f5bd4b85240de375b8aea984f2e0a929f174fc79d1",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 59
+            },
+            "start": {
+              "col": 28,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2091,
+            "start": 2086
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "jdcal.py::is_leap",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+        "id": "fro1:8c8b6ff7b1705d479ce1403cf82bba26aa92d764e69bbbb5e5f78b5a71a7bc67",
+        "location": {
+          "range": {
+            "end": {
+              "col": 33,
+              "line": 59
+            },
+            "start": {
+              "col": 32,
+              "line": 59
+            }
+          },
+          "span": {
+            "end": 2091,
+            "start": 2090
+          }
+        },
+        "path": "jdcal.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:86f79181b9e55a3a11e79dd27d21553be596de2f038ef7c9999d8436acedf744",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 36
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:11fbb0a37cf2ee77789cbfff30d3c00aef47166d04c7fe04aee52ab3c2d0d86a",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 53
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:14fb7f9972c86625eff627446391851d48a50075fee449c1b4cb2d0369f31e0c",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 60
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:555b7adfad246cc83b307c21ef2b36ae5ddf8fbdd727b49fa0814d995df7fc99",
+        "location": {
+          "range": {
+            "end": {
+              "col": 44,
+              "line": 4
+            },
+            "start": {
+              "col": 25,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 92,
+            "start": 73
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:fd28e821c8f825ed3d73ca256575fcfc9da162c05c5b80819c377e71afa87ce8",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 4
+            },
+            "start": {
+              "col": 31,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 91,
+            "start": 79
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "use"
+      }
+    }
+  ],
+  "exceptional_returns": {},
+  "execution": {
+    "analysis_steps": 73,
+    "kind": "analyzed",
+    "reason": "no-retained-result"
+  },
+  "expression_control": {
+    "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+    "comparisons": "ordered operands; each comparison result may be true or false.",
+    "effects": "join normal, sink and explicit-raise alternatives.",
+    "evaluation": "left-to-right; each operand once per expression transfer.",
+    "path_feasibility": false,
+    "schema": "fr-expression-control",
+    "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+    "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+  },
+  "function_summaries": {
+    "claim": "may-value derivations in the declared model; neither feasible paths nor runtime termination.",
+    "context": "symbolic explicit parameters; bind each call independently and fill omitted immutable scalar defaults.",
+    "converged": true,
+    "effects": "explicit scalar returns, sink contracts and explicit raises; no heap effects.",
+    "enabled": true,
+    "function_limit": 64,
+    "functions": {
+      "jdcal.py::is_leap": {
+        "callees": [],
+        "evaluations": 2,
+        "exceptional_returns": {},
+        "may_raise": false,
+        "normal_return": true,
+        "parameters": [
+          "argument:jdcal.py::is_leap:0"
+        ],
+        "returns": {
+          "argument:jdcal.py::is_leap:0": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+                "id": "fro1:732919de413cb8654362cdba7b93de2f0870e87664215bb6f60fba4c5fa3fe90",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 51
+                    },
+                    "start": {
+                      "col": 13,
+                      "line": 51
+                    }
+                  },
+                  "span": {
+                    "end": 1865,
+                    "start": 1861
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "summary-parameter"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+                "id": "fro1:17cc851314f204b3cf31bbbf11a347ecb61b2d0b7254858cec057c06b04cd98c",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 51
+                    },
+                    "start": {
+                      "col": 13,
+                      "line": 51
+                    }
+                  },
+                  "span": {
+                    "end": 1865,
+                    "start": 1861
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "parameter"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 53
+                    },
+                    "start": {
+                      "col": 9,
+                      "line": 53
+                    }
+                  },
+                  "span": {
+                    "end": 1934,
+                    "start": 1930
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                "id": "fro1:264c74304ef5df0361c7ccbbf06f444bfe9a79be2678b948fd48dcef62950a98",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 53
+                    },
+                    "start": {
+                      "col": 9,
+                      "line": 53
+                    }
+                  },
+                  "span": {
+                    "end": 1938,
+                    "start": 1930
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "expression"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 6,
+                      "line": 53
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 53
+                    }
+                  },
+                  "span": {
+                    "end": 1927,
+                    "start": 1926
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "definition"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 16,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2075,
+                    "start": 2074
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:2363c759b3285a4744f34427b76388e253e44559e17f504ccb96077dc704eda9",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2075,
+                    "start": 2070
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "expression"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:99471c735f9afd99805da2bfea759f49cd9d0819bc50271a1aa5ca77383a1b26",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 34,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2092,
+                    "start": 2070
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "expression"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:47106dbf2a33912c95e7740ccd4c4eff410a530520501816c460e073b34372aa",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 34,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2092,
+                    "start": 2063
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "return"
+              }
+            ],
+            "origin": "argument:jdcal.py::is_leap:0"
+          }
+        },
+        "signature": [
+          {
+            "default": null,
+            "kind": "positional-or-keyword",
+            "name": "year",
+            "site": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+              "id": "fro1:732919de413cb8654362cdba7b93de2f0870e87664215bb6f60fba4c5fa3fe90",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 51
+                  },
+                  "start": {
+                    "col": 13,
+                    "line": 51
+                  }
+                },
+                "span": {
+                  "end": 1865,
+                  "start": 1861
+                }
+              },
+              "path": "jdcal.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "summary-parameter"
+            }
+          }
+        ],
+        "sinks": {}
+      },
+      "question.py::entry": {
+        "callees": [
+          "jdcal.py::is_leap"
+        ],
+        "evaluations": 3,
+        "exceptional_returns": {},
+        "may_raise": false,
+        "normal_return": true,
+        "parameters": [],
+        "returns": {
+          "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+                "id": "fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 43,
+                      "line": 4
+                    },
+                    "start": {
+                      "col": 31,
+                      "line": 4
+                    }
+                  },
+                  "span": {
+                    "end": 91,
+                    "start": 79
+                  }
+                },
+                "path": "question.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "source"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+                "id": "fro1:732919de413cb8654362cdba7b93de2f0870e87664215bb6f60fba4c5fa3fe90",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 51
+                    },
+                    "start": {
+                      "col": 13,
+                      "line": 51
+                    }
+                  },
+                  "span": {
+                    "end": 1865,
+                    "start": 1861
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "summary-parameter"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+                "id": "fro1:17cc851314f204b3cf31bbbf11a347ecb61b2d0b7254858cec057c06b04cd98c",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 51
+                    },
+                    "start": {
+                      "col": 13,
+                      "line": 51
+                    }
+                  },
+                  "span": {
+                    "end": 1865,
+                    "start": 1861
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "parameter"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 53
+                    },
+                    "start": {
+                      "col": 9,
+                      "line": 53
+                    }
+                  },
+                  "span": {
+                    "end": 1934,
+                    "start": 1930
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                "id": "fro1:264c74304ef5df0361c7ccbbf06f444bfe9a79be2678b948fd48dcef62950a98",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 53
+                    },
+                    "start": {
+                      "col": 9,
+                      "line": 53
+                    }
+                  },
+                  "span": {
+                    "end": 1938,
+                    "start": 1930
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "expression"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 6,
+                      "line": 53
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 53
+                    }
+                  },
+                  "span": {
+                    "end": 1927,
+                    "start": 1926
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "definition"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 16,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2075,
+                    "start": 2074
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "use"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:2363c759b3285a4744f34427b76388e253e44559e17f504ccb96077dc704eda9",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 17,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2075,
+                    "start": 2070
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "expression"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:99471c735f9afd99805da2bfea759f49cd9d0819bc50271a1aa5ca77383a1b26",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 34,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 12,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2092,
+                    "start": 2070
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "expression"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                "id": "fro1:47106dbf2a33912c95e7740ccd4c4eff410a530520501816c460e073b34372aa",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 34,
+                      "line": 59
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 59
+                    }
+                  },
+                  "span": {
+                    "end": 2092,
+                    "start": 2063
+                  }
+                },
+                "path": "jdcal.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "return"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+                "id": "fro1:f7c7df3887aff62e045771ff67946e3a7813946a42e20cf0bff5b7c7e1cd8c66",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 44,
+                      "line": 4
+                    },
+                    "start": {
+                      "col": 25,
+                      "line": 4
+                    }
+                  },
+                  "span": {
+                    "end": 92,
+                    "start": 73
+                  }
+                },
+                "path": "question.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "call-result"
+              },
+              {
+                "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+                "id": "fro1:9b66039d047f49a603c4497657732448e05d3fb642c44ee413edc6fed85a9acf",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 45,
+                      "line": 4
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 4
+                    }
+                  },
+                  "span": {
+                    "end": 93,
+                    "start": 53
+                  }
+                },
+                "path": "question.py",
+                "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                "role": "return"
+              }
+            ],
+            "origin": "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5"
+          }
+        },
+        "signature": [],
+        "sinks": {
+          "fro1:4b6c54ffdf83f5d1859b3eb3c257d3b8bf0d357adda89cee49ab997b0bf2330f": {
+            "flow": {
+              "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5": {
+                "occurrences": [
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+                    "id": "fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 43,
+                          "line": 4
+                        },
+                        "start": {
+                          "col": 31,
+                          "line": 4
+                        }
+                      },
+                      "span": {
+                        "end": 91,
+                        "start": 79
+                      }
+                    },
+                    "path": "question.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "source"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+                    "id": "fro1:732919de413cb8654362cdba7b93de2f0870e87664215bb6f60fba4c5fa3fe90",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 17,
+                          "line": 51
+                        },
+                        "start": {
+                          "col": 13,
+                          "line": 51
+                        }
+                      },
+                      "span": {
+                        "end": 1865,
+                        "start": 1861
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "summary-parameter"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+                    "id": "fro1:17cc851314f204b3cf31bbbf11a347ecb61b2d0b7254858cec057c06b04cd98c",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 17,
+                          "line": 51
+                        },
+                        "start": {
+                          "col": 13,
+                          "line": 51
+                        }
+                      },
+                      "span": {
+                        "end": 1865,
+                        "start": 1861
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "parameter"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                    "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 13,
+                          "line": 53
+                        },
+                        "start": {
+                          "col": 9,
+                          "line": 53
+                        }
+                      },
+                      "span": {
+                        "end": 1934,
+                        "start": 1930
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "use"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                    "id": "fro1:264c74304ef5df0361c7ccbbf06f444bfe9a79be2678b948fd48dcef62950a98",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 17,
+                          "line": 53
+                        },
+                        "start": {
+                          "col": 9,
+                          "line": 53
+                        }
+                      },
+                      "span": {
+                        "end": 1938,
+                        "start": 1930
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "expression"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+                    "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 6,
+                          "line": 53
+                        },
+                        "start": {
+                          "col": 5,
+                          "line": 53
+                        }
+                      },
+                      "span": {
+                        "end": 1927,
+                        "start": 1926
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "definition"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                    "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 17,
+                          "line": 59
+                        },
+                        "start": {
+                          "col": 16,
+                          "line": 59
+                        }
+                      },
+                      "span": {
+                        "end": 2075,
+                        "start": 2074
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "use"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                    "id": "fro1:2363c759b3285a4744f34427b76388e253e44559e17f504ccb96077dc704eda9",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 17,
+                          "line": 59
+                        },
+                        "start": {
+                          "col": 12,
+                          "line": 59
+                        }
+                      },
+                      "span": {
+                        "end": 2075,
+                        "start": 2070
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "expression"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                    "id": "fro1:99471c735f9afd99805da2bfea759f49cd9d0819bc50271a1aa5ca77383a1b26",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 34,
+                          "line": 59
+                        },
+                        "start": {
+                          "col": 12,
+                          "line": 59
+                        }
+                      },
+                      "span": {
+                        "end": 2092,
+                        "start": 2070
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "expression"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+                    "id": "fro1:47106dbf2a33912c95e7740ccd4c4eff410a530520501816c460e073b34372aa",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 34,
+                          "line": 59
+                        },
+                        "start": {
+                          "col": 5,
+                          "line": 59
+                        }
+                      },
+                      "span": {
+                        "end": 2092,
+                        "start": 2063
+                      }
+                    },
+                    "path": "jdcal.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "return"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+                    "id": "fro1:f7c7df3887aff62e045771ff67946e3a7813946a42e20cf0bff5b7c7e1cd8c66",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 44,
+                          "line": 4
+                        },
+                        "start": {
+                          "col": 25,
+                          "line": 4
+                        }
+                      },
+                      "span": {
+                        "end": 92,
+                        "start": 73
+                      }
+                    },
+                    "path": "question.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "call-result"
+                  },
+                  {
+                    "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+                    "id": "fro1:4b6c54ffdf83f5d1859b3eb3c257d3b8bf0d357adda89cee49ab997b0bf2330f",
+                    "location": {
+                      "range": {
+                        "end": {
+                          "col": 45,
+                          "line": 4
+                        },
+                        "start": {
+                          "col": 12,
+                          "line": 4
+                        }
+                      },
+                      "span": {
+                        "end": 93,
+                        "start": 60
+                      }
+                    },
+                    "path": "question.py",
+                    "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+                    "role": "sink"
+                  }
+                ],
+                "origin": "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5"
+              }
+            },
+            "sink": "record_value",
+            "site": {
+              "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+              "id": "fro1:4b6c54ffdf83f5d1859b3eb3c257d3b8bf0d357adda89cee49ab997b0bf2330f",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 45,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 93,
+                  "start": 60
+                }
+              },
+              "path": "question.py",
+              "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+              "role": "sink"
+            }
+          }
+        }
+      }
+    },
+    "mutation_authority": false,
+    "recursion": "monotone least fixed point over finite origin and effect sets.",
+    "rounds": 3,
+    "schema": "fr-function-summaries"
+  },
+  "handle_prefix": "frp1:1c60169246f54bb5226f19ede1238952:",
+  "initialization": {
+    "by_file": {},
+    "omitted": 0,
+    "sites": []
+  },
+  "input_digest": "d40cebc825758b0c2d6525f43e2efbece6424a100e60b6e83266b2cc6bdf8954",
+  "inputs": {
+    "analyzer": "d37aeddbf7ac46aa18e2a47eb08859a12b757efe9a6c260e7831b4103401bff5",
+    "assignment_control": {
+      "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+      "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+      "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+      "implicit_exceptions": false,
+      "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+      "schema": "fr-scalar-assignment"
+    },
+    "budget": {
+      "bytes": 1048576,
+      "depth": 8,
+      "steps": 4096
+    },
+    "call_binding": {
+      "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+      "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+      "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+      "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+      "evaluation": "Evaluate explicit values once in source order before binding.",
+      "implicit_exceptions": false,
+      "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+      "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+      "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+      "schema": "fr-call-binding",
+      "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+    },
+    "completion_control": {
+      "block_limit": 512,
+      "classes": [
+        "ValueError",
+        "TypeError",
+        "Exception",
+        "BaseException"
+      ],
+      "except": "Ordered unbound builtin handlers; explicit raises only.",
+      "finally": "Capture values before cleanup; cleanup may replace exits; nest separately.",
+      "handler_nodes": 128,
+      "implicit_exceptions": false,
+      "local_call_raises": true,
+      "reraise": "Lexically active known error.",
+      "schema": "fr-scalar-completion"
+    },
+    "configuration": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "context": "html",
+    "dependency_scope": "static module closure, import candidates including missing paths, configuration, rules and analyzer.",
+    "expression_control": {
+      "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+      "comparisons": "ordered operands; each comparison result may be true or false.",
+      "effects": "join normal, sink and explicit-raise alternatives.",
+      "evaluation": "left-to-right; each operand once per expression transfer.",
+      "path_feasibility": false,
+      "schema": "fr-expression-control",
+      "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+      "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+    },
+    "modules": {
+      "complete": true,
+      "cutoffs": [],
+      "entry": {
+        "admitted": true,
+        "candidates": {
+          "question": {
+            "status": "missing"
+          },
+          "question.py": {
+            "digest": "17b8c6e43c9a2c1f2afebef6a78829d117cdc5b86311fd23357c5df98c1add2d",
+            "status": "source"
+          },
+          "question.pyi": {
+            "status": "missing"
+          },
+          "question/__init__.py": {
+            "status": "missing"
+          },
+          "question/__init__.pyi": {
+            "status": "missing"
+          }
+        },
+        "module": "question",
+        "namespaces": [],
+        "opaque_candidates": [],
+        "packages": [],
+        "target": "question.py"
+      },
+      "files": {
+        "jdcal.py": "8bc5ebdc39b00f5b057748d77c1bd99649fbd58985e88595fe482553f6dd12c0",
+        "question.py": "17b8c6e43c9a2c1f2afebef6a78829d117cdc5b86311fd23357c5df98c1add2d"
+      },
+      "function_aliases": [],
+      "limits": {
+        "binding_chain": 16,
+        "imports": 128,
+        "module_components": 16,
+        "modules": 16,
+        "names_per_import": 128,
+        "source_bytes": 262144
+      },
+      "lookups": [
+        {
+          "admitted": true,
+          "alias": "relay",
+          "binding_chain": [
+            {
+              "name": "is_leap",
+              "path": "jdcal.py"
+            }
+          ],
+          "candidates": {
+            "jdcal": {
+              "status": "missing"
+            },
+            "jdcal.py": {
+              "digest": "8bc5ebdc39b00f5b057748d77c1bd99649fbd58985e88595fe482553f6dd12c0",
+              "status": "source"
+            },
+            "jdcal.pyi": {
+              "status": "missing"
+            },
+            "jdcal/__init__.py": {
+              "status": "missing"
+            },
+            "jdcal/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "exports": null,
+          "future": false,
+          "importer": "question.py",
+          "member": "is_leap",
+          "members": [],
+          "module": "jdcal",
+          "names": [
+            [
+              "relay",
+              "is_leap"
+            ]
+          ],
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "relay",
+          "resolution": "function",
+          "submodule": null,
+          "target": "jdcal.py",
+          "terminal_module": null
+        },
+        {
+          "admitted": false,
+          "alias": "division",
+          "binding_chain": [],
+          "candidates": {
+            "__future__": {
+              "status": "missing"
+            },
+            "__future__.py": {
+              "status": "missing"
+            },
+            "__future__.pyi": {
+              "status": "missing"
+            },
+            "__future__/__init__.py": {
+              "status": "missing"
+            },
+            "__future__/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "exports": null,
+          "future": true,
+          "importer": "jdcal.py",
+          "member": "division",
+          "members": [],
+          "module": "__future__",
+          "names": [
+            [
+              "division",
+              "division"
+            ]
+          ],
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "division",
+          "resolution": "future",
+          "submodule": null,
+          "target": null,
+          "terminal_module": null
+        },
+        {
+          "admitted": false,
+          "alias": "print_function",
+          "binding_chain": [],
+          "candidates": {
+            "__future__": {
+              "status": "missing"
+            },
+            "__future__.py": {
+              "status": "missing"
+            },
+            "__future__.pyi": {
+              "status": "missing"
+            },
+            "__future__/__init__.py": {
+              "status": "missing"
+            },
+            "__future__/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "exports": null,
+          "future": true,
+          "importer": "jdcal.py",
+          "member": "print_function",
+          "members": [],
+          "module": "__future__",
+          "names": [
+            [
+              "print_function",
+              "print_function"
+            ]
+          ],
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "print_function",
+          "resolution": "future",
+          "submodule": null,
+          "target": null,
+          "terminal_module": null
+        }
+      ],
+      "metadata_imports": [],
+      "namespaces": [],
+      "policy": "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Supported future directives need absent local __future__ candidates. Imported non-entry modules may omit one exact main guard without other __name__ uses or alternatives. Dynamic imports, merged namespaces and search paths stay unchecked.",
+      "schema": "fr-flow-modules",
+      "standard_imports": [
+        {
+          "admitted": false,
+          "alias": "math",
+          "candidates": {
+            "math": {
+              "status": "missing"
+            },
+            "math.py": {
+              "status": "missing"
+            },
+            "math.pyi": {
+              "status": "missing"
+            },
+            "math/__init__.py": {
+              "status": "missing"
+            },
+            "math/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "jdcal.py",
+          "member": null,
+          "module": "math",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "math",
+          "target": null
+        }
+      ],
+      "standard_library": {
+        "boundary": "Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching, overloaded protocols or implicit exception model.",
+        "calls": "Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
+        "imports": "Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.",
+        "modules": {
+          "builtins": [
+            "abs",
+            "int",
+            "float",
+            "str",
+            "bool",
+            "round",
+            "min",
+            "max",
+            "ValueError",
+            "TypeError",
+            "Exception",
+            "BaseException"
+          ],
+          "math": [
+            "ceil",
+            "floor",
+            "trunc",
+            "sqrt",
+            "fabs",
+            "isfinite",
+            "isinf",
+            "isnan",
+            "inf",
+            "nan",
+            "pi",
+            "e",
+            "tau",
+            "modf"
+          ]
+        },
+        "namespace_digest": "d566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7",
+        "runtime": "CPython 3.14.8",
+        "schema": "fr-python-standard-library",
+        "string_methods": {
+          "arguments": "Positional text arguments only; stripping also accepts None, and replacement counts require literal integers.",
+          "boundary": "Unknown receivers, expanded arguments and unsupported signatures remain incomplete. These calls do not establish runtime exception safety.",
+          "evaluation": "Receiver once, then arguments left-to-right; preserve all possible origins without mutating the receiver.",
+          "methods": [
+            [
+              "lower",
+              0,
+              0
+            ],
+            [
+              "upper",
+              0,
+              0
+            ],
+            [
+              "casefold",
+              0,
+              0
+            ],
+            [
+              "capitalize",
+              0,
+              0
+            ],
+            [
+              "swapcase",
+              0,
+              0
+            ],
+            [
+              "title",
+              0,
+              0
+            ],
+            [
+              "strip",
+              0,
+              1
+            ],
+            [
+              "lstrip",
+              0,
+              1
+            ],
+            [
+              "rstrip",
+              0,
+              1
+            ],
+            [
+              "removeprefix",
+              1,
+              1
+            ],
+            [
+              "removesuffix",
+              1,
+              1
+            ],
+            [
+              "replace",
+              2,
+              3
+            ]
+          ],
+          "receiver": "Plain str from literals, checked str conversions, local bindings and normal helper summaries; annotations do not establish runtime types.",
+          "receiver_nodes": 128
+        }
+      },
+      "standard_shadowing": [],
+      "value_aliases": [],
+      "value_bindings": []
+    },
+    "rule_file": "rules.json",
+    "rules": "d97fd5a879ecad56845158dd93e551c5ded209e1c357f0dae766054e5e663659",
+    "selection": {
+      "name": "entry",
+      "span": {
+        "end": 93,
+        "start": 36
+      }
+    },
+    "source": {
+      "digest": "17b8c6e43c9a2c1f2afebef6a78829d117cdc5b86311fd23357c5df98c1add2d",
+      "path": "question.py"
+    },
+    "summary_mode": true
+  },
+  "origins": {
+    "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5": {
+      "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+      "id": "fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5",
+      "location": {
+        "range": {
+          "end": {
+            "col": 43,
+            "line": 4
+          },
+          "start": {
+            "col": 31,
+            "line": 4
+          }
+        },
+        "span": {
+          "end": 91,
+          "start": 79
+        }
+      },
+      "path": "question.py",
+      "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+      "role": "source"
+    }
+  },
+  "returns": {
+    "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5": {
+      "occurrences": [
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+          "id": "fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5",
+          "location": {
+            "range": {
+              "end": {
+                "col": 43,
+                "line": 4
+              },
+              "start": {
+                "col": 31,
+                "line": 4
+              }
+            },
+            "span": {
+              "end": 91,
+              "start": 79
+            }
+          },
+          "path": "question.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "source"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+          "id": "fro1:732919de413cb8654362cdba7b93de2f0870e87664215bb6f60fba4c5fa3fe90",
+          "location": {
+            "range": {
+              "end": {
+                "col": 17,
+                "line": 51
+              },
+              "start": {
+                "col": 13,
+                "line": 51
+              }
+            },
+            "span": {
+              "end": 1865,
+              "start": 1861
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "summary-parameter"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+          "id": "fro1:17cc851314f204b3cf31bbbf11a347ecb61b2d0b7254858cec057c06b04cd98c",
+          "location": {
+            "range": {
+              "end": {
+                "col": 17,
+                "line": 51
+              },
+              "start": {
+                "col": 13,
+                "line": 51
+              }
+            },
+            "span": {
+              "end": 1865,
+              "start": 1861
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "parameter"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+          "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+          "location": {
+            "range": {
+              "end": {
+                "col": 13,
+                "line": 53
+              },
+              "start": {
+                "col": 9,
+                "line": 53
+              }
+            },
+            "span": {
+              "end": 1934,
+              "start": 1930
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "use"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+          "id": "fro1:264c74304ef5df0361c7ccbbf06f444bfe9a79be2678b948fd48dcef62950a98",
+          "location": {
+            "range": {
+              "end": {
+                "col": 17,
+                "line": 53
+              },
+              "start": {
+                "col": 9,
+                "line": 53
+              }
+            },
+            "span": {
+              "end": 1938,
+              "start": 1930
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "expression"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+          "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+          "location": {
+            "range": {
+              "end": {
+                "col": 6,
+                "line": 53
+              },
+              "start": {
+                "col": 5,
+                "line": 53
+              }
+            },
+            "span": {
+              "end": 1927,
+              "start": 1926
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "definition"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+          "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+          "location": {
+            "range": {
+              "end": {
+                "col": 17,
+                "line": 59
+              },
+              "start": {
+                "col": 16,
+                "line": 59
+              }
+            },
+            "span": {
+              "end": 2075,
+              "start": 2074
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "use"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+          "id": "fro1:2363c759b3285a4744f34427b76388e253e44559e17f504ccb96077dc704eda9",
+          "location": {
+            "range": {
+              "end": {
+                "col": 17,
+                "line": 59
+              },
+              "start": {
+                "col": 12,
+                "line": 59
+              }
+            },
+            "span": {
+              "end": 2075,
+              "start": 2070
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "expression"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+          "id": "fro1:99471c735f9afd99805da2bfea759f49cd9d0819bc50271a1aa5ca77383a1b26",
+          "location": {
+            "range": {
+              "end": {
+                "col": 34,
+                "line": 59
+              },
+              "start": {
+                "col": 12,
+                "line": 59
+              }
+            },
+            "span": {
+              "end": 2092,
+              "start": 2070
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "expression"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+          "id": "fro1:47106dbf2a33912c95e7740ccd4c4eff410a530520501816c460e073b34372aa",
+          "location": {
+            "range": {
+              "end": {
+                "col": 34,
+                "line": 59
+              },
+              "start": {
+                "col": 5,
+                "line": 59
+              }
+            },
+            "span": {
+              "end": 2092,
+              "start": 2063
+            }
+          },
+          "path": "jdcal.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "return"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+          "id": "fro1:f7c7df3887aff62e045771ff67946e3a7813946a42e20cf0bff5b7c7e1cd8c66",
+          "location": {
+            "range": {
+              "end": {
+                "col": 44,
+                "line": 4
+              },
+              "start": {
+                "col": 25,
+                "line": 4
+              }
+            },
+            "span": {
+              "end": 92,
+              "start": 73
+            }
+          },
+          "path": "question.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "call-result"
+        },
+        {
+          "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+          "id": "fro1:9b66039d047f49a603c4497657732448e05d3fb642c44ee413edc6fed85a9acf",
+          "location": {
+            "range": {
+              "end": {
+                "col": 45,
+                "line": 4
+              },
+              "start": {
+                "col": 5,
+                "line": 4
+              }
+            },
+            "span": {
+              "end": 93,
+              "start": 53
+            }
+          },
+          "path": "question.py",
+          "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+          "role": "return"
+        }
+      ],
+      "origin": "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5"
+    }
+  },
+  "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+  "rules_digest": "d97fd5a879ecad56845158dd93e551c5ded209e1c357f0dae766054e5e663659",
+  "runtime_effects": {
+    "complete_means": "The scalar model finished; it does not check runtime exception safety or shared mutable objects.",
+    "exception_safety_established": false,
+    "shared_mutable_values_supported": false
+  },
+  "schema": "fr-dataflow-1",
+  "scope": "selected function and static workspace-local module/package closure.",
+  "semantics": "python-scalar-summaries",
+  "summaries": [
+    {
+      "block_visits": 2,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "question.py::entry",
+      "inputs": [],
+      "return_origins": []
+    },
+    {
+      "block_visits": 9,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "jdcal.py::is_leap",
+      "inputs": [
+        [
+          "argument:jdcal.py::is_leap:0"
+        ]
+      ],
+      "return_origins": [
+        "argument:jdcal.py::is_leap:0"
+      ]
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "question.py::entry",
+      "inputs": [],
+      "return_origins": [
+        "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5"
+      ]
+    },
+    {
+      "block_visits": 9,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "jdcal.py::is_leap",
+      "inputs": [
+        [
+          "argument:jdcal.py::is_leap:0"
+        ]
+      ],
+      "return_origins": [
+        "argument:jdcal.py::is_leap:0"
+      ]
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "question.py::entry",
+      "inputs": [],
+      "return_origins": [
+        "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5"
+      ]
+    }
+  ],
+  "target": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+  "witnesses": [
+    {
+      "claim": "possible-value-propagation; path feasibility unchecked.",
+      "context": "html",
+      "rules": "package-question",
+      "sink": "record_value",
+      "site": {
+        "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+        "id": "fro1:4b6c54ffdf83f5d1859b3eb3c257d3b8bf0d357adda89cee49ab997b0bf2330f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 45,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 93,
+            "start": 60
+          }
+        },
+        "path": "question.py",
+        "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+        "role": "sink"
+      },
+      "trace": {
+        "occurrences": [
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+            "id": "fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 43,
+                  "line": 4
+                },
+                "start": {
+                  "col": 31,
+                  "line": 4
+                }
+              },
+              "span": {
+                "end": 91,
+                "start": 79
+              }
+            },
+            "path": "question.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "source"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+            "id": "fro1:732919de413cb8654362cdba7b93de2f0870e87664215bb6f60fba4c5fa3fe90",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 51
+                },
+                "start": {
+                  "col": 13,
+                  "line": 51
+                }
+              },
+              "span": {
+                "end": 1865,
+                "start": 1861
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "summary-parameter"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:6",
+            "id": "fro1:17cc851314f204b3cf31bbbf11a347ecb61b2d0b7254858cec057c06b04cd98c",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 51
+                },
+                "start": {
+                  "col": 13,
+                  "line": 51
+                }
+              },
+              "span": {
+                "end": 1865,
+                "start": 1861
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "parameter"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+            "id": "fro1:632376d5a18f97c6e97db9b6918424081f6fb0cd0d3b44cd4337c27ee593cb19",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 53
+                },
+                "start": {
+                  "col": 9,
+                  "line": 53
+                }
+              },
+              "span": {
+                "end": 1934,
+                "start": 1930
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "use"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+            "id": "fro1:264c74304ef5df0361c7ccbbf06f444bfe9a79be2678b948fd48dcef62950a98",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 53
+                },
+                "start": {
+                  "col": 9,
+                  "line": 53
+                }
+              },
+              "span": {
+                "end": 1938,
+                "start": 1930
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "expression"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:7",
+            "id": "fro1:5c6c635d8d049c500ebc31df65bfe94d0c515aabf422471db57524e7fec84cc3",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 6,
+                  "line": 53
+                },
+                "start": {
+                  "col": 5,
+                  "line": 53
+                }
+              },
+              "span": {
+                "end": 1927,
+                "start": 1926
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "definition"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+            "id": "fro1:cafa585c23d961851b09d28d784b8e022a367344c9c4546c7c2515d38f21e38a",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 59
+                },
+                "start": {
+                  "col": 16,
+                  "line": 59
+                }
+              },
+              "span": {
+                "end": 2075,
+                "start": 2074
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "use"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+            "id": "fro1:2363c759b3285a4744f34427b76388e253e44559e17f504ccb96077dc704eda9",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 59
+                },
+                "start": {
+                  "col": 12,
+                  "line": 59
+                }
+              },
+              "span": {
+                "end": 2075,
+                "start": 2070
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "expression"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+            "id": "fro1:99471c735f9afd99805da2bfea759f49cd9d0819bc50271a1aa5ca77383a1b26",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 34,
+                  "line": 59
+                },
+                "start": {
+                  "col": 12,
+                  "line": 59
+                }
+              },
+              "span": {
+                "end": 2092,
+                "start": 2070
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "expression"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:5",
+            "id": "fro1:47106dbf2a33912c95e7740ccd4c4eff410a530520501816c460e073b34372aa",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 34,
+                  "line": 59
+                },
+                "start": {
+                  "col": 5,
+                  "line": 59
+                }
+              },
+              "span": {
+                "end": 2092,
+                "start": 2063
+              }
+            },
+            "path": "jdcal.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "return"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+            "id": "fro1:f7c7df3887aff62e045771ff67946e3a7813946a42e20cf0bff5b7c7e1cd8c66",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 44,
+                  "line": 4
+                },
+                "start": {
+                  "col": 25,
+                  "line": 4
+                }
+              },
+              "span": {
+                "end": 92,
+                "start": 73
+              }
+            },
+            "path": "question.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "call-result"
+          },
+          {
+            "enclosing": "frp1:1c60169246f54bb5226f19ede1238952:3a",
+            "id": "fro1:4b6c54ffdf83f5d1859b3eb3c257d3b8bf0d357adda89cee49ab997b0bf2330f",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 45,
+                  "line": 4
+                },
+                "start": {
+                  "col": 12,
+                  "line": 4
+                }
+              },
+              "span": {
+                "end": 93,
+                "start": 60
+              }
+            },
+            "path": "question.py",
+            "revision": "1c60169246f54bb5226f19ede1238952996644640de275a8442a0c012270b25a",
+            "role": "sink"
+          }
+        ],
+        "origin": "package-question:emit_value:fro1:d9972fa127ebd4f52fc093e4e603c28344daa31ded62913f55b8b9b4ca7ba7a5"
+      }
+    }
+  ]
+}
