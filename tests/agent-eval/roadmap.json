@@ -30,12 +30,12 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-09-distinct-answers-42689086165",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-09-distinct-answers-42705779000",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-09-distinct-answers-42689086165/result.json",
+      "path": "tests/agent-eval/results/2026-11-09-distinct-answers-42705779000/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "570f71d163bcb32485fafb1462aa6aec00a557aa21d53281f4cb8c776b6184fa"
+      "sha256": "d107d6640f96894982651ee4c8f1f791556b7f63da4e8fa0efd33626534eeb4f"
     },
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-flow-facts/result.json",
@@ -166,28 +166,28 @@
       "sha256": "856c89ee3fdf9be4b49d540dd6d8739bc9a4e93644afc2e7fedf35451acb1a89"
     },
     {
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-checked-translation/result.json",
-      "sha256": "eb1c2fd319d26081bf7e4da45f9d556ef00ae6235baa1c17cc3a4642b572c2e1",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-checked-translation"
+      "sha256": "eb1c2fd319d26081bf7e4da45f9d556ef00ae6235baa1c17cc3a4642b572c2e1"
     },
     {
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-effects/result.json",
-      "sha256": "365d98eb4b20d419398993ae1ce2c8489d6dd999b4bae81a079d42d894db50b7",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-effects"
+      "sha256": "365d98eb4b20d419398993ae1ce2c8489d6dd999b4bae81a079d42d894db50b7"
     },
     {
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-text-flow/result.json",
-      "sha256": "5bd923cb63b2d10ac2ab328d46f847079511f9ea975391c89eb763c240c87b4e",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-text-flow"
+      "sha256": "5bd923cb63b2d10ac2ab328d46f847079511f9ea975391c89eb763c240c87b4e"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -415,29 +415,29 @@
       "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
-          "evidence": "python-effects",
           "assertions": [
             {
-              "pointer": "/passed",
-              "equals": true
+              "equals": true,
+              "pointer": "/passed"
             },
             {
-              "pointer": "/coverage/examples",
-              "equals": 9
+              "equals": 9,
+              "pointer": "/coverage/examples"
             },
             {
-              "pointer": "/coverage/renamed_and_moved_cases",
-              "equals": 18
+              "equals": 18,
+              "pointer": "/coverage/renamed_and_moved_cases"
             },
             {
-              "pointer": "/coverage/runtime_executions",
-              "equals": 36
+              "equals": 36,
+              "pointer": "/coverage/runtime_executions"
             },
             {
-              "pointer": "/coverage/preserves_model_runtime_difference",
-              "equals": true
+              "equals": true,
+              "pointer": "/coverage/preserves_model_runtime_difference"
             }
-          ]
+          ],
+          "evidence": "python-effects"
         }
       ],
       "title": "Handle exceptions and shared mutable values honestly"
@@ -613,29 +613,29 @@
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
       "requires": [
         {
-          "evidence": "checked-translation",
           "assertions": [
             {
-              "pointer": "/passed",
-              "equals": true
+              "equals": true,
+              "pointer": "/passed"
             },
             {
-              "pointer": "/coverage/exhaustive_pairs",
-              "equals": 9030
+              "equals": 9030,
+              "pointer": "/coverage/exhaustive_pairs"
             },
             {
-              "pointer": "/coverage/boundary_pairs",
-              "equals": 11
+              "equals": 11,
+              "pointer": "/coverage/boundary_pairs"
             },
             {
-              "pointer": "/coverage/directions",
-              "equals": 2
+              "equals": 2,
+              "pointer": "/coverage/directions"
             },
             {
-              "pointer": "/coverage/renamed_and_moved",
-              "equals": true
+              "equals": true,
+              "pointer": "/coverage/renamed_and_moved"
             }
-          ]
+          ],
+          "evidence": "checked-translation"
         }
       ],
       "title": "Translate a function without changing its promised behavior"
