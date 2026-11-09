@@ -1,0 +1,39 @@
+{
+  "bindings": {
+    "sdk/python/src/fr_ir/context.py": "8ab57704750885ebe673e96a9bc758000211e358b7f38a6fcb5e411f1804093a",
+    "sdk/python/src/fr_ir/intent.py": "c41c0f7e50d960ba81f0f630df6dd98df6144ddcc0ccc4f282c85cdfc16a6004",
+    "sdk/python/src/fr_ir/intent_actions.py": "716adbd5e12e08f0fef780c7aeac12a84737958e89c6f4a18fab033afa1c6739",
+    "sdk/python/src/fr_ir/runtime.py": "2e9390ff56af548f0c1f3ca306e7a5735b3c0ac16c620c572b34ff80c93b9595",
+    "src/project/agent_actions.rs": "50f03f20eed841054424219d2fb5f21d95974e72340727855648322466013af8",
+    "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
+    "src/project/capability_action.rs": "0015847105a8f4857c698c7f398f70c30064de630a79cb51ee28286211c9c66b",
+    "src/project/disclose.rs": "f25455412ee9d13654a05f091941ff75b4bb993428fd769287ea4ff15e6b076e",
+    "tools/native-intent-context.py": "68cc3250ce4240f2c6ee2fa4961d653a09924429a792db8725776aa3fb6cf2c3"
+  },
+  "claim": "Deterministic subprocess and serialized-byte measurement; no model, token, quota or population claim.",
+  "fixture": {
+    "purpose": "trace",
+    "selected_sha256": "0ab09ccb5ab813ba0d6e2a0bb8e9e4c2454207d23f290f1035ae508dc3b26b73",
+    "source_sha256": "23c5b8ae2fd965b231356a74ba4a1f28d3a5da4fb19b0bf6c543e9d56ab07c89"
+  },
+  "limits": {
+    "packet_bytes": 65536,
+    "progressive_calls": 192
+  },
+  "native": {
+    "packet_bytes": 5545,
+    "process_calls": 1,
+    "progressive_disclosure_calls": 0,
+    "response_bytes": 5545
+  },
+  "progressive": {
+    "packet_bytes": 4480,
+    "process_calls": 111,
+    "response_bytes": 391001
+  },
+  "reduction": {
+    "process_calls": 110,
+    "response_bytes": 385456
+  },
+  "schema": "fr-native-intent-context-1"
+}

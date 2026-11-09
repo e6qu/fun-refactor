@@ -70,28 +70,28 @@
       "sha256": "68df955cdc919f2b640b6f3309627e22c37370ad66ea1aedff97d253601c4566"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-08-release-merge-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-08-release-merge-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "213ef82b1cad3f2c70eac5393afe7e36e8dcfaf69c301e2d5fb4c92a43bea3bd"
+      "sha256": "f0cfac75c45ed5cce8e32e9efa1632b3fca6bb972e936ea745bea356a11bc07d"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-08-release-merge-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-08-release-merge-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "dbf2499d586a363d1bc0203e0d0ee411b3cc368c6cba317a077daf3c18ce18b0"
+      "sha256": "30e41bb03c50bce79f3d342bcb8f37d01f7327a8e9808ca9eae3f64e3be26a94"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-08-release-merge-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-08-release-merge-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "d5ff73ccb145c1887bbf38e9e11ee26061349fd77d9c4d29dfdd12714ce0d60c"
+      "sha256": "a494d5d10970144437184e908a1598ce2ac473f76abc0c6550ad654094c2680b"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
