@@ -70,28 +70,28 @@
       "sha256": "9ebc09540b3971d2267f007ed2bd5b4813351806a9b8905aef66dc10200b3029"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-error-order-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-error-order-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "9fc0b93a0ac02479f741b53993f7217266df3b58390ce899cfd9ecc5bcf88f2f"
+      "sha256": "693e9252867c93b51186f1fcf4aeae182ad72b8daaf855e3632d59c2a3d55529"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-error-order-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-error-order-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "baa2c0f96ee24ebc5024605fcc1a1b0f91f95cebab05a322c6d283643f82ca87"
+      "sha256": "eb956e48b6c3548dfcec0cdb1e09d6f2f148bd63d3eb7777b94cf9b34e3e25fc"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-09-proof-check-error-order-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-09-proof-check-diagnostics-release-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-09-proof-check-error-order-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "e80b1e4026c9c59fa124a3e7f2cdbfba4a2d63306d224e2532c09f8f4fd49131"
+      "sha256": "c5b7b0e800f96e902548430d326e64bce10a5cd60d79e9ee6da42610f128db29"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
