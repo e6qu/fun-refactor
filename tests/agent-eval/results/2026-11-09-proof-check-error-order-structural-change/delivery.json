@@ -1,0 +1,451 @@
+{
+  "executed": true,
+  "manifest_sha256": "55fff59ab88ff30279acd7927dc4db4cbeb0840e54938ac8de39cd23f50653ef",
+  "passed": true,
+  "reused_transaction": false,
+  "reviewed_context_omitted": [
+    "revision",
+    "task_basis",
+    "task_resolution_basis",
+    "coverage",
+    "requests",
+    "targets",
+    "checks",
+    "delivery",
+    "author",
+    "stages",
+    "ready"
+  ],
+  "saved": true,
+  "schema": "fr-task-change-1",
+  "task_change_basis": "frtc1:1489563e2225bf93ddb31fadab2530a74446cbc9c39aa5c44bcd94b93d533ce8",
+  "transaction": 1,
+  "workflow": {
+    "acceptance_checks": {
+      "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+      "names": [
+        "behavior"
+      ],
+      "toolchain-digest": "68579a8c1bc19d329f6963c37047fe9812ebb3aacc2b08536cf1cf34a33bd076"
+    },
+    "executed": true,
+    "manifest_sha256": "0b0d3fed71ef2d17e14b2124f86f60b40d1cea6fde2b1ef10bac4a2819d3c6cc",
+    "passed": true,
+    "reviewed_context_omitted": [
+      "manifest_sha256",
+      "record_basis",
+      "transaction_context_basis",
+      "checks",
+      "exercise_reversal",
+      "check_original",
+      "compact_success",
+      "patch",
+      "ready"
+    ],
+    "schema": "fr-workflow-1",
+    "stages": [
+      {
+        "result": {
+          "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+          "passed": true,
+          "recorded_evidence": null,
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "8fb95b251d82c8df112b1ae7a90bac171f804bdbca3fc857bf163e0f3bc5b385",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-original",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "apply",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 4481,
+              "path": "api.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 166,
+              "path": "pricing.rs"
+            }
+          ],
+          "context_basis": "frtb2:03bf1824624190e8417d9867156961e76aa0668794d0df5d658d5d161c49660e",
+          "context_omitted": [
+            "changes[].diff"
+          ],
+          "transaction": 1
+        },
+        "stage": "apply",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+          "passed": true,
+          "recorded_evidence": {
+            "created": true,
+            "receipt": "frce1:4305e5843d382e7a999d918344b09d85a021f5e4feebea1ac318ac275ceee692",
+            "transaction": 1
+          },
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "15e6f208d7f42fbd006c0d51aa75fa51844d2ac5f6acc626bb4845836da78c09",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+          "checks": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.10/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "identity_files": [
+                ".fr/oracle.py"
+              ],
+              "name": "behavior",
+              "timeout_seconds": 30
+            }
+          ],
+          "configuration": ".fr/checks.json",
+          "configuration_stable": true,
+          "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+          "executed": true,
+          "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+          "not_run": [],
+          "passed": true,
+          "results": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.10/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "elapsed_ms": 120,
+              "error": null,
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "stderr": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 0,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "stdout": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 211,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "timed_out": false
+            }
+          ],
+          "root": "/tmp/fr-structural-acceptance-9r46tfs6/native",
+          "schema": "fr-checks-1",
+          "source_revision": "15e6f208d7f42fbd006c0d51aa75fa51844d2ac5f6acc626bb4845836da78c09",
+          "source_snapshot_checked": true,
+          "source_snapshot_stable": true,
+          "toolchain": {
+            "build_configuration": {
+              "files": {},
+              "schema": "fr-rust-build-inputs-1",
+              "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+            },
+            "executor": "8632a6a7049459fba2dadd0187ffd36d561b3421902a5878be0662dc5ac278d1",
+            "programs": [
+              {
+                "check": "behavior",
+                "environment": [],
+                "identity_files": [
+                  {
+                    "bytes": 728,
+                    "declared": ".fr/oracle.py",
+                    "path": "/tmp/fr-structural-acceptance-9r46tfs6/native/.fr/oracle.py",
+                    "sha256": "baf483c751b886d0e7ff8f9a4527884ac479286b5802a48bbcde6b6d41b818ac"
+                  }
+                ],
+                "path": "/opt/hostedtoolcache/Python/3.14.10/x64/bin/python3.14",
+                "sha256": "1b8e845458fa08ab0d75b05eba9d3468dc8bd5c0e9b8feab9eed52e11321bcbf"
+              }
+            ],
+            "schema": "fr-check-toolchain-2",
+            "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+          },
+          "toolchain_stable": true
+        },
+        "stage": "check-acceptance",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "undo",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "api.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "pricing.rs"
+            }
+          ],
+          "diffs_omitted": true,
+          "transaction": 1
+        },
+        "stage": "undo",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+          "passed": true,
+          "recorded_evidence": null,
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "8fb95b251d82c8df112b1ae7a90bac171f804bdbca3fc857bf163e0f3bc5b385",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-restored",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "redo",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 4481,
+              "path": "api.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 166,
+              "path": "pricing.rs"
+            }
+          ],
+          "context_basis": "frtb2:03bf1824624190e8417d9867156961e76aa0668794d0df5d658d5d161c49660e",
+          "context_omitted": [
+            "changes[].diff"
+          ],
+          "transaction": 1
+        },
+        "stage": "redo",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+          "passed": true,
+          "recorded_evidence": {
+            "created": false,
+            "receipt": "frce1:4305e5843d382e7a999d918344b09d85a021f5e4feebea1ac318ac275ceee692",
+            "transaction": 1
+          },
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "15e6f208d7f42fbd006c0d51aa75fa51844d2ac5f6acc626bb4845836da78c09",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "48b70cd3949ec1037b79ad89211e4a2dfdfe5763a0b6f1030a0bbbb85317282b",
+          "checks": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.10/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "identity_files": [
+                ".fr/oracle.py"
+              ],
+              "name": "behavior",
+              "timeout_seconds": 30
+            }
+          ],
+          "configuration": ".fr/checks.json",
+          "configuration_stable": true,
+          "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+          "executed": true,
+          "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+          "not_run": [],
+          "passed": true,
+          "results": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.10/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "elapsed_ms": 120,
+              "error": null,
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "stderr": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 0,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "stdout": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 211,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "timed_out": false
+            }
+          ],
+          "root": "/tmp/fr-structural-acceptance-9r46tfs6/native",
+          "schema": "fr-checks-1",
+          "source_revision": "15e6f208d7f42fbd006c0d51aa75fa51844d2ac5f6acc626bb4845836da78c09",
+          "source_snapshot_checked": true,
+          "source_snapshot_stable": true,
+          "toolchain": {
+            "build_configuration": {
+              "files": {},
+              "schema": "fr-rust-build-inputs-1",
+              "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+            },
+            "executor": "8632a6a7049459fba2dadd0187ffd36d561b3421902a5878be0662dc5ac278d1",
+            "programs": [
+              {
+                "check": "behavior",
+                "environment": [],
+                "identity_files": [
+                  {
+                    "bytes": 728,
+                    "declared": ".fr/oracle.py",
+                    "path": "/tmp/fr-structural-acceptance-9r46tfs6/native/.fr/oracle.py",
+                    "sha256": "baf483c751b886d0e7ff8f9a4527884ac479286b5802a48bbcde6b6d41b818ac"
+                  }
+                ],
+                "path": "/opt/hostedtoolcache/Python/3.14.10/x64/bin/python3.14",
+                "sha256": "1b8e845458fa08ab0d75b05eba9d3468dc8bd5c0e9b8feab9eed52e11321bcbf"
+              }
+            ],
+            "schema": "fr-check-toolchain-2",
+            "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+          },
+          "toolchain_stable": true
+        },
+        "stage": "check-acceptance",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "bytes": 4725,
+          "output": "artifacts/change.patch",
+          "sha256": "abf4c976a3b0de0cd8a24b929fbaadbd7f6ae00f1032ed6c7dfb0842f2b282c7"
+        },
+        "stage": "deliver-patch",
+        "status": "passed"
+      }
+    ],
+    "transaction": 1,
+    "transaction_status": "applied",
+    "workflow_basis": "frwb1:59676c8c1e06c44daa58e213fea2ed9732c29bd2b8bb4b892e3aeafde47ca493"
+  }
+}
