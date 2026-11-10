@@ -1,6 +1,7 @@
 """Replay declared task-control edits and check public and private outcomes."""
 import base64
 import hashlib
+import json
 from pathlib import Path
 import re
 import tempfile
@@ -152,7 +153,12 @@ def verify(results):
         require(row["grade"]["outcome"] == row["expected"], "private control outcome differs: " + row["id"])
         if "expected_failed_cases" in row:
             observed = sorted(case["id"] for case in row["grade"]["cases"] if not case["passed"])
-            require(observed == row["expected_failed_cases"], "failed case set differs: " + row["id"] + " " + str(observed))
+            reasons = {case["id"]: {"failure": case.get("failure"), "stop": case.get("execution", {}).get("stop_reason"),
+                                    "exit": case.get("container_state", {}).get("ExitCode"),
+                                    "stdout": case.get("stdout_base64", "")[:64]}
+                       for case in row["grade"]["cases"] if not case["passed"]}
+            require(observed == row["expected_failed_cases"],
+                    "failed case set differs: " + row["id"] + " " + json.dumps(reasons, sort_keys=True))
         if "baseline_grade" in row:
             previous = row["baseline_grade"]
             require(previous["outcome"] == row["expected_baseline"] == "passed", "earlier grader did not pass: " + row["id"])
