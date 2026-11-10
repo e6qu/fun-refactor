@@ -84,7 +84,7 @@ In the [fourth page-count study](tests/agent-eval/proof-page-count/local-results
 sessions named listed facts and searched library files twice instead of four to eight times.
 None delivered a proof; each ran out of time while fixing Lean errors.
 
-**Next PR: proof-check errors that fit and explain themselves.**
+**Completed in #609: proof-check errors that fit and explain themselves.**
 
 Across the fourth study's checks, `omega` failed 14 times and lint warnings appeared 14 times.
 The response showed omega's counterexample without the `where` lines naming each variable,
@@ -95,6 +95,17 @@ budget with errors, and one omega error lost its whole context.
 2. Keep omega's variable definitions; drop constraint lines first when space runs short.
 3. Drop warnings before shortening any error while errors remain.
 4. Refresh the evidence, then run another four-session study after approval.
+
+The [fifth study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered no patch.
+All four sessions ran out of time. Omega failures now carried their `where` lines.
+Kimi used them to name `size * (items / size)` as the missing fact.
+GLM cut its omega failures from two to one. Neither added the division identity in time.
+A failed `fr proof save` returned one line with no diagnostics.
+GLM spent its last three tries on such calls.
+
+**Next PR: failed proof saves report like proof checks.**
+
+A failed `fr proof save` should return the diagnostics, goals and draft locations of `fr proof check`.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
