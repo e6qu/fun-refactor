@@ -4,6 +4,48 @@ Use this list to see what shipped in each release. A release label identifies a 
 For example, a fix about imported values applies only to the supported cases described in the [Python guide](docs/python-contract.md).
 An entry's technical shorthand is historical release wording. Read the [tutorial](TUTORIAL.md) for a first use and the [current status](docs/roadmap-status.md) for remaining work.
 
+## [0.91.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.91.0...fun-refactor-v0.91.1) (2026-11-10)
+
+
+### Documentation
+
+* publish saved answer costs and reconcile current evidence ([5e46256](https://github.com/e6qu/fun-refactor/commit/5e46256dd9ec7f45c615c372b4119b1dc7a7dd5b))
+* publish saved answer costs and reconcile current evidence ([878526b](https://github.com/e6qu/fun-refactor/commit/878526b6a6f0ba995f690f42f0846b0d25d35e21))
+* publish saved answer costs and reconcile current evidence ([9616ed6](https://github.com/e6qu/fun-refactor/commit/9616ed67cf649aee66c92860b6f0563f38a92192))
+* publish saved answer costs and reconcile current evidence ([3fca6a0](https://github.com/e6qu/fun-refactor/commit/3fca6a0f2dc8f847ad6ec78e1cd059dc67860761))
+
+
+### Tests
+
+* recheck familiar project changes after release integration ([4c479db](https://github.com/e6qu/fun-refactor/commit/4c479db99ff5961da1f73fe72b7ba4a0577155cd))
+* recheck familiar project changes after release integration ([e852962](https://github.com/e6qu/fun-refactor/commit/e852962b854f0316b609eac71ba89d570ee3c2fe))
+* recheck familiar project changes after release integration ([08c46f3](https://github.com/e6qu/fun-refactor/commit/08c46f3ef6abaa96218be44ebf912436894fae47))
+* recheck familiar project changes after release integration ([d52b809](https://github.com/e6qu/fun-refactor/commit/d52b809966f653c35535a22a3908948859e929f3))
+* retain checked translations and Python effect explanations ([2e749a6](https://github.com/e6qu/fun-refactor/commit/2e749a6fce3b32e88dc254dc69e8887ba4aef63d))
+* retain checked translations and Python effect explanations ([5e8bd93](https://github.com/e6qu/fun-refactor/commit/5e8bd93d2053a4a1bf52a650798cebd88156fb0c))
+* retain checked translations and Python effect explanations ([e0d1ebc](https://github.com/e6qu/fun-refactor/commit/e0d1ebce21a7360ad6d2f1b7f64c75e68cd347af))
+* retain checked translations and Python effect explanations ([8a3e8bc](https://github.com/e6qu/fun-refactor/commit/8a3e8bcd1bc976b63c923f98f356678dac812b72))
+* retain complete CLI and Python project session costs ([6933ef2](https://github.com/e6qu/fun-refactor/commit/6933ef24b09bd5b8824a721b5a0af677d590f0bb))
+* retain complete CLI and Python project session costs ([b73abaf](https://github.com/e6qu/fun-refactor/commit/b73abaf000e118829d1e989012adff91afa6775c))
+* retain complete CLI and Python project session costs ([86b5650](https://github.com/e6qu/fun-refactor/commit/86b5650173a9d1ebb8a55d98e66362537bc08532))
+* retain complete CLI and Python project session costs ([d833a12](https://github.com/e6qu/fun-refactor/commit/d833a12268f17a73faba7d57f4344cbbf37c5b06))
+* retain current consumer discovery and checked delivery ([5e3db59](https://github.com/e6qu/fun-refactor/commit/5e3db591bc72320bca63bf3217be9f363ad88b06))
+* retain current consumer discovery and checked delivery ([3d57a37](https://github.com/e6qu/fun-refactor/commit/3d57a37d8c5457e0354bc11efa37ab100f93c9f4))
+* retain current consumer discovery and checked delivery ([d8d36a0](https://github.com/e6qu/fun-refactor/commit/d8d36a040ba324bac9b8499c6b9f34b50773595f))
+* retain current consumer discovery and checked delivery ([133fcd2](https://github.com/e6qu/fun-refactor/commit/133fcd206052b0f08c092f0519be54fd0995c16a))
+* retain current package answers beside original unread provenance ([6f77d4a](https://github.com/e6qu/fun-refactor/commit/6f77d4a7951e4644cfbec7378fd7b6107342b660))
+* retain current package answers beside original unread provenance ([2e5550b](https://github.com/e6qu/fun-refactor/commit/2e5550be9b024b4c891186708409b4297c1a5159))
+* retain current package answers beside original unread provenance ([5124c1f](https://github.com/e6qu/fun-refactor/commit/5124c1fa6074e1080ff0756fe0029ef6bbc4d0fc))
+* retain current package answers beside original unread provenance ([c77398f](https://github.com/e6qu/fun-refactor/commit/c77398fe06ecbac770ebf6e4bf19743ba63b028b))
+* retain current scalar summary evidence and delivery gates ([ef661b6](https://github.com/e6qu/fun-refactor/commit/ef661b6613c2147089440e7c93cc729d77cce206))
+* retain current scalar summary evidence and delivery gates ([f0074ce](https://github.com/e6qu/fun-refactor/commit/f0074ce6d33574098aebd0148a11863e21e35f8d))
+* retain current scalar summary evidence and delivery gates ([5450530](https://github.com/e6qu/fun-refactor/commit/545053015320413b54b6cd8c360f4d463969e130))
+* retain current scalar summary evidence and delivery gates ([f4c13d1](https://github.com/e6qu/fun-refactor/commit/f4c13d179e7a4169d56637c6339488cb8a70a23a))
+* retain fresh workflow and recovery reports ([0642045](https://github.com/e6qu/fun-refactor/commit/0642045fb057e39765aa752163d7ca2d5c2e2118))
+* retain fresh workflow and recovery reports ([26ae1af](https://github.com/e6qu/fun-refactor/commit/26ae1af6ebe51fb7550356bebfd15dbd029c1c41))
+* retain fresh workflow and recovery reports ([ae7ebc8](https://github.com/e6qu/fun-refactor/commit/ae7ebc8a2affb39762448e75825984a447405867))
+* retain fresh workflow and recovery reports ([a13a29b](https://github.com/e6qu/fun-refactor/commit/a13a29bbaeb8a415fae1fc3f098a2566526daa09))
+
 ## [0.91.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.90.0...fun-refactor-v0.91.0) (2026-11-09)
 
 
