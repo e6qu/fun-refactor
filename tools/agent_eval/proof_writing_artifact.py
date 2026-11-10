@@ -29,7 +29,12 @@ def verify(run, binary, build_kind):
     builder = builders_by_kind[build_kind]
     builders = [row for row in jobs if row['name'] == builder or row['name'].endswith('/ ' + builder)]
     require(len(builders) == 1 and builders[0]['conclusion'] == 'success', 'the chosen fr build and model tests must pass')
-    commit = metadata['head_sha']
+    if run == os.environ.get('GITHUB_RUN_ID'):
+        commit = os.environ['GITHUB_SHA']
+    else:
+        require(metadata.get('event') != 'pull_request',
+                'a pull-request build compiled a merge commit its record does not name; reuse a dispatched build')
+        commit = metadata['head_sha']
     require(len(commit) == 40 and all(char in '0123456789abcdef' for char in commit), 'build source commit is malformed')
     command(['git', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', '-c', 'credential.helper=',
              '-c', 'credential.helper=!gh auth git-credential', 'fetch', '--no-tags', '--depth=1', 'origin', commit])

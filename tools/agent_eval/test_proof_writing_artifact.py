@@ -19,7 +19,7 @@ class ArtifactIdentity(unittest.TestCase):
             artifact.command(['gh', 'api', 'repos/example/project/actions/runs/123'])
         self.assertEqual(run.call_count, 1)
 
-    def run_verification(self, *, changed, conclusions, build_kind):
+    def run_verification(self, *, changed, conclusions, build_kind, event='workflow_dispatch', environment=None):
         def command(argv):
             if argv[0] == 'gh':
                 if '/jobs?' in argv[-1]:
@@ -30,7 +30,7 @@ class ArtifactIdentity(unittest.TestCase):
                                        {'jobs': [{'name': {'numeric-models': 'Check early returns and numeric proof models',
                                                                 'algorithms': 'Reject incomplete proofs of the fixed GCD implementation'}[build_kind], 'conclusion': value}
                                                  for value in conclusions]}])
-                return json.dumps({'head_sha': 'a' * 40, 'head_repository': {'full_name': 'example/project'}})
+                return json.dumps({'head_sha': 'a' * 40, 'event': event, 'head_repository': {'full_name': 'example/project'}})
             if 'fetch' in argv:
                 return ''
             if changed and argv[-1].startswith('a' * 40 + ':'):
@@ -40,7 +40,8 @@ class ArtifactIdentity(unittest.TestCase):
             binary = Path(directory) / 'fr'
             binary.write_bytes(b'controlled test executable')
             with mock.patch.object(artifact, 'command', side_effect=command), \
-                 mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'example/project'}):
+                 mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'example/project',
+                                                **(environment or {})}):
                 return artifact.verify('123', binary, build_kind)
 
     def test_identical_native_inputs_and_passing_tests_allow_explicit_reuse(self):
@@ -59,6 +60,15 @@ class ArtifactIdentity(unittest.TestCase):
     def test_changed_native_inputs_require_a_new_build(self):
         with self.assertRaisesRegex(ValueError, 'native fr inputs changed'):
             self.run_verification(changed=True, conclusions=['success'], build_kind='numeric-models')
+
+    def test_a_build_from_this_run_matches_the_merge_commit_it_checked_out(self):
+        merged = {'GITHUB_RUN_ID': '123', 'GITHUB_SHA': 'b' * 40}
+        result = self.run_verification(changed=True, conclusions=['success'], build_kind='algorithms',
+                                       event='pull_request', environment=merged)
+        self.assertEqual(result['source_commit'], 'b' * 40)
+        with self.assertRaisesRegex(ValueError, 'merge commit'):
+            self.run_verification(changed=False, conclusions=['success'], build_kind='algorithms',
+                                  event='pull_request', environment={'GITHUB_RUN_ID': '456'})
 
     def test_failed_tests_cannot_qualify_an_artifact(self):
         with self.assertRaisesRegex(ValueError, 'must pass'):
