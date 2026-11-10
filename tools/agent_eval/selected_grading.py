@@ -13,7 +13,7 @@ import uuid
 from . import selected_tasks as tasks
 from .container_resources import ContainerResources, audit, limits
 from .isolated_grade import DOCKER, invoke
-from .selected_native import boundary
+from .selected_native import IMAGE_BUILD_SECONDS, boundary
 from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, require
 
 SOURCE_LIMIT = 32 * 1024**2
@@ -41,9 +41,6 @@ def stage(source, destination):
         os.utime(target, ns=(path.stat().st_atime_ns, path.stat().st_mtime_ns))
     require(tasks.sources(destination) == manifest, 'grade snapshot differs from delivered source')
     return {'sha256': hashlib.sha256(encoded(manifest)).hexdigest(), 'files': manifest}
-
-
-IMAGE_BUILD_SECONDS = 600
 
 
 def build(output):

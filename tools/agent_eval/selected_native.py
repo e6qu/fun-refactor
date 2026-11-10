@@ -15,6 +15,8 @@ from .isolated_grade import DOCKER, invoke
 from .selected_native_probe import packages
 from .selected_plan import ROOT, DIRECTORY, require
 
+IMAGE_BUILD_SECONDS = 600
+
 spec = importlib.util.spec_from_file_location('selected_container_boundary', ROOT / 'tools/agent-comparison-rehearsal.py')
 boundary = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(boundary)
@@ -46,9 +48,9 @@ def build(client, setup, binary, fr, output, entry, profiles_path):
     shutil.copyfile(ROOT / 'tools/selected-agent-probe.py', context / 'selected-agent-probe.py')
     shutil.copyfile(ROOT / DIRECTORY / 'Native.Dockerfile', context / 'Dockerfile')
     tag = 'fr-m1-' + client + '-' + setup
-    result = subprocess.run(DOCKER + ['build', '--tag', tag, str(context)], capture_output=True, timeout=120)
-    (output / 'build.stdout').write_bytes(result.stdout)
-    (output / 'build.stderr').write_bytes(result.stderr)
+    with (output / 'build.stdout').open('wb') as stdout, (output / 'build.stderr').open('wb') as stderr:
+        result = subprocess.run(DOCKER + ['build', '--tag', tag, str(context)], stdout=stdout, stderr=stderr,
+                                timeout=IMAGE_BUILD_SECONDS)
     require(result.returncode == 0, 'native control image did not build; inspect build.stderr')
     image = subprocess.check_output(DOCKER + ['image', 'inspect', '--format', '{{.Id}}', tag], timeout=10).decode().strip()
     require(image.startswith('sha256:') and len(image) == 71, 'missing immutable native image identity')
