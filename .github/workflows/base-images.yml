@@ -1,0 +1,45 @@
+name: Container base images
+
+# CI image builds start from these published images, pinned by digest, so they
+# never wait on Ubuntu's package mirrors. Each tag names its Dockerfile's hash.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - tests/agent-eval/base-images/**
+      - .github/workflows/base-images.yml
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [selected-grader, selected-native, m1-grader]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: tests/agent-eval/base-images
+      - name: Build and push the image, then print its digest
+        env:
+          IMAGE: ${{ matrix.image }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          file="tests/agent-eval/base-images/$IMAGE.Dockerfile"
+          name="ghcr.io/${GITHUB_REPOSITORY,,}/$IMAGE"
+          tag="$name:$(sha256sum "$file" | cut -c1-16)"
+          printf '%s' "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker build --progress=plain --file "$file" --tag "$tag" tests/agent-eval/base-images
+          docker push "$tag"
+          digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$tag")
+          echo "$IMAGE: $digest" | tee -a "$GITHUB_STEP_SUMMARY"
