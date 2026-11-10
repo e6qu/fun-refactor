@@ -1710,41 +1710,45 @@ fn cmd_spec_proof_check(
             println!("Save with: fr {}", shell_arguments(action));
         }
     } else {
-        println!("Proof rejected: {target}");
-        for diagnostic in &attempt.diagnostics {
-            if let Some(location) = &diagnostic.draft_location {
-                println!(
-                    "{} {}:{}:{}: {}",
-                    diagnostic.severity,
-                    location.path.display(),
-                    location.line,
-                    location.column,
-                    diagnostic.message
-                );
-            } else {
-                println!("{}: {}", diagnostic.severity, diagnostic.message);
-            }
-            for line in &diagnostic.context {
-                println!("  {line}");
-            }
-            if diagnostic.context_omitted_lines > 0 {
-                println!(
-                    "  {} context lines omitted; choose a larger --bytes value.",
-                    diagnostic.context_omitted_lines
-                );
-            }
-        }
-        if attempt.diagnostics_omitted > 0 {
-            println!(
-                "{} diagnostics omitted; choose a larger --bytes value.",
-                attempt.diagnostics_omitted
-            );
-        }
+        print_rejected_proof(target, &attempt);
     }
     if !attempt.passed {
         std::process::exit(1);
     }
     Ok(())
+}
+
+fn print_rejected_proof(target: &str, attempt: &crate::spec::ProofAttempt) {
+    println!("Proof rejected: {target}");
+    for diagnostic in &attempt.diagnostics {
+        if let Some(location) = &diagnostic.draft_location {
+            println!(
+                "{} {}:{}:{}: {}",
+                diagnostic.severity,
+                location.path.display(),
+                location.line,
+                location.column,
+                diagnostic.message
+            );
+        } else {
+            println!("{}: {}", diagnostic.severity, diagnostic.message);
+        }
+        for line in &diagnostic.context {
+            println!("  {line}");
+        }
+        if diagnostic.context_omitted_lines > 0 {
+            println!(
+                "  {} context lines omitted; choose a larger --bytes value.",
+                diagnostic.context_omitted_lines
+            );
+        }
+    }
+    if attempt.diagnostics_omitted > 0 {
+        println!(
+            "{} diagnostics omitted; choose a larger --bytes value.",
+            attempt.diagnostics_omitted
+        );
+    }
 }
 
 fn cmd_proof_start(
@@ -1947,7 +1951,23 @@ fn cmd_proof_save(
     } else {
         root.join(from)
     };
-    let plan = crate::spec::prove(&root, target, &proof_path, token_limit, timeout_seconds)?;
+    let plan = match crate::spec::prove_or_reject(
+        &root,
+        target,
+        &proof_path,
+        token_limit,
+        timeout_seconds,
+    )? {
+        Ok(plan) => plan,
+        Err(attempt) => {
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&attempt)?);
+            } else {
+                print_rejected_proof(target, &attempt);
+            }
+            std::process::exit(1);
+        }
+    };
     let shown = shown_path(&root, &plan.spec);
     let status = if plan.original == plan.updated {
         "already-present"
