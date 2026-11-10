@@ -116,7 +116,12 @@ jobs:
             tests/agent-eval/python-repositories
             tests/agent-eval/unknown-target
       - name: Start the original images from published bases instead of Ubuntu mirrors
-        run: cp "$RUNNER_TEMP"/m1-images/*.Dockerfile tests/agent-eval/selected-agents/
+        run: |
+          cp "$RUNNER_TEMP"/m1-images/*.Dockerfile tests/agent-eval/selected-agents/
+          # The original checker requires a clean tree; only the base image line differs.
+          git update-index --skip-worktree tests/agent-eval/selected-agents/Grader.Dockerfile \
+            tests/agent-eval/selected-agents/Native.Dockerfile
+          test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
