@@ -15,7 +15,7 @@ from .isolated_grade import DOCKER, invoke
 from .selected_native_probe import packages
 from .selected_plan import ROOT, DIRECTORY, require
 
-IMAGE_BUILD_SECONDS = 600
+IMAGE_BUILD_SECONDS = 240
 
 spec = importlib.util.spec_from_file_location('selected_container_boundary', ROOT / 'tools/agent-comparison-rehearsal.py')
 boundary = importlib.util.module_from_spec(spec)
@@ -49,7 +49,7 @@ def build(client, setup, binary, fr, output, entry, profiles_path):
     shutil.copyfile(ROOT / DIRECTORY / 'Native.Dockerfile', context / 'Dockerfile')
     tag = 'fr-m1-' + client + '-' + setup
     with (output / 'build.stdout').open('wb') as stdout, (output / 'build.stderr').open('wb') as stderr:
-        result = subprocess.run(DOCKER + ['build', '--tag', tag, str(context)], stdout=stdout, stderr=stderr,
+        result = subprocess.run(DOCKER + ['build', '--progress=plain', '--tag', tag, str(context)], stdout=stdout, stderr=stderr,
                                 timeout=IMAGE_BUILD_SECONDS)
     require(result.returncode == 0, 'native control image did not build; inspect build.stderr')
     image = subprocess.check_output(DOCKER + ['image', 'inspect', '--format', '{{.Id}}', tag], timeout=10).decode().strip()

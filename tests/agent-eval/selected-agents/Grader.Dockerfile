@@ -1,5 +1,7 @@
 FROM ubuntu:24.04
-RUN apt-get update && apt-get install --yes --no-install-recommends \
+RUN sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|; s|http://security.ubuntu.com|http://azure.archive.ubuntu.com|' \
+    /etc/apt/sources.list.d/ubuntu.sources && grep -q azure.archive.ubuntu.com /etc/apt/sources.list.d/ubuntu.sources \
+    && apt-get update && apt-get install --yes --no-install-recommends \
     python3 python3-venv git gcc libc6-dev ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /opt/requirements.txt
