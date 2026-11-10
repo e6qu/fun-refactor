@@ -43,6 +43,9 @@ def stage(source, destination):
     return {'sha256': hashlib.sha256(encoded(manifest)).hexdigest(), 'files': manifest}
 
 
+IMAGE_BUILD_SECONDS = 600
+
+
 def build(output):
     output.mkdir(parents=True)
     requirements = [line for line in (ROOT / '.github/actions/native-tools/python-wheels.txt').read_text().splitlines()
@@ -52,7 +55,7 @@ def build(output):
     shutil.copyfile(ROOT / DIRECTORY / 'Grader.Dockerfile', output / 'Dockerfile')
     with (output / 'build.stdout').open('wb') as stdout, (output / 'build.stderr').open('wb') as stderr:
         result = subprocess.run(DOCKER + ['build', '--progress=plain', '--tag', 'fr-m1-private-grader', str(output)],
-                                stdout=stdout, stderr=stderr, timeout=120)
+                                stdout=stdout, stderr=stderr, timeout=IMAGE_BUILD_SECONDS)
     require(result.returncode == 0, 'private grader image did not build; inspect build.stderr')
     image = subprocess.check_output(DOCKER + ['image', 'inspect', '--format', '{{.Id}}', 'fr-m1-private-grader'],
                                     timeout=10).decode().strip()

@@ -130,6 +130,8 @@ jobs:
             ${{ runner.temp }}/feedback-native/summary.json
             ${{ runner.temp }}/feedback-controls/controls.json
             ${{ runner.temp }}/feedback-controls/initial-check.json
+            ${{ runner.temp }}/feedback-controls/image/build.stdout
+            ${{ runner.temp }}/feedback-controls/image/build.stderr
             ${{ runner.temp }}/feedback-controls/grade-*/result.json
             ${{ runner.temp }}/feedback-controls/grade-*/grader.stdout
             ${{ runner.temp }}/feedback-controls/grade-*/grader.stderr

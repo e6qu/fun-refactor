@@ -105,7 +105,7 @@ class SelectedGradingTests(unittest.TestCase):
         output = self.root / 'image'
 
         def timeout(argv, *, stdout, stderr, timeout):
-            self.assertEqual(timeout, 120)
+            self.assertEqual(timeout, grading.IMAGE_BUILD_SECONDS)
             self.assertIn('--progress=plain', argv)
             stdout.write(b'build output before timeout\n')
             stderr.write(b'package download did not finish\n')
