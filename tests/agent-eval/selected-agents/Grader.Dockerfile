@@ -1,7 +1,4 @@
-FROM ubuntu:24.04
-RUN apt-get update && apt-get install --yes --no-install-recommends \
-    python3 python3-venv git gcc libc6-dev ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+FROM ghcr.io/e6qu/fun-refactor/selected-grader@sha256:9643fb101b4ad252715f1c58545b43180aff8a1caec1b3fc6ad8f6cbf5218531
 COPY requirements.txt /opt/requirements.txt
 RUN python3 -m venv /opt/python && /opt/python/bin/python3 -m pip install \
     --no-index --no-deps --require-hashes --requirement /opt/requirements.txt

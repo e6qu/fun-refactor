@@ -1,6 +1,4 @@
-FROM ubuntu:24.04
-RUN apt-get update && apt-get install --yes --no-install-recommends python3 python3-venv git ca-certificates ripgrep \
-    && rm -rf /var/lib/apt/lists/*
+FROM ghcr.io/e6qu/fun-refactor/selected-native@sha256:54a7264cfac0082c59c32a5d5c5ad664e3520dbbe8a2284b661919ae09e83d69
 COPY native-requirements.txt /opt/native-requirements.txt
 RUN python3 -m venv /opt/venv && /opt/venv/bin/python3 -m pip install --no-index --no-deps --require-hashes \
     --requirement /opt/native-requirements.txt

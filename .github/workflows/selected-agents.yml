@@ -78,6 +78,8 @@ jobs:
             tools
             tests/agent-eval/selected-agents/clients.json
             tests/agent-eval/selected-agents/local-results
+            tests/agent-eval/selected-agents/m1
+            tests/agent-eval/selected-agents/Native.Dockerfile
       - name: Preserve the public patches and current report checker
         run: |
           cp -R tests/agent-eval/selected-agents/local-results "$RUNNER_TEMP/m1-public"
@@ -89,6 +91,9 @@ jobs:
             tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py "$RUNNER_TEMP/m1-native-tools/"
           cp tests/agent-eval/selected-agents/clients.json "$RUNNER_TEMP/m1-native-tools/clients.json"
           cp tools/selected-agent-probe.py "$RUNNER_TEMP/m1-native-tools/selected-agent-probe.py"
+          mkdir -p "$RUNNER_TEMP/m1-images"
+          cp tests/agent-eval/selected-agents/m1/Grader.Dockerfile tests/agent-eval/selected-agents/Native.Dockerfile \
+            "$RUNNER_TEMP/m1-images/"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -110,6 +115,8 @@ jobs:
             tests/agent-eval/project-changes
             tests/agent-eval/python-repositories
             tests/agent-eval/unknown-target
+      - name: Start the original images from published bases instead of Ubuntu mirrors
+        run: cp "$RUNNER_TEMP"/m1-images/*.Dockerfile tests/agent-eval/selected-agents/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
