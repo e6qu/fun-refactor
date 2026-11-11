@@ -96,18 +96,32 @@ budget with errors, and one omega error lost its whole context.
 3. Drop warnings before shortening any error while errors remain.
 4. Refresh the evidence, then run another four-session study after approval.
 
-The [fifth study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered no patch.
+The [fifth study](tests/agent-eval/proof-page-count/results-300s-error-order/summary.json) delivered no patch.
 All four sessions ran out of time. Omega failures now carried their `where` lines.
 Kimi used them to name `size * (items / size)` as the missing fact.
 GLM cut its omega failures from two to one. Neither added the division identity in time.
 A failed `fr proof save` returned one line with no diagnostics.
 GLM spent its last three tries on such calls.
 
-**Current PR: failed proof saves report like proof checks.**
+**Completed in #613: failed proof saves report like proof checks.**
 
 A rejected `fr proof save` now returns the `fr proof check` report and writes nothing.
 Draft locations stay workspace-relative when the workspace path passes through a symlink.
-The next page-count study measures this change and needs fresh approval.
+
+The [sixth study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered one patch.
+Kimi-1 used `Int.tmod_add_mul_tdiv` from `library_facts` and passed at 264 s.
+No session called a failing `fr proof save`, so #613 was not exercised.
+All four sessions searched Lean's library source for lemma names.
+Kimi-2 never ran `fr proof start` and spent its whole session there.
+GLM-1 searched for 175 s before it started the proof.
+GLM-2 traced imports to learn whether `omega` worked after `prelude`.
+`constructor` split its three-part goal into two, and omega lacked the division identity.
+GLM-1 needed `q ≤ q * size`, which `exact?` finds only as `1 * q ≤ size * q`.
+
+**Next PR: the skill points weak agents past these stalls.**
+
+The skill lacked the division steps, the start-first order and the flag ranges.
+The success criterion is steady progress to a finished proof, not a shorter session.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
