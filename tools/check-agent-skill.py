@@ -37,6 +37,7 @@ ROUTES = {
     "lean": ["SKILL.md", "references/lean.md"],
     "lean-arithmetic": ["SKILL.md", "references/lean.md", "references/lean-arithmetic.md"],
     "lean-algorithms": ["SKILL.md", "references/lean.md", "references/lean-algorithms.md"],
+    "lean-division": ["SKILL.md", "references/lean.md", "references/lean-division.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
     "verified-workflow": ["SKILL.md", "references/workflow.md"],
 }
@@ -540,7 +541,8 @@ def lean_workflow(exercise, root):
     (root / "src").mkdir()
     (root / ".fr").mkdir()
     example = root / "arithmetic-example.lean"
-    for source in blocks(SKILL / "references/lean-arithmetic.md", "lean"):
+    for source in [*blocks(SKILL / "references/lean-arithmetic.md", "lean"),
+                   *blocks(SKILL / "references/lean-division.md", "lean")]:
         example.write_text(source)
         checked = subprocess.run(["lean", "-j", "1", str(example)], cwd=root,
                                  capture_output=True, text=True, timeout=30)

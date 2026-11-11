@@ -12,7 +12,7 @@ fr --json proof start '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeou
 ```
 
 Copy `<TARGET>` from the list: `FILE.lean::THEOREM`. A theorem name alone is
-invalid. `start` creates `skip` and shows the actual goal; it never overwrites.
+invalid. Each listed goal's `start` field is the next command to run. `start` creates `skip` and shows the actual goal; it never overwrites.
 To resume a draft after changing a step:
 
 ```sh
@@ -21,8 +21,8 @@ fr --json proof state '<TARGET>' --draft .fr/proof-tactics --at end --bytes 8192
 
 `end` selects the last nonempty draft line. `4:end` selects line four's end;
 `LINE:COLUMN` uses one-based Unicode character positions. No column counting
-is needed for an end position. `--bytes` bounds the UTF-8 JSON response.
-`--timeout-seconds` shares one deadline across dependencies and checking.
+is needed for an end position. `--bytes` (1024..16384) bounds the JSON response.
+`--timeout-seconds` (1..60) shares one deadline across dependencies and checking.
 
 Each `goals` item has two text fields:
 
@@ -39,14 +39,17 @@ All inspection states retain `acceptance: "not-checked"`.
 Write tactics without leading `by`, preserving nested indentation.
 Parameters in `context` already exist. Use `intro` for an implication or
 quantifier still in the goal, not for a variable already in scope.
-For `P ∧ Q`, `constructor` creates two goals. Bullets `·` focus branches.
+For `P ∧ Q`, `constructor` creates two goals; for `P ∧ Q ∧ R`, use
+`refine ⟨?_, ?_, ?_⟩`. Bullets `·` focus branches.
+`omega`, `simp` and `decide` work in every model file, even after `prelude`.
 For `h : P ∧ Q`, `rcases h with ⟨hp, hq⟩` names two proofs.
 An implication `h : P → Q` instead needs a proof of `P` to yield `Q`.
 See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
 For a missing fact, read `library_facts` in the `fr proof start` result. It
 lists library theorems about the model's operations with exact names and
-statements; use those names. For any other step, try `exact?` (see Arithmetic).
+statements. For any other step, try `exact?` (see Arithmetic). Searching Lean's
+own source is slower; check a draft instead.
 
 ## Check, save, deliver
 
