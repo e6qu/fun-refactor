@@ -1694,6 +1694,7 @@ pub fn proof_check(
         bail!("proof check response must allow 1024..16384 UTF-8 bytes.");
     }
     let root = root.canonicalize()?;
+    let proof_path = &canonical_draft(proof_path)?;
     let prepared = prepare_proof(&root, target, proof_path)?;
     check_prepared_proof(
         &root,
@@ -1712,7 +1713,34 @@ pub fn prove(
     token_limit: usize,
     timeout_seconds: u64,
 ) -> Result<ProofPlan> {
+    match prove_or_reject(root, target, proof_path, token_limit, timeout_seconds)? {
+        Ok(plan) => Ok(plan),
+        Err(attempt) => {
+            let reason = attempt
+                .diagnostics
+                .first()
+                .map(|diagnostic| diagnostic.message.as_str())
+                .unwrap_or("Lean rejected the submitted tactics");
+            bail!("proof failed Lean verification: {reason}");
+        }
+    }
+}
+
+fn canonical_draft(proof_path: &Path) -> Result<PathBuf> {
+    proof_path
+        .canonicalize()
+        .with_context(|| format!("cannot read proof draft {}", proof_path.display()))
+}
+
+pub fn prove_or_reject(
+    root: &Path,
+    target: &str,
+    proof_path: &Path,
+    token_limit: usize,
+    timeout_seconds: u64,
+) -> Result<std::result::Result<ProofPlan, ProofAttempt>> {
     let root = root.canonicalize()?;
+    let proof_path = &canonical_draft(proof_path)?;
     let mut prepared = prepare_proof(&root, target, proof_path)?;
     let attempt = check_prepared_proof(
         &root,
@@ -1723,15 +1751,10 @@ pub fn prove(
         timeout_seconds,
     )?;
     if !attempt.passed {
-        let reason = attempt
-            .diagnostics
-            .first()
-            .map(|diagnostic| diagnostic.message.as_str())
-            .unwrap_or("Lean rejected the submitted tactics");
-        bail!("proof failed Lean verification: {reason}");
+        return Ok(Err(attempt));
     }
     prepared.receipt = attempt.receipt.context("accepted proof has no receipt")?;
-    Ok(prepared)
+    Ok(Ok(prepared))
 }
 
 fn proof_target(target: &str) -> Result<(PathBuf, String)> {

@@ -15,7 +15,7 @@ fn retained_structural_migration_preserves_compiled_results_and_exact_reversal()
         .args([
             "tools/structural-change-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-structural-change",
+            "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-structural-change",
         ])
         .output()
         .unwrap();

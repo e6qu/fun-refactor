@@ -103,9 +103,11 @@ GLM cut its omega failures from two to one. Neither added the division identity 
 A failed `fr proof save` returned one line with no diagnostics.
 GLM spent its last three tries on such calls.
 
-**Next PR: failed proof saves report like proof checks.**
+**Current PR: failed proof saves report like proof checks.**
 
-A failed `fr proof save` should return the diagnostics, goals and draft locations of `fr proof check`.
+A rejected `fr proof save` now returns the `fr proof check` report and writes nothing.
+Draft locations stay workspace-relative when the workspace path passes through a symlink.
+The next page-count study measures this change and needs fresh approval.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit

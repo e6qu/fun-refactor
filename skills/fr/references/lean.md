@@ -57,6 +57,7 @@ fr --json proof save '<TARGET>' --draft .fr/proof-tactics --bytes 8192 --timeout
 
 A rejected check exits 1 with `passed: false` and diagnostics. Inspect
 `draft_location`, `context`, warnings and omission counts; `tail` can hide errors.
+A rejected `save` returns the same report and writes nothing.
 `save` checks and writes; `--deliver` then runs `.fr/checks.json` and writes all
 saved proofs as one patch. `delivery.delivered: true` means done. A failing check
 exits 1 and writes no patch; fix it and save again. `already-present` creates no edit.

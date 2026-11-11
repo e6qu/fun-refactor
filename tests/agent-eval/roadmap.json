@@ -30,68 +30,68 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-09-distinct-answers-42705779000",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-10-distinct-answers-42926418183",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-09-distinct-answers-42705779000/result.json",
+      "path": "tests/agent-eval/results/2026-11-10-distinct-answers-42926418183/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "d107d6640f96894982651ee4c8f1f791556b7f63da4e8fa0efd33626534eeb4f"
+      "sha256": "16f272960f4f63c6e7ccd58327233c632a04d7e155221edfef99962f8b2579bb"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "c3bc7971404cfb558a6ca0f72f2b38ec6153677130e45ee8ca6a3ded110c5772"
+      "sha256": "6e37d95905a5f7286022bb3f54e2fd97c1d7927db78cca30ba3f233998561b81"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "c27aecd7993fb13c628191d254e5baa67264b508787147624a9d749a400a6d5e"
+      "sha256": "0135edf47b4ed51e527ec8160641f46425dd3e9e560579d19b3cdaf7130ce8dd"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "fb62f7b6e8a40dd4ef400ca3b0db613fdc64f7216be63e145f1f6ff65d66cebc"
+      "sha256": "2333c915341e4d30e57b28e7d8b0e9e54bae543e2c1d0ccb372664d08aeb6ea3"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "b7b6570872c2a3a8df08eec28519087f5c0daf3e2625989ea46a368929d3c100"
+      "sha256": "985c5eb3e316ee062b231ae53d068ec300860738b65c27e09777418516a92136"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "a12ee33dedddb5afd3b4b569497ea6b1179d3708203bc55643320eaedcdafd6e"
+      "sha256": "ac53719f30df4de4b7a3b95ad26abc987506c925943bdd311e6bf15ab72df520"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "fc9cc45a5ee680e139c356210d6664ac36cc524badbfd00acdd1dddc028dbef9"
+      "sha256": "03783b630b0c6a3af2e6a14063d78308e8b5538d86c7e186affcb4c636195c91"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "c49d16e31259195e61207f7abf6d4b8730dca09059e2916954ecf9ed98d1b8a3"
+      "sha256": "f0959f37a2cab896f8465e389d8c2772d516c7486517c905f16705b010893da9"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "4380dd084be85f60f4085f8ae6796f2ec64e8df4057b5a5004939ec3b3fa640a"
+      "sha256": "592c048e7ada8440caac398a437b283de2035325ff9f01e145485ce4c071c933"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "7ca6d25f5e9b35fd3c92137de5d11addb315a69022300df4ccf5757d2d956d9f"
+      "sha256": "7fa1f0c4ef3e0cf0c0b13941193fd5ecff76864cd11a2644b877ceb33739f95c"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-11-proof-save-diagnostics-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "18e69b733f7617ee04df4ba23177ddd7d97649ac72dac14ac8e7dd546f85fc37"
+      "sha256": "e20f1d800fe84b55466a1b571eeb52a662d3ab15324ca8c21cd7fbd213ce059c"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-11-proof-save-diagnostics-text-package-recheck",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.",
-      "sha256": "d96bcab55d44b066b75619d005439c183284f2d9fc40da02a0c8623d97a4e6ea"
+      "sha256": "33da883153b0153a27e9323e916c6ffc95e2216a8af3b487197f8bdc449a6ce0"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -158,44 +158,44 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-42724457023",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-42939202911",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-42724457023/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-42939202911/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "91e3ed64d2ad85ad183c8a6433e7709e0ece842311072349f5601aaedf51c06b"
+      "sha256": "b51384a7b0d09df4a752b4799000789baedf7e9fad75ab2d8cade3b7d2f71da1"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-11-proof-save-diagnostics-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "eb1c2fd319d26081bf7e4da45f9d556ef00ae6235baa1c17cc3a4642b572c2e1"
+      "sha256": "b3083b1f7a807d865baa2a3d0864de58ab17647cc6bdc9c19f7db94add2e4244"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-effects/result.json",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "sha256": "365d98eb4b20d419398993ae1ce2c8489d6dd999b4bae81a079d42d894db50b7"
+      "sha256": "d09108a1502285a3651e3c99c26b9d8bb7f15e64d0e8ece5c8129e5c69a7310a"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-text-flow",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "5bd923cb63b2d10ac2ab328d46f847079511f9ea975391c89eb763c240c87b4e"
+      "sha256": "4d8d2b3ba2ab45ec8d226bbcf94a69485820996345274b55ee7643280eb3a674"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/release-42782014260-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/release-42782014260-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "22d301f7a6bbba257fbbe4709484a83dc5326877b9b69d7a33d05b7b57fb119a"
+      "sha256": "4271c1c8271ee0933c88763080f5578131c2ac1b78fba581194fa22029b2c228"
     }
   ],
   "obligations": [

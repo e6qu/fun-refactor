@@ -796,10 +796,35 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
             "30",
         ],
     );
-    assert!(!rejected_write.status.success());
+    assert_eq!(rejected_write.status.code(), Some(1));
+    let shown = String::from_utf8_lossy(&rejected_write.stdout);
     assert!(
-        String::from_utf8_lossy(&rejected_write.stderr).contains("proof failed Lean verification")
+        shown.starts_with(&format!("Proof rejected: {target}\n")),
+        "{shown}"
     );
+    assert!(shown.contains("wrong-proof.lean:1:"), "{shown}");
+    assert_eq!(
+        std::fs::read_to_string(&model).unwrap(),
+        before_failed_attempt
+    );
+    let rejected_json = run(
+        workspace.path(),
+        &[
+            "--json",
+            "proof",
+            "save",
+            &target,
+            "--draft",
+            "wrong-proof.lean",
+            "--bytes",
+            "2048",
+            "--timeout-seconds",
+            "30",
+        ],
+    );
+    assert_eq!(rejected_json.status.code(), Some(1));
+    let rejected_json: serde_json::Value = serde_json::from_slice(&rejected_json.stdout).unwrap();
+    assert_eq!(rejected_json, failed);
     assert_eq!(
         std::fs::read_to_string(&model).unwrap(),
         before_failed_attempt
