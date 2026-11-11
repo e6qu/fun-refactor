@@ -8,7 +8,7 @@ fn retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal() 
             "--fr",
             env!("CARGO_BIN_EXE_fr"),
             "--audit",
-            "tests/agent-eval/results/2026-11-11-proof-start-guidance-model-comparisons",
+            "tests/agent-eval/results/2026-11-11-product-facts-model-comparisons",
         ])
         .output()
         .unwrap();
