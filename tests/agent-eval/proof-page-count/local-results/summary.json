@@ -30,23 +30,23 @@
     "tests/agent-eval/proof-writing/controls/page-count.lean": "204b365838888955f72518d93846eeab02553f2f95407f2657b801d832203b9e"
   },
   "native_inputs": {
-    "src": "967c59a81caeb172c47a9815abfde5e3d0bf0240",
-    "grammars": "9ef56d7c827aa2762f05b8b0edc28e6165fbc592",
-    "crates": "f1b6e1cc1bbef061a1240b7b9952c9acf54420b0",
+    "src": "57296b5666dc75f611964faf2469d0f4bca49c29",
+    "grammars": "4e136f8a73be9fb7f161e0c68688f34340163279",
+    "crates": "ef7f2d1b327393a41301668e4447797b702e2eda",
     "queries": "43373da5ff00b75cdff85cf9ed8a5c3059eefdaf",
     "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
     "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
     "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
-    "Cargo.toml": "76d2455a937f74bbe1559bdb4863c570d868d766",
-    "Cargo.lock": "9a93c6f029c2189beffbf249eaa57c613a4070fb",
+    "Cargo.toml": "a67d64e9baaf195abbe3b0d15032afb5868cdd4d",
+    "Cargo.lock": "10f4f91b4683912e83e799da17eb6b9ab10de7af",
     "native-source-inputs.txt": "d6758c0d2c50607531b40989375249d68b26c583"
   },
-  "core_checker_sha256": "5677d4f18b5ad555eca20fc7abf46639cfc24bec120a424d6b22dd9fc3823511",
+  "core_checker_sha256": "2de61ff203601b5d9f97b722d112d50b8dd8d89a01a6b5fc3fa6abfe5b165dc3",
   "task_source_sha256": {
     "page-count": "8e8f0e1d0884e234e127df2b17291d885a868d623203defe4d3e75532e4a9198"
   },
   "native_app_versions": {
-    "fr": "fr 0.91.0",
+    "fr": "fr 0.91.1",
     "opencode2": "opencode v2.2.5"
   },
   "local_checker_versions": {
@@ -57,14 +57,14 @@
     "lake": "Lake version 5.0.0-src+7e01a1b (Lean version 4.28.0)"
   },
   "native_binary_sha256": {
-    "fr": "30aa56b1c891d4d7d4332e94429f337d0975f90fa68c544f886a822d575845ce",
+    "fr": "cba9195280ff994c1de921b58d15c0f205073170564c442dca4bcde334769b8e",
     "opencode2": "abe4d88594bffb12b364375b8a6732d2d1f7a977195ed1a35c5c76f8e89c9e0e"
   },
   "native_companion_sha256": {},
   "fr_build": {
-    "source_commit": "50a84524710a1630c29effa3730e454b8694ec1f",
-    "source_tree": "5b7b9c3be948fb75c8275cf0991196ff8f682023",
-    "executable_sha256": "30aa56b1c891d4d7d4332e94429f337d0975f90fa68c544f886a822d575845ce"
+    "source_commit": "24a8306e2f1f613c8a1f846f05e494d67fbf4349",
+    "source_tree": "acc2bb4292384d80813a408adec4bd1c107a2b48",
+    "executable_sha256": "cba9195280ff994c1de921b58d15c0f205073170564c442dca4bcde334769b8e"
   },
   "limits": {
     "wall_seconds": 300,
@@ -93,16 +93,16 @@
   "controls": {
     "passed": true,
     "live_model_calls": 0,
-    "source_commit": "50a84524710a1630c29effa3730e454b8694ec1f",
+    "source_commit": "24a8306e2f1f613c8a1f846f05e494d67fbf4349",
     "study": "M3-page-count",
-    "run": "42805057899",
+    "run": "42981728017",
     "bindings": {
       ".github/actions/lean-toolchain/action.yml": "f3d130024715f06b5f5a2c0cb988dd22bc3dc03ac6ea1362e52c89c05a8ac0f0",
       ".github/actions/native-tools/python-wheels.txt": "29c5ecd29ae0e8de35859ad3c9d527ebae9ff3c7aae2b4878f5d57a46336b651",
       ".github/workflows/proof-feedback.yml": "dcac94666649578e48102f3fc71e8b8cdbb06f7e315712ed51e093171f5c7e53",
       ".github/workflows/refinement-evidence.yml": "fdb5d82b3160b59b53d431036c4c405f317ac27b5f2770e7799c54708f322826",
       "sdk/python/src/fr_ir/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "sdk/python/src/fr_ir/_version.py": "8b0b8e65f6a970efb44b8c10486f5aca19190b585c967de5852ee5f88de71a39",
+      "sdk/python/src/fr_ir/_version.py": "93128f0fe5481c910d983fcc16ec49daf6f26f8114ee276e20e7dff8520a6545",
       "sdk/python/src/fr_ir/application.py": "4643306ef6933c66dfc65f4bbb7b311f7c80163fba8d207ae4a6f7b0e52b63e1",
       "sdk/python/src/fr_ir/change_scope.py": "b371ed95c715e184b5e9c567efa2b7255dd3e798cd8e9ee2a149346be2057fa2",
       "sdk/python/src/fr_ir/compiler_evidence.py": "16724c06be3662f0a96d33a41524c3c53a2bfa42c568526a8b75612c84fe12bd",
@@ -154,7 +154,7 @@
       "skills/fr/references/lean-algorithms.md": "d23f26e0784d61c2a751dba77087943aef2b7e327ea22b57e666e5a36b880a1a",
       "skills/fr/references/lean-arithmetic.md": "55982940fd2f1d1234454460ad3705211111851dc4bdbeff8538f32b4684cd6e",
       "skills/fr/references/lean-claims.md": "9b46b151e0d28781f6e679f3789ad689285caf7e1cc07108d0b9168bcd503e1e",
-      "skills/fr/references/lean.md": "a30050c54521e755ae981f281550261790d253a9249a67d726216fe582e10002",
+      "skills/fr/references/lean.md": "5624f080431c68898acbb3e7c949a292f43bfe784be546df4c4d7b893badf066",
       "skills/fr/references/recipes.md": "f20a38279377f50e828a189412816f8ca74d8a995b4184f132c6d023bf6d80e8",
       "skills/fr/references/recovery.md": "c37b6cd4a186c4d0edd279fb7715a29eda1eaf0cd1748c0ab70f4d8cb41d0abf",
       "skills/fr/references/runtime.md": "4741be4f2321b9cd764e7fdedd6140f452bbb65f0b7965e63e4e0223c972dffa",
@@ -170,8 +170,8 @@
       "tests/agent-eval/proof-writing/controls/page-count.lean": "204b365838888955f72518d93846eeab02553f2f95407f2657b801d832203b9e",
       "tests/agent-eval/proof-writing/fixtures/src/pages.rs": "83a85e823c096762d0fe6bda21f91518b6d2bcbe60b3c801cc86e5431ab2b962",
       "tests/agent-eval/proof-writing/profiles.json": "78df8eece2af03cc4c358546dceb431f4b2fd4f9ce3d56483e0455945f87d691",
-      "tests/agent-eval/selected-agents/Grader.Dockerfile": "725633101ea28f15304cccb57337756b4458b3176bc22f1d91e395a655c28e34",
-      "tests/agent-eval/selected-agents/Native.Dockerfile": "1698d8c64effb8d07f6e0a8db764b6d990746472907efed9f7610f35ad68f77c",
+      "tests/agent-eval/selected-agents/Grader.Dockerfile": "fc45a9fed2bfae7673222f792b2b662d83a8509e291a60db0c10a55e0218b261",
+      "tests/agent-eval/selected-agents/Native.Dockerfile": "4c22e7882d596da5e7e2dfe62696d72d5d467a02728db78db4b3841e07a50b39",
       "tests/agent-eval/selected-agents/clients.json": "bfea497de6f0b995b4c57f981b069316b1d4cb6926e4de11abafc2889f0169aa",
       "tests/agent-eval/selected-agents/native-requirements.txt": "bd59a8e483b61b2bb2da5998afa034f02bc20c5112c8cbc3c25e57fcc9028061",
       "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
@@ -248,7 +248,7 @@
       "tools/agent_eval/proof_algorithms.py": "7d06f74b39d8292965af3e5cf646d5d35c02210ed5891a35ad0566124b95ce14",
       "tools/agent_eval/proof_delivery.py": "7921e6148324da29096e1cb612e72ac647b9bf71e3c202047f9a60488da0d659",
       "tools/agent_eval/proof_feedback.py": "95d3efb28a85dbd25273b06675e31994d97e4614dac2524aa14e3ac26765c137",
-      "tools/agent_eval/proof_writing_artifact.py": "f11000d2fa3c6d8c5d8bbd93e8ba04d97b1c1ac1f4d09f72b18b48b20aea6fa1",
+      "tools/agent_eval/proof_writing_artifact.py": "ae111c8f1e0476148e57c2bef74c53b1387255b7129942e6f23ffaa4001b0e6d",
       "tools/agent_eval/proof_writing_collect.py": "e77840f19bf86ad1b1c9d1f1f08b74bb5395bd1d92b7b0e51d6b52321934d134",
       "tools/agent_eval/proof_writing_controls.py": "0818d1f3c11fcb1fae13a5c73cbe3a0c5d06a5b79de12bcd781bb08699112bb4",
       "tools/agent_eval/proof_writing_results.py": "f95630a080208e86b74f19b5d01d3cee8ac8998e0bf92117442dbf04d7624cae",
@@ -314,7 +314,7 @@
       "tools/agent_eval/test_darwin_sampling.py": "a2a9bf7bad73adae11003a248c6ada7ad10062c833f354ea481a1518e7f36f47",
       "tools/agent_eval/test_external_environment.py": "af927d1b946c9bfa7a40e24f4c0b40d6a214d2ffd40d0e45853df7067b7a422d",
       "tools/agent_eval/test_gateway.py": "6ccb3be76918d54e947b194a4378d59f4ad2de5ef32e6d2c3f2af54e4aa0e119",
-      "tools/agent_eval/test_harness.py": "78e4c133a619f412a0677780fd283ecf7497433901c31bf27855275b68fd4814",
+      "tools/agent_eval/test_harness.py": "014dd64995eb1e308a293337cfd9a0a1de7b578ba1e1c8400d50581a601a4d23",
       "tools/agent_eval/test_host.py": "bb2ee56575e0582ff1f48d45e50a6fefc75e44a8078fb1b14a3a454ac4b74566",
       "tools/agent_eval/test_investigation.py": "da2a3c61529eeacd98507ef4e2efa3f78312f1c3017be29633a02ed729c8ce27",
       "tools/agent_eval/test_isolated_grade.py": "995d3731963f6778adc6a9a0ad23b8ce9af434106257bf0b0816630089cd3467",
@@ -338,7 +338,7 @@
       "tools/agent_eval/test_proof_delivery.py": "29c3cf6a691fe36b260179b5b6f0d12144265330e2834a63e1efd9d4dc673d78",
       "tools/agent_eval/test_proof_division_facts.py": "66b4d72863c4da9c3ade37c2ea451ac38c76ebdda47086666079c4aa1ee53dc0",
       "tools/agent_eval/test_proof_feedback.py": "e330dfd27b5230a25804248a95ba50ea5d6f5bd2560abaeb0648601e3e603d74",
-      "tools/agent_eval/test_proof_writing_artifact.py": "bce427f0f6540a77f0b8669b1ba81fa854782c5feaaaa06a30794edec900dd91",
+      "tools/agent_eval/test_proof_writing_artifact.py": "6572aaf7ab630d18fbd1ddeb83caeb0031ac098c680b97d5fe8b7a925a08ac85",
       "tools/agent_eval/test_proof_writing_collect.py": "641d874a8baeec66e44dc567f4e4c0890f3ae7ad788ec225d9a60a364fd3d1cd",
       "tools/agent_eval/test_proof_writing_results.py": "3159da5ebdeb6eced84ba3ad94b60c72ca7ea034ad8d04a917423b0aa4eb7130",
       "tools/agent_eval/test_proof_writing_tasks.py": "c732ad441eec5bcfd7a527a079154c0ea6f26ba4ffb367b9718541daab3627d9",
@@ -558,14 +558,14 @@
       "tools/test-ci-shards.py": "aef403e2cb572ee9dfd78abecf908929b49f79cadce552992438755baeb0cad7",
       "tools/test-client-memory-profile.py": "5d857ba43d7e440b1dc2342a04de3703204850d8628a7daf5bf5799947452987",
       "tools/test-client-memory.py": "724c831b139de4fb19a326529ada36f2b3cee1e7842fb517db53128c03ca2d51",
-      "tools/test-compiler-profile.py": "174f7fc6819560b8ac5f15f009d28d2192bfb7cb9f5c094818b3be3724cbc842",
+      "tools/test-compiler-profile.py": "2beb158eca44f7d02b452e84d6d47c64da23036f87871f6e8133dd0c090b26a0",
       "tools/test-configured-changes.py": "4fff649c42d94bbb51130efef5f4d4265627edd0e6cec06987363de9be383f75",
       "tools/test-deep-audit.py": "fd900abe195d343bd3c32dfd409c66b264550d2ef94d4ea940d12b9c8d647887",
       "tools/test-docker-grader-diagnostics.py": "01bec04746987435084c0c0538b54a46e02eb116752088e43be099c32fb84434",
       "tools/test-frozen-analyzer.py": "73467d74dede8cc9ce14f97b9b50d25c8870283ec3e0b480b5f0211aa03ba9dc",
       "tools/test-frozen-python-cost.py": "0e9de206de27c568aad72e48ae554003edc1e40b8736b860d6c4a3f60d040df0",
       "tools/test-frozen-repository-flow.py": "8f77268c8654afce67b1a0e891dd58d3c64167ed40be273d711317a8382fe391",
-      "tools/test-guide-body-context.py": "6f98e5db30e72dab72231f31a44f3a81aff0906191629f375d1f0210b793f7bc",
+      "tools/test-guide-body-context.py": "a39c03fbba41519fde711ec3657b872081ebb43a0166a823b1a48f5053123291",
       "tools/test-guide-body-native.py": "23690c2a0516891062204d4a21818da77f76763ffdc04a25e8856d64f65f598c",
       "tools/test-index-consumers-acceptance.py": "c9b0f59e114a282f8effa3abd7614de3520d213efde40d6793ee483d5d2f6518",
       "tools/test-index-resolution-acceptance.py": "4c488499a99a8f79848a7cff4b673f019cbb49de197ed204891da3ea297b3b5d",
@@ -581,7 +581,7 @@
       "tools/test-proof-authoring-agent.py": "e783af3f6070738649b86ad2f693dc81216804d8236094b6ae9f8ce539f85225",
       "tools/test-python-contract-runner.py": "44b97af9b2c6b7d50146f0457ad7923b168ec1f61c55cae4b554bc630dc5221e",
       "tools/test-python-contract-writer.py": "b66e29b1a14556edc91fc941ed0473d6db242d4560a7b27d45fe7221ff18f8cf",
-      "tools/test-python-contract.py": "1b1980e3f81958059fa59fb2aaeebc630f52165ae6aaa5c5646dd64cc65ec020",
+      "tools/test-python-contract.py": "bfde5c146768b5e8262d5192aa03b69ae67dd5f0e0a956da6732d8fc4b2b302f",
       "tools/test-python-effects.py": "9d7cf47aa35c1c2ef103c6eac0b66b0641dd93b6530b7e8dda760f773f228e12",
       "tools/test-python-process-cost.py": "598c9f5946835cb05976124efda4d0a1b26bc3d155c6556879c2a2bcf41b4bfd",
       "tools/test-python-repository-flow.py": "5bb50dde547ef3519ea067be99d25c715e9899bd49c2549287314b371fd813c6",
@@ -592,7 +592,7 @@
       "tools/test-python-text-package.py": "cdaedf29e278879fb9fb8adcf76c7e53d1707db94cca2c5cd1b0c83452ac764a",
       "tools/test-python-together-cost.py": "3565dfca3fd930e3a28298d6e2acb0f4802097a389ffc32644dccb99d050d66d",
       "tools/test-recheck-text-package.py": "a12569a2d290425dd9b5486c13d1d24a847ad230d36b617262aa0fc84aaff655",
-      "tools/test-recovery-delivery-context.py": "080502d8bbe9c041fac6dcacb44530aba39480823b16ba4ddfaaa29bfdacf040",
+      "tools/test-recovery-delivery-context.py": "fa7fbf2fddd0d273d2613c665be09732c254b66c452997c9dfbfd749efd8e9ca",
       "tools/test-release-request.py": "2180968b3dc568e7de9c29f1c2fe71670e04fc2608888a2eae0d8cb6313d008d",
       "tools/test-repository-declarations.py": "d016c3c21c7bfe114da2b40d019ebdfad46c9dfa53f04d9d4027d84fa9bd551e",
       "tools/test-retain-ci-reports.py": "354c4c7307f0d22a5ba241b00f35c167cc2b1cc19d8bea24991cd6a41e4c5fd7",
@@ -608,10 +608,10 @@
       "tools/test-saved-answer-comparison.py": "0924fccfd5fe4b6468e769ebfd99c4e2d99041f366e745c8706fb0ed30a21cf5",
       "tools/test-saved-work-cost.py": "2ec96d9cb9f9f8ba0e3167c2cd47f68cdb9778101588f7aa061a95f6050af069",
       "tools/test-scoped-reviews.py": "ca957f64a9066c3790109bf86c8037737537944b06fb8e92d0b8966114ff962e",
-      "tools/test-source-repair-context.py": "dfba54afe01e7a98f88b23929c59ee62223451bc38a348c8b03e42b26cb4e325",
+      "tools/test-source-repair-context.py": "6f28efd04ac45fb41efb799093e7173d2912be95d5ec9fa97dc500a8ceca4c69",
       "tools/test-streaming-delivery.py": "e012e403f2d888974bf2748ddca16e9be22c9fe30b26bbb3a8eea443b728fcd0",
       "tools/test-workflow-evidence-basis.py": "517ba5aec4bc1dcd1508714a35271b2b9dc014abbe9a3e4849e642305b2bc252",
-      "tools/test-workflow-route-context.py": "bb33e1e9106c11ae23c6c2dc12eb0cba1887aa2b000542aba82d07b377b26bc9",
+      "tools/test-workflow-route-context.py": "7e3ab9f52b978a84b8227e0aa466f5297d39c866da75ead07b04088b12d63958",
       "tools/test_evidence_archive.py": "6e8d06cc495d5c1bafb542468a61c71c1f3143dfdc1fe0c260f1428afee5b041",
       "tools/test_fetch_verified_ranges.py": "0d476a1dbd9b7a6ab1c3ed0c803741d6f6c913745667f4a51dbe66404872811b",
       "tools/test_flow_cache_basis.py": "f69f0d8437e20dbc260ba0d8a32cf434e4b41ee842d07a7acb7c377b095e2138",
@@ -661,14 +661,14 @@
       }
     },
     "private": {
-      "image": "sha256:09d3d8ae71d9284d7a8138e54b3d1108dc69df669ae5b9ec9eeb626014ba3d4b",
-      "image_archive_sha256": "6c98624bed4a5dbed36fecd48f822811c75deec9e1d8bbf3ef0298ec5f6cfacd"
+      "image": "sha256:65e358c231f093eca7d0632c3b9aec57855629192c401fb2f024cb30f5276c4b",
+      "image_archive_sha256": "b8313ec3d7d9bfc83adb4cce81bd0694d787252149df428492b71b93706d6459"
     },
-    "fr_sha256": "5b41f43623430b0cd35086d441b1c72b82a9423ba312dda10ce2c8a3f036c1ef",
-    "core_checker_sha256": "5677d4f18b5ad555eca20fc7abf46639cfc24bec120a424d6b22dd9fc3823511"
+    "fr_sha256": "9c488e319c344b5f36b73268074bfd48c8bb78f63cea5ca585570e7b347a5f50",
+    "core_checker_sha256": "2de61ff203601b5d9f97b722d112d50b8dd8d89a01a6b5fc3fa6abfe5b165dc3"
   },
   "collection_receipts": {
-    "cf1578590fda068cf2dae83d8fdce33ea44eefb90fe50a1d16d68d6d07834fb7": "50a84524710a1630c29effa3730e454b8694ec1f"
+    "a81abf1663e96c3c3f1b830409ecf9750c32fddaf21e4466faf194fb5ef0f338": "24a8306e2f1f613c8a1f846f05e494d67fbf4349"
   },
   "attempts": [
     {
@@ -679,57 +679,55 @@
       "repetition": 1,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "cf1578590fda068cf2dae83d8fdce33ea44eefb90fe50a1d16d68d6d07834fb7",
-      "record_sha256": "119b5b95f1aaf4acffd181d3dd3dd6ef98bde881889b9d505c519ada5d07b57c",
-      "total_seconds": 290.4709169580019,
-      "native_seconds": 289.740718999994,
+      "collection_receipt": "a81abf1663e96c3c3f1b830409ecf9750c32fddaf21e4466faf194fb5ef0f338",
+      "record_sha256": "b61b6a6038dd14e101306f2349eaf5c6f6a6e0c51b2804a6102e54d78ad91d43",
+      "total_seconds": 290.60088812501635,
+      "native_seconds": 289.57185820897575,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.27263695903820917,
+      "verification_seconds": 0.39122720796149224,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 565166080,
+      "sampled_rss_bytes": 541327360,
       "reported_tokens": {
         "cache": {
-          "read": 383616,
+          "read": 271936,
           "write": 0
         },
-        "input": 27857,
-        "output": 2828,
-        "reasoning": 7584
+        "input": 23522,
+        "output": 1886,
+        "reasoning": 5931
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 8,
+        "commands_observed": 6,
         "operations_observed": [
           "proof check",
-          "proof save",
-          "proof start",
-          "proof state"
+          "proof start"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "fr proof start at 20 s; the first draft was written at 27 s.",
-          "Three fr proof checks returned errors first (unknown tactic, unsolved goals, introN) and one proof state query showed the goal shape.",
-          "Three fr proof save calls failed with one-line messages and no diagnostics."
+          "Four greps of Lean's library source for lemma names before fr proof start at 202 s.",
+          "One fr proof start was rejected for a theorem name without its file; the error named the TARGET form.",
+          "Four fr proof checks each returned one type mismatch for q <= q * size; it searched source again instead of using exact?."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 23,
-        "completed_tool_wall_seconds": 38.84,
+        "completed_tool_calls_with_timing": 20,
+        "completed_tool_wall_seconds": 34.061,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
       "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "The session ended at 290 s without a passing proof; after switching to fr proof save it got no goals or locations back.",
+      "failure_summary": "The session ended at 290 s without a passing proof; it never found the product fact that exact? supplies in the 1 * q <= b * q form.",
       "proof_observations": {
-        "first_proof_check_seconds": 144.5,
+        "first_proof_check_seconds": 217.7,
         "first_passing_proof_seconds": null,
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
@@ -745,7 +743,7 @@
         "stop_reason": null,
         "launch_error": null,
         "monitor_error": null,
-        "elapsed_seconds": 290.4709169580019,
+        "elapsed_seconds": 290.60088812501635,
         "limits": {
           "wall_seconds": 300,
           "rss_bytes": 805306368,
@@ -753,13 +751,13 @@
           "cpu_seconds": 75,
           "transcript_bytes": 1048576
         },
-        "sampled_aggregate_rss_bytes": 565166080,
-        "sampled_cpu_seconds": 37.17,
-        "sampled_disk_growth_bytes": 105048,
-        "transcript_bytes": 183,
+        "sampled_aggregate_rss_bytes": 541327360,
+        "sampled_cpu_seconds": 28.99,
+        "sampled_disk_growth_bytes": 104652,
+        "transcript_bytes": 182,
         "suspended_seconds": 0
       },
-      "complete_attempt_resources_sha256": "e38d3a4252f99b1178bd33ce7957c9e187a139d28511691475ff335a4d7189bc"
+      "complete_attempt_resources_sha256": "e23b66c24e6d729b4d2b62315efbe39fba5c092657ec57a387fbb2edb59a9e4b"
     },
     {
       "id": "opencode2-kimi-k3-page-count-fr-1",
@@ -767,64 +765,64 @@
       "task": "page-count",
       "setup": "fr",
       "repetition": 1,
-      "native_status": "failed",
+      "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "cf1578590fda068cf2dae83d8fdce33ea44eefb90fe50a1d16d68d6d07834fb7",
-      "record_sha256": "702a83bf933f949449a834904c7b986f8355be5795c35a77ce4ad0a9fae9fc08",
-      "total_seconds": 290.4229260410066,
-      "native_seconds": 289.7271724999882,
+      "collection_receipt": "a81abf1663e96c3c3f1b830409ecf9750c32fddaf21e4466faf194fb5ef0f338",
+      "record_sha256": "90aa2d61b011c7bf53ee69716dde3f7691b28006a557d9f2921b52b2539d3cdb",
+      "total_seconds": 289.77008645795286,
+      "native_seconds": 288.9161156669725,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.24696824996499345,
-      "stop_reason": "wall_seconds",
+      "verification_seconds": 0.3571602499578148,
+      "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 485130240,
+      "sampled_rss_bytes": 499712000,
       "reported_tokens": {
         "cache": {
-          "read": 224000,
+          "read": 175872,
           "write": 0
         },
-        "input": 22624,
-        "output": 2444,
-        "reasoning": 6137
+        "input": 23001,
+        "output": 1871,
+        "reasoning": 5949
       },
-      "reported_usage_complete": false,
+      "reported_usage_complete": true,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 7,
+        "commands_observed": 4,
         "operations_observed": [
           "proof check",
-          "proof list",
+          "proof save",
           "proof start"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Three library greps before its first draft; fr proof start at 161 s.",
-          "Two proof check calls were rejected as invalid input (missing arguments, then --timeout-seconds 120).",
-          "The omega failure showed its where lines; the session named the size * (items / size) term as the missing fact."
+          "fr proof start at 24 s listed library_facts, including Int.tmod_add_mul_tdiv, the identity its proof used.",
+          "It then searched Lean's source for 175 s on how || behaves in the model's if; simp [page_countModel, h] handled it.",
+          "One proof check was rejected for --timeout-seconds 90; the next passed at 264 s and fr proof save --deliver wrote the patch at 273 s."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
-      "patch_file": null,
-      "patch_sha256": null,
+      "patch_file": "patches/opencode2-kimi-k3-page-count-fr-1.patch",
+      "patch_sha256": "3c2b6f20c7f08396b7f16eb8a63a3542349648c68fe21cb8a515659f391de01b",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 19,
-        "completed_tool_wall_seconds": 14.031,
+        "completed_tool_calls_with_timing": 14,
+        "completed_tool_wall_seconds": 8.53,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
       "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "The session ended at 290 s without a passing proof; its last draft did not parse and it never added the division identity.",
+      "failure_summary": null,
       "proof_observations": {
-        "first_proof_check_seconds": 196.9,
-        "first_passing_proof_seconds": null,
-        "package_check_seconds": null,
-        "patch_delivery_seconds": null,
-        "proof_check_passed": false,
-        "proof_written_with_fr": false,
-        "package_check_passed": null,
+        "first_proof_check_seconds": 263.5,
+        "first_passing_proof_seconds": 263.5,
+        "package_check_seconds": 272.9,
+        "patch_delivery_seconds": 272.9,
+        "proof_check_passed": true,
+        "proof_written_with_fr": true,
+        "package_check_passed": true,
         "execution_validity": "valid"
       },
       "complete_attempt_resources": {
@@ -834,7 +832,7 @@
         "stop_reason": null,
         "launch_error": null,
         "monitor_error": null,
-        "elapsed_seconds": 290.4229260410066,
+        "elapsed_seconds": 289.77008645795286,
         "limits": {
           "wall_seconds": 300,
           "rss_bytes": 805306368,
@@ -842,13 +840,13 @@
           "cpu_seconds": 75,
           "transcript_bytes": 1048576
         },
-        "sampled_aggregate_rss_bytes": 485130240,
-        "sampled_cpu_seconds": 33.03,
-        "sampled_disk_growth_bytes": 104758,
-        "transcript_bytes": 180,
+        "sampled_aggregate_rss_bytes": 499712000,
+        "sampled_cpu_seconds": 27.259999999999998,
+        "sampled_disk_growth_bytes": 275039,
+        "transcript_bytes": 184,
         "suspended_seconds": 0
       },
-      "complete_attempt_resources_sha256": "ddeb34eec42674092b61681c981eff190b5dddf343282043c3a07f526b91764d"
+      "complete_attempt_resources_sha256": "7f4b4bbbe1e13f2fc7f56242e72df4e3e75fd9c11dd9c56a418fc353a5fdb6bc"
     },
     {
       "id": "opencode2-glm-flash-page-count-fr-2",
@@ -858,55 +856,55 @@
       "repetition": 2,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "cf1578590fda068cf2dae83d8fdce33ea44eefb90fe50a1d16d68d6d07834fb7",
-      "record_sha256": "c6693f4eed204026838252d5c730ebb373fbfd54c63b76ab2c1a890738cf0160",
-      "total_seconds": 290.4889536250266,
-      "native_seconds": 289.72421416599536,
+      "collection_receipt": "a81abf1663e96c3c3f1b830409ecf9750c32fddaf21e4466faf194fb5ef0f338",
+      "record_sha256": "a9c7b6b1d91255238e580144766b09730f75655e0d91040ff4fa7685281a230e",
+      "total_seconds": 290.45758479100186,
+      "native_seconds": 289.65898733295035,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.25774337496841326,
+      "verification_seconds": 0.3442398339975625,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 577519616,
+      "sampled_rss_bytes": 480641024,
       "reported_tokens": {
         "cache": {
-          "read": 235328,
+          "read": 123712,
           "write": 0
         },
-        "input": 24777,
-        "output": 1897,
-        "reasoning": 5157
+        "input": 21793,
+        "output": 835,
+        "reasoning": 7569
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 7,
+        "commands_observed": 2,
         "operations_observed": [
           "proof check",
           "proof start"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "fr proof start at 28 s and six fr proof checks.",
-          "Errors arrived before warnings; omega failures kept their where lines and fell from two to one as the session fixed swapped arguments.",
-          "The session identified that omega needed the division identity for the last branch."
+          "fr proof start at 17 s; it then traced Lean's imports to learn whether omega was available after prelude.",
+          "Its one fr proof check returned three omega failures with where lines and an unsolved goal from constructor on a three-part conjunction.",
+          "It then searched Lean's source for the tdiv definition until time ran out."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 17,
-        "completed_tool_wall_seconds": 26.642,
+        "completed_tool_calls_with_timing": 13,
+        "completed_tool_wall_seconds": 14.359,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
       "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "The session ended at 290 s without a passing proof; its final draft added the identity with a type mismatch.",
+      "failure_summary": "The session ended at 290 s without a passing proof; omega lacked the division identity, and constructor split the three-part goal into two.",
       "proof_observations": {
-        "first_proof_check_seconds": 78.0,
+        "first_proof_check_seconds": 199.5,
         "first_passing_proof_seconds": null,
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
@@ -922,7 +920,7 @@
         "stop_reason": null,
         "launch_error": null,
         "monitor_error": null,
-        "elapsed_seconds": 290.4889536250266,
+        "elapsed_seconds": 290.45758479100186,
         "limits": {
           "wall_seconds": 300,
           "rss_bytes": 805306368,
@@ -930,13 +928,13 @@
           "cpu_seconds": 75,
           "transcript_bytes": 1048576
         },
-        "sampled_aggregate_rss_bytes": 577519616,
-        "sampled_cpu_seconds": 30.87,
-        "sampled_disk_growth_bytes": 104586,
-        "transcript_bytes": 183,
+        "sampled_aggregate_rss_bytes": 480641024,
+        "sampled_cpu_seconds": 23.59,
+        "sampled_disk_growth_bytes": 103901,
+        "transcript_bytes": 181,
         "suspended_seconds": 0
       },
-      "complete_attempt_resources_sha256": "403571304b589cfa4619d223505a812676cec37497ff9b8fdae7a24dfec52d96"
+      "complete_attempt_resources_sha256": "0d0b48b3c5bc14affbb8976a994229b988e1b4a9106f5d2e8b5ad4bb46ca85dd"
     },
     {
       "id": "opencode2-kimi-k3-page-count-fr-2",
@@ -946,55 +944,53 @@
       "repetition": 2,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "cf1578590fda068cf2dae83d8fdce33ea44eefb90fe50a1d16d68d6d07834fb7",
-      "record_sha256": "c9afa4bac308a1fcfa67dffebf3e0e3ef280d43b53aad80eba7d1dac42417243",
-      "total_seconds": 290.4907201669994,
-      "native_seconds": 289.6583617920405,
+      "collection_receipt": "a81abf1663e96c3c3f1b830409ecf9750c32fddaf21e4466faf194fb5ef0f338",
+      "record_sha256": "2ba1bc0c1ec7ab860e42413498ad3df5ab0c97f8266b02d0fd03baa10d46511f",
+      "total_seconds": 290.4912583329715,
+      "native_seconds": 289.6278958339244,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.3346336670219898,
+      "verification_seconds": 0.35023241594899446,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 570933248,
+      "sampled_rss_bytes": 367640576,
       "reported_tokens": {
         "cache": {
-          "read": 90368,
+          "read": 69888,
           "write": 0
         },
-        "input": 18559,
-        "output": 1193,
-        "reasoning": 8970
+        "input": 10273,
+        "output": 974,
+        "reasoning": 3994
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 5,
+        "commands_observed": 1,
         "operations_observed": [
-          "proof check",
-          "proof list",
-          "proof start"
+          "proof list"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "fr proof start at 93 s after a 75 s gap; one fr proof check at 108 s.",
-          "The check returned a rewrite error and five omega failures, each with its where lines."
+          "fr proof list at 38 s; the session never ran fr proof start, which lists the library facts.",
+          "It grepped Lean's library source for ediv and emod lemmas for the rest of the session."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 11,
-        "completed_tool_wall_seconds": 13.375,
+        "completed_tool_calls_with_timing": 9,
+        "completed_tool_wall_seconds": 9.7,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
       "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "The session ended at 290 s without a passing proof; it spent 133 s writing a second draft and never checked it.",
+      "failure_summary": "The session ended at 290 s without a draft or proof check; it spent its time searching library source.",
       "proof_observations": {
-        "first_proof_check_seconds": 107.8,
+        "first_proof_check_seconds": null,
         "first_passing_proof_seconds": null,
         "package_check_seconds": null,
         "patch_delivery_seconds": null,
@@ -1010,7 +1006,7 @@
         "stop_reason": null,
         "launch_error": null,
         "monitor_error": null,
-        "elapsed_seconds": 290.4907201669994,
+        "elapsed_seconds": 290.4912583329715,
         "limits": {
           "wall_seconds": 300,
           "rss_bytes": 805306368,
@@ -1018,13 +1014,13 @@
           "cpu_seconds": 75,
           "transcript_bytes": 1048576
         },
-        "sampled_aggregate_rss_bytes": 570933248,
-        "sampled_cpu_seconds": 27.52,
-        "sampled_disk_growth_bytes": 104393,
-        "transcript_bytes": 179,
+        "sampled_aggregate_rss_bytes": 367640576,
+        "sampled_cpu_seconds": 21.2,
+        "sampled_disk_growth_bytes": 103611,
+        "transcript_bytes": 180,
         "suspended_seconds": 0
       },
-      "complete_attempt_resources_sha256": "3eb6d181f52b4aeabcaf99f152afb7305994646190ad794ddfc489fadcb6f5be"
+      "complete_attempt_resources_sha256": "36d3cde2006b3415e01b83541211d9d494215858af35cbb773bdc49b2a2d0989"
     }
   ],
   "collection_notes": {
