@@ -454,6 +454,7 @@ pub struct FormalGoalCatalog {
     pub line: usize,
     pub object_digest: String,
     pub reveal: Vec<String>,
+    pub start: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -1528,6 +1529,17 @@ pub fn formal_goals(
                 token_limit.to_string(),
                 "--limit".into(),
                 "32".into(),
+            ],
+            start: vec![
+                "proof".into(),
+                "start".into(),
+                detail.target.clone(),
+                "--draft".into(),
+                ".fr/proof-tactics".into(),
+                "--bytes".into(),
+                "8192".into(),
+                "--timeout-seconds".into(),
+                "30".into(),
             ],
         })
         .collect::<Vec<_>>();

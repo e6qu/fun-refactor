@@ -643,6 +643,9 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
                 row["name"].as_str().unwrap()
             )
         );
+        assert_eq!(row["start"][0], "proof");
+        assert_eq!(row["start"][1], "start");
+        assert_eq!(row["start"][2], row["target"]);
     }
     assert!(goals["revealed"].is_null());
     assert!(goals["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 4096);
