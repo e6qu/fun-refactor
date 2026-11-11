@@ -55,7 +55,13 @@ pub fn lookup(package: &Path, spec_source: &str) -> Result<LibraryFacts> {
         (package.join(".lake/build/lib/lean"), package.to_path_buf()),
     ];
     let operations = operations(spec_source);
-    let facts = collect(&roots, &imports(spec_source), &operations)?;
+    let imports = imports(spec_source);
+    let mut facts = collect(&roots, &imports, &operations, &[])?;
+    if facts.iter().any(|fact| fact.contains(" * ")) {
+        let mut product = collect(&roots, &imports, &[], PRODUCT_ORDER)?;
+        product.append(&mut facts);
+        facts = product;
+    }
     Ok(LibraryFacts {
         operations,
         facts,
@@ -64,10 +70,16 @@ pub fn lookup(package: &Path, spec_source: &str) -> Result<LibraryFacts> {
     })
 }
 
+const PRODUCT_ORDER: &[&str] = &[
+    "Int.mul_le_mul_of_nonneg_left",
+    "Int.mul_le_mul_of_nonneg_right",
+];
+
 pub fn collect(
     roots: &[(PathBuf, PathBuf)],
     imports: &[String],
     operations: &[String],
+    named: &[&str],
 ) -> Result<Vec<String>> {
     let wanted = operations
         .iter()
@@ -99,6 +111,13 @@ pub fn collect(
             continue;
         };
         let lines = text.lines().collect::<Vec<_>>();
+        for &name in named {
+            let range = &index["decls"][name];
+            let at = (number(&range[4]), number(&range[5]));
+            if let Some(fact) = statement(&lines, range, name, at) {
+                facts.insert(name.to_owned(), fact);
+            }
+        }
         let references = index["references"].as_object().into_iter().flatten();
         for (key, reference) in references {
             let constant: Value = serde_json::from_str(key)?;
@@ -123,6 +142,10 @@ pub fn collect(
         }
     }
     let mut facts = facts.into_values().collect::<Vec<_>>();
+    if !named.is_empty() {
+        facts.sort_by_key(|fact| named.iter().position(|name| fact.starts_with(name)));
+        return Ok(facts);
+    }
     facts.sort_by(|left, right| (left.len(), left).cmp(&(right.len(), right)));
     Ok(facts)
 }
@@ -256,15 +279,24 @@ mod tests {
         });
         std::fs::write(library.join("Lib/Div.ilean"), index.to_string()).unwrap();
         let facts = collect(
-            &[(library, sources)],
+            &[(library.clone(), sources.clone())],
             &["Lib.Div".into()],
             &["Int.tdiv".into()],
+            &[],
         )
         .unwrap();
         assert_eq!(
             facts,
             vec!["Int.tdiv_nonneg {a b : Int} (Ha : 0 ≤ a) (Hb : 0 ≤ b) : 0 ≤ a.tdiv b"]
         );
+        let named = collect(
+            &[(library.clone(), sources.clone())],
+            &["Lib.Div".into()],
+            &[],
+            &["Int.hidden", "Int.tdiv_nonneg"],
+        )
+        .unwrap();
+        assert_eq!(named, facts);
         let spec = "prelude\nimport Init.Data.Int.DivMod.Lemmas\n-- Nat.add only in a comment\ndef m (a b : Int) : Int := Int.tdiv a b + FrSpecs.x\n";
         assert_eq!(operations(spec), vec!["Int.tdiv"]);
         assert_eq!(imports(spec), vec!["Init.Data.Int.DivMod.Lemmas"]);

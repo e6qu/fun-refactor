@@ -14,8 +14,9 @@ Take those facts from `library_facts` in the `fr proof start` result:
 - the remainder bounds `Int.tmod_nonneg` and `Int.tmod_lt_of_pos`;
 - the quotient bounds `Int.tdiv_nonneg` and `Int.tdiv_le_self`.
 
-A product of two changing values, such as `b * q`, needs one more fact. Write
-it as `1 * q ≤ b * q`; `exact?` finds that form, not `q ≤ b * q`.
+A product of two changing values, such as `b * q`, needs one more fact. The
+first two `library_facts` give it: `Int.mul_le_mul_of_nonneg_right hb hq0`
+proves `1 * q ≤ b * q`. `exact?` also finds that form, not `q ≤ b * q`.
 
 ```lean
 import Init
