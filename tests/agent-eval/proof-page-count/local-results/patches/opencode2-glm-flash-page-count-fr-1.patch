@@ -1,0 +1,44 @@
+diff --git "a/specs/FrSpecs/SrcPagesRsPageCount.lean" "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+--- "a/specs/FrSpecs/SrcPagesRsPageCount.lean"
++++ "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+@@ -20,8 +20,38 @@
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · rintro (h | h) <;> simp [page_countModel, h]
++  · constructor
++    · intro h
++      have hn : 0 ≤ items := h.1
++      have hs : (1 : Int) ≤ size := h.2.2.1
++      simp only [page_countModel]
++      split
++      · rename_i hb
++        have hb' : items < 0 ∨ size ≤ 0 := by
++          simp only [decide_eq_true_eq, Bool.or_eq_true_iff] at hb
++          exact hb
++        omega
++      · split
++        · rename_i hmod
++          have hdiv0 : 0 ≤ Int.tdiv items size := Int.tdiv_nonneg hn (by omega)
++          exact ⟨hdiv0, Int.tdiv_le_self size hn⟩
++        · rename_i hmod
++          have hdiv0 : 0 ≤ Int.tdiv items size := Int.tdiv_nonneg hn (by omega)
++          have hr0 : items.tmod size ≠ 0 := by
++            simpa using hmod
++          have hr1 : 0 < Int.tmod items size := by
++            have h1 := Int.tmod_nonneg size hn
++            omega
++          have hr2 : Int.tmod items size < size := Int.tmod_lt_of_pos items hs
++          have heq := Int.tdiv_mul_add_tmod items size
++          have hmul : Int.tdiv items size * 1 ≤
++              Int.tdiv items size * size :=
++            Int.mul_le_mul_of_nonneg_left hs hdiv0
++          rw [Int.mul_one] at hmul
++          exact ⟨by omega, by omega⟩
++    · rfl
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

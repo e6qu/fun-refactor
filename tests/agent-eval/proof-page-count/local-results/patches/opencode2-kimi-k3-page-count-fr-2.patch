@@ -1,0 +1,45 @@
+diff --git "a/specs/FrSpecs/SrcPagesRsPageCount.lean" "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+--- "a/specs/FrSpecs/SrcPagesRsPageCount.lean"
++++ "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+@@ -20,8 +20,39 @@
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  refine ⟨?_, ?_, ?_⟩
++  · intro h
++    unfold page_countModel
++    split
++    · rfl
++    · rename_i hc
++      simp only [Bool.or_eq_true, decide_eq_true_eq, not_or] at hc
++      rcases h with h1 | h1 <;> omega
++  · intro h
++    obtain ⟨h0, -, h1, -⟩ := h
++    have hsp : (0 : Int) < size := h1
++    have hsz : (0 : Int) ≤ size := by omega
++    have htd : (0 : Int) ≤ Int.tdiv items size := Int.tdiv_nonneg h0 hsz
++    have hsd : Int.tdiv items size ≤ size * Int.tdiv items size := by
++      have h2 : Int.tdiv items size * 1 ≤ Int.tdiv items size * size :=
++        Int.mul_le_mul_of_nonneg_left h1 htd
++      rw [Int.mul_one, Int.mul_comm (Int.tdiv items size) size] at h2
++      exact h2
++    unfold page_countModel
++    split
++    · rename_i hc
++      simp only [Bool.or_eq_true, decide_eq_true_eq] at hc
++      omega
++    · split
++      · exact ⟨htd, Int.tdiv_le_self size h0⟩
++      · rename_i hne
++        have hne' : Int.tmod items size ≠ 0 := by simpa using hne
++        have hm0 := Int.tmod_nonneg size h0
++        have hdef := Int.tmod_def items size
++        constructor
++        · show (0 : Int) ≤ Int.tdiv items size + 1; omega
++        · show Int.tdiv items size + 1 ≤ items; omega
++  · decide
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 
