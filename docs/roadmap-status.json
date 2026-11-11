@@ -66,38 +66,33 @@
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-host-recovery/result.json",
-      "changed_sources": [
-        "src/cli.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-host-recovery/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-structural-change",
-      "changed_sources": [
-        "src/cli.rs",
-        "src/spec.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-structural-change",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-11-proof-save-diagnostics-model-comparisons",
       "changed_sources": [],
       "freshness": "historical",
       "id": "model-relations",
       "integrity": "checked",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-10-proof-check-docs-timeout-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-11-proof-save-diagnostics-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations."
     },
     {
@@ -494,7 +489,7 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 3,
         "total": 6
@@ -504,8 +499,7 @@
         "D.structural",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof",
-        "D.host"
+        "D.new-proof"
       ],
       "state": "open",
       "total": 6
@@ -1020,9 +1014,7 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [
-        "host-recovery: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -1037,7 +1029,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],
