@@ -80,7 +80,7 @@ No session used `exact?`. One GLM session hit the client step limit, the other i
 
 **Completed:** [#607](https://github.com/e6qu/fun-refactor/pull/607) made `fr proof start` list
 library theorems about the model's operations, with exact names from Lean's `.ilean` indexes.
-In the [fourth page-count study](tests/agent-eval/proof-page-count/local-results/summary.json)
+In the [fourth page-count study](tests/agent-eval/proof-page-count/results-300s-library-facts/summary.json)
 sessions named listed facts and searched library files twice instead of four to eight times.
 None delivered a proof; each ran out of time while fixing Lean errors.
 
@@ -108,7 +108,7 @@ GLM spent its last three tries on such calls.
 A rejected `fr proof save` now returns the `fr proof check` report and writes nothing.
 Draft locations stay workspace-relative when the workspace path passes through a symlink.
 
-The [sixth study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered one patch.
+The [sixth study](tests/agent-eval/proof-page-count/results-300s-save-diagnostics/summary.json) delivered one patch.
 Kimi-1 used `Int.tmod_add_mul_tdiv` from `library_facts` and passed at 264 s.
 No session called a failing `fr proof save`, so #613 was not exercised.
 All four sessions searched Lean's library source for lemma names.
@@ -118,10 +118,23 @@ GLM-2 traced imports to learn whether `omega` worked after `prelude`.
 `constructor` split its three-part goal into two, and omega lacked the division identity.
 GLM-1 needed `q ≤ q * size`, which `exact?` finds only as `1 * q ≤ size * q`.
 
-**Next PR: the skill points weak agents past these stalls.**
+**Completed in #616: the skill and `fr proof list` point weak agents past these stalls.**
 
-The skill lacked the division steps, the start-first order and the flag ranges.
-The success criterion is steady progress to a finished proof, not a shorter session.
+Each `fr proof list` row carries its `fr proof start` command. The skill gives the division steps,
+the start-first order, the flag ranges and `refine` for three-part goals.
+
+The [seventh study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered four patches.
+All four checks passed, between 185 s and 276 s. No session opened the new division reference.
+Each read the `fr proof start` result, and only two searched Lean's source, for 5 s and about 40 s.
+The longest stall was the product bound `q ≤ size * q`, which omega needs and `library_facts` lacked.
+Kimi-1 spent about 90 s deriving it, and GLM-2 read Lean's source for the lemma's argument order.
+fr rejected three calls: a partial target, `--at 30` and `--timeout-seconds 120`.
+Each error named the accepted form, and the next call succeeded within 4 s.
+
+**Next PR: `library_facts` lists the product order facts first.**
+
+When a listed fact contains a product, `fr proof start` lists `Int.mul_le_mul_of_nonneg_left`
+and `_right` first, with their statements. The success criterion stays steady progress to a finished proof.
 
 The earlier argument-repair instruction produced no delivered patch and its predicted error was
 unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit

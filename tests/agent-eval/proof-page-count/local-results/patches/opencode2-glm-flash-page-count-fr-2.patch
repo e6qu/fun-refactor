@@ -1,0 +1,44 @@
+diff --git "a/specs/FrSpecs/SrcPagesRsPageCount.lean" "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+--- "a/specs/FrSpecs/SrcPagesRsPageCount.lean"
++++ "b/specs/FrSpecs/SrcPagesRsPageCount.lean"
+@@ -20,8 +20,38 @@
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  refine ⟨?_, ?_, ?_⟩
++  · intro h
++    rcases h with h | h
++    · simp [page_countModel, h]
++    · simp [page_countModel, h]
++  · intro h
++    obtain ⟨hi, htop, hs, hstop⟩ := h
++    have hpos : 0 < size := by omega
++    have hi0 : 0 ≤ items := hi
++    simp only [page_countModel, beq_iff_eq]
++    split
++    · rename_i hc
++      simp only [Bool.or_eq_true, decide_eq_true_eq] at hc
++      rcases hc with hc | hc <;> omega
++    · rename_i hcond
++      split
++      · rename_i hmod
++        have hd : 0 ≤ Int.tdiv items size := Int.tdiv_nonneg hi0 (by omega)
++        have hle : Int.tdiv items size ≤ items := Int.tdiv_le_self size hi0
++        constructor <;> omega
++      · rename_i hmod
++        have hq : 0 ≤ Int.tdiv items size := Int.tdiv_nonneg hi0 (by omega)
++        have h1 : Int.tdiv items size * size + Int.tmod items size = items :=
++          Int.tdiv_mul_add_tmod items size
++        have h2 : Int.tmod items size < size := Int.tmod_lt_of_pos items hpos
++        have h3 : 0 ≤ Int.tmod items size := Int.tmod_nonneg size hi0
++        have h4 : 1 ≤ Int.tmod items size := by omega
++        have h5 : Int.tdiv items size * 1 ≤ Int.tdiv items size * size :=
++          @Int.mul_le_mul_of_nonneg_left 1 size (Int.tdiv items size)
++            (show (1 : Int) ≤ size by omega) (show (0 : Int) ≤ Int.tdiv items size by omega)
++        constructor <;> omega
++  · decide
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 
