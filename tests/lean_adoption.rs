@@ -457,6 +457,23 @@ fn guarded_page_count_keeps_early_returns_and_truncating_arithmetic() {
         "{}",
         String::from_utf8_lossy(&verify.stderr)
     );
+    let facts = fun_refactor::spec::proof_library_facts(
+        workspace.path(),
+        "specs/FrSpecs/SrcPagesRsPageCount.lean::page_countModel",
+        3072,
+    )
+    .unwrap();
+    assert_eq!(
+        facts.facts[..2],
+        [
+            "Int.mul_le_mul_of_nonneg_left {a b c : Int} (h₁ : a ≤ b) (h₂ : 0 ≤ c) : c * a ≤ c * b",
+            "Int.mul_le_mul_of_nonneg_right {a b c : Int} (h₁ : a ≤ b) (h₂ : 0 ≤ c) : a * c ≤ b * c",
+        ]
+    );
+    assert!(facts
+        .facts
+        .iter()
+        .any(|fact| fact.starts_with("Int.tmod_add_mul_tdiv ")));
 }
 
 #[test]

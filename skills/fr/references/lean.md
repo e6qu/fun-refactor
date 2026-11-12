@@ -48,7 +48,8 @@ See [Arithmetic](lean-arithmetic.md) and [Algorithms](lean-algorithms.md).
 
 For a missing fact, read `library_facts` in the `fr proof start` result. It
 lists library theorems about the model's operations with exact names and
-statements. For any other step, try `exact?` (see Arithmetic). Searching Lean's
+statements. When those mention a product, the first two bound it for `omega`.
+For any other step, try `exact?` (see Arithmetic). Searching Lean's
 own source is slower; check a draft instead.
 
 ## Check, save, deliver
