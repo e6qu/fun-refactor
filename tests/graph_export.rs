@@ -104,6 +104,15 @@ fn source_digests_and_call_sites_change_after_an_edit() {
 }
 
 #[test]
+fn data_without_callables_does_not_create_a_call_graph_gap() {
+    let tmp = workspace(&[("a.rs", CALLS_RS), ("settings.json", "{}\n")]);
+    let report = graph_json(&tmp);
+    assert_eq!(report["coverage"]["all_visible_calls_resolved"], true);
+    assert!(report["coverage"]["gaps"].as_array().unwrap().is_empty());
+    assert!(report["source_digests"]["settings.json"].is_string());
+}
+
+#[test]
 fn unresolved_calls_and_missing_syntax_stay_visible() {
     let tmp = workspace(&[
         ("a.rs", "fn entry() { external(); }\n"),

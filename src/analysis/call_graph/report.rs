@@ -101,13 +101,11 @@ impl CallGraph {
             for gap in &info.gaps {
                 gaps.push(json!({"file":relative(file), "kind":"syntax", "reason":gap.cause()}));
             }
-            if !crate::capabilities::support(
+            if let crate::capabilities::Support::Refused { because } = crate::capabilities::support(
                 crate::capabilities::Capability::CallGraph,
                 info.language,
-            )
-            .is_yes()
-            {
-                gaps.push(json!({"file":relative(file), "kind":"unsupported-language", "language":info.language.name()}));
+            ) {
+                gaps.push(json!({"file":relative(file), "kind":"unsupported-language", "language":info.language.name(), "reason":because}));
             }
             if sources.get(file).is_none_or(Option::is_none) {
                 gaps.push(json!({"file":relative(file), "kind":"source-unavailable"}));

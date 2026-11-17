@@ -19,7 +19,8 @@ The table below connects the analysis features to their implementation checks.
 | Entry points and reachability | Declared entry points, dispatch candidates and potentially unused code | [Entry-point conventions](../tests/entrypoints_conventions.rs), [hierarchy reachability](../tests/hierarchy_reachability.rs) |
 | Cross-language links | Declared configuration readers, file links and supported framework relationships | [Stitching languages](../tests/stitch_languages.rs), [cross-language guide](../CROSS_LANGUAGE.md) |
 | Duplicate code and unused declarations | Structural duplicates and reachability from declared entry points; CLI and browser | [Duplicates](../tests/duplicates.rs), [hierarchy reachability](../tests/hierarchy_reachability.rs) |
-| Declared types and contracts | Source declarations and supported HTTP contracts; CLI and project queries | [Types](../tests/types.rs), [data types](../tests/types_data.rs) |
+| Declared types | Source declarations and supported type information; CLI and browser | [Types](../tests/types.rs), [data types](../tests/types_data.rs) |
+| HTTP contracts | Supported framework routes and declared HTTP contracts; CLI and project queries | [Routes](../tests/routes.rs), [project queries](../tests/project_cli.rs) |
 | Flags and paths | Flag definitions, conditions and path relationships; CLI | [Flags](../tests/flags.rs), [paths](../tests/paths.rs) |
 | Affected consumers and checks | Traverse references and relate affected files to declared checks; CLI and Python | [Change scopes](change-scopes.md) |
 | Control flow | Supported Python branches, loops, returns, raises, handlers and cleanup | [Fixed-point analysis](../tests/flow_fixed_point.rs), [cleanup tests](../sdk/python/tests/test_finally_flow.py) |
