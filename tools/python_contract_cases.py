@@ -73,7 +73,7 @@ EXAMPLES = [
     example('handler-cleanup-reraise', 'handlers cleanup returns',
         'try:\n    try:\n        raise ValueError(source())\n    finally:\n        raise\nexcept ValueError:\n    return sink(source())',
         [S, S, T], 17, witness=True, source_index=1, files={}) | {'standard_library': ['builtins']},
-    example('handler-bound-error', 'handlers bindings',
+    example('handler-bound-error', 'handlers names',
         'try:\n    raise ValueError(source())\nexcept ValueError as error:\n    return 0',
         [S], 0, files={}) | {'standard_library': ['builtins']},
     example('finally-captured-return', 'cleanup returns assignments', 'return sink(relay(source()))', [S, T], 17, witness=True,
