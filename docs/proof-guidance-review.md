@@ -12,12 +12,17 @@ its presentation comparison uncertain. No agent met the two-versus-zero rule for
 transfer. These small results establish no general graph advantage. Reversal stays
 reserved. Earlier interrupted cohorts remain unchanged.
 
+This review concerns proof-guidance presentation. Code and call graphs remain part of the
+[full-product roadmap](../PLAN.md#proposed-pr-sequence), regardless of this presentation result.
+Later [page-count results](../tests/agent-eval/proof-page-count/local-results/summary.json) delivered four proofs under a separate 300-second limit.
+They do not establish a graph-presentation benefit.
+
 ## What the evidence supports
 
 Our [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) records several different obstacles:
 agents confuse assumptions joined by “and” with alternatives, search without checking a draft,
 apply library facts with the wrong argument types, or fail to finish delivery after a passing proof.
-None of the latest four full page-count attempts opened the arithmetic lesson.
+None of the four page-count attempts in that original comparison opened the arithmetic lesson.
 Adding more unread instructions cannot establish an improvement.
 
 The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates these problems.
@@ -111,7 +116,8 @@ Keep the same delivery guidance in both graph-presentation conditions.
    [algorithm study](../tests/agent-eval/proof-algorithms/README.md).
    Prove both termination and correctness. Compare selecting facts with receiving their types in eight GLM/Kimi sessions.
    Qualify the references, evaluator and negative controls first; references stay outside agent workspaces.
-   The earlier division-fact plan remains an unrun supporting diagnostic, not a substitute for the algorithm.
+   The later [division-fact study](../tests/agent-eval/proof-division-facts/README.md) completed eight sessions.
+   Its arithmetic results remain separate from the algorithm comparison.
 2. **Graph presentation.** Use the same fixed Euclid task after the fact comparison.
    Compare a plain checklist with a graph.
    Both contain exactly the same goals, assumptions, facts, dependencies and case guides.

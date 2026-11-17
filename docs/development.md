@@ -1,7 +1,7 @@
 # Contribute a change and check it
 
 Use this guide when you need to change `fr`, add a language reader or prepare a release.
-Start with the [focused roadmap](../PLAN.md#next-work): selected smaller agents, specific refactorings and repairs, and Lean proof writing.
+Start with the [roadmap](../PLAN.md#proposed-pr-sequence): graphs, analysis, refactoring, proofs and the public interfaces.
 Tie new language or analysis support to a named task and its independent check before extending the implementation.
 For example, a parser fix needs both a case that now works and a case that still refuses an unsafe edit. Read the workstation limits before running any local command.
 

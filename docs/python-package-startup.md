@@ -136,4 +136,5 @@ Fix the cause before collecting again; keep unsuccessful attempts alongside corr
 
 The [measurement guide](benchmarks.md) explains how these costs differ from a complete agent-task comparison.
 The [earlier checklist](earlier-roadmap-checklist.md) retains the remaining original-import conditions.
-Broader startup analysis is [outside the active queue](../PLAN.md#work-outside-the-active-queue) unless a named code-change or proof task needs it.
+The [analysis PR](../PLAN.md#pr-1-complete-graphs-and-code-analysis) includes package initialization
+where the declared analysis profile requires it. Standalone optimization still needs a measured blocker.

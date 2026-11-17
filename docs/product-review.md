@@ -1,13 +1,20 @@
 # Check whether fr helps the selected agents finish real work
 
-The product focus is refactoring, targeted code changes and Lean proof writing for smaller agents.
+The product scope includes code and call graphs, code analysis, refactoring, transformations,
+proofs, recovery and public interfaces. Smaller-agent tasks measure whether those features help complete real work.
 The [roadmap](../PLAN.md) names concrete tasks, completion checks and the three selected model/application profiles.
 This page owns comparison rules. It does not authorize model spending.
+
+The [proposed PR sequence](../PLAN.md#proposed-pr-sequence) owns full-product completion.
+Its coverage matrix must retain every advertised feature and its language/interface obligations.
+A completed familiar-task comparison cannot establish feature completeness or general agent savings.
 
 ## What the user should get
 
 | Request | Useful result | Required check |
 | --- | --- | --- |
+| Inspect code and call graphs | Source-linked declarations, references, callers and dependencies | Resolution, confidence and omissions agree with independent examples |
+| Explain a value or effect | A trace through the declared language semantics | Runtime/compiler checks support the answer; incomplete analysis stays visible |
 | Rename a function | A reviewed change covering its declared callers and imports | Behavior stays the same; unrelated same-named functions stay intact |
 | Repair a bug or add a feature | A patch meeting the requested behavior | Independent checks reject the old mistake and incomplete repairs |
 | Prove a property | Agent-written Lean tactics for the unchanged claim | Lean accepts the proof; assumptions and the source/model connection remain visible |

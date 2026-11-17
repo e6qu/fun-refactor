@@ -1,4 +1,4 @@
-# Continue the focused agent work
+# Continue the full-product roadmap
 
 [PLAN.md](../PLAN.md#next-work) owns the roadmap and completion conditions.
 M1 and M2 have complete comparisons. M3 remains open: GLM and Kimi still lack
@@ -6,48 +6,26 @@ accepted page-count proofs within the original 150 seconds.
 Complete each milestone in one PR, including its checks, required attempts and tracking.
 [BUGS.md](../BUGS.md) owns defects; [roadmap-status.md](roadmap-status.md) audits earlier claims.
 
-## Current branch
+## Starting point
 
-PRs [#601](https://github.com/e6qu/fun-refactor/pull/601) and
-[#603](https://github.com/e6qu/fun-refactor/pull/603) are merged.
-The [#603 CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
-passed all 92 jobs; all companion workflows passed too.
-The [argument-repair comparison](../tests/agent-eval/proof-argument-repair/README.md)
-retains all eight new attempts, each run once. All timed out without a patch.
-One Kimi draft passed checking near 135 seconds but was not saved or delivered.
-No mapped argument-type error was observed. The proposed repair instruction has no
-measured benefit. Earlier interrupted and unstarted slots remain separate.
+The [proposed six-PR sequence](../PLAN.md#proposed-pr-sequence) covers the full product:
+code and call graphs, analysis, refactoring, transformations, proofs, recovery and public interfaces.
+The smaller-agent milestones validate this scope; they do not replace it.
 
-PR [#604](https://github.com/e6qu/fun-refactor/pull/604) uses
-`improve/check-division-fact-guidance` and remains draft.
-Refresh the [division-fact diagnostic](../tests/agent-eval/proof-division-facts/README.md),
-whose first collection stopped after one memory-limited session and seven unstarted slots.
-The [record](../tests/agent-eval/proof-division-facts/interrupted-collection.json)
-preserves that invalid comparison. The question is whether the
-agents can find suitable division declarations and apply their current types.
-This tests a different obstacle from the unobserved argument-repair prediction.
-The old qualification cannot admit the changed CLI, client or monitor.
-Require fresh hosted controls and all four complete local client checks before freezing calls.
-Keep the full 150-second limit, ten-second collection reserve and independent resource observer.
-The roadmap lists the eight-slot comparison and its fixed decisions. Keep this work in one PR.
-Publish only reviewed summaries and submitted patches; leave raw native records private.
+The seventh page-count study delivered four accepted proofs within its separate 300-second limit.
+The local history through #619 includes product-order facts in `fr proof start`.
+Its effect on live proof delivery remains unmeasured.
+The [plan's evidence section](../PLAN.md#evidence-behind-the-sequence) links the retained studies.
+PR #604 has merged; its interrupted collection remains a historical record, not the active work queue.
 
-The original hosted proof controls passed. They covered protected skills, complete
-usage and full resource records. Fr's source identity excludes generated `.fr`
-and `.fr-history` directories, including history created under `src`.
-Fresh reports preserve the earlier records and their original source identities.
-The [release replay](https://github.com/e6qu/fun-refactor/actions/runs/42137806778)
-passes all 21 changes and both renames with `0.89.2` and the corrected input policy.
-Release planning now requests this replay and full CI before merging a release.
+Start PR 1 with the advertised feature inventory and its language/interface coverage matrix.
+Complete the graph gaps and independent checks in that same PR.
+A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
+Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 
-Keep the refreshed records in this same PR. Require complete CI and fresh hosted
-qualification on its final source. Next pass all four local scripted client checks,
-including declaration discovery in the imported Lean file, and freeze a new packet.
-The original four controls omitted this lookup. The stopped session indexed about
-1,600 library files and exceeded 768 MiB before delivering a patch.
-Private command capture now retains an owned `fr` process's arguments before completion.
-The old stream lost the unfinished command, so its exact text remains unknown.
-Review the new packet's exact material and provider destinations before more calls.
+The original 150-second failures and later 300-second successes remain separate records.
+Do not silently change an acceptance limit or rerun the full proof comparison to seek success.
+A new protocol must declare its question, controls, limits and decision before calls.
 
 ## Interface decisions
 
@@ -58,10 +36,12 @@ Review the new packet's exact material and provider destinations before more cal
   Each goal separates `context` from `goal`. A closed branch does not accept the whole draft.
 - `check` leaves source unchanged and exits 1 for `passed: false`.
   `save` checks and writes in one call, returning the saved edit's `transaction`.
-  Check the owning Lean package, then use `history patch` with the saved IDs in order.
+  A rejected save returns the check diagnostics and writes nothing.
+  Use `save --deliver` to include the supplied package check and patch export in one call.
+  Explicit `history patch` export remains available with the saved IDs in order.
 - Proof operations require explicit byte and time limits. Dependency preparation and
   checking share one deadline. The collector enforces its ten-second finishing reserve
-  inside the original 150-second attempt, rather than giving the client the entire budget.
+  inside each study's declared complete-attempt limit.
 - Project queries print labelled text for people and retain `--json` for programs.
   The current directory is the scan root unless the caller supplies `-C`.
 
@@ -87,3 +67,11 @@ gave correct proofs to every attempt; it measures delivery rather than discovery
 Keep all original outcomes and distinguish accepted patches from complete successes.
 Publish reviewed summaries and submitted patches only. Keep transcripts, prompts,
 provider exports and credentials local. Unknown charges remain unknown.
+
+## Local resource limits
+
+Use `python3 /Users/zardoz/.codex/tools/fr-local-guard.py COMMAND...` for local fr invocations and checks.
+Keep workloads serial, preserve 64 GiB free disk, keep target data below 2 GiB
+and sampled aggregate RSS within 1 GiB. Do not raise the guard's 180-second deadline.
+Full builds, full gates and large evidence regeneration run on GitHub.
+A longer study needs a separately admitted execution environment; local resource refusal stops local work.

@@ -2,6 +2,8 @@
 
 These checks belong to the roadmap used before the focus on smaller agents, refactoring, code changes and Lean proof writing.
 They remain auditable. An unfinished item stays unfinished; moving it here does not complete it.
+The [full-product PR sequence](../PLAN.md#proposed-pr-sequence) brings the language-rule, consumer-discovery
+and implementation-proof gaps back into planned work. Check each original obligation before changing its status.
 The [current roadmap](../PLAN.md) sets priorities. The [retained-results report](roadmap-status.md) checks the original acceptance conditions and counts.
 
 ### A. Find relevant code and explain the evidence
