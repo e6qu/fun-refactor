@@ -105,8 +105,8 @@ Nested protected sections keep their pending values separate.
 Reassigning a local name during cleanup does not change a value already captured by `return`.
 
 The [error-handler lesson](catch-python-errors.md) follows supported explicit errors through `except` clauses and reraises in the current function.
-Custom classes, bound error objects, exception groups and `with` context managers remain unsupported.
-So do shared mutable objects, such as two names referring to a list that either can change.
+Local caught-error names and bounded shared lists have [separate analysis rules](analysis-coverage.md).
+Custom classes, exception groups, `with` context managers and arbitrary shared objects remain unsupported.
 For example, a division by zero can interrupt a program even when the scalar model follows its ordinary value path.
 The scalar model follows simple values, such as strings and numbers; it does not reproduce every runtime operation.
 The report keeps that arithmetic limit visible and does not claim runtime exception safety.

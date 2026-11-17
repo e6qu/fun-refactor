@@ -72,7 +72,8 @@ The [cleanup repair lesson](check-python-cleanup.md) explains that behavior with
 Exception handlers using `try` and `except` can match an error and resume execution elsewhere.
 Supported explicit builtin errors now follow matching clauses in order, including through `finally` cleanup.
 The [error-handler repair](catch-python-errors.md) changes an application that catches `TypeError` when Boltons raises `ValueError`.
-Implicit errors, custom classes and bound error objects still exceed this model.
+Local caught-error names preserve origins. Known-string base-ten conversion includes a possible `ValueError`.
+Other implicit errors and custom classes remain unchecked.
 
 Two names can also refer to the same mutable object, meaning an object whose contents can change:
 
@@ -83,8 +84,9 @@ alias[0] = 17
 print(values[0])  # Prints 17: both names refer to the same list.
 ```
 
-The scalar model does not track shared list identities or writes through another name.
-It keeps such answers incomplete and identifies the item write, item read or unchecked method call.
+The [bounded list model](analysis-coverage.md#trace-a-shared-list) tracks this shared identity and write.
+It also handles append, extend, clear and positional calls to known helpers.
+Unknown indices, nested shared objects and general object mutation remain incomplete.
 An empty witness list in an incomplete answer cannot show that customer input never reaches an output.
 Python SDK users can inspect `analysis.runtime_effects.sites`, including each site's kind, explanation and source occurrence.
 The SDK refuses missing disclosures, altered safety claims and locations omitted by a response budget.

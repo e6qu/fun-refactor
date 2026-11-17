@@ -70,14 +70,14 @@ behavior and keep a model result separate from a safety claim.
 
 | Your question | A supported example | Where the answer remains limited |
 | --- | --- | --- |
-| “Does overwriting remove the original input?” | `value = read_input(); value = 0; send(value)` | Shared mutable objects and attribute writes need other handling. |
+| “Does overwriting remove the original input?” | `value = read_input(); value = 0; send(value)` | Local list aliases have a separate bounded model. General object and attribute writes remain unchecked. |
 | “Which argument does this helper return?” | `choose(right=read_input(), left=0)` | Unpacking, extra arguments through `*args` or `**kwargs`, and reading those variadic values remain incomplete. |
 | “What if the caller omits an argument?” | `def relay(value=0): ...` called as `relay()` uses the literal default. | A default such as `value=read_input()` executes when Python defines the function and remains unchecked. |
 | “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
 | “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and defaults execute during definition. Explicit built-in models check the documented numeric defaults. Use the supported future directive for annotations. |
 | “Can a plain module constant block the trace?” | Distinct `metadata = 0` and literal package metadata bindings are inert during initialization. | Global reads, rebinding, import controls and evaluated initialization remain unsupported. |
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, names read too early in a cycle and unsupported startup code keep the answer incomplete. |
-| “What if the helper raises?” | An explicit supported builtin error follows matching `except` clauses in order and runs `finally` cleanup. Cleanup can replace the pending exit. | Implicit exceptions (errors an operation can raise without an explicit `raise`), custom classes and bound error objects exceed this model. |
+| “What if the helper raises?” | Supported builtin errors follow matching `except` clauses and run `finally` cleanup. Caught-error names retain origins; cleanup can replace the pending exit. | Known-string base-ten conversion has a possible `ValueError` path. Other implicit errors and custom classes remain unchecked. |
 
 The [cleanup repair lesson](check-python-cleanup.md) follows customer text through an imported helper.
 It explains why returning a cleanup status hides the customer's message and checks a one-function repair.
