@@ -276,6 +276,9 @@ console.log("\nanalysis");
 check("graph", () => {
   const g = json(workspace.graph());
   assert(g.functions > 0, "no functions in the call graph");
+  assert(g.details.schema === "fr-call-graph-1", "missing graph details");
+  assert(g.details.nodes.length === g.functions, "missing graph nodes");
+  assert(g.details.edges.length === g.edges, "missing call sites");
   return `${g.functions} functions, ${g.edges} edges`;
 });
 

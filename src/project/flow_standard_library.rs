@@ -154,7 +154,8 @@ pub(super) fn arity(name: &str) -> Option<(usize, usize)> {
     Some(match name {
         "abs" | "math.ceil" | "math.floor" | "math.trunc" | "math.sqrt" | "math.fabs"
         | "math.isfinite" | "math.isinf" | "math.isnan" => (1, 1),
-        "int" | "float" | "str" | "bool" => (0, 1),
+        "int" => (0, 2),
+        "float" | "str" | "bool" => (0, 1),
         "round" => (1, 2),
         "min" | "max" => (2, 128),
         "datetime.date" => (3, 3),

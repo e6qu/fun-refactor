@@ -87,9 +87,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut cursor = clause.walk();
         let expressions: Vec<_> = clause
             .named_children(&mut cursor)
-            .filter(|child| !matches!(child.kind(), "block" | "comment"))
+            .filter(|child| !matches!(child.kind(), "block" | "comment")
+                && Some(*child) != clause.child_by_field_name("alias"))
             .collect();
-        let invalid = clause.child_by_field_name("alias").is_some()
+        let invalid = clause.child_by_field_name("alias").is_some_and(|alias| alias.kind() != "identifier")
             || clause
                 .children(&mut clause.walk())
                 .any(|child| child.kind() == "*");
@@ -128,7 +129,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.effect_limit(
                 clause,
                 "exception-handler",
-                "Matching custom, bound or grouped errors remains unchecked.",
+                "Matching custom error classes or exception groups remains unchecked.",
             );
         }
         let mut yes = Raised::new();
@@ -156,5 +157,26 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             no.insert(kind, flow);
         }
         (yes, no)
+    }
+
+    pub(super) fn integer_conversion(&mut self, node: Node<'t>, env: &Environment, flow: &Flow) {
+        let Some(arguments) = node.child_by_field_name("arguments") else { return };
+        let values: Vec<_> = arguments.named_children(&mut arguments.walk())
+            .filter(|node| node.kind() != "comment").collect();
+        if values.is_empty() { return; }
+        if values.len() == 1 && calls::unparenthesized(values[0]).is_some_and(|value| {
+            matches!(value.kind(), "integer" | "true" | "false")
+                || value.kind() == "unary_operator" && value.child_by_field_name("argument")
+                    .is_some_and(|argument| argument.kind() == "integer")
+        }) { return; }
+        let decimal = values.len() == 1 || values.len() == 2 && self.text(values[1]) == "10";
+        if !decimal || !self.plain_string(values[0], env) {
+            self.cutoff("integer-conversion-type-unchecked");
+            self.effect_limit(node, "implicit-exception", "Integer conversion needs a known string and base ten; custom conversions remain unchecked.");
+            return;
+        }
+        self.may_raise = true;
+        let raised = self.extend(flow.clone(), node, "integer-conversion-error");
+        merge(self.exceptional_returns.entry("ValueError".into()).or_default(), raised);
     }
 }

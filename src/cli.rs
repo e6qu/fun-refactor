@@ -6655,53 +6655,7 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     let breakdown = graph.confidence_breakdown();
     let by_origin = graph.origin_breakdown();
     if cli.json {
-        // The counts say how big the graph is and nothing about its shape, and anything reading
-        // this wants the edges.
-        let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
-        let nodes: Vec<_> = graph
-            .nodes()
-            .into_iter()
-            .filter_map(|id| index.symbol(id))
-            .map(|s| {
-                let source = sources
-                    .entry(s.file.clone())
-                    .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
-                let at = LineIndex::new(source).line_col(s.name_span.start, source);
-                serde_json::json!({
-                    "id": s.id,
-                    "name": s.qualified_name(),
-                    "file": s.file.strip_prefix(&root).unwrap_or(&s.file),
-                    "line": at.line,
-                    "kind": s.kind,
-                })
-            })
-            .collect();
-        let edges: Vec<_> = graph
-            .edges()
-            .into_iter()
-            .map(|(from, to, edge)| {
-                serde_json::json!({
-                    "from": from,
-                    "to": to,
-                    "confidence": edge.confidence.as_str(),
-                    "origin": edge.origin.as_str(),
-                })
-            })
-            .collect();
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "functions": graph.node_count(),
-                "calls": graph.edge_count(),
-                "hierarchy_edges": graph.hierarchy_edge_count(),
-                "unresolved_calls": graph.unresolved.len(),
-                "file_scope_calls": graph.file_scope.len(),
-                "by_confidence": breakdown,
-                "by_origin": by_origin,
-                "nodes": nodes,
-                "edges": edges,
-            }))?
-        );
+        println!("{}", serde_json::to_string_pretty(&graph.report(&index, &root))?);
         return Ok(());
     }
 

@@ -1,0 +1,63 @@
+name: Graph and analysis checks
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/analysis/**
+      - src/project/flow_*.rs
+      - src/project/dataflow.rs
+      - src/cli.rs
+      - src/wasm.rs
+      - tests/graph_export.rs
+      - tests/graph_analysis.rs
+      - sdk/python/tests/test_graph_analysis.py
+      - .github/workflows/graph-analysis.yml
+permissions:
+  contents: read
+concurrency:
+  group: graph-analysis-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  PYTHONPATH: sdk/python/src:tools
+  PYTHONDONTWRITEBYTECODE: '1'
+jobs:
+  behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Capture formatting changes for review
+        run: |
+          cargo fmt --all
+          git diff --binary > "$RUNNER_TEMP/format.patch"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: graph-analysis-format
+          path: ${{ runner.temp }}/format.patch
+      - run: cargo test --locked --test graph_export --test call_graph_cache --test qualified_calls --test analysis_boundaries -- --test-threads=1
+      - run: cargo build --locked --bin fr
+      - name: Inspect advertised support
+        run: |
+          target/debug/fr --json audit
+          target/debug/fr capabilities
+      - run: python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt
+      - run: python3 -m pytest -q sdk/python/tests/test_graph_analysis.py

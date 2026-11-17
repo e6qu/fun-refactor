@@ -260,6 +260,7 @@ struct Environment {
     plain_strings: BTreeSet<String>,
     pending_returns: BTreeMap<usize, PendingReturn>,
     pending_raises: BTreeMap<usize, Raised>,
+    exception_aliases: BTreeSet<(String, usize, usize)>,
 }
 
 fn join_environment(into: &mut Environment, from: &Environment) -> bool {
@@ -291,6 +292,9 @@ fn join_environment(into: &mut Environment, from: &Environment) -> bool {
         changed = true;
     }
     changed |= completion::join_pending(into, from);
+    let aliases = into.exception_aliases.len();
+    into.exception_aliases.extend(from.exception_aliases.iter().cloned());
+    changed |= aliases != into.exception_aliases.len();
     changed
 }
 
@@ -590,6 +594,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     self.cutoff(format!("unsupported-standard-call:{standard}"));
                     return joined;
                 }
+                if standard == "builtins.int" {
+                    self.integer_conversion(node, env, &joined);
+                }
                 return self.extend(joined, node, "standard-call-result");
             }
         }
@@ -663,6 +670,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             plain_strings: BTreeSet::new(),
             pending_returns: BTreeMap::new(),
             pending_raises: BTreeMap::new(),
+            exception_aliases: BTreeSet::new(),
         };
         let mut locals = initial.defined.clone();
         for block in &graph.blocks {
@@ -762,6 +770,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .clone()
                 .expect("queued blocks have input states");
             let block = &graph.blocks[id];
+            if let Some(node) = block.syntax {
+                let expired: Vec<_> = state.exception_aliases.iter().filter(|(_, start, end)| {
+                    node.start_byte() < *start || node.end_byte() > *end
+                }).cloned().collect();
+                for alias in expired {
+                    state.values.remove(&alias.0);
+                    state.defined.remove(&alias.0);
+                    state.plain_strings.remove(&alias.0);
+                    state.exception_aliases.remove(&alias);
+                }
+            }
             let before = state.clone();
             self.normal = true;
             self.may_raise = false;
@@ -865,9 +884,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 let raised = state.pending_raises.get(&slot).cloned().unwrap_or_default();
                 let (matched, unmatched) =
                     self.match_exceptions(block.syntax.expect("handler clause"), &state, raised);
-                for ((target, _), selected) in block.successors.iter().zip([matched, unmatched]) {
+                for ((target, edge), selected) in block.successors.iter().zip([matched, unmatched]) {
                     if !selected.is_empty() {
                         let mut outgoing = state.clone();
+                        if *edge == "except-match" {
+                            let clause = block.syntax.expect("handler clause");
+                            if let Some(alias) = clause.child_by_field_name("alias").filter(|n| n.kind() == "identifier") {
+                                let mut flow = Flow::new();
+                                for value in selected.values() {
+                                    merge(&mut flow, value.clone());
+                                }
+                                let name = self.text(alias).to_owned();
+                                outgoing.values.insert(name.clone(), self.extend(flow, alias, "exception-binding"));
+                                outgoing.defined.insert(name.clone());
+                                outgoing.plain_strings.remove(&name);
+                                outgoing.exception_aliases.insert((name, clause.start_byte(), clause.end_byte()));
+                            }
+                        }
                         outgoing.pending_raises.insert(slot, selected);
                         successors.push((*target, outgoing));
                     }
@@ -2104,6 +2137,7 @@ mod lattice_tests {
             plain_strings: BTreeSet::new(),
             pending_returns: BTreeMap::new(),
             pending_raises: BTreeMap::new(),
+            exception_aliases: BTreeSet::new(),
             defined: if bound {
                 BTreeSet::from(["value".into()])
             } else {

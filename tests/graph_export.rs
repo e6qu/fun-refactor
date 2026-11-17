@@ -69,6 +69,35 @@ fn the_counts_stay_beside_the_graph() {
 }
 
 #[test]
+fn repeated_calls_keep_their_individual_locations() {
+    let tmp = workspace(&[("a.rs", "fn leaf() {}\nfn top() { leaf(); leaf(); }\n")]);
+    let report = graph_json(&tmp);
+    let edges = report["edges"].as_array().unwrap();
+    assert_eq!(edges.len(), 2);
+    assert_ne!(edges[0]["site"]["offset"], edges[1]["site"]["offset"]);
+    for edge in edges {
+        assert_eq!(edge["site"]["file"], "a.rs");
+        assert_eq!(edge["site"]["line"], 2);
+        assert_eq!(edge["site"]["spans"].as_array().unwrap().len(), 1);
+        assert_eq!(edge["dispatch_candidate"], false);
+    }
+}
+
+#[test]
+fn unresolved_calls_and_missing_syntax_stay_visible() {
+    let tmp = workspace(&[("a.rs", "fn entry() { external(); }\n"), ("broken.rs", "fn broken( {")]);
+    let report = graph_json(&tmp);
+    assert!(report["unresolved"].as_array().unwrap().iter().any(|call| {
+        call["name"] == "external" && call["site"]["file"] == "a.rs"
+    }));
+    assert_eq!(report["coverage"]["all_visible_calls_resolved"], false);
+    assert_eq!(report["coverage"]["runtime_dispatch_established"], false);
+    assert!(report["coverage"]["gaps"].as_array().unwrap().iter().any(|gap| {
+        gap["file"] == "broken.rs"
+    }));
+}
+
+#[test]
 fn two_functions_sharing_a_name_are_told_apart_by_file() {
     let tmp = workspace(&[
         ("one/util.rs", "pub fn process() {}\n"),
@@ -117,6 +146,8 @@ fn a_call_at_file_scope_is_counted_apart_from_an_unresolved_one() {
 
     assert_eq!(printed["file_scope_calls"], 1, "got:\n{printed}");
     assert_eq!(printed["unresolved_calls"], 0, "got:\n{printed}");
+    assert_eq!(printed["file_scope"][0]["name"], "deploy");
+    assert_eq!(printed["file_scope"][0]["site"]["file"], "lib.sh");
 }
 
 #[test]
