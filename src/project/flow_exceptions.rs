@@ -212,8 +212,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let decimal = values.len() == 1 || values.len() == 2 && self.text(values[1]) == "10";
         if !decimal || !self.plain_string(values[0], env) {
-            self.cutoff("integer-conversion-type-unchecked");
-            self.effect_limit(node, "implicit-exception", "Integer conversion needs a known string and base ten; custom conversions remain unchecked.");
+            if values.len() != 1 {
+                self.cutoff("integer-conversion-type-unchecked");
+            }
+            self.effect_limit(node, "implicit-exception", "The scalar model propagates this conversion's value. Its exception paths need a known string and base ten; custom conversions remain unchecked.");
             return;
         }
         self.may_raise = true;

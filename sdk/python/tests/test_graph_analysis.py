@@ -73,10 +73,19 @@ def test_error_binding_is_deleted_after_its_handler(tmp_path):
     assert not report['witnesses']
 
 
-def test_unknown_conversion_protocol_stays_incomplete(tmp_path):
-    report = analyze(tmp_path, 'def entry():\n    return int(read())\n')
+def test_explicit_base_with_unknown_input_stays_incomplete(tmp_path):
+    report = analyze(tmp_path, 'def entry():\n    return int(read(), 10)\n')
     assert not report['complete']
     assert 'integer-conversion-type-unchecked' in report['cutoffs']
+
+
+def test_scalar_numeric_conversion_keeps_its_exception_boundary(tmp_path):
+    report = analyze(tmp_path, 'def entry():\n    return send(int(read()))\n')
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+    assert not report['runtime_effects']['exception_safety_established']
+    assert any(site['kind'] == 'implicit-exception' for site in report['effect_limits'])
+    assert execute('def entry():\n    send(int(read()))\n', 17) == ['17']
 
 
 def test_valid_integer_literal_needs_no_error_path(tmp_path):

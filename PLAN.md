@@ -73,8 +73,8 @@ Distinguish implemented, independently checked, missing and intentionally unsupp
 Existing advertised features remain obligations. Removing a promise requires an explicit scope decision;
 marking it unsupported cannot satisfy the completion gate.
 
-Complete the graph gaps this inventory exposes: symbol and occurrence identities, lexical scope,
-imports and aliases, direct and candidate calls, recursion, dependency edges and consumer traversal.
+Complete the graph gaps this inventory exposes.
+Cover symbol and occurrence identities, lexical scope, imports, aliases, direct and candidate calls, recursion, dependency edges and consumer traversal.
 Connect code graphs, call graphs and project maps through consistent source locations and query results.
 Cover declared cross-language links, configured entry points and relevant build/configuration inputs.
 Test shadowing, duplicate names, ambiguous dispatch, missing imports and external consumers.

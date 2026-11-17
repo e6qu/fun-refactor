@@ -89,6 +89,8 @@ A helper's mutation must affect every alias of the same list. Rebinding an alias
 Use `--standard-library builtins` when tracing supported builtin operations.
 `int(str(value))` and `int(str(value), 10)` include a possible `ValueError` path.
 A matching `except ValueError as error` can read the caught value; Python deletes that local error name after the handler.
-Unknown conversion protocols remain incomplete. A finished trace does not establish general runtime exception safety.
+Explicit-base conversions with unknown input types remain incomplete.
+One-argument numeric conversion retains the existing scalar value-flow model and discloses unchecked exception paths when its input type is unknown.
+A finished trace does not establish general runtime exception safety.
 
 Read [what a result establishes](understanding-results.md) before using an empty graph or trace to justify a change.

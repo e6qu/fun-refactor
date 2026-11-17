@@ -60,4 +60,4 @@ jobs:
           target/debug/fr --json audit
           target/debug/fr capabilities
       - run: python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt
-      - run: python3 -m pytest -q sdk/python/tests/test_graph_analysis.py sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_finally_flow.py sdk/python/tests/test_exception_handlers.py
+      - run: python3 -m pytest -q sdk/python/tests/test_graph_analysis.py sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_finally_flow.py sdk/python/tests/test_exception_handlers.py sdk/python/tests/test_standard_library.py
