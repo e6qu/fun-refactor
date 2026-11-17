@@ -127,3 +127,38 @@ def test_unsupported_list_behavior_stays_incomplete(tmp_path, body, cutoff):
     report = analyze(tmp_path, source)
     assert not report['complete']
     assert cutoff in report['cutoffs'], report['cutoffs']
+
+
+def test_imported_helper_mutation_survives_move_and_alias(tmp_path):
+    (tmp_path / 'helpers.py').write_text('def update(items, value):\n    items[0] = value\n')
+    source = ('from helpers import update as replace\n'
+              'def entry():\n    values = [0]\n    replace(values, read())\n    send(values[0])\n')
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+    assert any(point['path'] == 'helpers.py' for witness in report['witnesses']
+               for point in witness['trace']['occurrences'])
+
+
+def test_shared_aliases_remain_shared_inside_the_helper(tmp_path):
+    source = ('def update(first, second, value):\n    first.clear()\n    second.append(value)\n'
+              'def entry():\n    values = [0]\n    update(values, values, read())\n    send(values[0])\n')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+
+
+@pytest.mark.parametrize('index', ['0,', '0, 0'])
+def test_tuple_indices_are_not_mistaken_for_integer_indices(tmp_path, index):
+    report = analyze(tmp_path, f'def entry():\n    values = [read()]\n    send(values[{index}])\n')
+    assert not report['complete']
+    assert 'list-index-unchecked' in report['cutoffs']
+
+
+def test_list_calls_keep_keyword_only_parameter_rules(tmp_path):
+    source = ('def update(*, items):\n    items.clear()\n'
+              'def entry():\n    values = [read()]\n    update(values)\n    send(values[0])\n')
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert 'list-call-signature-unchecked' in report['cutoffs']

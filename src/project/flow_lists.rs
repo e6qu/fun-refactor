@@ -133,6 +133,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let value = node.child_by_field_name("value")?;
         let ids = env.lists.borrow().ids(value, self.source);
         if ids.is_empty() { return None; }
+        if node.children_by_field_name("subscript", &mut node.walk()).count() != 1
+            || node.children(&mut node.walk()).any(|child| child.kind() == ",") {
+            self.cutoff("list-index-unchecked"); return Some((ids, ITEMS));
+        }
         let index = node.child_by_field_name("subscript")?;
         let slot = (index.kind() == "integer").then(|| self.text(index).parse::<usize>().ok()).flatten();
         let Some(slot) = slot.filter(|slot| *slot < ITEMS) else {

@@ -1,6 +1,7 @@
 use super::*;
 use crate::span::LineIndex;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 
 impl CallGraph {
     pub fn report(&self, index: &Index, root: &Path) -> Value {
@@ -13,6 +14,9 @@ impl CallGraph {
                 index.content_hash(path) == Some(crate::index::content_hash_of(text))
             });
             (path.clone(), source)
+        }).collect();
+        let source_digests: BTreeMap<_, _> = sources.iter().map(|(file, source)| {
+            (relative(file), source.as_ref().map(|text| hex::encode(Sha256::digest(text.as_bytes()))))
         }).collect();
         let site = |file: &Path, offset: usize| {
             let source = sources.get(file).and_then(Option::as_deref);
@@ -66,7 +70,7 @@ impl CallGraph {
         json!({"schema":"fr-call-graph-1", "functions":self.node_count(), "calls":self.edge_count(),
             "hierarchy_edges":self.hierarchy_edge_count(), "unresolved_calls":unresolved.len(),
             "file_scope_calls":file_scope.len(), "by_confidence":self.confidence_breakdown(),
-            "by_origin":self.origin_breakdown(), "nodes":nodes, "edges":edges,
+            "by_origin":self.origin_breakdown(), "nodes":nodes, "edges":edges, "source_digests":source_digests,
             "unresolved":unresolved, "file_scope":file_scope,
             "coverage":{"scope":"indexed workspace", "gaps":gaps,
                 "all_visible_calls_resolved":gaps.is_empty() && unresolved.is_empty(),

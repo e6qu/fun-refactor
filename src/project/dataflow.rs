@@ -746,10 +746,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 }
             }
             if node.kind() == "except_clause" {
-                if let Some(alias) = node.child_by_field_name("alias") {
-                    if alias.kind() == "identifier" {
-                        locals.insert(self.text(alias).to_owned());
-                    }
+                if let Some(alias) = self.exception_alias(node) {
+                    locals.insert(self.text(alias).to_owned());
                 }
             }
             if !matches!(
@@ -926,7 +924,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         let mut outgoing = state.clone();
                         if *edge == "except-match" {
                             let clause = block.syntax.expect("handler clause");
-                            if let Some(alias) = clause.child_by_field_name("alias").filter(|n| n.kind() == "identifier") {
+                            if let Some(alias) = self.exception_alias(clause) {
                                 let mut flow = Flow::new();
                                 for value in selected.values() {
                                     merge(&mut flow, value.clone());
