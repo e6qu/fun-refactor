@@ -88,27 +88,40 @@ fn source_digests_and_call_sites_change_after_an_edit() {
     use sha2::{Digest, Sha256};
     let tmp = workspace(&[("a.rs", CALLS_RS)]);
     let before = graph_json(&tmp);
-    assert_eq!(before["source_digests"]["a.rs"], hex::encode(Sha256::digest(CALLS_RS)));
+    assert_eq!(
+        before["source_digests"]["a.rs"],
+        hex::encode(Sha256::digest(CALLS_RS))
+    );
     let edited = format!("// moved declarations\n{CALLS_RS}");
     std::fs::write(tmp.path().join("a.rs"), &edited).unwrap();
     let after = graph_json(&tmp);
-    assert_eq!(after["source_digests"]["a.rs"], hex::encode(Sha256::digest(&edited)));
+    assert_eq!(
+        after["source_digests"]["a.rs"],
+        hex::encode(Sha256::digest(&edited))
+    );
     assert_ne!(before["source_digests"], after["source_digests"]);
     assert_eq!(after["edges"][0]["site"]["line"], 4);
 }
 
 #[test]
 fn unresolved_calls_and_missing_syntax_stay_visible() {
-    let tmp = workspace(&[("a.rs", "fn entry() { external(); }\n"), ("broken.rs", "fn broken( {")]);
+    let tmp = workspace(&[
+        ("a.rs", "fn entry() { external(); }\n"),
+        ("broken.rs", "fn broken( {"),
+    ]);
     let report = graph_json(&tmp);
-    assert!(report["unresolved"].as_array().unwrap().iter().any(|call| {
-        call["name"] == "external" && call["site"]["file"] == "a.rs"
-    }));
+    assert!(report["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|call| { call["name"] == "external" && call["site"]["file"] == "a.rs" }));
     assert_eq!(report["coverage"]["all_visible_calls_resolved"], false);
     assert_eq!(report["coverage"]["runtime_dispatch_established"], false);
-    assert!(report["coverage"]["gaps"].as_array().unwrap().iter().any(|gap| {
-        gap["file"] == "broken.rs"
-    }));
+    assert!(report["coverage"]["gaps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|gap| { gap["file"] == "broken.rs" }));
 }
 
 #[test]
