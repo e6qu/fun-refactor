@@ -27,7 +27,7 @@ class RoadmapStatusTests(unittest.TestCase):
         (self.root / 'result.json').write_text(json.dumps(self.value))
         (self.root / 'docs').mkdir()
         (self.root / status.CHECKLIST).write_text('\n'.join(f'### {m}. Title\n- [x] Implementation\n' for m in 'ABCD'))
-        (self.root / 'PLAN.md').write_text('# Current focused milestones\n')
+        (self.root / 'PLAN.md').write_text('# Current full-product roadmap\n')
         entry = {'id': 'result', 'path': 'result.json', 'kind': 'deterministic', 'audit': 'independent evaluator',
                  'scope': 'finite fixture', 'sha256': status.digest(self.root / 'result.json')}
         self.catalog = {'schema': 'fr-roadmap-catalog-1', 'profile': 'agent-analysis-v2', 'baseline': 'pinned',
@@ -59,7 +59,7 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertIn('[M1](../PLAN.md#', page)
         self.assertIn('[M2](../PLAN.md#', page)
         self.assertIn('[M3](../PLAN.md#', page)
-        self.assertIn('its counts do not measure completion of the focused roadmap', page)
+        self.assertIn('its counts do not measure full-product completion', page)
         self.assertIn('[M3 task guide](../tests/agent-eval/proof-writing/README.md)', page)
         self.assertIn('43 finished with correct patches and five timed out.', page)
         for name in ('C.repository-mutations', 'D.structural'):
@@ -69,7 +69,7 @@ class RoadmapStatusTests(unittest.TestCase):
                 gate['requires'] = []
                 page = status.markdown(self.compute())
                 self.assertIn('[M1](../PLAN.md#', page)
-                self.assertIn('its counts do not measure completion of the focused roadmap', page)
+                self.assertIn('its counts do not measure full-product completion', page)
                 self.assertIn('[M3 task guide](../tests/agent-eval/proof-writing/README.md)', page)
                 self.assertIn('Every selected agent has an accepted result per task using fr.', page)
                 gate['requires'] = requirements
