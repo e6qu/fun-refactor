@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 
 from fr_ir.runtime import FrClient
+from fr_ir.context import MemoryObjectStore
+from fr_ir.flow import FlowCache
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -147,6 +149,32 @@ def test_shared_aliases_remain_shared_inside_the_helper(tmp_path):
     report = analyze(tmp_path, source)
     assert report['complete'], report['cutoffs']
     assert report['witnesses']
+
+
+def test_saved_list_answers_invalidate_after_an_imported_helper_changes(tmp_path):
+    helper = tmp_path / 'helpers.py'
+    helper.write_text('def update(items):\n    items[0] = 0\n')
+    source = ('from helpers import update\ndef entry():\n'
+              '    values = [read()]\n    update(values)\n    send(values[0])\n')
+    analyze(tmp_path, source)
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+
+    def query(selected):
+        handle = client.project('find', 'entry').definition_target().handle
+        return selected.analyze(client, handle, standard_library=('builtins',),
+                                rules=tmp_path / 'rules.json', context='html', steps=4096,
+                                depth=8, max_bytes=1048576, summaries=True, imports=True)
+
+    cold = query(cache)
+    assert cold.report.at('/complete') and not cold.witnesses
+    assert query(cache).reused
+    helper.write_text('def update(items):\n    pass\n')
+    fresh = query(cache)
+    assert not fresh.reused
+    assert fresh.report.at('/complete') and fresh.witnesses
+    clean = query(FlowCache(MemoryObjectStore()))
+    assert fresh.witnesses == clean.witnesses
 
 
 @pytest.mark.parametrize('index', ['0,', '0, 0'])

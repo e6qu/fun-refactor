@@ -18,13 +18,21 @@ impl CallGraph {
         let source_digests: BTreeMap<_, _> = sources.iter().map(|(file, source)| {
             (relative(file), source.as_ref().map(|text| hex::encode(Sha256::digest(text.as_bytes()))))
         }).collect();
+        let lines: BTreeMap<_, _> = sources.iter().filter_map(|(file, source)| {
+            source.as_ref().map(|text| (file.as_path(), LineIndex::new(text)))
+        }).collect();
+        let mut reference_spans: BTreeMap<_, BTreeSet<_>> = BTreeMap::new();
+        for (file, _) in index.files() {
+            for reference in index.references_in(file) {
+                reference_spans.entry((file.as_path(), reference.span.start))
+                    .or_default().insert(reference.span);
+            }
+        }
         let site = |file: &Path, offset: usize| {
             let source = sources.get(file).and_then(Option::as_deref);
             let position = source.filter(|s| offset <= s.len() && s.is_char_boundary(offset))
-                .map(|s| LineIndex::new(s).line_col(offset, s));
-            let spans: BTreeSet<_> = index.references_in(file)
-                .filter(|reference| reference.span.start == offset)
-                .map(|reference| reference.span).collect();
+                .and_then(|s| lines.get(file).map(|lines| lines.line_col(offset, s)));
+            let spans = reference_spans.get(&(file, offset)).cloned().unwrap_or_default();
             json!({"file":relative(file), "offset":offset,
                 "line":position.as_ref().map(|p| p.line), "column":position.as_ref().map(|p| p.col),
                 "spans":spans, "source_available":source.is_some()})

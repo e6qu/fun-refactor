@@ -84,6 +84,20 @@ fn repeated_calls_keep_their_individual_locations() {
 }
 
 #[test]
+fn source_digests_and_call_sites_change_after_an_edit() {
+    use sha2::{Digest, Sha256};
+    let tmp = workspace(&[("a.rs", CALLS_RS)]);
+    let before = graph_json(&tmp);
+    assert_eq!(before["source_digests"]["a.rs"], hex::encode(Sha256::digest(CALLS_RS)));
+    let edited = format!("// moved declarations\n{CALLS_RS}");
+    std::fs::write(tmp.path().join("a.rs"), &edited).unwrap();
+    let after = graph_json(&tmp);
+    assert_eq!(after["source_digests"]["a.rs"], hex::encode(Sha256::digest(&edited)));
+    assert_ne!(before["source_digests"], after["source_digests"]);
+    assert_eq!(after["edges"][0]["site"]["line"], 4);
+}
+
+#[test]
 fn unresolved_calls_and_missing_syntax_stay_visible() {
     let tmp = workspace(&[("a.rs", "fn entry() { external(); }\n"), ("broken.rs", "fn broken( {")]);
     let report = graph_json(&tmp);

@@ -35,11 +35,13 @@ selected branches' origins, without adding the selector as an implicit flow. An 
 that raises or does not return cannot erase another branch's normal continuation. Explicit raise
 and sink effects join across supported branches. A comparison retains the existing conservative
 operand-origin propagation and may stop after any completed comparison. Its first two operands are
-mandatory. Unavailable summary returns remain a an approximation refined until repeated analysis adds no new facts, not a termination proof.
+mandatory. Summary returns are refined until repeated analysis adds no new facts. This does not prove termination.
 
 The contract assumes scalar truth and comparison operations. Overloaded `__bool__`, `__len__`,
-comparison protocols, implicit exceptions (errors an operation can raise without an explicit `raise`), handlers, changes to shared mutable objects and general path feasibility are
-outside it. An evaluated unsupported expression or exhausted budget reports incomplete analysis.
+comparison protocols and general path feasibility are outside it.
+The [analysis guide](analysis-coverage.md) describes the separate contracts for builtin error handlers,
+integer conversion failures and shared lists. Other implicit exceptions and general object mutation remain unchecked.
+An evaluated unsupported expression or exhausted budget reports incomplete analysis.
 An expression skipped by a known selector needs no execution contract. Lexical binding checks and
 checks of the imported files and directories still apply independently, including to source containing skipped expressions.
 

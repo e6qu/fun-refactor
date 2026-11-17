@@ -297,7 +297,8 @@ fn join_environment(into: &mut Environment, from: &Environment) -> bool {
     }
     changed |= completion::join_pending(into, from);
     let aliases = into.exception_aliases.len();
-    into.exception_aliases.extend(from.exception_aliases.iter().cloned());
+    into.exception_aliases
+        .extend(from.exception_aliases.iter().cloned());
     changed |= aliases != into.exception_aliases.len();
     changed |= into.lists.borrow_mut().join(&from.lists.borrow());
     changed
@@ -647,7 +648,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.invoke_with_lists(name, function, arguments, lists::Lists::default())
     }
 
-    fn invoke_with_lists(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>, lists: lists::Lists) -> Flow {
+    fn invoke_with_lists(
+        &mut self,
+        name: &str,
+        function: Node<'t>,
+        arguments: Vec<Flow>,
+        lists: lists::Lists,
+    ) -> Flow {
         if function.child_by_field_name("return_type").is_some()
             && !self.annotations_postponed(self.file)
         {
@@ -795,9 +802,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .expect("queued blocks have input states");
             let block = &graph.blocks[id];
             if let Some(node) = block.syntax {
-                let expired: Vec<_> = state.exception_aliases.iter().filter(|(_, start, end)| {
-                    node.start_byte() < *start || node.end_byte() > *end
-                }).cloned().collect();
+                let expired: Vec<_> = state
+                    .exception_aliases
+                    .iter()
+                    .filter(|(_, start, end)| node.start_byte() < *start || node.end_byte() > *end)
+                    .cloned()
+                    .collect();
                 for alias in expired {
                     state.values.remove(&alias.0);
                     state.defined.remove(&alias.0);
@@ -810,9 +820,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.normal = true;
             self.may_raise = false;
             self.exceptional_returns.clear();
-            if matches!(block.operation, Operation::Exit | Operation::ExceptionalExit) {
+            if matches!(
+                block.operation,
+                Operation::Exit | Operation::ExceptionalExit
+            ) {
                 match &mut returned_lists {
-                    Some(heap) => { heap.join(&state.lists.borrow()); }
+                    Some(heap) => {
+                        heap.join(&state.lists.borrow());
+                    }
                     None => returned_lists = Some(state.lists.borrow().clone()),
                 }
             }
@@ -866,7 +881,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         }
                         let mut value = Flow::new();
                         for expression in node.named_children(&mut node.walk()) {
-                            if block.operation == Operation::Return && self.list_value(expression, &state).is_some() {
+                            if block.operation == Operation::Return
+                                && self.list_value(expression, &state).is_some()
+                            {
                                 self.cutoff("list-return-identity-unchecked");
                             }
                             merge(&mut value, self.expression(expression, &state));
@@ -919,7 +936,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 let raised = state.pending_raises.get(&slot).cloned().unwrap_or_default();
                 let (matched, unmatched) =
                     self.match_exceptions(block.syntax.expect("handler clause"), &state, raised);
-                for ((target, edge), selected) in block.successors.iter().zip([matched, unmatched]) {
+                for ((target, edge), selected) in block.successors.iter().zip([matched, unmatched])
+                {
                     if !selected.is_empty() {
                         let mut outgoing = state.clone();
                         if *edge == "except-match" {
@@ -930,11 +948,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                     merge(&mut flow, value.clone());
                                 }
                                 let name = self.text(alias).to_owned();
-                                outgoing.values.insert(name.clone(), self.extend(flow, alias, "exception-binding"));
+                                outgoing.values.insert(
+                                    name.clone(),
+                                    self.extend(flow, alias, "exception-binding"),
+                                );
                                 outgoing.defined.insert(name.clone());
                                 outgoing.plain_strings.remove(&name);
                                 outgoing.lists.borrow_mut().bindings.remove(&name);
-                                outgoing.exception_aliases.insert((name, clause.start_byte(), clause.end_byte()));
+                                outgoing.exception_aliases.insert((
+                                    name,
+                                    clause.start_byte(),
+                                    clause.end_byte(),
+                                ));
                             }
                         }
                         outgoing.pending_raises.insert(slot, selected);
@@ -996,7 +1021,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         match node.kind() {
             "expression_statement" => {
                 for expression in node.named_children(&mut node.walk()) {
-                    if expression.kind() == "assignment" && self.list_assignment(expression, state) {
+                    if expression.kind() == "assignment" && self.list_assignment(expression, state)
+                    {
                         continue;
                     }
                     if matches!(expression.kind(), "assignment" | "augmented_assignment") {
@@ -1038,7 +1064,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         self.expression(expression, state);
                     }
                     if expression.kind() == "assignment" {
-                        if let Some(names) = expression.child_by_field_name("left").and_then(assignments::target_names) {
+                        if let Some(names) = expression
+                            .child_by_field_name("left")
+                            .and_then(assignments::target_names)
+                        {
                             for name in names {
                                 state.lists.borrow_mut().bindings.remove(self.text(name));
                             }

@@ -18,8 +18,9 @@ Its effect on live proof delivery remains unmeasured.
 The [plan's evidence section](../PLAN.md#evidence-behind-the-sequence) links the retained studies.
 PR #604 has merged; its interrupted collection remains a historical record, not the active work queue.
 
-Start PR 1 with the advertised feature inventory and its language/interface coverage matrix.
-Complete the graph gaps and independent checks in that same PR.
+PR 1 combines graphs and code analysis. Its [coverage guide](analysis-coverage.md) links features to checks.
+The implementation adds call-site exports, source digests, caught conversion errors and local shared-list analysis.
+Finish the hosted behavior checks, evidence refresh and full CI before marking it complete.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 

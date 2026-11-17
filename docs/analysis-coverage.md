@@ -18,6 +18,9 @@ The table below connects the analysis features to their implementation checks.
 | Source-level flow and provenance | Forward/backward value origins for supported programming constructs; configuration readers for other supported formats | [Forward flow](../tests/flow_forward.rs), [provenance](../tests/provenance.rs) |
 | Entry points and reachability | Declared entry points, dispatch candidates and potentially unused code | [Entry-point conventions](../tests/entrypoints_conventions.rs), [hierarchy reachability](../tests/hierarchy_reachability.rs) |
 | Cross-language links | Declared configuration readers, file links and supported framework relationships | [Stitching languages](../tests/stitch_languages.rs), [cross-language guide](../CROSS_LANGUAGE.md) |
+| Duplicate code and unused declarations | Structural duplicates and reachability from declared entry points; CLI and browser | [Duplicates](../tests/duplicates.rs), [hierarchy reachability](../tests/hierarchy_reachability.rs) |
+| Declared types and contracts | Source declarations and supported HTTP contracts; CLI and project queries | [Types](../tests/types.rs), [data types](../tests/types_data.rs) |
+| Flags and paths | Flag definitions, conditions and path relationships; CLI | [Flags](../tests/flags.rs), [paths](../tests/paths.rs) |
 | Affected consumers and checks | Traverse references and relate affected files to declared checks; CLI and Python | [Change scopes](change-scopes.md) |
 | Control flow | Supported Python branches, loops, returns, raises, handlers and cleanup | [Fixed-point analysis](../tests/flow_fixed_point.rs), [cleanup tests](../sdk/python/tests/test_finally_flow.py) |
 | Value flow across helpers | Parameter binding, recursion, local/imported helpers and scalar summaries; CLI and Python | [Summary tests](../tests/flow_summaries.rs), [imported flow](../tests/imported_flow.rs) |
@@ -30,6 +33,16 @@ These links identify checks, not a claim that they passed on every revision.
 The combined [graph-and-analysis PR](../PLAN.md#pr-1-complete-graphs-and-code-analysis) remains open until its hosted checks and required evidence pass.
 Refactoring, translation and public-interface completion have their own PRs in that plan.
 
+The maintained language matrix comes from [the capability registry](../src/capabilities.rs), available as `fr capabilities --json`.
+It distinguishes implemented operations, refused operations and operations that do not apply to a language.
+[Capability drivers](../tests/capability_claims.rs) exercise each advertised language/operation pair;
+the [coverage report](../tools/capability-report.py) rejects unexercised claims in the complete native gate.
+Those drivers establish example coverage. The behavioral tests above check resolution, mutation and invalidation in more depth.
+
+This PR owns symbols, calls, impact, flow, provenance, entry points, stitching, duplicates, dead code, declared types and HTTP-contract analysis.
+The refactoring PR owns rename, deletion, restructuring, extraction, inlining, signatures, rewrites, imports, flag removal, moves and translation.
+Both sets remain product requirements. Per-language refusals document current limits; they do not cancel roadmap promises.
+
 ## Inspect a graph
 
 ```sh
@@ -41,6 +54,7 @@ fr project calls '<HANDLE>' --direction incoming --limit 8
 
 Replace `<HANDLE>` with the full handle returned by `project find`.
 The graph JSON includes declaration spans and each call's file, byte offset, line and column.
+`source_digests` binds those locations to the indexed source contents; a missing snapshot has a null digest and a coverage gap.
 Two calls on the same line remain separate sites. `unresolved` lists calls without a known target;
 `file_scope` lists calls outside functions. `coverage.gaps` reports skipped or unsupported files and analysis failures.
 

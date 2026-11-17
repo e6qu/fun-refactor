@@ -32,11 +32,10 @@ one name do not introduce unpacking unless they contain a comma. Empty literal
 sequences can match empty targets. This follows the supported portion of
 [Python assignment semantics](https://docs.python.org/3/reference/simple_stmts.html#assignment-statements).
 
-The analysis keeps sequence structure only while binding an assignment. It does not
-introduce container-valued variables, multiple names for the same mutable object or arbitrary iteration. Starred
-unpacking, mismatched shapes, attributes, subscripts and annotations remain explicit
-cutoffs. Unsupported shapes do not establish absence of propagation. Implicit
-unpacking exceptions and overloaded protocols remain outside the contract.
+Unpacking keeps sequence structure while binding an assignment.
+The separate [list model](analysis-coverage.md#trace-a-shared-list) handles local list variables, aliases and fixed-index updates.
+Starred unpacking, mismatched shapes, attributes and annotated assignments remain incomplete.
+Implicit unpacking exceptions, arbitrary iteration and overloaded protocols remain outside the contract.
 
 An assignment admits at most 64 RHS shape nodes, 64 target-name writes in total,
 64 chained target groups and nesting depth 16. Shape nodes count containers, scalar

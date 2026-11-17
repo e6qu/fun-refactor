@@ -260,7 +260,7 @@ Exact changed input paths are retained in [the JSON report](roadmap-status.json)
 
 ## Limits and interpretation
 
-- These records retain the earlier qualification checklist and its original acceptance conditions. The active roadmap focuses on smaller agents doing refactoring, targeted code changes and Lean proof writing. Earlier counts do not establish completion of those new milestones.
+- These records retain the earlier qualification checklist and its original acceptance conditions. The active roadmap covers the full code graph, analysis, refactoring, transformation and proof feature set. Smaller-agent milestones validate that product; earlier counts do not establish completion.
 - The analyzer and SDK must not branch on benchmark repository names, paths, revisions or expected patches. Explicit user rules may select sources and uses; they cannot bypass language semantics or unsupported effects.
 - Demonstrated items retain their finite scope. Broader requirements need unfamiliar projects, independent language examples and complete agent-cost accounting.
 - The existing agent comparison used an older Luna model on two Rust tasks. The fr runs consumed more calls, context and time. There is no established general token or cost advantage, and no matched Sonnet or delegated-agent result here.

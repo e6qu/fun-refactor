@@ -9,7 +9,6 @@ on:
       - src/cli.rs
       - src/wasm.rs
       - tests/graph_export.rs
-      - tests/graph_analysis.rs
       - sdk/python/tests/test_graph_analysis.py
       - .github/workflows/graph-analysis.yml
 permissions:
@@ -41,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
-      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
@@ -55,6 +54,7 @@ jobs:
           path: ${{ runner.temp }}/format.patch
       - run: cargo test --locked --test graph_export --test call_graph_cache --test qualified_calls --test analysis_boundaries -- --test-threads=1
       - run: cargo build --locked --bin fr
+      - run: cargo clippy --locked --lib --bin fr -- -D warnings
       - name: Inspect advertised support
         run: |
           target/debug/fr --json audit

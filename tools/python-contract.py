@@ -223,7 +223,7 @@ def audit_case(row, case):
     assumptions = [
         'scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
-        'Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.',
+        'Supported raises and known-string integer conversion failures follow builtin handlers and cleanup. Local caught-error names preserve origins. Other implicit exceptions, custom classes and resource effects remain unchecked.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
     if case['standard_library']:
         assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check.')

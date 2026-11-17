@@ -6654,7 +6654,10 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
 
     let breakdown = graph.confidence_breakdown();
     if cli.json {
-        println!("{}", serde_json::to_string_pretty(&graph.report(&index, &root))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&graph.report(&index, &root))?
+        );
         return Ok(());
     }
 
