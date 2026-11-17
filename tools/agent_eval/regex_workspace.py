@@ -1,6 +1,7 @@
 """Pinned multi-crate source and a caller-side oracle for the public buffer API task."""
 
 import hashlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -105,20 +106,43 @@ def unpack(destination):
     (destination / "Cargo.lock").write_bytes(lock)
 
 
+def build_libraries(root, packages, env, cargo="cargo"):
+    command = [str(cargo), "build", *[arg for name in packages for arg in ("-p", name)],
+               "--lib", "--locked", "--offline", "--target-dir", str(root / "target"),
+               "--message-format=json"]
+    build = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=180)
+    if build.returncode:
+        return build, []
+    libraries, directories = {}, set()
+    for line in build.stdout.splitlines():
+        artifact = json.loads(line)
+        if artifact.get("reason") != "compiler-artifact":
+            continue
+        for filename in artifact["filenames"]:
+            path = Path(filename)
+            if path.suffix in (".rlib", ".so", ".dylib", ".dll"):
+                directories.add(path.parent)
+            name = artifact["target"]["name"]
+            if name in {package.replace("-", "_") for package in packages} and path.suffix == ".rlib":
+                libraries[name] = path
+    if set(libraries) != {package.replace("-", "_") for package in packages}:
+        raise ValueError("Cargo did not report every requested regex library")
+    arguments = [arg for name, path in sorted(libraries.items()) for arg in ("--extern", f"{name}={path}")]
+    arguments += [arg for path in sorted(directories) for arg in ("-L", f"dependency={path}")]
+    return build, arguments
+
+
 def verify(root):
     env = os.environ.copy()
     env.update(CARGO_HOME=str(ROOT / "target/cargo-home"), CARGO_NET_OFFLINE="true")
-    target = root / "target"
-    build = subprocess.run(["cargo", "build", "-p", "regex", "--lib", "--locked", "--offline", "--target-dir", str(target)],
-                           cwd=root, env=env, capture_output=True, timeout=180)
+    build, libraries = build_libraries(root, ("regex",), env)
     if build.returncode:
         return {"passed": False, "stage": 0, "detail": build.stderr.decode(errors="replace")[-4096:]}
     with tempfile.TemporaryDirectory(prefix="fr-regex-oracle-") as tmp:
         source, binary = Path(tmp) / "oracle.rs", Path(tmp) / "oracle"
         source.write_text(ORACLE)
-        compiled = subprocess.run(["rustc", "--edition=2021", str(source), "--extern", f"regex={target / 'debug/libregex.rlib'}",
-                                   "-L", f"dependency={target / 'debug/deps'}", "-o", str(binary)],
-                                  env=env, capture_output=True, timeout=60)
+        compiled = subprocess.run(["rustc", "--edition=2021", str(source), *libraries, "-o", str(binary)],
+                                  cwd=root, env=env, capture_output=True, timeout=60)
         if compiled.returncode:
             missing = "cannot find function `escape_into` in crate `regex`" in compiled.stderr.decode(errors="replace")
             return {"passed": False, "stage": 1 if missing else 0, "detail": compiled.stderr.decode(errors="replace")[-4096:]}
