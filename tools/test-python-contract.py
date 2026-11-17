@@ -261,10 +261,15 @@ class PythonContract(unittest.TestCase):
             self.reject(value)
 
     def test_unsupported_cannot_be_complete(self):
-        for name in ('bare-raise', 'handler', 'budget', 'container', 'unbound-local', 'shadow-source'):
+        for name in ('bare-raise', 'handler', 'budget', 'unbound-local', 'shadow-source'):
             value, row = self.changed(name + '/moved')
             row['flow'].update(complete=True, cutoffs=[])
             self.reject(value)
+
+    def test_supported_list_allocation_cannot_be_marked_unsupported(self):
+        value, row = self.changed('container/moved')
+        row['flow'].update(complete=False, cutoffs=['assignment'])
+        self.reject(value)
 
     def test_cutoff_reason_cannot_change(self):
         value, row = self.changed('bare-raise/moved')
