@@ -168,26 +168,26 @@
     {
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-17-graphs-analysis-checked-translation/result.json",
-      "sha256": "86494ea35dcbb7690b0f9253f05df9552a0c2db8bc11e02f21b2b0e0c088a3ca",
+      "path": "tests/agent-eval/results/2026-11-17-graphs-analysis-final-checked-translation/result.json",
+      "sha256": "8c8259784ea427a146b6cae51806e846bb7ef603ac964130ad43849517dcf0b3",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-17-graphs-analysis-checked-translation"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-17-graphs-analysis-final-checked-translation"
     },
     {
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-17-graphs-analysis-python-effects/result.json",
-      "sha256": "0bac3db1a889cf936c1f550c02dab544e449d27fe54f080a8584fac8a03de3e3",
+      "path": "tests/agent-eval/results/2026-11-17-graphs-analysis-final-python-effects/result.json",
+      "sha256": "5cc19f97b14c5dbcbab8140a0fc31262401de0a726aadae9499e753c4fca61db",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They check local shared-list updates, source locations and model/runtime differences. General implicit errors and arbitrary shared objects remain outside this finite coverage.",
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-17-graphs-analysis-python-effects"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-17-graphs-analysis-final-python-effects"
     },
     {
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-17-graphs-analysis-python-text-flow/result.json",
-      "sha256": "64f00f6ad87ceba5f44968f91ccddd11a14ce28049a217b83607ebf2ec27d90f",
+      "path": "tests/agent-eval/results/2026-11-17-graphs-analysis-final-python-text-flow/result.json",
+      "sha256": "8f5dc213f42fc18e0fb7c188f60d2a69ccaafb829b41b12fc0813133af170d15",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-17-graphs-analysis-python-text-flow"
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-17-graphs-analysis-final-python-text-flow"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/release-43149783921-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
