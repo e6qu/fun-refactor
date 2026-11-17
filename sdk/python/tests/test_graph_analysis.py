@@ -20,7 +20,7 @@ def analyze(tmp_path, source):
     handle = client.project('find', 'entry').definition_target().handle
     return client.project('dataflow', handle, '--summaries', '--imports',
                           '--standard-library', 'builtins', '--rules', str(rules),
-                          '--context', 'html', '--steps', '8192', '--depth', '8',
+                          '--context', 'html', '--steps', '4096', '--depth', '8',
                           '--bytes', '1048576').to_data()
 
 

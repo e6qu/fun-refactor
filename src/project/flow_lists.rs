@@ -234,6 +234,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let (file, source) = self.contexts[name];
         let Some(parameters) = self.function_parameters(function, file, source)
+            .filter(|items| items.iter().all(|parameter| parameter.kind != calls::Kind::KeywordOnly))
             .map(|items| items.into_iter().map(|parameter| parameter.node).collect::<Vec<_>>()) else {
                 self.cutoff("list-call-signature-unchecked"); return Some(Flow::new());
             };

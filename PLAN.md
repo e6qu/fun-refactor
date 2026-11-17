@@ -65,7 +65,8 @@ The combined graph-and-analysis PR is now in progress.
 
 #### PR 1: Complete graphs and code analysis
 
-Start with an inventory of commands, catalogs, language readers, resolvers, SDK methods,
+The [analysis inventory](docs/analysis-coverage.md) links current features to their checks.
+Complete the inventory of commands, catalogs, language readers, resolvers, SDK methods,
 browser features, recipes and documentation promises. Turn it into a maintained feature coverage matrix.
 Each row names the feature, supported language forms, public interfaces, evidence and remaining work.
 Distinguish implemented, independently checked, missing and intentionally unsupported cases.
@@ -185,42 +186,20 @@ Detailed attempts, fixes and original limits remain in those reports and Git his
 
 ### M1. Run the selected agents on three complete tasks
 
-The [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) covers a Boltons rename,
-a Unicode repair and a Lean proof of the fixed staff-or-owner access model.
-It retains every outcome and submitted patch. A timed-out client stays failed even when its patch passes.
-Only patches and summaries are public; full CLI records and credentials remain local.
-Actual charges and unavailable usage remain unknown. A checked model proof leaves its connection to source behavior open.
+The [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) is complete: 27 passed and nine failed.
+It covers a Boltons rename, Unicode repair and access-rule proof with and without fr.
+These familiar tasks establish a baseline, not general agent savings. The report retains every outcome and submitted patch.
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 
-The [latest comparison](tests/agent-eval/project-edits/local-results/README.md) independently checked all 48 submissions.
-All 48 patches passed. Forty-three attempts finished within the original 150-second limit; five timed out and remain failed.
-Every selected agent delivered at least one accepted result per task using a reviewed, contributing fr step.
-The complete milestone belongs in one PR, with its implementation, checks, examples, results and tracking.
-The full PR CI gate must also pass.
+The [48-attempt comparison](tests/agent-eval/project-edits/local-results/README.md) is complete.
+All patches passed independent checks; 43 attempts finished within 150 seconds and five timed out.
+Every selected agent delivered an accepted result for each task using fr.
 
-| Completed case | Concrete behavior |
-| --- | --- |
-| Rust parameter removal | Remove an unused Boolean input across two packages and all five declared calls; preserve other argument evaluation and refuse removal of an argument with effects |
-| TypeScript rename | Change the exported `price` to `quote` through an import alias; keep calls named `displayPrice` and preserve the unrelated `price` function |
-| Regex feature | Add documented length APIs in both packages; count UTF-8 bytes without allocating, produce escaped text with at most one allocation, and preserve append behavior |
-| Python repair | Make `invoice_total(5, 2)` return 7 while preserving the public signature and unrelated source |
-
-Supplied controls also check preserved source, competing edits, failed-check diagnostics, separate patch delivery and exact undo/redo.
-External callers that the workspace cannot identify remain unknown.
-The [task guide](tests/agent-eval/project-edits/README.md) owns the exact frozen requirements and limits.
-
-| Complete comparison | Accepted / 48 | What changed before its first call |
-| --- | ---: | --- |
-| [Original](tests/agent-eval/project-edits/first-results/README.md) | 33 | Fr was available; using it was optional |
-| [Shorter guides](tests/agent-eval/project-edits/guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify examples and repair the local Rust helper |
-| [Actual clock](tests/agent-eval/project-edits/clocked-results/README.md) | 41 | List requirements separately, give the actual finish time and reserve time for the response |
-| [Behavior checks](tests/agent-eval/project-edits/local-results/README.md) | 43 | Check actual byte counts and allocations, avoid optimized development builds, and protect supplied checking files |
-
-Keep all 192 attempts, including failures. These combined changes do not isolate one cause of the differences.
-For matching successful pairs in the latest comparison, adding fr took 33% longer with Luna, 50% with GLM and 17% with Kimi.
-The baseline is the same agent using ordinary tools. Times include preparation, replies, tools, checks and delivery.
-These are code-change times, not execution-speed measurements of the changed programs. No general savings are established.
+The tasks cover Rust parameter removal, a TypeScript export rename, escaped-text length APIs and a Python invoice repair.
+Checks cover behavior, preserved source, effectful arguments, conflicting edits, delivery and exact undo/redo.
+Matching successful attempts took 33% longer with fr for Luna, 50% for GLM and 17% for Kimi.
+Earlier iterations and all 192 attempts remain in the [task reports](tests/agent-eval/project-edits/README.md).
 
 ### M3. Help the agents write, repair and maintain Lean proofs
 
