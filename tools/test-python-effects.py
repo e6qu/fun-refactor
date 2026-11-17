@@ -16,7 +16,7 @@ class Effects(unittest.TestCase):
         program = effects.source(example, False)
         start = program.encode().index(b"1 // 0")
         report = {"complete": True, "witnesses": [{}], "runtime_effects": {
-            "exception_safety_established": False, "shared_mutable_values_supported": False},
+            "exception_safety_established": False, "shared_mutable_values_supported": True},
             "effect_limits": [{"kind": "implicit-exception", "occurrence": {"path": "subject.py",
                 "location": {"span": {"start": start, "end": start + 6},
                     "range": {"start": {"line": 4, "col": 5}, "end": {"line": 4, "col": 11}}}}}]}

@@ -83,3 +83,47 @@ def test_valid_integer_literal_needs_no_error_path(tmp_path):
     assert report['complete'], report['cutoffs']
     assert not report['witnesses']
     assert not report['completion']['may_raise']
+
+
+@pytest.mark.parametrize('body, expected, witness', [
+    ('values = [0]\nalias = values\nalias[0] = read()\nsend(values[0])', ['Customer'], True),
+    ('values = [read()]\nalias = values\nalias[0] = 0\nsend(values[0])', ['0'], False),
+    ('values = []\nalias = values\nalias.append(read())\nsend(values[0])', ['Customer'], True),
+    ('values = [read()]\nalias = values\nalias.clear()\nvalues.append(0)\nsend(values[0])', ['0'], False),
+    ('values = [read()]\nother = []\nother.extend(values)\nvalues.clear()\nsend(other[0])', ['Customer'], True),
+    ('values = [read()]\nalias = values\nalias = [0]\nsend(values[0])', ['Customer'], True),
+])
+@pytest.mark.parametrize('renamed', [False, True])
+def test_list_aliases_match_python(tmp_path, body, expected, witness, renamed):
+    source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    if renamed:
+        source = source.replace('values', 'customers').replace('alias', 'shared')
+    assert execute(source, 'Customer') == expected
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is witness
+
+
+@pytest.mark.parametrize('clear, witness', [(False, True), (True, False)])
+def test_helper_mutation_reaches_every_alias(tmp_path, clear, witness):
+    source = ('def update(items, value):\n    items[0] = value\n'
+              'def entry():\n    values = [read()]\n    alias = values\n'
+              f'    update(alias, {"0" if clear else "read()"})\n    send(values[0])\n')
+    assert execute(source, 'Customer') == (['Customer'] if witness else ['0'])
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is witness
+
+
+@pytest.mark.parametrize('body, cutoff', [
+    ('values = []\nsend(values[0])', 'list-index-may-raise'),
+    ('values = [read()]\nsend(values[read()])', 'list-index-unchecked'),
+    ('values = []\nvalues.append(values)\nsend(values)', 'nested-list-identity-unchecked'),
+    ('values = [read()]\nreturn values', 'list-return-identity-unchecked'),
+    ('values = [read()]\nif read():\n    values = 0\nvalues.clear()', 'list-binding-type-unchecked'),
+])
+def test_unsupported_list_behavior_stays_incomplete(tmp_path, body, cutoff):
+    source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert cutoff in report['cutoffs'], report['cutoffs']

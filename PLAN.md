@@ -275,7 +275,7 @@ Preserve working behavior and fix encountered defects within the relevant comple
 
 Arbitrary-language semantics, unrestricted dynamic resolution, general verified translation,
 new analysis engines and standalone cache optimization require a concrete uncovered obligation or measured blocker.
-Do not expand implementation merely to increase feature counts. Do not drop a promised feature to close the matrix.
+Add features to meet a concrete requirement. Do not drop a promised feature to close the matrix.
 
 The former CodeGraph comparison and forty-eight-attempt broad study retain their original plans and outcomes.
 They do not define completion of this PR sequence and are not restarted.

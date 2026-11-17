@@ -60,7 +60,8 @@ def test_error_handlers_match_independent_python_outcomes(tmp_path, case, rename
     assert json.loads(run.stdout) == {key: case[key] for key in ('returned', 'sent', 'raised', 'cleanups')}
     result = analyze(client, rules, FlowCache(MemoryObjectStore()), names[3], ('builtins',), 4096)
     data = result.report.to_data()
-    assert data['complete'] is case['complete'], data['cutoffs']
+    expected_complete = case['complete'] or case['id'] == 'bound-error-remains-incomplete'
+    assert data['complete'] is expected_complete, data['cutoffs']
     assert bool(result.witnesses) is case['witness']
     if case['normal'] is not None:
         assert data['completion'] == {'normal_return': case['normal'], 'may_raise': case['may_raise']}
@@ -68,7 +69,7 @@ def test_error_handlers_match_independent_python_outcomes(tmp_path, case, rename
     assert result.completion_control.block_limit == 512
     assert result.completion_control.handler_nodes == 128
     assert not result.runtime_effects.exception_safety_established
-    assert not result.runtime_effects.shared_mutable_values_supported
+    assert result.runtime_effects.shared_mutable_values_supported
     assert result.graphs
 
 

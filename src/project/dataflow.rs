@@ -53,13 +53,16 @@ pub(super) fn completion_contract() -> Value {
 #[path = "flow_text.rs"]
 mod text_values;
 
+#[path = "flow_lists.rs"]
+mod lists;
+
 pub(super) fn expression_contract() -> Value {
     expressions::contract()
 }
 
 pub(super) fn effect_contract() -> Value {
-    json!({"exception_safety_established":false,"shared_mutable_values_supported":false,
-        "complete_means":"The scalar model finished; it does not check runtime exception safety or shared mutable objects."})
+    json!({"exception_safety_established":false,"shared_mutable_values_supported":true,
+        "complete_means":"The value model finished. Shared mutation covers bounded local lists and positional helper calls; arbitrary objects and runtime exception safety remain unchecked."})
 }
 
 #[path = "flow_modules.rs"]
@@ -261,6 +264,7 @@ struct Environment {
     pending_returns: BTreeMap<usize, PendingReturn>,
     pending_raises: BTreeMap<usize, Raised>,
     exception_aliases: BTreeSet<(String, usize, usize)>,
+    lists: std::cell::RefCell<lists::Lists>,
 }
 
 fn join_environment(into: &mut Environment, from: &Environment) -> bool {
@@ -295,6 +299,7 @@ fn join_environment(into: &mut Environment, from: &Environment) -> bool {
     let aliases = into.exception_aliases.len();
     into.exception_aliases.extend(from.exception_aliases.iter().cloned());
     changed |= aliases != into.exception_aliases.len();
+    changed |= into.lists.borrow_mut().join(&from.lists.borrow());
     changed
 }
 
@@ -330,6 +335,7 @@ struct Analyzer<'a, 'p, 't> {
     return_text: Option<bool>,
     may_raise: bool,
     sink_flows: BTreeMap<String, summaries::SinkFlow>,
+    returned_lists: lists::Lists,
 }
 
 pub fn local_module_admitted(source: bool, package_missing: bool, stub_missing: bool) -> bool {
@@ -395,6 +401,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if !self.tick(node, "use") {
             return Flow::new();
+        }
+        if let Some(value) = self.list_value(node, env) {
+            return value;
+        }
+        if node.kind() == "subscript" {
+            if let Some(value) = self.list_item(node, env) {
+                return value;
+            }
         }
         self.expression_effect_limit(node);
         match node.kind() {
@@ -468,6 +482,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
     fn call(&mut self, node: Node<'t>, env: &Environment) -> Flow {
+        if let Some(value) = self.list_method(node, env) {
+            return value;
+        }
         if let Some(value) = self.string_method(node, env) {
             return value;
         }
@@ -604,6 +621,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
+        if let Some(value) = self.list_call(&resolved, function, &arguments, node, env) {
+            return value;
+        }
         if self.solver.enabled {
             let Some(arguments) =
                 self.bind_arguments(&resolved, function, arguments, &argument_names)
@@ -624,6 +644,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.extend(result, node, "call-result")
     }
     fn invoke(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>) -> Flow {
+        self.invoke_with_lists(name, function, arguments, lists::Lists::default())
+    }
+
+    fn invoke_with_lists(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>, lists: lists::Lists) -> Flow {
         if function.child_by_field_name("return_type").is_some()
             && !self.annotations_postponed(self.file)
         {
@@ -671,6 +695,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             pending_returns: BTreeMap::new(),
             pending_raises: BTreeMap::new(),
             exception_aliases: BTreeSet::new(),
+            lists: std::cell::RefCell::new(lists),
         };
         let mut locals = initial.defined.clone();
         for block in &graph.blocks {
@@ -710,7 +735,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     if self.solver.enabled {
                         if let Some(names) = assignments::target_names(left) {
                             locals.extend(names.into_iter().map(|name| self.text(name).to_owned()));
-                        } else {
+                        } else if left.kind() != "subscript" {
                             self.cutoff("unsupported-local-binding");
                         }
                     } else if left.kind() == "identifier" {
@@ -745,6 +770,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut exceptions = Raised::new();
         let mut may_raise = false;
         let mut normal_return = false;
+        let mut returned_lists = None::<lists::Lists>;
         let mut return_text = None;
         let parent_block = self.current_block.clone();
         self.active.push(name.to_owned());
@@ -778,6 +804,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     state.values.remove(&alias.0);
                     state.defined.remove(&alias.0);
                     state.plain_strings.remove(&alias.0);
+                    state.lists.borrow_mut().bindings.remove(&alias.0);
                     state.exception_aliases.remove(&alias);
                 }
             }
@@ -785,6 +812,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.normal = true;
             self.may_raise = false;
             self.exceptional_returns.clear();
+            if matches!(block.operation, Operation::Exit | Operation::ExceptionalExit) {
+                match &mut returned_lists {
+                    Some(heap) => { heap.join(&state.lists.borrow()); }
+                    None => returned_lists = Some(state.lists.borrow().clone()),
+                }
+            }
             if block.operation == Operation::Exit {
                 normal_return = true;
                 if let Some(value) = state.pending_returns.get(&0) {
@@ -835,6 +868,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         }
                         let mut value = Flow::new();
                         for expression in node.named_children(&mut node.walk()) {
+                            if block.operation == Operation::Return && self.list_value(expression, &state).is_some() {
+                                self.cutoff("list-return-identity-unchecked");
+                            }
                             merge(&mut value, self.expression(expression, &state));
                         }
                         let value = self.extend(
@@ -873,6 +909,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let mut successors = Vec::new();
             if self.may_raise {
                 let mut raised_state = before;
+                raised_state.lists.borrow_mut().join(&state.lists.borrow());
                 raised_state.pending_raises.insert(
                     block.raised.slot,
                     std::mem::take(&mut self.exceptional_returns),
@@ -898,6 +935,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 outgoing.values.insert(name.clone(), self.extend(flow, alias, "exception-binding"));
                                 outgoing.defined.insert(name.clone());
                                 outgoing.plain_strings.remove(&name);
+                                outgoing.lists.borrow_mut().bindings.remove(&name);
                                 outgoing.exception_aliases.insert((name, clause.start_byte(), clause.end_byte()));
                             }
                         }
@@ -942,6 +980,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.normal_return = normal_return;
         self.return_text = return_text;
         self.normal = normal_return;
+        self.returned_lists = returned_lists.unwrap_or_default();
         self.summaries.push(json!({"function":name,"inputs":inputs,"return_origins":result.keys().collect::<Vec<_>>(),
             "block_visits":visits,"converged":queue.is_empty(),"claim":if self.solver.enabled {"one symbolic summary evaluation; global convergence reported separately"} else {"context-specific evaluation; recursive summaries unsupported"}}));
         result
@@ -959,6 +998,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         match node.kind() {
             "expression_statement" => {
                 for expression in node.named_children(&mut node.walk()) {
+                    if expression.kind() == "assignment" && self.list_assignment(expression, state) {
+                        continue;
+                    }
                     if matches!(expression.kind(), "assignment" | "augmented_assignment") {
                         if let Some(target) = expression.child_by_field_name("left") {
                             if matches!(target.kind(), "subscript" | "attribute") {
@@ -996,6 +1038,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         }
                     } else {
                         self.expression(expression, state);
+                    }
+                    if expression.kind() == "assignment" {
+                        if let Some(names) = expression.child_by_field_name("left").and_then(assignments::target_names) {
+                            for name in names {
+                                state.lists.borrow_mut().bindings.remove(self.text(name));
+                            }
+                        }
                     }
                 }
             }
@@ -1957,6 +2006,7 @@ impl Project<'_> {
             return_text: None,
             may_raise: false,
             sink_flows: BTreeMap::new(),
+            returned_lists: lists::Lists::default(),
         };
         if let Some(modules) = &modules {
             analyzer.cutoffs.extend(modules.cutoffs.clone());
@@ -2138,6 +2188,7 @@ mod lattice_tests {
             pending_returns: BTreeMap::new(),
             pending_raises: BTreeMap::new(),
             exception_aliases: BTreeSet::new(),
+            lists: std::cell::RefCell::default(),
             defined: if bound {
                 BTreeSet::from(["value".into()])
             } else {

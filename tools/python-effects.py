@@ -28,14 +28,11 @@ EXAMPLES = [
      "limits": [["exception-handler", "except ZeroDivisionError:"]],
      "difference": "Python enters the implicit-error handler and replaces the value. The incomplete simple-value model keeps the earlier possible input connection."},
     {"id": "shared-write-forward", "body": "values = [0]\nalias = values\nalias[0] = read_user()\nreturn send(values[0])",
-     "sent": ["input"], "raised": None, "complete": False, "witness": False,
-     "limits": [["shared-write", "alias[0]"], ["shared-read", "values[0]"]]},
+     "sent": ["input"], "raised": None, "complete": True, "witness": True, "limits": []},
     {"id": "shared-write-replace", "body": "values = [read_user()]\nalias = values\nalias[0] = 0\nreturn send(values[0])",
-     "sent": [0], "raised": None, "complete": False, "witness": False,
-     "limits": [["shared-write", "alias[0]"], ["shared-read", "values[0]"]]},
+     "sent": [0], "raised": None, "complete": True, "witness": False, "limits": []},
     {"id": "shared-method", "body": "values = []\nalias = values\nalias.append(read_user())\nreturn send(values[0])",
-     "sent": ["input"], "raised": None, "complete": False, "witness": False,
-     "limits": [["dynamic-call", "alias.append(read_user())"]]},
+     "sent": ["input"], "raised": None, "complete": True, "witness": True, "limits": []},
     {"id": "finally-overrides-return", "body": "try:\n    return send(read_user())\nfinally:\n    return 0",
      "sent": ["input"], "raised": None, "complete": True, "witness": True,
      "limits": []},
@@ -87,7 +84,7 @@ def validate(example, report, executions, program, relative):
     require(report["complete"] == example["complete"], "unexpected scalar model completion")
     require(bool(report["witnesses"]) == example["witness"], "unexpected scalar witness")
     require(report["runtime_effects"]["exception_safety_established"] is False and
-            report["runtime_effects"]["shared_mutable_values_supported"] is False,
+            report["runtime_effects"]["shared_mutable_values_supported"] is True,
             "scalar report claims unchecked runtime effects")
     for value, execution in zip((17, 31), executions, strict=True):
         wanted = [value if item == "input" else item for item in example["sent"]]
