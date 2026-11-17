@@ -109,7 +109,7 @@ def unpack(destination):
 def build_libraries(root, packages, env, cargo="cargo"):
     command = [str(cargo), "build", *[arg for name in packages for arg in ("-p", name)],
                "--lib", "--locked", "--offline", "--target-dir", str(root / "target"),
-               "--message-format=json"]
+               "--message-format=json-render-diagnostics"]
     build = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=180)
     if build.returncode:
         return build, []
