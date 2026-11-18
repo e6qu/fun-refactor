@@ -368,7 +368,8 @@ fn refuses_a_call_that_cannot_be_reordered_for_want_of_positions() {
         symbol_id(&index, "f"),
         Change::Move { from: 0, to: 1 },
     )
-    .unwrap_err().to_string();
+    .unwrap_err()
+    .to_string();
     assert!(error.contains("bindings cannot be preserved"), "{error}");
     assert_eq!(
         std::fs::read_to_string(ws.path("run.sh")).unwrap(),

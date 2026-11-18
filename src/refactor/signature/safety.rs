@@ -208,23 +208,45 @@ pub(super) fn parameters(
     if language != Language::Python {
         return Ok(());
     }
-    if list.parent().and_then(|node| node.parent()).is_some_and(|node| node.kind() == "decorated_definition") {
+    if list
+        .parent()
+        .and_then(|node| node.parent())
+        .is_some_and(|node| node.kind() == "decorated_definition")
+    {
         return Err(refuse("a decorator can replace this function's calling convention; its signature binding is not established"));
     }
-    let parameters: Vec<_> = parameters.into_iter().filter(|node| items.contains(&Span::from(*node))).collect();
-    if let Change::Add { at, declaration, .. } = change {
+    let parameters: Vec<_> = parameters
+        .into_iter()
+        .filter(|node| items.contains(&Span::from(*node)))
+        .collect();
+    if let Change::Add {
+        at, declaration, ..
+    } = change
+    {
         let added_source = format!("def __fr({declaration}):\n    pass\n");
         let parsed = Parsers::new().parse(language, &added_source)?;
-        let added = parsed.root().named_child(0).and_then(|node| node.child_by_field_name("parameters"));
-        let Some(added) = added.filter(|node| !parsed.has_errors() && node.named_child_count() == 1)
-            .and_then(|node| node.named_child(0)) else {
-                return Err(refuse("add requires exactly one valid parameter declaration"));
-            };
-        let mut defaults: Vec<_> = parameters.iter().map(|node| node.child_by_field_name("value").is_some()).collect();
+        let added = parsed
+            .root()
+            .named_child(0)
+            .and_then(|node| node.child_by_field_name("parameters"));
+        let Some(added) = added
+            .filter(|node| !parsed.has_errors() && node.named_child_count() == 1)
+            .and_then(|node| node.named_child(0))
+        else {
+            return Err(refuse(
+                "add requires exactly one valid parameter declaration",
+            ));
+        };
+        let mut defaults: Vec<_> = parameters
+            .iter()
+            .map(|node| node.child_by_field_name("value").is_some())
+            .collect();
         if *at <= defaults.len() {
             defaults.insert(*at, added.child_by_field_name("value").is_some());
             if defaults.windows(2).any(|pair| pair == [true, false]) {
-                return Err(refuse("adding this parameter would put a required parameter after a default"));
+                return Err(refuse(
+                    "adding this parameter would put a required parameter after a default",
+                ));
             }
         }
     }
@@ -292,7 +314,9 @@ pub(super) fn shell_arguments(
             matches!(
                 part.kind(),
                 "command_substitution" | "process_substitution" | "arithmetic_expansion"
-            ) || part.kind() == "expansion" && Span::from(part).text(source).contains(['=', '?'])
+            ) || part.kind() == "variable_name"
+                && matches!(Span::from(part).text(source), "RANDOM" | "SRANDOM")
+                || part.kind() == "expansion" && Span::from(part).text(source).contains(['=', '?'])
         }) {
             return Err(refuse(format!("cannot remove or reorder shell argument `{}` at {}: its evaluation may have effects or fail",
                 span.text(source), super::location(file, span.start))));

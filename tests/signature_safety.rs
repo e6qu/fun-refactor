@@ -161,6 +161,8 @@ fn quoted_shell_substitutions_keep_their_effects() {
         "\"$(printf effect)\"",
         "\"$((counter += 1))\"",
         "\"${value:=changed}\"",
+        "\"$RANDOM\"",
+        "\"$SRANDOM\"",
     ] {
         let source = format!("adjust() {{ printf '%s' \"$1\"; }}\nadjust kept {argument}\n");
         let (_dir, index) = workspace("a.sh", &source);
@@ -201,13 +203,42 @@ fn added_parameters_cannot_capture_existing_names_or_ignore_positions() {
 fn adding_a_required_python_parameter_after_a_default_refuses() {
     let source = "def adjust(a=1):\n    return a\n";
     let (_dir, index) = workspace("a.py", source);
-    let error = changed(&index, Change::Add { at: 1, declaration: "b".into(), argument: "2".into() }).unwrap_err().to_string();
-    assert!(error.contains("required parameter after a default"), "{error}");
+    let error = changed(
+        &index,
+        Change::Add {
+            at: 1,
+            declaration: "b".into(),
+            argument: "2".into(),
+        },
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        error.contains("required parameter after a default"),
+        "{error}"
+    );
+}
+
+#[test]
+fn mutable_rust_parameters_cannot_be_added_twice() {
+    let source = "fn adjust(mut value: i32) -> i32 { value += 1; value }\n";
+    let (_dir, index) = workspace("a.rs", source);
+    let error = changed(&index, Change::Add { at: 1, declaration: "value: i32".into(), argument: "0".into() }).unwrap_err().to_string();
+    assert!(error.contains("already has a parameter"), "{error}");
+}
+
+#[test]
+fn a_sass_addition_cannot_fill_an_earlier_omitted_parameter() {
+    let source = "@mixin adjust($fg: white) { color: $fg; }\n.a { @include adjust(); }\n";
+    let (_dir, index) = workspace("a.scss", source);
+    let error = changed(&index, Change::Add { at: 1, declaration: "$bg".into(), argument: "black".into() }).unwrap_err().to_string();
+    assert!(error.contains("cannot insert at position 1"), "{error}");
 }
 
 #[test]
 fn decorated_python_calling_conventions_require_explicit_migration() {
-    let source = "def decorate(f):\n    return f\n@decorate\ndef adjust(unused):\n    return 1\nadjust(0)\n";
+    let source =
+        "def decorate(f):\n    return f\n@decorate\ndef adjust(unused):\n    return 1\nadjust(0)\n";
     let (_dir, index) = workspace("a.py", source);
     assert!(changed(&index, Change::Remove(0)).is_err());
 }
@@ -240,9 +271,17 @@ fn comments_before_separators_and_single_item_trailing_commas_survive_removal() 
 
 fn cli(root: &Path, args: &[&str]) -> (bool, serde_json::Value) {
     let result = Command::new(env!("CARGO_BIN_EXE_fr"))
-        .args(["--json", "--no-cache", "-C"]).arg(root).args(args).output().unwrap();
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(args)
+        .output()
+        .unwrap();
     let report = serde_json::from_slice(&result.stdout).unwrap_or_else(|_| {
-        panic!("{args:?}: {} {}", String::from_utf8_lossy(&result.stdout), String::from_utf8_lossy(&result.stderr))
+        panic!(
+            "{args:?}: {} {}",
+            String::from_utf8_lossy(&result.stdout),
+            String::from_utf8_lossy(&result.stderr)
+        )
     });
     (result.status.success(), report)
 }
@@ -254,17 +293,33 @@ fn accepted(root: &Path, args: &[&str]) -> serde_json::Value {
 }
 
 fn python_project(root: &Path) -> Vec<u8> {
-    let result = Command::new("python3").arg("run.py").env("PYTHONDONTWRITEBYTECODE", "1")
-        .current_dir(root).output().unwrap();
-    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let result = Command::new("python3")
+        .arg("run.py")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
     result.stdout
 }
 
 #[test]
 fn imported_signature_changes_preview_reverse_and_replay_in_another_checkout() {
     for (definition, call, change) in [
-        ("def adjust(a, unused, c):\n    return a * 10 + c\n", "invoke(2, 0, c=3)", "remove:1"),
-        ("def adjust(a, b, c):\n    return a * 100 + b * 10 + c\n", "invoke(1, 2, 3)", "move:0:2"),
+        (
+            "def adjust(a, unused, c):\n    return a * 10 + c\n",
+            "invoke(2, 0, c=3)",
+            "remove:1",
+        ),
+        (
+            "def adjust(a, b, c):\n    return a * 100 + b * 10 + c\n",
+            "invoke(1, 2, 3)",
+            "move:0:2",
+        ),
     ] {
         let root = tempfile::tempdir().unwrap();
         let runner = format!("from api import adjust as invoke\nprint({call})\n");
@@ -272,7 +327,10 @@ fn imported_signature_changes_preview_reverse_and_replay_in_another_checkout() {
         fs::write(root.path().join("run.py"), &runner).unwrap();
         let expected = python_project(root.path());
         accepted(root.path(), &["signature", "adjust", change]);
-        assert_eq!(fs::read_to_string(root.path().join("api.py")).unwrap(), definition);
+        assert_eq!(
+            fs::read_to_string(root.path().join("api.py")).unwrap(),
+            definition
+        );
         assert!(!root.path().join(".fr-history").exists());
         let plan = accepted(root.path(), &["signature", "adjust", change, "--save-plan"]);
         let id = plan["transaction"].as_u64().unwrap().to_string();
@@ -281,21 +339,51 @@ fn imported_signature_changes_preview_reverse_and_replay_in_another_checkout() {
         let changed_definition = fs::read(root.path().join("api.py")).unwrap();
         let changed_runner = fs::read(root.path().join("run.py")).unwrap();
         accepted(root.path(), &["history", "undo", &id, "--write"]);
-        assert_eq!(fs::read_to_string(root.path().join("api.py")).unwrap(), definition);
-        assert_eq!(fs::read_to_string(root.path().join("run.py")).unwrap(), runner);
+        assert_eq!(
+            fs::read_to_string(root.path().join("api.py")).unwrap(),
+            definition
+        );
+        assert_eq!(
+            fs::read_to_string(root.path().join("run.py")).unwrap(),
+            runner
+        );
         accepted(root.path(), &["history", "redo", &id, "--write"]);
-        assert_eq!(fs::read(root.path().join("api.py")).unwrap(), changed_definition);
-        assert_eq!(fs::read(root.path().join("run.py")).unwrap(), changed_runner);
+        assert_eq!(
+            fs::read(root.path().join("api.py")).unwrap(),
+            changed_definition
+        );
+        assert_eq!(
+            fs::read(root.path().join("run.py")).unwrap(),
+            changed_runner
+        );
         let patch = root.path().join("migration.patch");
-        accepted(root.path(), &["history", "patch", &id, "--output", patch.to_str().unwrap()]);
+        accepted(
+            root.path(),
+            &["history", "patch", &id, "--output", patch.to_str().unwrap()],
+        );
         let receiver = tempfile::tempdir().unwrap();
         fs::write(receiver.path().join("api.py"), definition).unwrap();
         fs::write(receiver.path().join("run.py"), runner).unwrap();
-        let result = Command::new("git").arg("apply").arg(&patch).current_dir(receiver.path()).output().unwrap();
-        assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+        let result = Command::new("git")
+            .arg("apply")
+            .arg(&patch)
+            .current_dir(receiver.path())
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
         assert_eq!(python_project(receiver.path()), expected);
-        assert_eq!(fs::read(receiver.path().join("api.py")).unwrap(), changed_definition);
-        assert_eq!(fs::read(receiver.path().join("run.py")).unwrap(), changed_runner);
+        assert_eq!(
+            fs::read(receiver.path().join("api.py")).unwrap(),
+            changed_definition
+        );
+        assert_eq!(
+            fs::read(receiver.path().join("run.py")).unwrap(),
+            changed_runner
+        );
     }
 }
 
@@ -304,15 +392,28 @@ fn a_competing_caller_edit_refuses_the_entire_saved_signature_plan() {
     let root = tempfile::tempdir().unwrap();
     let original = "def adjust(a, unused):\n    return a\n";
     fs::write(root.path().join("api.py"), original).unwrap();
-    fs::write(root.path().join("run.py"), "from api import adjust\nprint(adjust(1, 0))\n").unwrap();
-    let plan = accepted(root.path(), &["signature", "adjust", "remove:1", "--save-plan"]);
+    fs::write(
+        root.path().join("run.py"),
+        "from api import adjust\nprint(adjust(1, 0))\n",
+    )
+    .unwrap();
+    let plan = accepted(
+        root.path(),
+        &["signature", "adjust", "remove:1", "--save-plan"],
+    );
     let id = plan["transaction"].as_u64().unwrap().to_string();
     let competing = "from api import adjust\nprint(adjust(9, 0))\n";
     fs::write(root.path().join("run.py"), competing).unwrap();
     let (success, report) = cli(root.path(), &["history", "apply", &id, "--write"]);
     assert!(!success, "{report}");
-    assert_eq!(fs::read_to_string(root.path().join("api.py")).unwrap(), original);
-    assert_eq!(fs::read_to_string(root.path().join("run.py")).unwrap(), competing);
+    assert_eq!(
+        fs::read_to_string(root.path().join("api.py")).unwrap(),
+        original
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("run.py")).unwrap(),
+        competing
+    );
 }
 
 #[test]
@@ -324,14 +425,22 @@ fn a_recipe_cannot_commit_an_earlier_rename_after_signature_refusal() {
         let recipe = root.path().join("migration.recipe");
         fs::write(&recipe, "schema 1\nrecipe migrate {\n rename to \"updated\" where name=\"adjust\" kind=function\n signature \"remove:0\" where name=\"updated\" kind=function\n}\n").unwrap();
         let expected = python_project(root.path());
-        let (success, report) = cli(root.path(), &["recipe", recipe.to_str().unwrap(), "--write"]);
+        let (success, report) = cli(
+            root.path(),
+            &["recipe", recipe.to_str().unwrap(), "--write"],
+        );
         if argument == "record()" {
             assert!(!success, "{report}");
-            assert_eq!(fs::read_to_string(root.path().join("run.py")).unwrap(), source);
+            assert_eq!(
+                fs::read_to_string(root.path().join("run.py")).unwrap(),
+                source
+            );
             assert!(!root.path().join(".fr-history").exists());
         } else {
             assert!(success, "{report}");
-            assert!(fs::read_to_string(root.path().join("run.py")).unwrap().contains("def updated():"));
+            assert!(fs::read_to_string(root.path().join("run.py"))
+                .unwrap()
+                .contains("def updated():"));
         }
         assert_eq!(python_project(root.path()), expected);
     }

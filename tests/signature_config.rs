@@ -862,7 +862,7 @@ fn an_scss_function_has_a_signature_too() {
 
 #[test]
 fn an_include_with_empty_parentheses_is_a_call_site() {
-    let src = "@mixin theme($fg) {\n  color: $fg;\n}\n.a {\n  @include theme();\n}\n";
+    let src = "@mixin theme($fg: white) {\n  color: $fg;\n}\n.a {\n  @include theme();\n}\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
     assert!(!parsed.has_errors());
 
@@ -872,7 +872,7 @@ fn an_include_with_empty_parentheses_is_a_call_site() {
         &ws.index,
         theme,
         Change::Add {
-            at: 1,
+            at: 0,
             declaration: "$bg".into(),
             argument: "black".into(),
         },
@@ -881,7 +881,7 @@ fn an_include_with_empty_parentheses_is_a_call_site() {
     assert_eq!(plan.call_sites, 1);
     assert_eq!(
         applied(&plan, &ws.path("theme.scss")),
-        "@mixin theme($fg, $bg) {\n  color: $fg;\n}\n.a {\n  @include theme(black);\n}\n"
+        "@mixin theme($bg, $fg: white) {\n  color: $fg;\n}\n.a {\n  @include theme(black);\n}\n"
     );
 }
 

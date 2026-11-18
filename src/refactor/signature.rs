@@ -136,6 +136,11 @@ fn parameter_name(text: &str, language: Language) -> Option<String> {
         _ => head,
     };
     let name = name.trim_start_matches(['*', '&', '$']).trim();
+    let name = if language == Language::Rust {
+        name.strip_prefix("mut ").unwrap_or(name).trim()
+    } else {
+        name
+    };
     (!name.is_empty()).then(|| name.to_string())
 }
 
@@ -716,14 +721,27 @@ fn apply_change(
                 } else if index > 0 {
                     (items[index - 1].end, target.start)
                 } else {
-                    let node = parsed.root().descendant_for_byte_range(target.start, target.end);
-                    (target.end, node.and_then(|node| node.parent()).map_or(target.end, |node| node.end_byte()))
+                    let node = parsed
+                        .root()
+                        .descendant_for_byte_range(opens_at, opens_at + 1);
+                    (
+                        target.end,
+                        node.map_or(target.end, |mut node| {
+                            while let Some(parent) = node.parent().filter(|parent| parent.start_byte() == opens_at) {
+                                node = parent;
+                            }
+                            node.end_byte()
+                        }),
+                    )
                 };
                 if let Some(container) = parsed.root().descendant_for_byte_range(start, end) {
                     if let Some(comma) = descendants(container).into_iter().find(|node| {
                         node.kind() == "," && node.start_byte() >= start && node.end_byte() <= end
                     }) {
-                        edits.add(file.to_path_buf(), Edit::new(Span::from(comma), "", "remove argument separator"));
+                        edits.add(
+                            file.to_path_buf(),
+                            Edit::new(Span::from(comma), "", "remove argument separator"),
+                        );
                     }
                 }
             }
@@ -1015,11 +1033,14 @@ fn nonpositional_arguments_block_change(
     for argument in arguments.named_children(&mut cursor) {
         match argument.kind() {
             "keyword_argument" => has_keyword = true,
-            "list_splat" | "dictionary_splat" | "spread_element" | "variadic_argument" => has_expansion = true,
+            "list_splat" | "dictionary_splat" | "spread_element" | "variadic_argument" => {
+                has_expansion = true
+            }
             _ => {}
         }
     }
-    has_expansion || (has_keyword && (language != Language::Python || !matches!(change, Change::Remove(_))))
+    has_expansion
+        || (has_keyword && (language != Language::Python || !matches!(change, Change::Remove(_))))
 }
 
 /// The call expression whose callee is at `span`.
