@@ -1140,7 +1140,10 @@ pub(crate) fn formal_plan_from_agent_specs(
         .iter()
         .map(|kind| formal_property(kind, &formal))
         .collect::<Result<Vec<_>>>()?;
-    if property_kinds.iter().any(|kind| kind == "rust-scalar-model") {
+    if property_kinds
+        .iter()
+        .any(|kind| kind == "rust-scalar-model")
+    {
         rust_scalar::validate_source(&root, &formal)?;
     }
     for property in agent_specs {
@@ -2597,16 +2600,26 @@ fn collect_evidence(
                     continue;
                 };
                 if let Ok(property) = rust_scalar::property(&formal) {
-                    let expected = format!("theorem {} {} := by", property.name, property.proposition);
+                    let expected =
+                        format!("theorem {} {} := by", property.name, property.proposition);
                     if source.contains(&expected) {
-                        let evaluation = formal.evaluation.as_ref().context("missing scalar term")?;
+                        let evaluation =
+                            formal.evaluation.as_ref().context("missing scalar term")?;
                         let term = kernel_term_definition(&formal.model, &evaluation.term);
-                        let exact_model = facts.symbols.iter().any(|symbol|
-                            symbol.full_span.text(&source).trim() == formal.lean_definition);
-                        let exact_term = facts.symbols.iter().any(|symbol|
-                            symbol.full_span.text(&source).trim() == term);
-                        let exact_theorem = facts.symbols.iter().any(|symbol|
-                            symbol.full_span.text(&source).trim_start().starts_with(&expected));
+                        let exact_model = facts.symbols.iter().any(|symbol| {
+                            symbol.full_span.text(&source).trim() == formal.lean_definition
+                        });
+                        let exact_term = facts
+                            .symbols
+                            .iter()
+                            .any(|symbol| symbol.full_span.text(&source).trim() == term);
+                        let exact_theorem = facts.symbols.iter().any(|symbol| {
+                            symbol
+                                .full_span
+                                .text(&source)
+                                .trim_start()
+                                .starts_with(&expected)
+                        });
                         let admitted = rust_scalar::validate_source(root, &formal).is_ok();
                         rust_scalar_correspondence.push(serde_json::json!({
                             "spec": spec, "source": path, "symbol": symbol,

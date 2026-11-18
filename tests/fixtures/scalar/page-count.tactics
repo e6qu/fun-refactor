@@ -23,9 +23,10 @@
           FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
           FrRustScalar.maximum, hi, hs, hsn, hin, hr, hqmin, hqmax, hrmin, hrmax]
       · have hipos : 0 < items := by
-          by_contra h
-          have hz : items = 0 := by omega
-          simp [hz] at hr
+          by_cases h : 0 < items
+          · exact h
+          · have hz : items = 0 := by omega
+            simp [hz] at hr
         have hsne : size ≠ 1 := by
           intro hz
           simp [hz] at hr

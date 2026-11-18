@@ -4,6 +4,7 @@
     have hcast : ((total - offset : Nat) : Int) = (total : Int) - (offset : Int) := by omega
     simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
       FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
-      FrRustScalar.maximum, h, hd0, hdmax, hcast]
+      FrRustScalar.maximum, h, hdmax]
+    omega
   · simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
       FrPureKernel.applyOperator, h]
