@@ -1,0 +1,39 @@
+  by_cases hi : items < 0
+  · simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
+      FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
+      FrRustScalar.maximum, hi]
+  · by_cases hs : size ≤ 0
+    · simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
+        FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
+        FrRustScalar.maximum, hi, hs]
+    · have hi0 : 0 ≤ items := by omega
+      have hs0 : 0 < size := by omega
+      have hsn : size ≠ 0 := by omega
+      have hin : items ≠ -9223372036854775808 := by omega
+      have hq0 := Int.tdiv_nonneg hi0 (by omega : 0 ≤ size)
+      have hqle := Int.tdiv_le_self size hi0
+      have hr0 := Int.tmod_nonneg size hi0
+      have hrlt := Int.tmod_lt_of_pos items hs0
+      have hqmax : items.tdiv size ≤ 9223372036854775807 := by omega
+      have hrmax : items.tmod size ≤ 9223372036854775807 := by omega
+      have hqmin : -9223372036854775808 ≤ items.tdiv size := by omega
+      have hrmin : -9223372036854775808 ≤ items.tmod size := by omega
+      by_cases hr : items.tmod size = 0
+      · simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
+          FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
+          FrRustScalar.maximum, hi, hs, hsn, hin, hr, hqmin, hqmax, hrmin, hrmax]
+      · have hipos : 0 < items := by
+          by_contra h
+          have hz : items = 0 := by omega
+          simp [hz] at hr
+        have hsne : size ≠ 1 := by
+          intro hz
+          simp [hz] at hr
+        have hlt : items.tdiv size < items := by
+          rw [Int.tdiv_eq_ediv_of_nonneg hi0]
+          exact Int.ediv_lt_self_of_pos_of_ne_one hipos hsne
+        have hamin : -9223372036854775808 ≤ items.tdiv size + 1 := by omega
+        have hamax : items.tdiv size + 1 ≤ 9223372036854775807 := by omega
+        simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
+          FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
+          FrRustScalar.maximum, hi, hs, hsn, hin, hr, hqmin, hqmax, hrmin, hrmax, hamin, hamax]

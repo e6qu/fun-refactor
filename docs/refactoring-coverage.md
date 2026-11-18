@@ -5,7 +5,7 @@ then deliver a patch that another checkout can apply. A refactoring preserves be
 a translation or interface change must state the behavior and runtime contract it preserves.
 
 The [roadmap](../PLAN.md#pr-2-complete-refactoring-and-transformations) keeps all advertised operation families in scope.
-This inventory records their existing checks and the work being added in PR 2.
+This inventory records their existing checks and the repairs delivered in PR #623.
 It does not treat a refused example as evidence that a promised operation is complete.
 
 ## Operation families
@@ -33,7 +33,7 @@ These checks support the declared forms of each operation. They do not establish
 unrestricted dynamic dispatch or whole-project migration outside an existing contract.
 External consumers remain an explicit migration obligation.
 
-## Signature changes being completed
+## Signature binding and evaluation
 
 An unused parameter does not imply that its argument is safe to discard.
 For example, deleting the second parameter from `calculate(price, record_purchase())` would remove the call to `record_purchase`.
@@ -59,8 +59,8 @@ executable strings still need their references resolved before checked delivery.
 
 ## Completion record
 
-PR #621 supplied the graph and analysis foundations. PR 2 is in progress.
+PR #621 supplied the graph and analysis foundations. PR #623 delivered the refactoring repairs.
 Its focused hosted workflow checks signature behavior, recipes, the refactoring unit tests and SDK delivery.
 The full native gate remains responsible for all operation/language claims and the transformation suites.
-Current evidence and documentation audits must pass on the final revision before this work is marked complete.
+The focused workflow, full hosted CI, evidence refresh and documentation audit passed before merge.
 Existing M2 outcomes and original evaluation limits remain unchanged.

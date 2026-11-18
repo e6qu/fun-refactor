@@ -1,0 +1,61 @@
+name: Proof authoring and scalar connections
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - src/spec.rs
+      - src/spec/**
+      - kernels/FrKernels/PureKernel.lean
+      - tests/rust_scalar_model.rs
+      - tests/fixtures/scalar/**
+      - .github/workflows/proof-connections.yml
+permissions:
+  contents: read
+concurrency:
+  group: proof-connections-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  LEAN_NUM_THREADS: '1'
+  FR_LEAN_JOBS: '1'
+jobs:
+  connections:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Capture formatting changes for review
+        run: |
+          cargo fmt --all
+          git diff --binary > "$RUNNER_TEMP/format.patch"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: proof-connections-format
+          path: ${{ runner.temp }}/format.patch
+      - run: cargo test --locked --test rust_scalar_model -- --test-threads=1
+        env:
+          FR_SCALAR_ARTIFACTS: ${{ runner.temp }}/scalar-proofs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: scalar-proofs
+          path: ${{ runner.temp }}/scalar-proofs
+          if-no-files-found: ignore
+      - run: cargo test --locked --test proof_cli --test proof_state --test formal_kernel -- --test-threads=1
+      - run: cargo clippy --locked --lib --bin fr -- -D warnings
