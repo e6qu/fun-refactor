@@ -13,8 +13,14 @@ This guide separates current product checks from historical agent outcomes.
 | Connect integer behavior to a model | [Rust scalar connections](agent-formalization.md#rust-scalar-connections) add quantified arithmetic obligations for page counting and window bounds |
 | Deliver a patch | [Supplied-proof delivery](../tests/agent-eval/proof-delivery/README.md) separates delivery mechanics from proof discovery |
 
-The focused hosted workflow runs the new scalar checks and the existing authoring suites.
-The M3 verification workflow rebuilds its controls and checks the original submitted patches.
+The [focused hosted run](https://github.com/e6qu/fun-refactor/actions/runs/44271887240) passed all 31 tests:
+8 scalar connections, 8 proof CLI checks, 2 proof-state checks and 13 formal-kernel checks.
+The scalar suite proves page counting and window bounds over their complete input ranges.
+It also compares Rust and Lean on 174 boundary cases, with Rust compiled at two optimization levels.
+It checks rejected saves, exact undo/redo, fresh-workspace patch replay and stale proof evidence.
+The [M3 verification run](https://github.com/e6qu/fun-refactor/actions/runs/44272707747) rechecked all 36 original outcomes.
+All 39 current-code, source-execution, client and control jobs passed.
+Its completion check still fails because GLM and Kimi lack accepted page-count proofs within the original 150 seconds.
 Neither workflow makes live model calls or repeats unsuccessful study slots.
 
 ## Agent outcomes remain separate
