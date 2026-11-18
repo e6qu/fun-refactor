@@ -36,3 +36,37 @@ jobs:
         run: python3 -B -m unittest agent_eval.test_product_plan agent_eval.test_selected_plan
       - name: Check public task-checker syntax
         run: python3 -B -c 'import ast; from pathlib import Path; ast.parse(Path("tools/agent_eval/product_public.py").read_text())'
+  task-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [utils-rename, sqlparse-graph, slugify-bytes, clamp-proof]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+        if: matrix.task == 'clamp-proof'
+      - name: Qualify fixed tasks and independently reject flawed answers
+        env:
+          PYTHONPATH: tools
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -B -m agent_eval.product_tasks qualify '${{ matrix.task }}' '${{ runner.temp }}/product-${{ matrix.task }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: product-controls-${{ matrix.task }}
+          path: |
+            ${{ runner.temp }}/product-${{ matrix.task }}/**/*.json
+            ${{ runner.temp }}/product-${{ matrix.task }}/original.tar.gz
+            ${{ runner.temp }}/product-${{ matrix.task }}/reference.patch
+          retention-days: 14

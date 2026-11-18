@@ -58,8 +58,11 @@ Its [coverage guide](docs/refactoring-coverage.md) tracks the operation families
 PR 3 merged in [#624](https://github.com/e6qu/fun-refactor/pull/624), covering proof authoring and bounded Rust scalar connections.
 The [proof coverage guide](docs/proof-coverage.md) separates product checks from historical agent outcomes.
 The original M3 timing gate remains open.
-PR 4 is in progress in [#625](https://github.com/e6qu/fun-refactor/pull/625).
+PR 4 merged in [#625](https://github.com/e6qu/fun-refactor/pull/625) with passing hosted checks and refreshed evidence.
 The [interface coverage guide](docs/interface-coverage.md) tracks browser review, recovery, graph reporting and cross-interface delivery.
+PR 5 is in progress in [#628](https://github.com/e6qu/fun-refactor/pull/628).
+The [comparison protocol](tests/agent-eval/product-validation/README.md) reserves separate initial and validation tasks.
+The user authorized at most 96 live attempts. Task checks and native admission must pass before calls.
 
 | PR | Complete outcome | Completion gate |
 | --- | --- | --- |
