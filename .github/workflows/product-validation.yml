@@ -7,6 +7,8 @@ on:
       - 'tools/agent_eval/product_*.py'
       - 'tools/agent_eval/test_product_*.py'
       - 'tools/agent_eval/selected_plan.py'
+      - 'tools/agent_eval/selected_grade_probe.py'
+      - 'tools/agent_eval/selected_grading.py'
       - 'tests/agent-eval/product-validation/**'
       - '.github/workflows/product-validation.yml'
 permissions:
@@ -68,5 +70,51 @@ jobs:
           path: |
             ${{ runner.temp }}/product-${{ matrix.task }}/**/*.json
             ${{ runner.temp }}/product-${{ matrix.task }}/original.tar.gz
-            ${{ runner.temp }}/product-${{ matrix.task }}/reference.patch
+            ${{ runner.temp }}/product-${{ matrix.task }}/*.patch
+          retention-days: 14
+  private-controls:
+    needs: [protocol, task-controls]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: product-controls-*
+          path: ${{ runner.temp }}/product-controls
+      - name: Arrange qualified task inputs
+        run: |
+          python3 -B - <<'PY'
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'product-controls'
+          for path in root.glob('product-controls-*'):
+              path.rename(root / path.name.removeprefix('product-controls-'))
+          PY
+      - name: Reject flawed delivered changes without runner credentials or network
+        env:
+          PYTHONPATH: tools
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 -B -m agent_eval.product_containers \
+            --inputs "$RUNNER_TEMP/product-controls" \
+            --rust "$(rustup toolchain list -v | awk '$1 ~ /^1.99.1/ {print $NF}')" \
+            --output "$RUNNER_TEMP/product-private"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: product-private-controls
+          path: ${{ runner.temp }}/product-private
           retention-days: 14

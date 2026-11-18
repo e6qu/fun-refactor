@@ -293,7 +293,8 @@ def qualify(task, output):
                      'changed-claim': (PROOF, lambda text: text.replace('lower ≤ clamp lower upper value', '0 ≤ clamp lower upper value'))}
     for name, (path, transform) in mutations.items():
         bad = output / name
-        shutil.copytree(candidate, bad, ignore=shutil.ignore_patterns('.git', '.lake', '__pycache__'))
+        common.checkout(project, bad)
+        reference(bad, prepared)
         source = bad / path
         before = source.read_text()
         after = transform(before)
@@ -302,6 +303,8 @@ def qualify(task, output):
         verdict = check(bad, prepared, output / (name + '-check'))
         require(not verdict['passed'], 'negative control passed: ' + name)
         controls[name] = verdict
+        git(bad, 'add', '-A')
+        (output / (name + '.patch')).write_bytes(git(bad, 'diff', '--cached', '--binary').stdout)
     result = {'schema': 'fr-product-task-controls-1', 'task': task, 'passed': True, 'live_calls': 0,
               'seed_sha256': common.digest(output / 'original.tar.gz'), 'controls': controls}
     common.save(output / 'controls.json', result)
