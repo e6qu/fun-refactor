@@ -117,9 +117,9 @@ fn one_member_read_can_cross_literals_or_an_isolated_parameter() {
 #[test]
 fn member_reads_do_not_cross_mutable_bindings_or_other_member_reads() {
     for source in [
-        "function adjust(a, b) { return a + b; } function run(n) { const h = { get value() { n++; return 1; } }; return adjust(h.value, n); } run(2);",
-        "function adjust(a, b) { return a + b; } const h = { get value() { return 1; } }; let n = 2; adjust(h.value, n);",
-        "function adjust(a, b) { return a + b; } const h = { get value() { return 1; } }; adjust(h.value, h.value);",
+        include_str!("fixtures/signature/member-captured-write.js"),
+        include_str!("fixtures/signature/member-global-read.js"),
+        include_str!("fixtures/signature/two-member-reads.js"),
     ] {
         let (_dir, index) = workspace("a.js", source);
         let error = changed(&index, Change::Move { from: 0, to: 1 }).unwrap_err().to_string();
