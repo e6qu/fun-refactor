@@ -30,7 +30,7 @@ It applies a reviewed browser patch in a fresh native checkout, runs the resulti
 and compares the native graph through the Python SDK with the browser graph.
 A conflicting receiver must refuse the patch.
 
-[Run 44312841042](https://github.com/e6qu/fun-refactor/actions/runs/44312841042) passed 24 native tests,
+[Run 44315428334](https://github.com/e6qu/fun-refactor/actions/runs/44315428334) passed 24 native tests,
 88 browser API cases, reviewed translation, patch replay, checkpoint recovery and the refactoring sweep.
 
 The full CI gate also runs the existing native interruption matrix, SDK recovery and dependency-reuse tests,

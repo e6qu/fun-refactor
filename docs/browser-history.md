@@ -5,7 +5,7 @@ Review a proposed change, apply it, then export its patch for checks in a comple
 
 ## Review before applying
 
-Every editing action in the playground shows a diff before writing.
+Every refactoring and translation action in the playground shows a diff before writing.
 **Apply reviewed change** accepts that review; **Cancel** leaves files and history alone.
 The review includes warnings, proposed file contents and the transaction patch.
 
