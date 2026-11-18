@@ -60,7 +60,7 @@ fn python_package_keeps_explicit_module_boundaries() {
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
     let evidence = root().join(
-        "tests/agent-eval/results/2026-11-17-graphs-analysis-final-agent-guide-context/result.json",
+        "tests/agent-eval/results/2026-11-18-refactoring-final-agent-guide-context/result.json",
     );
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
@@ -219,7 +219,7 @@ fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
         .arg(root().join("tools/native-intent-context.py"))
         .arg("--audit")
         .arg(root().join(
-            "tests/agent-eval/results/2026-11-17-graphs-analysis-final-native-intent-context/result.json",
+            "tests/agent-eval/results/2026-11-18-refactoring-final-native-intent-context/result.json",
         ))
         .output()
         .unwrap();
@@ -241,7 +241,7 @@ fn intent_action_context_evidence_is_source_bound_and_arithmetically_valid() {
         .arg(root().join("tools/intent-action-context.py"))
         .arg("--audit")
         .arg(root().join(
-            "tests/agent-eval/results/2026-11-17-graphs-analysis-final-intent-action-context/result.json",
+            "tests/agent-eval/results/2026-11-18-refactoring-final-intent-action-context/result.json",
         ))
         .output()
         .unwrap();
@@ -1045,7 +1045,7 @@ fn checked_agent_runtime_context_comparison_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join(
-            "tests/agent-eval/results/2026-11-17-graphs-analysis-final-agent-runtime-context/result.json",
+            "tests/agent-eval/results/2026-11-18-refactoring-final-agent-runtime-context/result.json",
         ))
         .unwrap(),
     )
@@ -1073,7 +1073,7 @@ fn checked_agent_context_workspace_comparison_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join(
-            "tests/agent-eval/results/2026-11-17-graphs-analysis-final-agent-context-workspace/result.json",
+            "tests/agent-eval/results/2026-11-18-refactoring-final-agent-context-workspace/result.json",
         ))
         .unwrap(),
     )
