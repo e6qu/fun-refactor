@@ -1,5 +1,8 @@
 {
   "source_run": 36592893805,
+  "seconds_source_runs": {
+    "test:rust_scalar_model": 44269485040
+  },
   "native_isolated_targets": ["test:formal_kernel"],
   "seconds": {
     "test:agent_acceptance": 113.84,
@@ -56,6 +59,7 @@
     "test:retained_proofs": 17.67,
     "test:rewrite": 5.96,
     "test:rewrites_compile": 42.3,
+    "test:rust_scalar_model": 135.62,
     "test:site_data": 11.51,
     "test:task_change_cli": 21.27,
     "test:typesafety": 20.71
