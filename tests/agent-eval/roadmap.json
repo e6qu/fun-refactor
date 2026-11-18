@@ -70,28 +70,28 @@
       "sha256": "ddfaca0c164533963ec4bbaec1029dd5d6f06da70ba32005a7d4287126f4e2d6"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-18-proof-connections-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-18-recovery-interfaces-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-11-18-proof-connections-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-recovery-interfaces-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "2e89d9e507751cc995349f2ae8b7de7b9116b165ee1fb86884e6a318ab019b5f"
+      "sha256": "ae31972fcf38a3446d029818858d07ab52b3a586adcaf355522246bd8bb1d288"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-18-proof-connections-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-18-recovery-interfaces-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-18-proof-connections-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-18-recovery-interfaces-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "2f59f4733f257f51e5b82bea236616c63aa5afd7ed9151b27d0fb79c69a72934"
+      "sha256": "3a156196d939721f0dd00ebf15d28249051ab68734d7696f7a70f2a11fae76cc"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-18-proof-connections-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-18-recovery-interfaces-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-11-18-proof-connections-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-18-recovery-interfaces-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "75b096e76dc890cc90b84db16e674bf22876e15d7e5f4ca93a1b88237bbaac1c"
+      "sha256": "ff7c19e0c220e68e9f5330ce226fd426f6364b6df53b076e4c2e21c13d3f8792"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
