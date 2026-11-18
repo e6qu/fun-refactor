@@ -220,6 +220,24 @@ fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
             .collect::<std::collections::BTreeSet<_>>()
     };
     assert_eq!(names(&native), names(&browser));
+    let named_edges = |report: &serde_json::Value| {
+        let names = report["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|node| (node["id"].as_u64().unwrap(), node["name"].clone()))
+            .collect::<BTreeMap<_, _>>();
+        let mut edges = report["edges"].as_array().unwrap().clone();
+        for edge in &mut edges {
+            let from = edge["from"].as_u64().unwrap();
+            let to = edge["to"].as_u64().unwrap();
+            edge["from"] = names[&from].clone();
+            edge["to"] = names[&to].clone();
+        }
+        edges.sort_by_cached_key(serde_json::Value::to_string);
+        edges
+    };
+    assert_eq!(named_edges(&native), named_edges(&browser));
 }
 
 #[test]

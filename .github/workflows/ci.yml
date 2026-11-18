@@ -926,9 +926,7 @@ jobs:
           npm run build
           test -f ../docs/playground/index.html
 
-      # The browser API is the one surface no `cargo test` can reach: `src/wasm.rs`
-      # compiles only for wasm32. This drives every method of it against the bundled
-      # sample, in Node, using the same wasm the site ships.
+      # Test the shipped WASM bindings alongside the native Rust tests.
       - name: Exercise every capability, in every language
         run: node web/test/api.mjs
 
