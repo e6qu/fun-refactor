@@ -91,6 +91,77 @@ fn rust_macro_literal(text: &str) -> bool {
             .is_some_and(|node| simple_value(node, &source, false))
 }
 
+pub(super) fn moving_arguments(site: &Site<'_>, spans: &[Span]) -> Result<()> {
+    let uncertain: Vec<_> = spans
+        .iter()
+        .filter(|span| argument(site, **span, true).is_err())
+        .collect();
+    if uncertain.len() == 1 {
+        let span = *uncertain[0];
+        let projection = site.parsed.root().descendant_for_byte_range(span.start, span.end);
+        if projection.is_some_and(|node| member_read(node, site.source))
+            && spans.iter().all(|other| {
+                *other == span
+                    || argument(site, *other, false).is_ok()
+                    || isolated_parameter_read(site, *other)
+            })
+        {
+            return Ok(());
+        }
+    }
+    for span in spans {
+        argument(site, *span, true)?;
+    }
+    Ok(())
+}
+
+fn member_read(node: Node<'_>, source: &str) -> bool {
+    match node.kind() {
+        "attribute" | "member_expression" | "field_expression" | "field_access"
+        | "selector_expression" => {
+            let object = ["object", "value", "operand", "argument"]
+                .iter()
+                .find_map(|name| node.child_by_field_name(name))
+                .or_else(|| node.named_child(0));
+            object.is_some_and(|object| {
+                matches!(object.kind(), "identifier" | "self" | "this")
+                    || member_read(object, source)
+            })
+        }
+        "reference_expression" if Span::from(node).text(source).starts_with('&') => node
+            .child_by_field_name("value")
+            .is_some_and(|value| member_read(value, source)),
+        _ => false,
+    }
+}
+
+fn isolated_parameter_read(site: &Site<'_>, span: Span) -> bool {
+    let Some(node) = site.parsed.root().descendant_for_byte_range(span.start, span.end) else {
+        return false;
+    };
+    if node.kind() != "identifier" {
+        return false;
+    }
+    let name = span.text(site.source);
+    let mut parent = node.parent();
+    while let Some(scope) = parent {
+        if let Some(parameters) = super::parameter_list(scope) {
+            let occurrences: Vec<_> = super::descendants(scope)
+                .into_iter()
+                .filter(|part| part.kind() == "identifier" && Span::from(*part).text(site.source) == name)
+                .collect();
+            return occurrences.len() == 2
+                && occurrences.iter().any(|part| Span::from(parameters).contains(Span::from(*part)))
+                && !super::descendants(scope).into_iter().any(|part| {
+                    part.kind() == "identifier"
+                        && matches!(Span::from(part).text(site.source), "eval" | "exec" | "arguments")
+                });
+        }
+        parent = scope.parent();
+    }
+    false
+}
+
 fn simple_value(node: Node<'_>, source: &str, names: bool) -> bool {
     match node.kind() {
         "integer_literal"

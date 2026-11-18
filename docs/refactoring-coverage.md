@@ -42,7 +42,9 @@ The same rule reaches the general command, recipes and checked authoring.
 A recipe that first renames a function and then attempts an unsafe parameter removal must write neither change.
 
 Moving a parameter shifts the intervening positions. Moving 0 to 2 changes `(a, b, c)` to `(b, c, a)`.
-Every argument in that range must have established simple evaluation; moving across a call can change its relation to a retained read.
+The moved range must preserve evaluation order. One member read can cross literals or a parameter
+that has no other uses in its function; two member reads or a read of a mutable binding cannot use this rule.
+Moving across a call can change its relation to a retained read.
 Shell positional reads are renumbered with their call sites, and quoted command or arithmetic substitutions cannot be discarded or reordered.
 
 Python removal selects the supplied value by its actual binding, including mixed positional and keyword calls.

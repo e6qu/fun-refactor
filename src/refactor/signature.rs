@@ -804,9 +804,7 @@ fn apply_change(
             let low = *from.min(to);
             let high = *from.max(to);
             if !is_declaration {
-                for span in &items[low..=high] {
-                    safety::argument(site, *span, true)?;
-                }
+                safety::moving_arguments(site, &items[low..=high])?;
             }
             move_items(edits, file, source, items, *from, *to);
         }

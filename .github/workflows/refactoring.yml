@@ -4,10 +4,13 @@ on:
   push:
     paths:
       - src/refactor/**
+      - src/analysis/types.rs
       - src/project/structural_change.rs
       - src/recipe/**
       - tests/signature*.rs
       - tests/refactor*.rs
+      - tests/output_compiles.rs
+      - tests/types.rs
       - tests/fixtures/signature/**
       - sdk/python/tests/test_structural_change.py
       - sdk/python/tests/test_python_structural_change.py
@@ -47,6 +50,7 @@ jobs:
           package-manager-cache: false
       - name: Check writing budgets before compiling
         run: python3 -B tools/check-prose.py
+      - uses: ./.github/actions/native-tools
       - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
       - uses: Swatinem/rust-cache@v2
         with:
@@ -59,7 +63,7 @@ jobs:
         with:
           name: refactoring-format
           path: ${{ runner.temp }}/format.patch
-      - run: cargo test --locked --no-fail-fast --test signature_safety --test signature_hierarchy --test signature_java --test signature_bash --test signature_config --test recipe -- --test-threads=1
+      - run: cargo test --locked --no-fail-fast --test signature_safety --test signature_hierarchy --test signature_java --test signature_bash --test signature_config --test recipe --test output_compiles --test types -- --test-threads=1
       - run: 'cargo test --locked --lib refactor:: -- --test-threads=1'
       - run: cargo build --locked --bin fr
       - run: cargo clippy --locked --lib --bin fr -- -D warnings

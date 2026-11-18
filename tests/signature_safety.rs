@@ -95,6 +95,39 @@ fn moving_across_an_effectful_middle_argument_refuses() {
 }
 
 #[test]
+fn one_member_read_can_cross_literals_or_an_isolated_parameter() {
+    for (file, program, source) in [
+        ("a.py", "python3", include_str!("fixtures/signature/member-read.py")),
+        ("a.js", "node", include_str!("fixtures/signature/member-read.js")),
+    ] {
+        let (dir, index) = workspace(file, source);
+        let plan = changed(&index, Change::Move { from: 0, to: 1 }).unwrap();
+        let after = apply(dir.path(), file, &plan.edits);
+        let execute = |text: &str| {
+            let flag = if program == "node" { "-e" } else { "-c" };
+            let result = Command::new(program).args([flag, text]).output().unwrap();
+            assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+            result.stdout
+        };
+        assert_eq!(execute(source), execute(&after));
+        assert_eq!(execute(&after).split(|byte| *byte == b'\n').filter(|line| *line == b"read").count(), 2);
+    }
+}
+
+#[test]
+fn member_reads_do_not_cross_mutable_bindings_or_other_member_reads() {
+    for source in [
+        "function adjust(a, b) { return a + b; } function run(n) { const h = { get value() { n++; return 1; } }; return adjust(h.value, n); } run(2);",
+        "function adjust(a, b) { return a + b; } const h = { get value() { return 1; } }; let n = 2; adjust(h.value, n);",
+        "function adjust(a, b) { return a + b; } const h = { get value() { return 1; } }; adjust(h.value, h.value);",
+    ] {
+        let (_dir, index) = workspace("a.js", source);
+        let error = changed(&index, Change::Move { from: 0, to: 1 }).unwrap_err().to_string();
+        assert!(error.contains("evaluation"), "{error}");
+    }
+}
+
+#[test]
 fn omitted_defaults_cannot_silently_change_positions() {
     let source = "def adjust(a=1, b=2, c=3):\n    return a * 100 + b * 10 + c\nprint(adjust(9))\n";
     let (_dir, index) = workspace("a.py", source);

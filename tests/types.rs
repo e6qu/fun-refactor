@@ -19,6 +19,19 @@ fn describe(files: &[(&str, &str)], symbol: &str) -> types::Declared {
     types::of(&index, id).expect("a declared type")
 }
 
+#[test]
+fn record_initializers_establish_receiver_types() {
+    for (file, source, expected) in [
+        ("a.go", "package p\ntype Held struct {}\nfunc run() { value := Held{}; _ = value }\n", "Held"),
+        ("a.go", "package p\ntype Held struct {}\nfunc run() { value := &Held{}; _ = value }\n", "*Held"),
+        ("a.zig", "const Held = struct {};\nfn run() void { const value = Held{}; _ = value; }\n", "Held"),
+    ] {
+        let found = describe(&[(file, source)], "value");
+        assert_eq!(found.ty(), Some(expected), "{found:?}");
+        assert_eq!(found.inferred.unwrap().basis, types::Basis::Construction);
+    }
+}
+
 const PY: &str = "\
 from dataclasses import dataclass
 
