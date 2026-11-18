@@ -25,6 +25,20 @@ if (result.error) throw new Error(result.error);
 Requests cover rename, remove-flag, extract-variable, extract-function, inline-variable,
 inline-call, signature, move-symbol, organize-imports, rewrite, restructure, delete and translate.
 Unknown operations, fields and invalid arguments refuse.
+Positions use 1-based lines and columns; ranges use `line:column-line:column`.
+
+| Operation | Request fields besides `operation` |
+| --- | --- |
+| `rename` | `path`, `line`, `col`, `name` |
+| `remove-flag` | `flag`, `value` (boolean) |
+| `extract-variable`, `extract-function` | `path`, `range`, `name` |
+| `inline-variable`, `inline-call`, `delete` | `path`, `line`, `col` |
+| `signature` | `path`, `line`, `col`, `change` in the CLI signature spelling |
+| `move-symbol` | `path`, `line`, `col`, `destination` |
+| `organize-imports` | `path` |
+| `rewrite` | `path`, `line`, `col`, `which` from `rewrites_at` |
+| `restructure` | `language`, `pattern`, `template` |
+| `translate` | `path`, `language` from `translations` |
 
 A review binds the entire current session, request, warnings, proposed result and patch.
 Apply repeats the operation on a private copy and compares the new review before replacing live state.

@@ -35,6 +35,27 @@ assert.match(rendered, /Unresolved calls: 1/);
 assert.match(rendered, /unknown/);
 assert.match(rendered, /External callers and runtime dispatch remain unknown/);
 unresolved.free();
+const routePath = "app/api/users/[id]/route.ts";
+const route = new Workspace({ [routePath]:
+  'import { NextResponse } from "next/server";\n' +
+  'export async function GET(request: Request, context: { params: { id: string } }) {\n' +
+  '  const user = await db.users.find(context.params.id);\n' +
+  '  return NextResponse.json(user);\n}\n' });
+const routeBefore = route.session();
+const translation = route.preview(JSON.stringify({
+  operation: "translate", path: routePath, language: "fastapi",
+}));
+assert.equal(route.session(), routeBefore);
+const translated = JSON.parse(route.apply_review(translation));
+assert.equal(translated.error, undefined, JSON.stringify(translated));
+const created = translated.files[0].path;
+assert.ok(created.endsWith("users_id.py"));
+assert.ok(translated.notes.some(note => note.includes("/users/{id}")));
+assert.equal(JSON.parse(route.undo(translated.transaction)).error, undefined);
+assert.ok(!JSON.parse(route.files()).some(file => file.path === created));
+assert.equal(JSON.parse(route.redo(translated.transaction)).error, undefined);
+assert.ok(JSON.parse(route.files()).some(file => file.path === created));
+route.free();
 const accepted = restarted.session();
 assert.ok(JSON.parse(restarted.apply_review(review)).error);
 assert.equal(restarted.session(), accepted);

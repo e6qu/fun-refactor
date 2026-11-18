@@ -151,7 +151,7 @@ fn browser_neighbourhood_keeps_unresolved_calls_and_coverage() {
 
 #[test]
 fn browser_review_refuses_an_edit_that_would_exceed_checkpoint_capacity() {
-    let source = "def leaf():\n    return 7\n".to_string() + &"# padded comment\n".repeat(90_000);
+    let source = "def leaf():\n    return 7\n# ".to_string() + &"x".repeat(1_500_000) + "\n";
     let ws = workspace(&[("a.py", &source)]);
     let before = ws.session();
     assert!(json(&before).get("error").is_none());
