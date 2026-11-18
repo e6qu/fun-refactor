@@ -17,7 +17,8 @@ including every failed attempt. Every selected agent now has an accepted result 
 The [retained results](docs/roadmap-status.md) keep earlier checks and unfinished claims visible.
 The [proposed six-PR sequence](PLAN.md#proposed-pr-sequence) targets the full feature set,
 including analysis, graphs, transformations, recovery and public interfaces.
-Its coverage matrix will distinguish checked support from missing promised features.
+The coverage guides track [analysis](docs/analysis-coverage.md), [refactoring](docs/refactoring-coverage.md),
+[proofs](docs/proof-coverage.md) and [interfaces and recovery](docs/interface-coverage.md).
 The [measurement guide](docs/benchmarks.md) explains what we compare, the extra work introduced by `fr`, and what remains unmeasured.
 
 | Your task | Start here |

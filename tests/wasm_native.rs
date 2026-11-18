@@ -150,6 +150,17 @@ fn browser_neighbourhood_keeps_unresolved_calls_and_coverage() {
 }
 
 #[test]
+fn browser_review_refuses_an_edit_that_would_exceed_checkpoint_capacity() {
+    let source = "def leaf():\n    return 7\n".to_string() + &"# padded comment\n".repeat(90_000);
+    let ws = workspace(&[("a.py", &source)]);
+    let before = ws.session();
+    assert!(json(&before).get("error").is_none());
+    let review = json(&rename_review(&ws, "renamed"));
+    assert!(review["error"].as_str().unwrap().contains("4 MiB"));
+    assert_eq!(ws.session(), before);
+}
+
+#[test]
 #[cfg(feature = "cli")]
 fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
     let source = "def leaf():\n    return 7\ndef main():\n    return leaf()\n";
@@ -159,7 +170,11 @@ fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
     let receiver = tempfile::tempdir().unwrap();
     std::fs::write(receiver.path().join("a.py"), source).unwrap();
     let patch = tempfile::NamedTempFile::new().unwrap();
-    std::fs::write(patch.path(), json(&review)["review"]["patch"]["patch"].as_str().unwrap()).unwrap();
+    std::fs::write(
+        patch.path(),
+        json(&review)["review"]["patch"]["patch"].as_str().unwrap(),
+    )
+    .unwrap();
     for args in [vec!["init", "-q"], vec!["apply", "--check"], vec!["apply"]] {
         let mut command = std::process::Command::new("git");
         command.current_dir(receiver.path()).args(&args);
@@ -168,7 +183,10 @@ fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
         }
         assert!(command.output().unwrap().status.success());
     }
-    assert_eq!(std::fs::read_to_string(receiver.path().join("a.py")).unwrap(), ws.read("a.py"));
+    assert_eq!(
+        std::fs::read_to_string(receiver.path().join("a.py")).unwrap(),
+        ws.read("a.py")
+    );
     let sdk = std::process::Command::new("python3")
         .env("PYTHONDONTWRITEBYTECODE", "1")
         .env("PYTHONPATH", concat!(env!("CARGO_MANIFEST_DIR"), "/sdk/python/src"))
@@ -176,14 +194,28 @@ fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
         .arg(receiver.path())
         .arg(env!("CARGO_BIN_EXE_fr"))
         .output().unwrap();
-    assert!(sdk.status.success(), "{}", String::from_utf8_lossy(&sdk.stderr));
+    assert!(
+        sdk.status.success(),
+        "{}",
+        String::from_utf8_lossy(&sdk.stderr)
+    );
     let native: serde_json::Value = serde_json::from_slice(&sdk.stdout).unwrap();
     let browser = json(&ws.graph())["details"].clone();
-    for key in ["functions", "calls", "source_digests", "coverage", "by_confidence", "by_origin"] {
+    for key in [
+        "functions",
+        "calls",
+        "source_digests",
+        "coverage",
+        "by_confidence",
+        "by_origin",
+    ] {
         assert_eq!(native[key], browser[key], "{key}");
     }
     let names = |report: &serde_json::Value| {
-        report["nodes"].as_array().unwrap().iter()
+        report["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
             .map(|node| node["name"].as_str().unwrap().to_string())
             .collect::<std::collections::BTreeSet<_>>()
     };

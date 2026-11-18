@@ -24,6 +24,8 @@ const applied = JSON.parse(restarted.apply_review(review));
 assert.equal(applied.error, undefined, JSON.stringify(applied));
 assert.equal(restarted.read("a.py"), source.replaceAll("leaf", "renamed"));
 assert.equal(JSON.parse(restarted.graph()).details.coverage.external_callers_known, false);
+assert.match(JSON.parse(restarted.graph()).details.source_digests["a.py"], /^[0-9a-f]{64}$/);
+assert.deepEqual(JSON.parse(restarted.graph()).details.coverage.gaps, []);
 const unresolved = new Workspace({ "a.py": "def entry():\n    unknown()\n" });
 const drawing = JSON.parse(unresolved.graph_around("a.py", 1, 5, 2));
 assert.equal(drawing.unresolved[0].name, "unknown");

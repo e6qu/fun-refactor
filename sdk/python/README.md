@@ -26,6 +26,9 @@ print(client.compatibility().version)
 ```
 
 `FrClient` keeps reports and reviewed changes as Python objects.
+Use `client.call("graph")` for the complete call-graph report, including source digests,
+unresolved calls and coverage gaps. Use `client.project("calls", handle)` for a selected declaration.
+The [interface inventory](../../docs/interface-coverage.md) links graph, recovery and browser-patch checks.
 It invokes the local `fr` binary without a shell. Your program chooses which parts to send to the agent.
 For example, keep the full map in memory and return only one caller while deciding what to read next.
 

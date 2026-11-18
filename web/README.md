@@ -1,6 +1,6 @@
 # Browser playground
 
-Try a change before touching your checkout. For example, load a public project, rename a function, inspect the diff and export a patch. The browser keeps those edits in memory; applying the patch to your checkout is a separate step.
+Try a change before touching your checkout. For example, load a public project, preview a rename, inspect its diff, apply it and export a patch. The browser keeps those edits in memory; applying the patch to your checkout is a separate step.
 
 The playground uses WASM, a compiled format the browser can execute.
 Its virtual workspace holds editable files in browser memory; it is separate from your local Git checkout.
@@ -71,7 +71,9 @@ change between releases.
 
 The playground edits only its in-memory workspace. It supports browser transaction history, undo,
 redo, initial-workspace restore and patch export. Native Git staging, commits and worktrees remain
-native CLI operations.
+native CLI operations. The [review and recovery guide](../docs/browser-history.md) describes saved reviews,
+stale-state refusal, checkpoint limits and patch delivery.
+The [interface inventory](../docs/interface-coverage.md) links the native and browser checks.
 
 Repository loading is limited to 400 files and 6 MiB, smallest files first. The interface reports
 every omitted file. See `src/github.ts` for the loader contract.

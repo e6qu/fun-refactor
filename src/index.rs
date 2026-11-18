@@ -370,16 +370,8 @@ impl Index {
     pub fn build_from_sources(sources: &[(PathBuf, Language, String)]) -> Result<Self> {
         let extracted = extract_all(sources)?;
         let mut index = Self::build_from_facts(&extracted);
-        for (path, _language, source) in sources {
-            index
-                .content_hashes
-                .insert(path.clone(), content_hash_of(source));
-            #[cfg(feature = "cli")]
-            index
-                .content_digests
-                .insert(path.clone(), crate::cache::Cache::key(*_language, source));
-            #[cfg(feature = "cli")]
-            index.sources.insert(path.clone(), source.clone());
+        for (path, language, source) in sources {
+            index.note_content(path.clone(), *language, source);
         }
         Ok(index)
     }
@@ -503,13 +495,15 @@ impl Index {
         }
     }
 
-    #[cfg(feature = "cli")]
-    pub(crate) fn note_content(&mut self, path: PathBuf, language: Language, source: &str) {
+    pub(crate) fn note_content(&mut self, path: PathBuf, _language: Language, source: &str) {
         self.content_hashes
             .insert(path.clone(), content_hash_of(source));
-        self.content_digests
-            .insert(path.clone(), crate::cache::Cache::key(language, source));
-        self.sources.insert(path, source.to_owned());
+        #[cfg(feature = "cli")]
+        {
+            self.content_digests
+                .insert(path.clone(), crate::cache::Cache::key(_language, source));
+            self.sources.insert(path, source.to_owned());
+        }
     }
 
     pub fn files(&self) -> impl Iterator<Item = (&PathBuf, &FileInfo)> {

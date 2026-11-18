@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   push:
     branches: [feature/recovery-and-public-interfaces]
+    paths:
+      - src/**
+      - tests/wasm_native.rs
+      - web/**
+      - .github/workflows/recovery-interfaces.yml
 permissions:
   contents: read
 concurrency:

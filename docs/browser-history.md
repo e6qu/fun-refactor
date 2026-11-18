@@ -72,7 +72,7 @@ Limits count UTF-8 bytes, not JavaScript characters.
 The playground replaces one versioned `localStorage` entry after loading, applying, undoing or redoing.
 Without `?repo=`, a reload restores that checkpoint before making a network request.
 An explicit repository parameter loads that repository and replaces the checkpoint.
-Invalid saved state is removed before the ordinary loader continues.
+The loader removes invalid saved state before continuing.
 
 If storage fails, the edit remains in memory and the page reports the failure.
 A failed storage write keeps the prior checkpoint. Export the current patch before closing.

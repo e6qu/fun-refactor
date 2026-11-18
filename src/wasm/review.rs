@@ -153,26 +153,29 @@ fn digest(review: &Review) -> Result<String, String> {
     Ok(format!("frbr1:{}", hex::encode(Sha256::digest(encoded))))
 }
 
-fn answer(encoded: &str) -> Result<Value, String> {
-    let value: Value = serde_json::from_str(encoded).map_err(|error| error.to_string())?;
-    if let Some(error) = value.get("error") {
-        return Err(error
-            .as_str()
-            .unwrap_or("browser operation failed")
-            .to_string());
+fn failure(error: impl std::fmt::Display) -> Value {
+    serde_json::json!({"error": error.to_string()})
+}
+
+fn answer(encoded: &str) -> Result<Value, Value> {
+    let value: Value = serde_json::from_str(encoded).map_err(failure)?;
+    if value.get("error").is_some() {
+        return Err(value);
     }
     Ok(value)
 }
 
 impl Workspace {
-    fn prepare_review(&self, request: Request) -> Result<(Envelope, Workspace), String> {
+    fn prepare_review(&self, request: Request) -> Result<(Envelope, Workspace), Value> {
         let result = (|| {
+            if serde_json::to_vec(&request).map_err(failure)?.len() > MAX_REQUEST_BYTES {
+                return Err(failure("browser request exceeds its 64 KiB limit"));
+            }
             let checkpoint = self.session();
             answer(&checkpoint)?;
-            let session: Session =
-                serde_json::from_str(&checkpoint).map_err(|error| error.to_string())?;
-            let workspace_basis = session_digest(&session.body)?;
-            let mut candidate = Workspace::restore_session(&checkpoint)?;
+            let session: Session = serde_json::from_str(&checkpoint).map_err(failure)?;
+            let workspace_basis = session_digest(&session.body).map_err(failure)?;
+            let mut candidate = Workspace::restore_session(&checkpoint).map_err(failure)?;
             let result = answer(&request.run(&mut candidate))?;
             // A successful edit must remain recoverable before it can replace the workspace.
             answer(&candidate.session())?;
@@ -191,10 +194,10 @@ impl Workspace {
                 validation: "refactoring-rules-and-reparse".to_string(),
                 native_checks: Vec::new(),
             };
-            let basis = digest(&review)?;
+            let basis = digest(&review).map_err(failure)?;
             let envelope = Envelope { review, basis };
             if ok(&envelope).len() > MAX_REVIEW_BYTES {
-                return Err("browser review exceeds its 16 MiB limit".to_string());
+                return Err(failure("browser review exceeds its 16 MiB limit"));
             }
             Ok((envelope, candidate))
         })();
@@ -216,7 +219,7 @@ impl Workspace {
         };
         match self.prepare_review(request) {
             Ok((review, _)) => ok(&review),
-            Err(error) => fail(error),
+            Err(error) => ok(&error),
         }
     }
 
@@ -242,7 +245,7 @@ impl Workspace {
                 ok(&fresh.review.result)
             }
             Ok(_) => fail("browser review is stale; preview the change again"),
-            Err(error) => fail(error),
+            Err(error) => ok(&error),
         }
     }
 }

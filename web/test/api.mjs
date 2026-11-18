@@ -391,11 +391,50 @@ function fresh() {
   return new Workspace({ ...files });
 }
 
+const reviewInputs = {
+  rename: ["path", "line", "col", "name"],
+  extract_variable: ["path", "range", "name"],
+  extract_function: ["path", "range", "name"],
+  inline_variable: ["path", "line", "col"],
+  inline_call: ["path", "line", "col"],
+  signature: ["path", "line", "col", "change"],
+  move_symbol: ["path", "line", "col", "destination"],
+  organize_imports: ["path"],
+  delete: ["path", "line", "col"],
+  remove_flag: ["flag", "value"],
+  rewrite: ["path", "line", "col", "which"],
+  restructure: ["language", "pattern", "template"],
+  translate: ["path", "language"],
+};
+
 function applied(name, fn) {
   check(name, () => {
     const w = fresh();
     const result = fn(w);
     const value = json(result, { allowError: true });
+    const reviewed = fresh();
+    try {
+      const reviewedResult = fn(new Proxy(reviewed, {
+        get(target, method) {
+          assert(method in reviewInputs, `missing review inputs for ${String(method)}`);
+          return (...args) => {
+            const request = { operation: method.replaceAll("_", "-") };
+            reviewInputs[method].forEach((field, index) => { request[field] = args[index]; });
+            const before = target.session();
+            const encoded = target.preview(JSON.stringify(request));
+            assert(target.session() === before, "preview changed the session");
+            const review = json(encoded, { allowError: true });
+            return review.error ? encoded : target.apply_review(encoded);
+          };
+        },
+      }));
+      assert(JSON.stringify(json(reviewedResult, { allowError: true })) === JSON.stringify(value),
+        `review and direct operation disagree: ${reviewedResult} / ${result}`);
+      if (!value.error) assert(reviewed.session() === w.session(), "review changed the resulting session");
+    } finally {
+      reviewed.free();
+      w.free();
+    }
     if (value.error) return value.error;
     assert(Array.isArray(value.files), "no file list in the result");
     for (const f of value.files) {
