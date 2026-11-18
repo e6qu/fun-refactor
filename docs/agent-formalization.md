@@ -106,7 +106,7 @@ The window proof checks why subtraction is safe only after `offset <= total` suc
 The page-count proof checks division, remainder and the final increment, including invalid inputs.
 
 `spec evidence` adds a `rust_scalar_correspondence` row after finding the exact current model, term and theorem.
-Each row identifies the source, model, term, semantic library and trusted components.
+Each row identifies the source, input types, arithmetic, model, proof module, toolchain, semantic library and trusted components.
 `checked_by_lean` requires a successful package check and the current source admission rules.
 Source, model, property and dependency edits invalidate the corresponding proof receipt.
 

@@ -2590,7 +2590,7 @@ fn collect_evidence(
         let parsed = parsers.parse(crate::lang::Language::Lean, &source)?;
         let facts = extractor.extract(&parsed, &spec, &source)?;
         let package = lean_package(root, &spec)?;
-        let package_passed = verification.report.ok() && verification
+        let package_passed = verification
             .packages
             .iter()
             .find(|report| report.package == package)
@@ -2627,13 +2627,22 @@ fn collect_evidence(
                                 .trim_start()
                                 .starts_with(&expected)
                         });
-                        let admitted = rust_scalar::validate_source(root, &formal).is_ok();
+                        let admitted = rust_scalar::validate_source(root, &formal).is_ok()
+                            && checked_proof_package(root, &spec).is_ok();
                         rust_scalar_correspondence.push(serde_json::json!({
                             "spec": spec, "source": path, "symbol": symbol,
                             "theorem": format!("FrSpecs.{}", property.name),
                             "source_hash": formal.source_hash,
                             "ir_digest": evaluation.ir_digest, "term_digest": evaluation.term_digest,
                             "model_digest": evaluation.model_digest,
+                            "proof_module_digest": crate::project::object_merkle(&serde_json::json!(&source))?,
+                            "required_toolchain": LEAN_TOOLCHAIN,
+                            "declared_toolchain": crate::vfs::read_to_string(package.join("lean-toolchain"))
+                                .ok().map(|value| value.trim().to_owned()),
+                            "inputs": formal.inputs,
+                            "output": formal.output,
+                            "arithmetic": if formal.inputs.iter().chain(std::iter::once(&formal.output))
+                                .any(|binding| binding.rust_type == "u64") { "checked-u64" } else { "checked-i64" },
                             "semantic_library_digest": crate::project::object_merkle(&serde_json::json!(crate::formal_kernel::LEAN_SOURCE))?,
                             "relation": "checked-rust-scalar-evaluation-equals-generated-model",
                             "status": if package_passed && admitted && exact_model && exact_term && exact_theorem { "checked_by_lean" } else { "unchecked" },
