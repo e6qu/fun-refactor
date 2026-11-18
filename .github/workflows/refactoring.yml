@@ -8,7 +8,9 @@ on:
       - src/recipe/**
       - tests/signature*.rs
       - tests/refactor*.rs
+      - tests/fixtures/signature/**
       - sdk/python/tests/test_structural_change.py
+      - sdk/python/tests/test_python_structural_change.py
       - .github/workflows/refactoring.yml
 permissions:
   contents: read
@@ -66,4 +68,4 @@ jobs:
           target/debug/fr --json audit
           target/debug/fr capabilities
       - run: python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt
-      - run: python3 -m pytest -q sdk/python/tests/test_structural_change.py
+      - run: python3 -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py
