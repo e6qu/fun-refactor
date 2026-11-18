@@ -737,6 +737,12 @@ Declarative sources use `PATH::__fr_structure__`, with explicit retained-fact li
 The agent supplies the tactics. `evidence.kernel_correspondence` names checked relations and their independent identities.
 Source implementation equivalence remains a separate obligation.
 
+`rust-scalar-model` compares checked Rust scalar evaluation with the generated mathematical model.
+It admits `bool` and one integer type, `i64` or `u64`, with at most eight inputs.
+The theorem covers every input within that type's bounds and excludes arithmetic failure on evaluated paths.
+`evidence.rust_scalar_correspondence` records its status, identities, scope and trusted components.
+See [Rust scalar connections](docs/agent-formalization.md#rust-scalar-connections) for the source boundary.
+
 `init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
 path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the
 `FrSpecs` library root. The library is a default checked target. The command refuses

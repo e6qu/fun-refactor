@@ -1,0 +1,116 @@
+name: Proof authoring and scalar connections
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - src/spec.rs
+      - src/spec/**
+      - kernels/FrKernels/PureKernel.lean
+      - tests/rust_scalar_model.rs
+      - tests/fixtures/scalar/**
+      - .github/workflows/proof-connections.yml
+permissions:
+  contents: read
+concurrency:
+  group: proof-connections-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  LEAN_NUM_THREADS: '1'
+  FR_LEAN_JOBS: '1'
+jobs:
+  connections:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/check-prose.py
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Capture formatting changes for review
+        run: |
+          cargo fmt --all
+          git diff --binary > "$RUNNER_TEMP/format.patch"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: proof-connections-format
+          path: ${{ runner.temp }}/format.patch
+      - run: cargo test --locked --test rust_scalar_model -- --test-threads=1
+        env:
+          FR_SCALAR_ARTIFACTS: ${{ runner.temp }}/scalar-proofs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: scalar-proofs
+          path: ${{ runner.temp }}/scalar-proofs
+          if-no-files-found: ignore
+      - run: cargo clippy --locked --lib --bin fr -- -D warnings
+      - name: Inspect advertised support
+        run: |
+          target/debug/fr --json audit
+          target/debug/fr capabilities
+  authoring:
+    name: Existing proof checks (${{ matrix.suite }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [formal-kernel, authoring]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - run: cargo fmt --all --check
+      - uses: actions/setup-node@v7
+        if: matrix.suite == 'formal-kernel'
+        with:
+          node-version: '26.5.0'
+          package-manager-cache: false
+      - uses: ./.github/actions/go-toolchain
+        if: matrix.suite == 'formal-kernel'
+      - uses: ./.github/actions/java-toolchain
+        if: matrix.suite == 'formal-kernel'
+      - uses: ./.github/actions/zig-toolchain
+        if: matrix.suite == 'formal-kernel'
+      - name: Install the pinned TypeScript checker
+        if: matrix.suite == 'formal-kernel'
+        working-directory: tests/typesafety/typescript
+        run: |
+          npm ci --no-fund --no-audit
+          echo "$GITHUB_WORKSPACE/tests/typesafety/typescript/node_modules/.bin" >> "$GITHUB_PATH"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Check all declared source languages
+        if: matrix.suite == 'formal-kernel'
+        run: cargo test --locked --test formal_kernel -- --test-threads=1
+      - name: Check proof authoring and state
+        if: matrix.suite == 'authoring'
+        run: cargo test --locked --test proof_cli --test proof_state -- --test-threads=1

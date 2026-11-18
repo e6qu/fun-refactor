@@ -20,8 +20,10 @@ PR #604 has merged; its interrupted collection remains a historical record, not 
 
 PR 1 landed in [#621](https://github.com/e6qu/fun-refactor/pull/621). Its [coverage guide](analysis-coverage.md) links features to checks.
 The hosted behavior checks, evidence refresh and full CI passed before merge.
-PR 2 covers refactoring and transformations; its [coverage guide](refactoring-coverage.md) tracks the operation families.
-Current implementation work closes signature binding and evaluation gaps shared by commands and recipes.
+PR 2 landed in [#623](https://github.com/e6qu/fun-refactor/pull/623) with passing hosted checks and refreshed evidence.
+Its [coverage guide](refactoring-coverage.md) tracks the operation families and signature binding repairs.
+PR 3 is [#624](https://github.com/e6qu/fun-refactor/pull/624).
+Its [coverage guide](proof-coverage.md) tracks proof authoring, bounded Rust connections and the remaining M3 gate.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 

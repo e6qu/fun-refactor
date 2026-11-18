@@ -1,0 +1,10 @@
+  by_cases h : offset ≤ total
+  · have hd0 : (0 : Int) ≤ (total : Int) - (offset : Int) := by omega
+    have hdmax : (total : Int) - (offset : Int) ≤ 18446744073709551615 := by omega
+    have hcast : ((total - offset : Nat) : Int) = (total : Int) - (offset : Int) := by omega
+    simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
+      FrPureKernel.applyOperator, FrRustScalar.checked, FrRustScalar.minimum,
+      FrRustScalar.maximum, h, hdmax]
+    omega
+  · simp [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
+      FrPureKernel.applyOperator, h]

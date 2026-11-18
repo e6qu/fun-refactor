@@ -1,6 +1,7 @@
 mod library_facts;
 mod proof_claim;
 mod proof_state;
+mod rust_scalar;
 
 pub use library_facts::LibraryFacts;
 pub use proof_state::{proof_cursor, proof_state, ProofGoal, ProofState, ProofStateStatus};
@@ -105,6 +106,8 @@ pub struct Evidence {
     pub trusted_components: Vec<&'static str>,
     pub correspondence: CorrespondenceEvidence,
     pub kernel_correspondence: Vec<KernelCorrespondenceEvidence>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rust_scalar_correspondence: Vec<serde_json::Value>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub model_comparisons: Vec<serde_json::Value>,
     pub remaining_obligations: Vec<String>,
@@ -1050,7 +1053,14 @@ pub fn formal_candidates(
                         {
                             vec!["retained-facts-wellformed", "ir-model"]
                         } else {
-                            suggested_properties(&formal.inputs, &formal.output)
+                            let mut properties =
+                                suggested_properties(&formal.inputs, &formal.output);
+                            if rust_scalar::property(&formal).is_ok()
+                                && rust_scalar::validate_source(&root, &formal).is_ok()
+                            {
+                                properties.push("rust-scalar-model");
+                            }
+                            properties
                         },
                     ),
                     Err(error) => (false, error.to_string(), Vec::new()),
@@ -1137,6 +1147,12 @@ pub(crate) fn formal_plan_from_agent_specs(
         .iter()
         .map(|kind| formal_property(kind, &formal))
         .collect::<Result<Vec<_>>>()?;
+    if property_kinds
+        .iter()
+        .any(|kind| kind == "rust-scalar-model")
+    {
+        rust_scalar::validate_source(&root, &formal)?;
+    }
     for property in agent_specs {
         properties.push(agent_formal_property(property, &formal)?);
     }
@@ -1315,7 +1331,7 @@ pub(crate) fn scaffold_formal_plan(
     let needs_kernel = expected
         .properties
         .iter()
-        .any(|property| property.kind == "ir-model");
+        .any(|property| matches!(property.kind.as_str(), "ir-model" | "rust-scalar-model"));
     let mut kernel_files = Vec::new();
     let checker = if needs_kernel {
         let path = package_plan.package.join("FrSpecs/PureKernel.lean");
@@ -2565,6 +2581,7 @@ fn collect_evidence(
     let mut properties = Vec::new();
     let mut declared_assumptions = Vec::new();
     let mut kernel_correspondence = Vec::new();
+    let mut rust_scalar_correspondence = Vec::new();
     let mut model_comparisons = Vec::new();
     let parsers = Parsers::new();
     let mut extractor = Extractor::new();
@@ -2589,6 +2606,52 @@ fn collect_evidence(
                 let Ok(formal) = formal_function(root, &target) else {
                     continue;
                 };
+                if let Ok(property) = rust_scalar::property(&formal) {
+                    let expected =
+                        format!("theorem {} {} := by", property.name, property.proposition);
+                    if source.contains(&expected) {
+                        let evaluation =
+                            formal.evaluation.as_ref().context("missing scalar term")?;
+                        let term = kernel_term_definition(&formal.model, &evaluation.term);
+                        let exact_model = facts.symbols.iter().any(|symbol| {
+                            symbol.full_span.text(&source).trim() == formal.lean_definition
+                        });
+                        let exact_term = facts
+                            .symbols
+                            .iter()
+                            .any(|symbol| symbol.full_span.text(&source).trim() == term);
+                        let exact_theorem = facts.symbols.iter().any(|symbol| {
+                            symbol
+                                .full_span
+                                .text(&source)
+                                .trim_start()
+                                .starts_with(&expected)
+                        });
+                        let admitted = rust_scalar::validate_source(root, &formal).is_ok()
+                            && checked_proof_package(root, &spec).is_ok();
+                        rust_scalar_correspondence.push(serde_json::json!({
+                            "spec": spec, "source": path, "symbol": symbol,
+                            "theorem": format!("FrSpecs.{}", property.name),
+                            "source_hash": formal.source_hash,
+                            "ir_digest": evaluation.ir_digest, "term_digest": evaluation.term_digest,
+                            "model_digest": evaluation.model_digest,
+                            "proof_module_digest": crate::project::object_merkle(&serde_json::json!(&source))?,
+                            "required_toolchain": LEAN_TOOLCHAIN,
+                            "declared_toolchain": crate::vfs::read_to_string(package.join("lean-toolchain"))
+                                .ok().map(|value| value.trim().to_owned()),
+                            "inputs": formal.inputs,
+                            "output": formal.output,
+                            "arithmetic": if formal.inputs.iter().chain(std::iter::once(&formal.output))
+                                .any(|binding| binding.rust_type == "u64") { "checked-u64" } else { "checked-i64" },
+                            "semantic_library_digest": crate::project::object_merkle(&serde_json::json!(crate::formal_kernel::LEAN_SOURCE))?,
+                            "relation": "checked-rust-scalar-evaluation-equals-generated-model",
+                            "status": if package_passed && admitted && exact_model && exact_term && exact_theorem { "checked_by_lean" } else { "unchecked" },
+                            "scope": "All inputs within the declared i64 or u64 bounds; bool values; one integer type; no overflow or division failure on evaluated paths.",
+                            "trusted_components": ["Rust scalar operational rules", "source parsing and typed IR extraction", "Rust compiler and execution environment", "Lean kernel and elaborator"],
+                            "source_implementation_proved": false
+                        }));
+                    }
+                }
                 let Ok(property) = formal_property("ir-model", &formal) else {
                     continue;
                 };
@@ -2705,6 +2768,7 @@ fn collect_evidence(
             proved_implementation_model: false,
         },
         kernel_correspondence,
+        rust_scalar_correspondence,
         model_comparisons,
         remaining_obligations,
     })
@@ -3761,6 +3825,9 @@ fn suggested_properties(inputs: &[FormalBinding], output: &FormalBinding) -> Vec
 }
 
 fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProperty> {
+    if kind == "rust-scalar-model" {
+        return rust_scalar::property(function);
+    }
     if kind == "retained-facts-wellformed" {
         if detect(&function.source)
             .is_none_or(|language| language.class() != crate::lang::LanguageClass::Config)
@@ -3964,7 +4031,7 @@ fn render_formal_module(
     if plan
         .properties
         .iter()
-        .any(|property| property.kind == "ir-model")
+        .any(|property| matches!(property.kind.as_str(), "ir-model" | "rust-scalar-model"))
     {
         text.insert_str(0, "import FrSpecs.PureKernel\n");
         let evaluation = plan

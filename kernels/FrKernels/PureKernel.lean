@@ -187,3 +187,109 @@ theorem substitution_under_shadowing_preserves_the_outer_binding
       (.letE (.value outer) (.letE (.value inner) (.bound 1))) = some outer := by rfl
 
 end FrPureKernel
+
+namespace FrRustScalar
+open FrPureKernel
+
+def minimum (signed : Bool) : Int := if signed then -9223372036854775808 else 0
+def maximum (signed : Bool) : Int := if signed then 9223372036854775807 else 18446744073709551615
+
+def checked (signed : Bool) (value : Int) : Option Value :=
+  if minimum signed ≤ value ∧ value ≤ maximum signed then some (.int value) else none
+
+def applyOperator (signed : Bool) (operator : Operator) (left right : Value) : Option Value :=
+  match operator, left, right with
+  | .add, .int left, .int right => checked signed (left + right)
+  | .sub, .int left, .int right => checked signed (left - right)
+  | .mul, .int left, .int right => checked signed (left * right)
+  | .div, .int left, .int right =>
+    if right == 0 || (signed && left == minimum true && right == -1) then none
+    else checked signed (Int.tdiv left right)
+  | .rem, .int left, .int right =>
+    if right == 0 || (signed && left == minimum true && right == -1) then none
+    else checked signed (Int.tmod left right)
+  | _, _, _ => FrPureKernel.applyOperator operator left right
+
+def eval (signed : Bool) : Nat → List Value → Term → Option Value
+  | 0, _, _ => none
+  | fuel + 1, environment, term =>
+    let run := eval signed fuel environment
+    match term with
+    | .value (.int value) => checked signed value
+    | .value (.bool value) => some (.bool value)
+    | .bound index => environment[index]?
+    | .letE value body => do
+      let value ← run value
+      eval signed fuel (value :: environment) body
+    | .ite condition yes no => do
+      let .bool condition ← run condition | none
+      run (if condition then yes else no)
+    | .binary operator left right => do
+      let left ← run left
+      match operator, left with
+      | .and, .bool false => pure (.bool false)
+      | .or, .bool true => pure (.bool true)
+      | _, _ => do
+        let right ← run right
+        applyOperator signed operator left right
+    | .notE operand => do
+      let .bool value ← run operand | none
+      pure (.bool (!value))
+    | .neg operand => do
+      let .int value ← run operand | none
+      checked signed (-value)
+    | _ => none
+
+theorem branch_true {signed : Bool} {fuel : Nat} {environment : List Value}
+    {condition yes no : Term}
+    (selected : eval signed fuel environment condition = some (.bool true)) :
+    eval signed (fuel + 1) environment (.ite condition yes no) =
+      eval signed fuel environment yes := by
+  rw [eval, selected] <;> rfl
+
+theorem branch_false {signed : Bool} {fuel : Nat} {environment : List Value}
+    {condition yes no : Term}
+    (selected : eval signed fuel environment condition = some (.bool false)) :
+    eval signed (fuel + 1) environment (.ite condition yes no) =
+      eval signed fuel environment no := by
+  rw [eval, selected] <;> rfl
+
+theorem binding_checked {signed : Bool} {fuel : Nat} {environment : List Value}
+    {value body : Term} {result : Value}
+    (checkedValue : eval signed fuel environment value = some result) :
+    eval signed (fuel + 1) environment (.letE value body) =
+      eval signed fuel (result :: environment) body := by
+  rw [eval, checkedValue] <;> rfl
+
+theorem disjunction {signed : Bool} {fuel : Nat} {environment : List Value}
+    {left right : Term} {a b : Bool}
+    (leftChecked : eval signed fuel environment left = some (.bool a))
+    (rightChecked : eval signed fuel environment right = some (.bool b)) :
+    eval signed (fuel + 1) environment (.binary .or left right) = some (.bool (a || b)) := by
+  rw [eval, leftChecked]
+  cases a with
+  | false => rw [rightChecked] <;> rfl
+  | true => rfl
+
+theorem successful_arithmetic_is_bounded (signed : Bool) (value : Int) (result : Value)
+    (accepted : checked signed value = some result) :
+    minimum signed ≤ value ∧ value ≤ maximum signed := by
+  unfold checked at accepted
+  split at accepted
+  · assumption
+  · contradiction
+
+theorem unsigned_subtraction_requires_order (left right : Int) (result : Value)
+    (accepted : applyOperator false .sub (.int left) (.int right) = some result) :
+    right ≤ left := by
+  have bound := successful_arithmetic_is_bounded false (left - right) result accepted
+  simp [minimum] at bound
+  omega
+
+theorem signed_division_overflow_refuses :
+    applyOperator true .div (.int (-9223372036854775808)) (.int (-1)) = none := by rfl
+
+theorem signed_remainder_overflow_refuses :
+    applyOperator true .rem (.int (-9223372036854775808)) (.int (-1)) = none := by rfl
+
+end FrRustScalar
