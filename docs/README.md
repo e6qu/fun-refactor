@@ -26,6 +26,7 @@ Prefer preserving surrounding source. Keep refactoring behavior checks and delib
 | --- | --- |
 | Inspect graph and analysis coverage | [Graphs, calls and value traces](analysis-coverage.md) |
 | Inspect refactoring and transformation coverage | [Operations, behavior checks and delivery](refactoring-coverage.md) |
+| Inspect proof workflow coverage | [Authoring, source connections and agent outcomes](proof-coverage.md) |
 | Find the code behind a bug | [Tutorial](../TUTORIAL.md), then [finding and checking an explanation](agent-investigations.md) |
 | Ask whether Python input reaches an output | [Python examples and limits](python-contract.md) |
 | Follow an input through an original Python package | [Number and date questions](original-package-questions.md), then the [leap-year question](leap-year-package-question.md) |

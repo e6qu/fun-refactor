@@ -2426,6 +2426,11 @@ fn cmd_spec_evidence(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
         );
     }
     println!("axioms: {}", evidence.axiom_analysis);
+    for connection in &evidence.rust_scalar_correspondence {
+        println!("Rust scalar connection {} {} (trusted source extraction and operational rules)",
+            connection["theorem"].as_str().unwrap_or(""),
+            connection["status"].as_str().unwrap_or("unchecked"));
+    }
     println!(
         "implementation/model correspondence: tested={}, proved={}",
         evidence.correspondence.tested_implementation_model,

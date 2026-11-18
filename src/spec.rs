@@ -1053,7 +1053,13 @@ pub fn formal_candidates(
                         {
                             vec!["retained-facts-wellformed", "ir-model"]
                         } else {
-                            suggested_properties(&formal.inputs, &formal.output)
+                            let mut properties = suggested_properties(&formal.inputs, &formal.output);
+                            if rust_scalar::property(&formal).is_ok()
+                                && rust_scalar::validate_source(&root, &formal).is_ok()
+                            {
+                                properties.push("rust-scalar-model");
+                            }
+                            properties
                         },
                     ),
                     Err(error) => (false, error.to_string(), Vec::new()),

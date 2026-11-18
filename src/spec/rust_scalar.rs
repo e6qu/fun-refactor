@@ -1,7 +1,9 @@
 use super::{FormalFunction, FormalProperty};
 use crate::formal_kernel::{Operator, Term, Value};
 use anyhow::{bail, ensure, Context, Result};
+use std::collections::BTreeMap;
 use std::path::Path;
+use tree_sitter::Node;
 
 pub(super) fn validate_source(root: &Path, function: &FormalFunction) -> Result<()> {
     let source = super::declaration_text(&root.join(&function.source), &function.symbol)?;
@@ -47,6 +49,111 @@ pub(super) fn validate_source(root: &Path, function: &FormalFunction) -> Result<
         if !matches!(node.kind(), "line_comment" | "block_comment") {
             pending.extend(node.named_children(&mut node.walk()));
         }
+    }
+    let declaration = parsed.root().named_children(&mut parsed.root().walk())
+        .find(|node| node.kind() == "function_item").context("missing Rust function")?;
+    let body = declaration.child_by_field_name("body").context("missing Rust body")?;
+    let bindings = function.inputs.iter().map(|binding|
+        (binding.name.clone(), binding.rust_type.clone())).collect();
+    check_block(body, &source, &bindings, Some(&function.output.rust_type), &function.output.rust_type)
+}
+
+fn children(node: Node<'_>) -> Vec<Node<'_>> {
+    node.named_children(&mut node.walk())
+        .filter(|child| !matches!(child.kind(), "line_comment" | "block_comment")).collect()
+}
+
+fn operator<'a>(node: Node<'_>, source: &'a str) -> &'a str {
+    node.child_by_field_name("operator").map(|op| &source[op.byte_range()])
+        .unwrap_or_else(|| source[node.byte_range()].trim_start().get(..1).unwrap_or(""))
+}
+
+fn hint<'a>(node: Node<'_>, source: &str, bindings: &'a BTreeMap<String, String>) -> Option<&'a str> {
+    match node.kind() {
+        "identifier" => bindings.get(&source[node.byte_range()]).map(String::as_str),
+        "boolean_literal" => Some("bool"),
+        "binary_expression" if matches!(operator(node, source), "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||") => Some("bool"),
+        "unary_expression" if operator(node, source) == "!" => Some("bool"),
+        "binary_expression" | "unary_expression" | "parenthesized_expression" =>
+            children(node).into_iter().find_map(|child| hint(child, source, bindings)),
+        _ => None,
+    }
+}
+
+fn check_block(node: Node<'_>, source: &str, outer: &BTreeMap<String, String>, expected: Option<&str>, output: &str) -> Result<()> {
+    let mut bindings = outer.clone();
+    for child in children(node) {
+        match child.kind() {
+            "let_declaration" => {
+                let name = child.child_by_field_name("pattern").context("missing local name")?;
+                ensure!(name.kind() == "identifier", "scalar locals require simple names.");
+                let value = child.child_by_field_name("value").context("missing local value")?;
+                let ty = child.child_by_field_name("type").map(|ty| &source[ty.byte_range()])
+                    .or_else(|| hint(value, source, &bindings)).context("local arithmetic needs an explicit i64 or u64 type.")?.to_owned();
+                check_expression(value, source, &bindings, Some(&ty), output)?;
+                bindings.insert(source[name.byte_range()].to_owned(), ty);
+            }
+            "expression_statement" => {
+                for expression in children(child) {
+                    check_expression(expression, source, &bindings, None, output)?;
+                }
+            }
+            _ => check_expression(child, source, &bindings, expected, output)?,
+        }
+    }
+    Ok(())
+}
+
+fn check_expression(node: Node<'_>, source: &str, bindings: &BTreeMap<String, String>, expected: Option<&str>, output: &str) -> Result<()> {
+    let inferred = hint(node, source, bindings);
+    if let (Some(expected), Some(inferred)) = (expected, inferred) {
+        ensure!(expected == inferred, "scalar expression has incompatible source types.");
+    }
+    let ty = expected.or(inferred);
+    let parts = children(node);
+    match node.kind() {
+        "identifier" => ensure!(inferred.is_some(), "unbound scalar name."),
+        "boolean_literal" => (),
+        "integer_literal" => ensure!(matches!(ty, Some("i64" | "u64")),
+            "integer literals need a declared i64 or u64 context; Rust defaults stay outside this rule."),
+        "parenthesized_expression" => {
+            check_expression(*parts.first().context("empty expression")?, source, bindings, ty, output)?;
+        }
+        "unary_expression" => {
+            let operand_type = if operator(node, source) == "!" { "bool" } else {
+                ensure!(ty == Some("i64"), "unary minus requires i64 arithmetic.");
+                "i64"
+            };
+            check_expression(*parts.first().context("missing operand")?, source, bindings, Some(operand_type), output)?;
+        }
+        "binary_expression" => {
+            let left = node.child_by_field_name("left").context("missing left operand")?;
+            let right = node.child_by_field_name("right").context("missing right operand")?;
+            let op = operator(node, source);
+            let operand_type = match op {
+                "&&" | "||" => Some("bool"),
+                "==" | "!=" | "<" | "<=" | ">" | ">=" => hint(left, source, bindings).or_else(|| hint(right, source, bindings)),
+                "+" | "-" | "*" | "/" | "%" => ty,
+                _ => bail!("unsupported scalar operator {op}."),
+            }.context("arithmetic comparison needs a declared operand type.")?;
+            check_expression(left, source, bindings, Some(operand_type), output)?;
+            check_expression(right, source, bindings, Some(operand_type), output)?;
+        }
+        "return_expression" => {
+            check_expression(*parts.first().context("missing return value")?, source, bindings, Some(output), output)?;
+        }
+        "if_expression" => {
+            let condition = node.child_by_field_name("condition").context("missing condition")?;
+            check_expression(condition, source, bindings, Some("bool"), output)?;
+            for part in parts.into_iter().filter(|part| part.id() != condition.id()) {
+                check_expression(part, source, bindings, expected, output)?;
+            }
+        }
+        "block" => check_block(node, source, bindings, expected, output)?,
+        "else_clause" => {
+            for part in parts { check_expression(part, source, bindings, expected, output)?; }
+        }
+        other => bail!("missing scalar expression rule for {other}."),
     }
     Ok(())
 }
@@ -99,9 +206,9 @@ pub(super) fn property(function: &FormalFunction) -> Result<FormalProperty> {
         .map(|input| {
             let name = &input.name;
             if signed {
-                format!("(h_{name} : -9223372036854775808 ≤ {name} ∧ {name} ≤ 9223372036854775807)")
+            format!("(_h_{name} : -9223372036854775808 ≤ {name} ∧ {name} ≤ 9223372036854775807)")
             } else {
-                format!("(h_{name} : {name} ≤ 18446744073709551615)")
+            format!("(_h_{name} : {name} ≤ 18446744073709551615)")
             }
         })
         .collect::<Vec<_>>()
@@ -134,8 +241,13 @@ pub(super) fn property(function: &FormalFunction) -> Result<FormalProperty> {
 fn required_fuel(term: &Term) -> usize {
     1 + match term {
         Term::Let { value, body } => required_fuel(value).max(required_fuel(body)),
-        Term::If { condition, then, otherwise } => required_fuel(condition)
-            .max(required_fuel(then)).max(required_fuel(otherwise)),
+        Term::If {
+            condition,
+            then,
+            otherwise,
+        } => required_fuel(condition)
+            .max(required_fuel(then))
+            .max(required_fuel(otherwise)),
         Term::Binary { left, right, .. } => required_fuel(left).max(required_fuel(right)),
         Term::Not { operand } | Term::Neg { operand } => required_fuel(operand),
         _ => 0,

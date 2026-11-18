@@ -80,6 +80,41 @@ law and a concrete grouping fixture cover operator-tree evaluation; parser lower
 Execution tests compare tested cases with executable Lean and installed source toolchains.
 They do not prove general source implementation equivalence.
 
+## Rust scalar connections
+
+Use `fr spec plan src/lib.rs::function --property rust-scalar-model` to request a bounded arithmetic connection.
+Save its JSON plan, scaffold it, then write and check tactics through the normal proof workflow.
+Candidate discovery suggests this property only when the source passes its admission rules.
+
+The theorem compares two descriptions of the function for every input within its declared bounds.
+The generated model uses mathematical `Int` or `Nat` values.
+The checked evaluator enforces Rust `i64` or `u64` bounds at each arithmetic operation.
+It preserves bindings, branches and short-circuit evaluation.
+Division by zero, signed minimum divided or reduced modulo `-1`, and out-of-range arithmetic return failure.
+Proving equality with a successful model result therefore excludes those failures on every evaluated path.
+The evaluator uses the expression's exact depth, up to 64, rather than searching for a larger budget.
+
+This property admits at most eight inputs, Boolean values and one integer type throughout the signature.
+The source gate checks local type declarations and literal forms before extraction.
+Mixed integer widths, suffixed literals, casts, calls, mutation and collections need separate rules.
+Unsuffixed decimal literals must also fit the existing expression reader.
+Unsigned inputs still cover the complete `u64` range.
+
+The [connection tests](../tests/rust_scalar_model.rs) cover the existing page-count function and the new `fits_window` function.
+They include independent Rust and Lean executions at integer boundaries.
+The window proof checks why subtraction is safe only after `offset <= total` succeeds.
+The page-count proof checks division, remainder and the final increment, including invalid inputs.
+
+`spec evidence` adds a `rust_scalar_correspondence` row after finding the exact current model, term and theorem.
+Each row identifies the source, model, term, semantic library and trusted components.
+`checked_by_lean` requires a successful package check and the current source admission rules.
+Source, model, property and dependency edits invalidate the corresponding proof receipt.
+
+This is a checked operational-model connection under explicit trust in parsing, extraction and the scalar rules.
+It does not prove the Rust compiler or authenticate the source repository.
+The broad `source_implementation_proved` flag remains false.
+Historical proof-writing reports retain their original, weaker source connection and their original timing outcomes.
+
 ## Direct evaluation and Python mirror
 
 This complete Python fragment needs the installed client and a matching `fr` binary.
