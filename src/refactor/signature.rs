@@ -217,6 +217,16 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+    let positions_fit = match &change {
+        Change::Remove(at) | Change::Add { at, .. } => at.checked_add(1).is_some(),
+        Change::Move { from, to } => from.checked_add(1).is_some() && to.checked_add(1).is_some(),
+    };
+    if !positions_fit {
+        return Err(Refusal::Declined {
+            detail: "parameter position cannot be represented as a one-based position".into(),
+        }
+        .into());
+    }
 
     // A Terraform module's signature is its directory's `variable` blocks.
     if sym.language == Language::Hcl {
@@ -629,13 +639,16 @@ fn defaults_would_be_out_of_order(
     // Read syntax: an arrow in a type is not an initializer. TypeScript permits
     // initialized parameters before required ones, but not optional `?` parameters.
     let defaulted = |span: &Span| {
-        parsed.root().descendant_for_byte_range(span.start, span.end).is_some_and(|node| {
-            if language == Language::Python {
-                node.child_by_field_name("value").is_some()
-            } else {
-                node.kind() == "optional_parameter"
-            }
-        })
+        parsed
+            .root()
+            .descendant_for_byte_range(span.start, span.end)
+            .is_some_and(|node| {
+                if language == Language::Python {
+                    node.child_by_field_name("value").is_some()
+                } else {
+                    node.kind() == "optional_parameter"
+                }
+            })
     };
     let mut order: Vec<&Span> = items.iter().collect();
     if from >= order.len() || to >= order.len() {
@@ -729,7 +742,10 @@ fn apply_change(
                     (
                         target.end,
                         node.map_or(target.end, |mut node| {
-                            while let Some(parent) = node.parent().filter(|parent| parent.start_byte() == opens_at) {
+                            while let Some(parent) = node
+                                .parent()
+                                .filter(|parent| parent.start_byte() == opens_at)
+                            {
                                 node = parent;
                             }
                             node.end_byte()
@@ -753,7 +769,7 @@ fn apply_change(
             );
         }
         Change::Move { from, to } => {
-            if from == to {
+            if from == to && items.get(*from).is_some() {
                 return Ok(());
             }
             let (Some(_), Some(_)) = (items.get(*from), items.get(*to)) else {
@@ -1275,7 +1291,12 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
             Change::Add { at, .. } => {
                 let inserted = at + 1;
                 if reference.number >= inserted {
-                    reference.number + 1
+                    reference
+                        .number
+                        .checked_add(1)
+                        .ok_or_else(|| Refusal::Declined {
+                            detail: "the new shell parameter position would overflow".into(),
+                        })?
                 } else {
                     reference.number
                 }

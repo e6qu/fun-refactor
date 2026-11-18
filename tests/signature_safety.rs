@@ -223,15 +223,62 @@ fn adding_a_required_python_parameter_after_a_default_refuses() {
 fn mutable_rust_parameters_cannot_be_added_twice() {
     let source = "fn adjust(mut value: i32) -> i32 { value += 1; value }\n";
     let (_dir, index) = workspace("a.rs", source);
-    let error = changed(&index, Change::Add { at: 1, declaration: "value: i32".into(), argument: "0".into() }).unwrap_err().to_string();
+    let error = changed(
+        &index,
+        Change::Add {
+            at: 1,
+            declaration: "value: i32".into(),
+            argument: "0".into(),
+        },
+    )
+    .unwrap_err()
+    .to_string();
     assert!(error.contains("already has a parameter"), "{error}");
+}
+
+#[test]
+fn an_unchanged_position_still_has_to_exist() {
+    let (_dir, index) = workspace("a.py", "def adjust(value):\n    return value\n");
+    let error = changed(&index, Change::Move { from: 7, to: 7 })
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("not both present"), "{error}");
+}
+
+#[test]
+fn shell_positions_refuse_overflow_instead_of_panicking() {
+    let (_dir, index) = workspace("a.sh", "adjust() { echo \"$1\"; }\nadjust 1\n");
+    for change in [
+        Change::Remove(usize::MAX),
+        Change::Move {
+            from: 0,
+            to: usize::MAX,
+        },
+        Change::Add {
+            at: usize::MAX,
+            declaration: String::new(),
+            argument: "0".into(),
+        },
+    ] {
+        let error = changed(&index, change).unwrap_err().to_string();
+        assert!(error.contains("position"), "{error}");
+    }
 }
 
 #[test]
 fn a_sass_addition_cannot_fill_an_earlier_omitted_parameter() {
     let source = "@mixin adjust($fg: white) { color: $fg; }\n.a { @include adjust(); }\n";
     let (_dir, index) = workspace("a.scss", source);
-    let error = changed(&index, Change::Add { at: 1, declaration: "$bg".into(), argument: "black".into() }).unwrap_err().to_string();
+    let error = changed(
+        &index,
+        Change::Add {
+            at: 1,
+            declaration: "$bg".into(),
+            argument: "black".into(),
+        },
+    )
+    .unwrap_err()
+    .to_string();
     assert!(error.contains("cannot insert at position 1"), "{error}");
 }
 
@@ -239,7 +286,10 @@ fn a_sass_addition_cannot_fill_an_earlier_omitted_parameter() {
 fn typescript_default_expressions_keep_their_evaluation() {
     for (parameters, change) in [
         ("unused = record()", Change::Remove(0)),
-        ("left = record(), right = record()", Change::Move { from: 0, to: 1 }),
+        (
+            "left = record(), right = record()",
+            Change::Move { from: 0, to: 1 },
+        ),
     ] {
         let source = format!("function record() {{ console.log('effect'); return 1; }}\nfunction adjust({parameters}) {{ return 0; }}\nadjust();\n");
         let (_dir, index) = workspace("a.ts", &source);
@@ -254,7 +304,10 @@ fn typescript_function_types_are_not_default_initializers() {
     let (dir, index) = workspace("a.ts", source);
     let plan = changed(&index, Change::Move { from: 0, to: 1 }).unwrap();
     let after = apply(dir.path(), "a.ts", &plan.edits);
-    assert!(after.contains("adjust(value: number, callback: () => number)"), "{after}");
+    assert!(
+        after.contains("adjust(value: number, callback: () => number)"),
+        "{after}"
+    );
     assert!(after.contains("adjust(3, choose)"), "{after}");
 }
 
@@ -266,7 +319,11 @@ fn typescript_literal_defaults_preserve_javascript_execution() {
     let after = apply(dir.path(), "a.ts", &plan.edits);
     let evaluate = |source: &str| {
         let result = Command::new("node").args(["-e", source]).output().unwrap();
-        assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
         result.stdout
     };
     assert_eq!(evaluate(source), evaluate(&after));

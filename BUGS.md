@@ -44,7 +44,7 @@ The [grammar tests](tests/known_grammar_gaps.rs) check syntax repairs and nearby
 ## Planned features
 
 The [roadmap](PLAN.md#proposed-pr-sequence) covers graphs, analysis, refactoring, proofs and the public interfaces.
-The combined graph-and-analysis PR includes invalid-number conversion and shared-list analysis.
+PR #621 added bounded invalid-number conversion and shared-list analysis.
 Their unfinished earlier claims remain in the [qualification checklist](docs/earlier-roadmap-checklist.md).
 Keep current task requirements and completion checks in PLAN.md.
 

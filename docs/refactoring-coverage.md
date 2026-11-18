@@ -47,7 +47,7 @@ Shell positional reads are renumbered with their call sites, and quoted command 
 
 Python removal selects the supplied value by its actual binding, including mixed positional and keyword calls.
 Omitted defaults stay omitted. A move that supplies only part of the moved range refuses.
-Defaults and annotations whose evaluation could change also refuse.
+Python and TypeScript defaults whose evaluation could change also refuse, as do unchecked Python annotation effects.
 Variadic, grouped and keyword-only signatures require a separate binding rule and remain explicit refusals.
 
 The [structural-change guide](structural-changes.md) describes the narrower checked-authoring contract.

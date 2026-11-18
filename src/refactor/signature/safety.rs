@@ -212,19 +212,29 @@ pub(super) fn parameters(
     let affected: Vec<_> = match change {
         Change::Remove(at) => parameters.get(*at).into_iter().copied().collect(),
         Change::Move { from, to } if from != to => parameters
-            .iter().skip(*from.min(to)).take(from.abs_diff(*to) + 1).copied().collect(),
+            .iter()
+            .skip(*from.min(to))
+            .take(from.abs_diff(*to) + 1)
+            .copied()
+            .collect(),
         _ => Vec::new(),
     };
-    if matches!(language, Language::Python | Language::TypeScript | Language::Tsx) {
+    if matches!(
+        language,
+        Language::Python | Language::TypeScript | Language::Tsx
+    ) {
         for parameter in &affected {
-            if parameter.child_by_field_name("value")
+            if parameter
+                .child_by_field_name("value")
                 .is_some_and(|value| !simple_value(value, source, false))
             {
                 return Err(refuse("changing this parameter would remove or reorder a default expression whose evaluation may have effects or fail"));
             }
         }
     }
-    if language != Language::Python { return Ok(()); }
+    if language != Language::Python {
+        return Ok(());
+    }
     if list
         .parent()
         .and_then(|node| node.parent())
