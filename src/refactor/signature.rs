@@ -275,8 +275,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             }
             if let Some(receiver) = super::receiver_declared_type(index, reference) {
                 if sym.qualifier.as_deref() != Some(receiver.as_str())
-                    && index.named_like(&sym.name).any(|other| {
-                        other.kind.is_callable()
+                    && index.find_symbols(&sym.name, None).iter().any(|other| {
+                        other.name == sym.name
+                            && other.kind.is_callable()
                             && other.qualifier.as_deref() == Some(receiver.as_str())
                     })
                 {

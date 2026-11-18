@@ -97,8 +97,16 @@ fn moving_across_an_effectful_middle_argument_refuses() {
 #[test]
 fn one_member_read_can_cross_literals_or_an_isolated_parameter() {
     for (file, program, source) in [
-        ("a.py", "python3", include_str!("fixtures/signature/member-read.py")),
-        ("a.js", "node", include_str!("fixtures/signature/member-read.js")),
+        (
+            "a.py",
+            "python3",
+            include_str!("fixtures/signature/member-read.py"),
+        ),
+        (
+            "a.js",
+            "node",
+            include_str!("fixtures/signature/member-read.js"),
+        ),
     ] {
         let (dir, index) = workspace(file, source);
         let plan = changed(&index, Change::Move { from: 0, to: 1 }).unwrap();
@@ -106,11 +114,21 @@ fn one_member_read_can_cross_literals_or_an_isolated_parameter() {
         let execute = |text: &str| {
             let flag = if program == "node" { "-e" } else { "-c" };
             let result = Command::new(program).args([flag, text]).output().unwrap();
-            assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+            assert!(
+                result.status.success(),
+                "{}",
+                String::from_utf8_lossy(&result.stderr)
+            );
             result.stdout
         };
         assert_eq!(execute(source), execute(&after));
-        assert_eq!(execute(&after).split(|byte| *byte == b'\n').filter(|line| *line == b"read").count(), 2);
+        assert_eq!(
+            execute(&after)
+                .split(|byte| *byte == b'\n')
+                .filter(|line| *line == b"read")
+                .count(),
+            2
+        );
     }
 }
 
@@ -122,7 +140,9 @@ fn member_reads_do_not_cross_mutable_bindings_or_other_member_reads() {
         include_str!("fixtures/signature/two-member-reads.js"),
     ] {
         let (_dir, index) = workspace("a.js", source);
-        let error = changed(&index, Change::Move { from: 0, to: 1 }).unwrap_err().to_string();
+        let error = changed(&index, Change::Move { from: 0, to: 1 })
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("evaluation"), "{error}");
     }
 }

@@ -552,18 +552,26 @@ fn infer_expression(
 
     match kind {
         "composite_literal" | "struct_initializer" => {
-            let ty = node.child_by_field_name("type").or_else(|| node.named_child(0))?;
-            matches!(ty.kind(), "type_identifier" | "qualified_type" | "identifier" | "field_expression")
-                .then(|| Inferred {
-                    ty: Span::from(ty).text(source).to_string(),
-                    basis: Basis::Construction,
-                    from: None,
-                })
+            let ty = node
+                .child_by_field_name("type")
+                .or_else(|| node.named_child(0))?;
+            matches!(
+                ty.kind(),
+                "type_identifier" | "qualified_type" | "identifier" | "field_expression"
+            )
+            .then(|| Inferred {
+                ty: Span::from(ty).text(source).to_string(),
+                basis: Basis::Construction,
+                from: None,
+            })
         }
         "unary_expression" if text.starts_with('&') && from.language == Language::Go => {
             let operand = node.child_by_field_name("operand")?;
             let inferred = infer_expression(index, from, source, operand, depth)?;
-            Some(Inferred { ty: format!("*{}", inferred.ty), ..inferred })
+            Some(Inferred {
+                ty: format!("*{}", inferred.ty),
+                ..inferred
+            })
         }
         // `avg * 2`, where both sides are the same type.
         "binary_expression" | "binary_operator" => {

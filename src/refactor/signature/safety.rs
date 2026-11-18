@@ -98,7 +98,10 @@ pub(super) fn moving_arguments(site: &Site<'_>, spans: &[Span]) -> Result<()> {
         .collect();
     if uncertain.len() == 1 {
         let span = *uncertain[0];
-        let projection = site.parsed.root().descendant_for_byte_range(span.start, span.end);
+        let projection = site
+            .parsed
+            .root()
+            .descendant_for_byte_range(span.start, span.end);
         if projection.is_some_and(|node| member_read(node, site.source))
             && spans.iter().all(|other| {
                 *other == span
@@ -117,7 +120,10 @@ pub(super) fn moving_arguments(site: &Site<'_>, spans: &[Span]) -> Result<()> {
 
 fn member_read(node: Node<'_>, source: &str) -> bool {
     match node.kind() {
-        "attribute" | "member_expression" | "field_expression" | "field_access"
+        "attribute"
+        | "member_expression"
+        | "field_expression"
+        | "field_access"
         | "selector_expression" => {
             let object = ["object", "value", "operand", "argument"]
                 .iter()
@@ -136,7 +142,11 @@ fn member_read(node: Node<'_>, source: &str) -> bool {
 }
 
 fn isolated_parameter_read(site: &Site<'_>, span: Span) -> bool {
-    let Some(node) = site.parsed.root().descendant_for_byte_range(span.start, span.end) else {
+    let Some(node) = site
+        .parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
         return false;
     };
     if node.kind() != "identifier" {
@@ -148,13 +158,20 @@ fn isolated_parameter_read(site: &Site<'_>, span: Span) -> bool {
         if let Some(parameters) = super::parameter_list(scope) {
             let occurrences: Vec<_> = super::descendants(scope)
                 .into_iter()
-                .filter(|part| part.kind() == "identifier" && Span::from(*part).text(site.source) == name)
+                .filter(|part| {
+                    part.kind() == "identifier" && Span::from(*part).text(site.source) == name
+                })
                 .collect();
             return occurrences.len() == 2
-                && occurrences.iter().any(|part| Span::from(parameters).contains(Span::from(*part)))
+                && occurrences
+                    .iter()
+                    .any(|part| Span::from(parameters).contains(Span::from(*part)))
                 && !super::descendants(scope).into_iter().any(|part| {
                     part.kind() == "identifier"
-                        && matches!(Span::from(part).text(site.source), "eval" | "exec" | "arguments")
+                        && matches!(
+                            Span::from(part).text(site.source),
+                            "eval" | "exec" | "arguments"
+                        )
                 });
         }
         parent = scope.parent();
