@@ -314,3 +314,25 @@ fn a_competing_caller_edit_refuses_the_entire_saved_signature_plan() {
     assert_eq!(fs::read_to_string(root.path().join("api.py")).unwrap(), original);
     assert_eq!(fs::read_to_string(root.path().join("run.py")).unwrap(), competing);
 }
+
+#[test]
+fn a_recipe_cannot_commit_an_earlier_rename_after_signature_refusal() {
+    for argument in ["0", "record()"] {
+        let root = tempfile::tempdir().unwrap();
+        let source = format!("def record():\n    print('recorded')\n    return 0\ndef adjust(unused):\n    return 1\nprint(adjust({argument}))\n");
+        fs::write(root.path().join("run.py"), &source).unwrap();
+        let recipe = root.path().join("migration.recipe");
+        fs::write(&recipe, "schema 1\nrecipe migrate {\n rename to \"updated\" where name=\"adjust\" kind=function\n signature \"remove:0\" where name=\"updated\" kind=function\n}\n").unwrap();
+        let expected = python_project(root.path());
+        let (success, report) = cli(root.path(), &["recipe", recipe.to_str().unwrap(), "--write"]);
+        if argument == "record()" {
+            assert!(!success, "{report}");
+            assert_eq!(fs::read_to_string(root.path().join("run.py")).unwrap(), source);
+            assert!(!root.path().join(".fr-history").exists());
+        } else {
+            assert!(success, "{report}");
+            assert!(fs::read_to_string(root.path().join("run.py")).unwrap().contains("def updated():"));
+        }
+        assert_eq!(python_project(root.path()), expected);
+    }
+}

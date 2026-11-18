@@ -39,6 +39,7 @@ An unused parameter does not imply that its argument is safe to discard.
 For example, deleting the second parameter from `calculate(price, record_purchase())` would remove the call to `record_purchase`.
 The shared planner now refuses that edit before producing a transaction.
 The same rule reaches the general command, recipes and checked authoring.
+A recipe that first renames a function and then attempts an unsafe parameter removal must write neither change.
 
 Moving a parameter shifts the intervening positions. Moving 0 to 2 changes `(a, b, c)` to `(b, c, a)`.
 Every argument in that range must have established simple evaluation; moving across a call can change its relation to a retained read.
@@ -51,6 +52,8 @@ Variadic, grouped and keyword-only signatures require a separate binding rule an
 
 The [structural-change guide](structural-changes.md) describes the narrower checked-authoring contract.
 It retains primitive Rust signature requirements and requires independent compiler and behavior checks.
+An explicit documentation-preservation policy leaves comments unchanged during a rename;
+executable strings still need their references resolved before checked delivery.
 
 ## Completion record
 
