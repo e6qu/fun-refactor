@@ -1,0 +1,38 @@
+name: Unfamiliar product tasks
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tools/agent_eval/product_*.py'
+      - 'tools/agent_eval/test_product_*.py'
+      - 'tools/agent_eval/selected_plan.py'
+      - 'tests/agent-eval/product-validation/**'
+      - '.github/workflows/product-validation.yml'
+permissions:
+  contents: read
+concurrency:
+  group: product-validation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Reject changed study inputs and premature validation
+        env:
+          PYTHONPATH: tools
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -B -m unittest agent_eval.test_product_plan agent_eval.test_selected_plan
+      - name: Check public task-checker syntax
+        run: python3 -B -c 'import ast; from pathlib import Path; ast.parse(Path("tools/agent_eval/product_public.py").read_text())'

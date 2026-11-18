@@ -1,0 +1,33 @@
+{
+  "schema": "fr-product-tasks-1",
+  "round": "initial",
+  "tasks": {
+    "utils-rename": {
+      "family": "refactoring",
+      "repository": "wolph/python-utils",
+      "revision": "708ef32dd7e0f27f17a84671656e428cff906bd1",
+      "request": "Rename python_utils.converters.to_int to parse_int, including the package's lazy public export, in-tree callers, tests, examples and documentation. Remove the old public name; add no compatibility alias. Preserve behavior, comments, formatting and all unrelated names, including the supplied unrelated.py sentinel. Keep other conversion helpers unchanged.",
+      "check": "python3 -B .fr/product-check.py utils-rename"
+    },
+    "sqlparse-graph": {
+      "family": "graph-analysis",
+      "repository": "andialbrecht/sqlparse",
+      "revision": "09dbe1eec31ed1b3cd05366748865f11ba427d32",
+      "request": "Inspect the four public functions parse, parsestream, format and split in sqlparse/__init__.py. Fill analysis.json with every direct call expression in each function body, including nested calls and comprehensions. Each row must contain caller, callee (the exact source expression naming the callable), line (1-based), column (0-based UTF-8 byte offset), and source_target. Resolve local calls, imported project functions/classes and methods on the constructed FilterStack instance to a source_target with path, name (Class.method for methods), and definition line. For a constructor, point to the class definition. Treat these as source-pattern candidates, not guaranteed runtime dispatch. Use null for builtins and calls through other or unknown receivers. Sort calls by caller, line and column. List the four public definitions with name and line, sorted by name. Set runtime_dispatch_complete to false. Do not change source, dependencies or tests. analysis.json has the required structure. The public check validates its schema; independent grading checks completeness, locations and source targets.",
+      "check": "python3 -B .fr/product-check.py sqlparse-graph"
+    },
+    "slugify-bytes": {
+      "family": "behavior-change",
+      "repository": "un33k/python-slugify",
+      "revision": "4b6b5b42f050f1ce96899e015247d5e3901cc433",
+      "request": "Add a keyword-only max_bytes parameter, default 0, to slugify. In modern mode, first produce the ordinary complete slug using every existing option, then return its longest Unicode-code-point prefix whose UTF-8 encoding fits max_bytes. Zero disables the limit. Reject bool and non-int limits with TypeError and negative limits with ValueError. Legacy mode must reject a nonzero max_bytes with ValueError; zero and omitted limits must preserve its exact behavior. Preserve slugify/_legacy.py, all existing tests and the public smart_truncate helper unchanged. Add concise API documentation and new feature tests. This is a new feature request, not a claim that upstream has a defect.",
+      "check": "python3 -B .fr/product-check.py slugify-bytes"
+    },
+    "clamp-proof": {
+      "family": "proof",
+      "origin": "authored executable Lean example",
+      "request": "Prove clamp_bounds for the supplied executable Lean clamp function: when lower <= upper, the result is between those bounds and applying clamp again leaves it unchanged. Keep the function, theorem, assumptions, imports, markers and checking settings fixed. Change only the marked proof region in specs/FrSpecs/Clamp.lean. Lean must accept the complete theorem without sorry or new axioms.",
+      "check": "lake -d specs build --wfail"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "fr-product-comparison-1",
+  "study": "P5",
+  "maximum_live_attempts": 96,
+  "rounds": [
+    "initial",
+    "validation"
+  ],
+  "families": [
+    "refactoring",
+    "graph-analysis",
+    "behavior-change",
+    "proof"
+  ],
+  "profiles": [
+    "codex-luna-fast",
+    "opencode2-glm-flash",
+    "opencode2-kimi-k3"
+  ],
+  "setups": [
+    "files",
+    "fr"
+  ],
+  "repetitions": 2,
+  "attempts_per_round": 48,
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "client_finish_seconds": 10,
+  "workstation": {
+    "wall_seconds": 180,
+    "rss_bytes": 1073741824,
+    "target_bytes": 2147483648,
+    "free_disk_bytes": 68719476736
+  },
+  "profile_policy": "Use the selected-agents high-reasoning profiles for all four P5 tasks; original M3 settings stay unchanged.",
+  "retry_failed_slots": false,
+  "decision": {
+    "correctness": "For each profile, fr must complete at least as many independently accepted attempts as ordinary tools before claiming a benefit.",
+    "efficiency": "For that profile, at least two task families must have both repetitions accepted in both setups and at least a 10% reduction in their combined matched complete time with fr.",
+    "scope": "Apply the rule within each round. Different task sets do not isolate an implementation change across rounds. No general savings or population success-rate claim.",
+    "failure_accounting": "Keep every slot. A late valid patch remains a failed complete attempt. Unstarted time and missing usage or billing remain unknown, never zero.",
+    "diagnostic_cycles_per_obstacle": 2
+  },
+  "authorization": {
+    "source": "User selected full comparison with separate validation round",
+    "maximum_attempts": 96
+  },
+  "validation": {
+    "required_release": "validation-release.json",
+    "rule": "Freeze implementation and initial-round decision before opening validation source; refuse a release that changes during validation."
+  }
+}
