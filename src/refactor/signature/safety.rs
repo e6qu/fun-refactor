@@ -1,5 +1,3 @@
-//! Evaluation and binding checks shared by signature commands and recipes.
-
 use super::{Change, Site};
 use crate::lang::Language;
 use crate::parse::{Parsed, Parsers};
@@ -16,7 +14,6 @@ fn refuse(detail: impl Into<String>) -> anyhow::Error {
     .into()
 }
 
-/// Select by binding, not by the written position of a keyword argument.
 pub(super) fn python_argument(
     parsed: &Parsed,
     source: &str,
@@ -47,8 +44,6 @@ pub(super) fn python_argument(
     None
 }
 
-/// Removing an expression must not discard a call, exception or destructor.
-/// Reordering may also move plain reads, but only across other plain reads/literals.
 pub(super) fn argument(site: &Site<'_>, span: Span, moving: bool) -> Result<()> {
     let node = site
         .parsed
@@ -127,7 +122,6 @@ fn simple_value(node: Node<'_>, source: &str, names: bool) -> bool {
         | "plain_value" => true,
         "identifier" | "variable_name" => names,
         "string" | "string_literal" | "raw_string_literal" | "interpreted_string_literal" => {
-            // Interpolated strings can call code even when their outer node is a string.
             !super::descendants(node).into_iter().any(|child| {
                 matches!(
                     child.kind(),
@@ -273,7 +267,6 @@ pub(super) fn parameters(
             }
         }
     }
-    // Python can also evaluate annotations when defining the function.
     for parameter in affected {
         if parameter
             .child_by_field_name("type")

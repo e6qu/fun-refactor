@@ -1,5 +1,3 @@
-//! Signature edits preserve binding and evaluation, not merely parseable syntax.
-
 use fun_refactor::{
     edit::{apply_to_string, EditSet},
     index::Index,

@@ -258,7 +258,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             .any(|id| !members.contains(id))
         {
             return Err(Refusal::Declined {
-                detail: "this signature has conditional or overloaded definitions that cannot be changed independently".into(),
+                detail: "conditional or overloaded definitions require one coordinated signature change".into(),
             }.into());
         }
     }
@@ -636,8 +636,7 @@ fn defaults_would_be_out_of_order(
     ) {
         return false;
     }
-    // Read syntax: an arrow in a type is not an initializer. TypeScript permits
-    // initialized parameters before required ones, but not optional `?` parameters.
+    // TypeScript permits initialized parameters before required ones; only `?` parameters restrict their order.
     let defaulted = |span: &Span| {
         parsed
             .root()
@@ -729,8 +728,6 @@ fn apply_change(
             let includes_comma = source[span.start..target.start].contains(',')
                 || source[target.end..span.end].contains(',');
             if !includes_comma {
-                // Comments can separate an item from its comma. Preserve their bytes
-                // and remove the punctuation as a separate edit.
                 let (start, end) = if let Some(next) = items.get(index + 1) {
                     (target.end, next.start)
                 } else if index > 0 {
