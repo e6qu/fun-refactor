@@ -56,7 +56,7 @@ impl Solver {
             "function_limit":FUNCTION_LIMIT,
             "context":"symbolic explicit parameters; bind each call independently and fill omitted immutable scalar defaults.",
             "recursion":"monotone least fixed point over finite origin and effect sets.",
-            "effects":"explicit scalar returns, sink contracts and explicit raises; no heap effects.",
+            "effects":"Scalar returns, sinks and modeled raises. Known list arguments use bounded context-specific helper evaluation.",
             "claim":"may-value derivations in the declared model; neither feasible paths nor runtime termination.",
             "mutation_authority":false})
     }

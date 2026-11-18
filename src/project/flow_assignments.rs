@@ -148,6 +148,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut values = Vec::new();
         let mut plain_strings = Vec::new();
         for leaf in leaves {
+            if self.list_value(leaf, state).is_some() {
+                self.cutoff("list-destructuring-identity-unchecked");
+            }
             values.push(self.expression(leaf, state));
             plain_strings.push(self.plain_string(leaf, state));
             if !self.normal {

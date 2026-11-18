@@ -32,7 +32,7 @@ class RuntimeEffects:
             if (report.schema != "fr-dataflow-1" or not isinstance(scope, dict)
                     or set(scope) != {"exception_safety_established", "shared_mutable_values_supported", "complete_means"}
                     or scope["exception_safety_established"] is not False
-                    or scope["shared_mutable_values_supported"] is not False
+                    or scope["shared_mutable_values_supported"] is not True
                     or not isinstance(scope["complete_means"], str) or not scope["complete_means"]
                     or not isinstance(data["effect_limits"], list)):
                 raise FrRuntimeError("unsupported runtime effect disclosure")
@@ -55,6 +55,6 @@ class RuntimeEffects:
                     raise FrRuntimeError("effect location escapes the current source or repeats a site")
                 seen.add(key)
                 sites.append(EffectLimit(value["kind"], value["reason"], occurrence))
-            return cls(False, False, scope["complete_means"], tuple(sites))
+            return cls(False, True, scope["complete_means"], tuple(sites))
         except (KeyError, TypeError, ValueError) as error:
             raise FrRuntimeError("malformed runtime effect disclosure") from error

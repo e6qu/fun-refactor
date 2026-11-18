@@ -79,7 +79,7 @@ def test_cleanup_matches_independent_python_and_preserves_explicit_limits(tmp_pa
             assert not data['exceptional_returns']
     assert result.completion_control.block_limit == 512
     assert not result.runtime_effects.exception_safety_established
-    assert not result.runtime_effects.shared_mutable_values_supported
+    assert result.runtime_effects.shared_mutable_values_supported
     assert result.graphs
     assert 'completion_control' not in data
     if case['id'] == 'helper-raise-enters-cleanup':

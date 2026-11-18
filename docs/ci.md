@@ -355,8 +355,8 @@ to the selected working branch. It preserves old reports and leaves acceptance o
 Its token-authenticated push does not start another workflow automatically; dispatch `ci.yml` on
 the resulting branch revision before merging. Full CI also accepts a manual dispatch to validate
 an already merged revision. Existing test and job deadlines remain unchanged.
-The recovery evaluator binds `tests/host_recovery.rs` itself, so update its report path before
-regeneration. This avoids generating a report that immediately becomes stale when its test changes.
+The recovery evaluator binds `tests/host_recovery.rs`; keep that checking code fixed during collection.
+Its active report path comes from the roadmap catalog and is updated by retention.
 
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
 The Go and Zig toolchain checks fetch only their installer action and shared download script.

@@ -12,12 +12,17 @@ its presentation comparison uncertain. No agent met the two-versus-zero rule for
 transfer. These small results establish no general graph advantage. Reversal stays
 reserved. Earlier interrupted cohorts remain unchanged.
 
+This review concerns proof-guidance presentation. Code and call graphs remain part of the
+[full-product roadmap](../PLAN.md#proposed-pr-sequence), regardless of this presentation result.
+Later [page-count results](../tests/agent-eval/proof-page-count/local-results/summary.json) delivered four proofs under a separate 300-second limit.
+They do not establish a graph-presentation benefit.
+
 ## What the evidence supports
 
 Our [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) records several different obstacles:
 agents confuse assumptions joined by “and” with alternatives, search without checking a draft,
 apply library facts with the wrong argument types, or fail to finish delivery after a passing proof.
-None of the latest four full page-count attempts opened the arithmetic lesson.
+None of the four page-count attempts in that original comparison opened the arithmetic lesson.
 Adding more unread instructions cannot establish an improvement.
 
 The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates these problems.
@@ -107,43 +112,12 @@ Keep the same delivery guidance in both graph-presentation conditions.
 
 ## The fixed experiment and what happens next
 
-1. **Facts and the current baseline.** Use the fixed executable Euclid GCD task in the
-   [algorithm study](../tests/agent-eval/proof-algorithms/README.md).
-   Prove both termination and correctness. Compare selecting facts with receiving their types in eight GLM/Kimi sessions.
-   Qualify the references, evaluator and negative controls first; references stay outside agent workspaces.
-   The earlier division-fact plan remains an unrun supporting diagnostic, not a substitute for the algorithm.
-2. **Graph presentation.** Use the same fixed Euclid task after the fact comparison.
-   Compare a plain checklist with a graph.
-   Both contain exactly the same goals, assumptions, facts, dependencies and case guides.
-   Both keep the same interactive commands and checking policy. Only presentation changes.
-   Use Luna Fast, GLM Flash and Kimi K3, two repetitions per condition: twelve fresh sessions with balanced order.
-   Keep the original 150-second complete-attempt limit and workstation limits.
-   Reserve accumulator-based list reversal for transfer after the development decisions are fixed.
-3. **Checked search, only as a separate question.** If navigation or repeated failed paths remain an observed obstacle,
-   compare the agent's existing loop with a bounded controller that retains alternatives and returns to a valid earlier state.
-   Keep guidance, available facts, proposed-tactic allowance and total time fixed.
-   Include controller work, replay, checks and delivery in the cost. Prove checkpoint and dependency handling before live calls.
-   Do not call any improvement from this change evidence for graph formatting.
+The [Euclid report](../tests/agent-eval/proof-algorithms/README.md) retains the original comparison and decision rules.
+No agent met its two-versus-zero success rule for transfer, so list reversal stays reserved.
+The [division-fact study](../tests/agent-eval/proof-division-facts/README.md) and later page-count studies tested different obstacles.
+They do not establish a benefit from graph presentation.
 
-The completed sessions froze tasks, source, tools, order, limits and decisions before calls. Preserve those identities.
-With two repetitions, graph 2/2 versus checklist 0/2 warrants a different, reserved example before adoption.
-The reverse result warrants inspecting harm. Other results remain inconclusive about a success advantage.
-Both 2/2 provides no observed success advantage; it does not establish that graphs never help.
-Do not tune on the reserved example or keep repeating the same comparison until it passes.
-
-Require independently accepted complete delivery. Preserve timed-out valid proofs as failed attempts and unknown usage as unknown.
-Report time spent on successful attempts and total work including failures. Report guidance size and observed tool use too.
-No graph handout may contain the task's completed proof or change its claim, model, source or checking settings.
-Qualify unfinished branches, bad tactics, changed assumptions, stale snapshots and correct delivery as separate controls.
-Raw local prompts, transcripts and handoffs stay private; publish only permitted patches and reviewed summaries.
-
-The observed failures support smaller repairs first: reject guessed command flags,
-retain useful diagnostics, save each proof before changing another, and deliver the
-patch in the project root. The skills now teach those steps. A valid multiline-lambda
-control exposes the reader bug independently of the failed agent draft, which also
-had Lean errors. Check the reader fix separately. Neither these controls nor the
-revised instructions establish a measured gain in agent success. There is no observed
-state-loss failure that yet requires an automatic proof-backtracking controller.
-
-The original 335 M3 outcomes and sixteen earlier diagnostic outcomes remain unchanged.
-M3 stays open until its original requirements pass. A successful assisted example cannot replace the full page-count task.
+Use the [current roadmap](../PLAN.md#proposed-pr-sequence) for implementation work.
+Test a new proof-search controller only if observed failures require it; no recorded state-loss failure currently does.
+Keep original outcomes and limits in their reports. The [November review](https://github.com/e6qu/fun-refactor/blob/7666442e9/docs/proof-guidance-review.md)
+retains the detailed experiment sequence.

@@ -1,4 +1,4 @@
-# Refactor code, make a change or write a Lean proof
+# Analyze code, inspect graphs, refactor and check changes
 
 Start with the [README](../README.md) to install the tool. The [plan](../PLAN.md) explains what
 works today and the exact tasks planned for the selected smaller agents.
@@ -13,6 +13,9 @@ If a result is unclear, read [what you can conclude](understanding-results.md).
 | Write or repair a Lean proof | [First Lean proof](first-lean-proof.md) | [Goal, tactics and checker workflow](agent-formalization.md) |
 
 The [roadmap](../PLAN.md#next-work) names concrete refactoring, code-change and proof tasks.
+Its [proposed PR sequence](../PLAN.md#proposed-pr-sequence) covers the full product:
+code and call graphs, analysis, transformations, proof connections, recovery and public interfaces.
+The agent milestones test that scope rather than replacing it.
 It targets Codex with Luna Fast and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
 The first [36-attempt comparison](../tests/agent-eval/selected-agents/local-results/README.md) records actual patches, failures and observed overhead.
 Prefer preserving surrounding source. Keep refactoring behavior checks and deliberate behavior changes separate.
@@ -21,6 +24,7 @@ Prefer preserving surrounding source. Keep refactoring behavior checks and delib
 
 | What you want to do | Start here |
 | --- | --- |
+| Inspect graph and analysis coverage | [Graphs, calls and value traces](analysis-coverage.md) |
 | Find the code behind a bug | [Tutorial](../TUTORIAL.md), then [finding and checking an explanation](agent-investigations.md) |
 | Ask whether Python input reaches an output | [Python examples and limits](python-contract.md) |
 | Follow an input through an original Python package | [Number and date questions](original-package-questions.md), then the [leap-year question](leap-year-package-question.md) |

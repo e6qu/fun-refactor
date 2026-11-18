@@ -11,13 +11,16 @@ accepted all 28 submitted patches. Before its first call, the instructions passe
 and the existing M1/M2 workflows, using the exact previously checked native build.
 
 All three agents used actual fr checks and writes in access and range submissions.
-GLM and Kimi delivered no page-count patch in either setup, so M3 remains open.
+GLM and Kimi delivered no page-count patch in either setup, so the original M3 gate remains open.
+The later [seventh page-count study](../proof-page-count/local-results/summary.json) delivered four accepted patches under a separate 300-second limit.
+Keep that follow-up separate from this original 150-second comparison.
 The [command and timing review](behavior-review.md) distinguishes searching, checking a draft and delivering a proof.
 None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
 The updated root skill links it directly and starts by checking a small unfinished draft.
-Its effect on live proofs remains unmeasured.
+Those instructions belong to this comparison; later changes and outcomes appear in the [roadmap](../../../PLAN.md#evidence-behind-the-sequence).
 The next full comparison is paused under the [improvement method](../../../docs/agent-improvement.md).
-First check the evaluator and prepare a small diagnostic that separates finding feedback from using it to repair a proof.
+The subsequent [argument-repair diagnostic](../proof-argument-repair/README.md) retained eight timeouts without a delivered patch.
+Current work follows the [full-product PR sequence](../../../PLAN.md#proposed-pr-sequence).
 Earlier feedback alone cannot establish better final results.
 Native and hosted regression checks can continue while new agent calls stay paused.
 

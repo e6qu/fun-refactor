@@ -253,4 +253,4 @@ Count instructions, installation, indexing, model use, retries, edits, checks an
 Report first use with setup included; report later use separately.
 Grade behavior and replay the patch in a fresh checkout with the same independent checks for every setup.
 Keep each first failure, timeout and offered-but-unused tool visible.
-The earlier stopped studies stay stopped. The [product review](product-review.md#first-comparison-with-codegraph) owns the comparison's wider limits.
+The earlier stopped studies stay stopped. The [product review](product-review.md#earlier-studies) links their records and limits.

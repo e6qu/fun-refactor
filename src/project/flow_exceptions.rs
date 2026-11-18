@@ -44,6 +44,22 @@ fn matches(kind: &str, handler: &str) -> bool {
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
+    pub(super) fn exception_alias(&self, clause: Node<'t>) -> Option<Node<'t>> {
+        let alias = clause.child_by_field_name("alias").or_else(|| {
+            clause
+                .child_by_field_name("value")
+                .filter(|value| value.kind() == "as_pattern")?
+                .child_by_field_name("alias")
+        })?;
+        let name = self.text(alias);
+        (matches!(alias.kind(), "identifier" | "as_pattern_target")
+            && !name.is_empty()
+            && name.bytes().enumerate().all(|(i, byte)| {
+                byte == b'_' || byte.is_ascii_alphabetic() || i > 0 && byte.is_ascii_digit()
+            }))
+        .then_some(alias)
+    }
+
     pub(super) fn raised_value(
         &mut self,
         node: Node<'t>,
@@ -87,9 +103,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut cursor = clause.walk();
         let expressions: Vec<_> = clause
             .named_children(&mut cursor)
-            .filter(|child| !matches!(child.kind(), "block" | "comment"))
+            .filter(|child| {
+                !matches!(child.kind(), "block" | "comment")
+                    && Some(*child) != clause.child_by_field_name("alias")
+            })
+            .map(|child| {
+                if child.kind() == "as_pattern" {
+                    child.named_child(0).unwrap_or(child)
+                } else {
+                    child
+                }
+            })
             .collect();
-        let invalid = clause.child_by_field_name("alias").is_some()
+        let has_alias = clause.child_by_field_name("alias").is_some()
+            || clause
+                .child_by_field_name("value")
+                .is_some_and(|value| value.kind() == "as_pattern");
+        let invalid = has_alias && self.exception_alias(clause).is_none()
             || clause
                 .children(&mut clause.walk())
                 .any(|child| child.kind() == "*");
@@ -128,7 +158,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.effect_limit(
                 clause,
                 "exception-handler",
-                "Matching custom, bound or grouped errors remains unchecked.",
+                "Matching custom error classes or exception groups remains unchecked.",
             );
         }
         let mut yes = Raised::new();
@@ -156,5 +186,45 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             no.insert(kind, flow);
         }
         (yes, no)
+    }
+
+    pub(super) fn integer_conversion(&mut self, node: Node<'t>, env: &Environment, flow: &Flow) {
+        let Some(arguments) = node.child_by_field_name("arguments") else {
+            return;
+        };
+        let values: Vec<_> = arguments
+            .named_children(&mut arguments.walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if values.is_empty() {
+            return;
+        }
+        if values.len() == 1
+            && calls::unparenthesized(values[0]).is_some_and(|value| {
+                matches!(value.kind(), "integer" | "true" | "false")
+                    || value.kind() == "unary_operator"
+                        && value
+                            .child_by_field_name("argument")
+                            .is_some_and(|argument| argument.kind() == "integer")
+            })
+        {
+            return;
+        }
+        let decimal = values.len() == 1 || values.len() == 2 && self.text(values[1]) == "10";
+        if !decimal || !self.plain_string(values[0], env) {
+            if values.len() != 1 {
+                self.cutoff("integer-conversion-type-unchecked");
+            }
+            self.effect_limit(node, "implicit-exception", "The scalar model propagates this conversion's value. Its exception paths need a known string and base ten; custom conversions remain unchecked.");
+            return;
+        }
+        self.may_raise = true;
+        let raised = self.extend(flow.clone(), node, "integer-conversion-error");
+        merge(
+            self.exceptional_returns
+                .entry("ValueError".into())
+                .or_default(),
+            raised,
+        );
     }
 }

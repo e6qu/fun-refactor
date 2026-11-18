@@ -33,7 +33,7 @@ def test_typed_effect_sites_rebind_to_the_current_revision_when_a_saved_answer_i
     first = analyze(client, rules, cache)
     effects = first.runtime_effects
     assert not effects.exception_safety_established
-    assert not effects.shared_mutable_values_supported
+    assert effects.shared_mutable_values_supported
     assert len(effects.sites) == 2 and all(site.kind == "implicit-exception" for site in effects.sites)
     assert effects.sites[0].occurrence.path == "subject.py"
     (tmp_path / "unrelated.py").write_text("def other():\n    return 0\n")

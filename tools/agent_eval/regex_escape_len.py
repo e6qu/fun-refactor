@@ -87,20 +87,16 @@ def missing_api_only(stderr):
 
 def verify(root, *, cargo, rustc, cargo_home):
     env = os.environ.copy()
-    env.update(CARGO_HOME=str(cargo_home), CARGO_NET_OFFLINE="true")
-    target = root / "target"
-    build = subprocess.run([str(cargo), "build", "-p", "regex", "-p", "regex-syntax", "--lib", "--locked", "--offline", "--target-dir", str(target)],
-                           cwd=root, env=env, capture_output=True, timeout=180)
+    env.update(CARGO_HOME=str(cargo_home), CARGO_NET_OFFLINE="true", RUSTC=str(rustc))
+    build, libraries = regex_workspace.build_libraries(root, ("regex", "regex-syntax"), env, cargo)
     if build.returncode:
         return {"passed": False, "stage": 0, "detail": build.stderr.decode(errors="replace")[-4096:]}
     with tempfile.TemporaryDirectory(prefix="fr-escape-len-oracle-") as tmp:
         source, binary = Path(tmp) / "oracle.rs", Path(tmp) / "oracle"
         source.write_text(ORACLE)
         compiled = subprocess.run([str(rustc), "--edition=2021", "--error-format=json", str(source),
-                                   "--extern", f"regex={target / 'debug/libregex.rlib'}",
-                                   "--extern", f"regex_syntax={target / 'debug/libregex_syntax.rlib'}",
-                                   "-L", f"dependency={target / 'debug/deps'}", "-o", str(binary)],
-                                  env=env, capture_output=True, timeout=60)
+                                   *libraries, "-o", str(binary)],
+                                  cwd=root, env=env, capture_output=True, timeout=60)
         if compiled.returncode:
             return {"passed": False, "stage": 1 if missing_api_only(compiled.stderr) else 0,
                     "detail": compiled.stderr.decode(errors="replace")[-4096:]}

@@ -11,7 +11,7 @@ field names below match the tool; the examples explain why you would use them.
 | “Can this input reach the output?” | `project dataflow` for supported Python; read [result meanings](docs/understanding-results.md) |
 | “What would the fix change?” | `author`, `rename`, or a task guide; inspect the preview |
 | “Did the requested behavior improve?” | `checks`; choose a declared behavior test |
-| “How do I write and check a Lean proof?” | `spec plan`, `proof list`, `proof show`, `proof check`, `proof save`, `spec evidence`; start with the [complete lesson](docs/first-lean-proof.md) |
+| “How do I write and check a Lean proof?” | `spec plan`, `proof list`, `proof start`, `proof state`, `proof check`, `proof save`, `spec evidence`; start with the [complete lesson](docs/first-lean-proof.md) |
 | “How do I undo or deliver it?” | `history`, `workflow`, `git` |
 
 A refactoring preserves the required behavior. A repair or feature deliberately changes it.

@@ -1,6 +1,7 @@
 # fun-refactor
 
-`fr` helps coding agents refactor code, make targeted changes and write Lean proofs for supported programs.
+`fr` helps people and coding agents analyze code, inspect code and call graphs,
+refactor programs, make targeted changes and write Lean proofs for supported programs.
 It finds functions and known callers, previews edits, runs declared checks and keeps saved changes for undo.
 
 Suppose you ask an agent to fix a rounding error in checkout. It can use `fr` to find the calculation,
@@ -14,10 +15,15 @@ including failures and the extra time observed with `fr`. The [plan](PLAN.md) na
 The [four-change comparison](tests/agent-eval/project-edits/README.md) records completed Rust, TypeScript, regex and Python changes,
 including every failed attempt. Every selected agent now has an accepted result per task using `fr`.
 The [retained results](docs/roadmap-status.md) keep earlier checks and unfinished claims visible.
+The [proposed six-PR sequence](PLAN.md#proposed-pr-sequence) targets the full feature set,
+including analysis, graphs, transformations, recovery and public interfaces.
+Its coverage matrix will distinguish checked support from missing promised features.
 The [measurement guide](docs/benchmarks.md) explains what we compare, the extra work introduced by `fr`, and what remains unmeasured.
 
 | Your task | Start here |
 | --- | --- |
+| Inspect code, callers and dependencies | [CLI query guide](CLI.md) and [affected consumers](docs/change-scopes.md) |
+| Explain value flow and effects | [Semantic model](docs/semantic-model.md) and [Python analysis contract](docs/python-contract.md) |
 | Refactor while preserving behavior | [First checked rename](TUTORIAL.md) and [coordinated changes](docs/structural-changes.md) |
 | Fix a bug or add behavior | [Targeted implementation edits](docs/body-authoring.md) and [behavior checks](docs/checked-outcomes.md) |
 | Write or repair a Lean proof | [First complete proof](docs/first-lean-proof.md), [proof workflow](docs/agent-formalization.md) and [what the result establishes](docs/lean-specs.md#what-each-check-establishes) |

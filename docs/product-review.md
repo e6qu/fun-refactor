@@ -1,13 +1,20 @@
 # Check whether fr helps the selected agents finish real work
 
-The product focus is refactoring, targeted code changes and Lean proof writing for smaller agents.
+The product scope includes code and call graphs, code analysis, refactoring, transformations,
+proofs, recovery and public interfaces. Smaller-agent tasks measure whether those features help complete real work.
 The [roadmap](../PLAN.md) names concrete tasks, completion checks and the three selected model/application profiles.
 This page owns comparison rules. It does not authorize model spending.
+
+The [proposed PR sequence](../PLAN.md#proposed-pr-sequence) owns full-product completion.
+Its coverage matrix must retain every advertised feature and its language/interface obligations.
+A completed familiar-task comparison cannot establish feature completeness or general agent savings.
 
 ## What the user should get
 
 | Request | Useful result | Required check |
 | --- | --- | --- |
+| Inspect code and call graphs | Source-linked declarations, references, callers and dependencies | Resolution, confidence and omissions agree with independent examples |
+| Explain a value or effect | A trace through the declared language semantics | Runtime/compiler checks support the answer; incomplete analysis stays visible |
 | Rename a function | A reviewed change covering its declared callers and imports | Behavior stays the same; unrelated same-named functions stay intact |
 | Repair a bug or add a feature | A patch meeting the requested behavior | Independent checks reject the old mistake and incomplete repairs |
 | Prove a property | Agent-written Lean tactics for the unchanged claim | Lean accepts the proof; assumptions and the source/model connection remain visible |
@@ -120,34 +127,10 @@ Direct CLI calls were fastest in that record.
 Keeping Python running reduced its startup cost; saving answers added work without a consistent advantage.
 These prescribed questions do not measure an agent discovering a repair or writing a proof.
 
-## First comparison with CodeGraph
+## Earlier studies
 
-This is an earlier preparation, retained and inactive under the focused roadmap.
-It used [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph), two familiar tasks and three applications.
-The proposed eighteen attempts covered ordinary tools, CodeGraph and fr in Claude Code, Codex and the pinned older OpenCode.
-The [original preparation](agent-comparison-preparation.md) retains its controls and requirements.
-
-That schedule is not the new M1 schedule.
-Keep its original attempts and failures. Do not silently change model names, client releases or checking programs in an old record.
-
-## Repeated-task study
-
-The earlier broad study is retained and inactive.
-It remains an unfinished requirement of the [earlier qualification checklist](earlier-roadmap-checklist.md), not a completion gate for the focused roadmap.
-
-Its original scope has four task types: explanation, bug repair, feature work and a bounded proof.
-It requires at least three independent projects, two model families and the original repetitions.
-Thirty-two single-agent attempts and sixteen delegated attempts give forty-eight attempts.
-The delegated cases allow at most two child agents per attempt.
-No selected new comparison completes this earlier requirement by relabeling its results.
-
-## Stopped work and historical decisions
-
-Keep the closed client investigation and stopped packaging study stopped.
-The [candidate review](candidate-review-status.md) retains failed, cancelled and unstarted work.
-Original acceptance conditions and evidence stay in the [retained-results report](roadmap-status.md).
-Moving an unfinished claim out of the active queue does not mark it complete.
-
-The [pre-cleanup product review](https://github.com/e6qu/fun-refactor/blob/752af561fbd698f598f2786d3957c3d7e68a3180/docs/product-review.md)
-preserves the older decisions. The [previous roadmap](https://github.com/e6qu/fun-refactor/blob/c923d3cde7/PLAN.md) preserves the superseded work sequence.
-
+The [CodeGraph preparation](agent-comparison-preparation.md), [broader study](agent-study.md)
+and [candidate reviews](candidate-review-status.md) retain their original plans and outcomes.
+They are separate from M1–M3 and the current full-product PR sequence.
+Keep stopped studies stopped unless the user explicitly restarts them.
+The [earlier checklist](earlier-roadmap-checklist.md) records their unfinished obligations.

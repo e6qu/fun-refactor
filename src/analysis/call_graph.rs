@@ -12,6 +12,9 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
+#[cfg(any(feature = "cli", feature = "wasm"))]
+mod report;
+
 /// A call edge between two functions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CallEdge {

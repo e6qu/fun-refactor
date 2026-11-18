@@ -29,7 +29,7 @@ profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
 SCHEMA = 'fr-python-contract-3'
 LIMITS = ('Finite scalar examples, not full Python correctness or path feasibility. '
-          'Implicit exceptions, mutable-object operations during calls and dynamic dispatch remain outside this model. '
+          'Unhandled implicit exceptions, mutation beyond bounded shared lists and dynamic dispatch remain outside this model. '
           'Runtime observations cover only declared inputs. Retained output is not execution attestation. '
           'No live-agent, token-efficiency or repository-generalization claim.')
 
@@ -71,6 +71,8 @@ def bindings():
                  'sdk/python/tests/test_finally_flow.py', 'sdk/python/src/fr_ir/flow_completion.py',
                  'tests/agent-eval/python-finally/cases.json', 'docs/check-python-cleanup.md',
                  'sdk/python/tests/test_exception_handlers.py', 'tests/agent-eval/python-handlers/cases.json',
+                 'sdk/python/tests/test_graph_analysis.py',
+                 'sdk/python/tests/test_standard_library.py',
                  'tests/agent-eval/python-handlers/selection.json', 'docs/catch-python-errors.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -221,9 +223,9 @@ def audit_case(row, case):
             and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
     assumptions = [
-        'scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.',
+        'Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
-        'Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.',
+        'Supported raises and known-string integer conversion failures follow builtin handlers and cleanup. Local caught-error names preserve origins. Other implicit exceptions, custom classes and resource effects remain unchecked.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
     if case['standard_library']:
         assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check.')

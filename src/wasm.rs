@@ -686,12 +686,14 @@ impl Workspace {
             functions: usize,
             edges: usize,
             hierarchy_edges: usize,
+            details: serde_json::Value,
         }
         let graph = crate::analysis::call_graph::CallGraph::build(&self.index);
         ok(&Shape {
             functions: graph.node_count(),
             edges: graph.edge_count(),
             hierarchy_edges: graph.hierarchy_edge_count(),
+            details: graph.report(&self.index, Path::new("")),
         })
     }
 

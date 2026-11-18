@@ -1,7 +1,12 @@
-# Help smaller agents refactor code, make changes and write Lean proofs
+# Complete fr for code analysis, graphs, refactoring and checked delivery
 
 Give a smaller coding agent a concrete change or property to prove.
 Fr should help it find the right code, prepare a precise edit, check its work and deliver the result within explicit limits.
+
+The destination is the complete fr feature set: code and call graphs, code analysis,
+refactoring, targeted changes, translation, proofs, recovery and public interfaces.
+The smaller-agent milestones validate that product. They do not replace its broader scope.
+The [proposed PR sequence](#proposed-pr-sequence) restores that scope and defines completion work.
 
 ## The three jobs
 
@@ -27,16 +32,9 @@ Reports must distinguish those claims.
 | OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2; low reasoning in M3 |
 | OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2 and low reasoning in M3 |
 
-The installed catalogs checked on 2026-10-25 contain these selections and also list Kimi K3.1 Pro.
-Catalog entries and configured credentials do not establish that a live attempt will be admitted.
-Freeze client releases, model identities, reasoning settings, accounting limits and attempt limits before live calls.
-Use a fresh application state for each attempt. Reject a model substitution; do not inherit a personal default or use a stronger helper model.
-
-The selected releases have six scripted native checks, one per profile and tool setup.
-Those checks execute real commands with scripted replies; they test the setup rather than model task success.
-The [M1 results](tests/agent-eval/selected-agents/local-results/README.md) record all thirty-six local CLI attempts,
-their independently checked patches, failures and observed overhead against the same agents using ordinary tools.
-Fast is a Codex service setting, not another Luna model.
+Freeze client versions, model IDs, reasoning settings and limits before a live comparison.
+Use fresh application state for every attempt and reject model substitutions.
+Scripted client checks test setup; live attempts test whether an agent can finish the task.
 See the [agent comparison policy](docs/product-review.md#compare-the-selected-agents).
 
 ## Next work
@@ -46,140 +44,162 @@ required live attempts, results and tracking belong together. Keep a milestone o
 its completion conditions are met and its CI passes. M1 and M2 have their complete comparisons.
 M3 is open: GLM and Kimi still lack accepted page-count proofs within the original 150 seconds.
 
-The [improvement method](docs/agent-improvement.md) requires a recorded obstacle, a specific
-proposed repair, checked controls and a comparison declared before any model calls.
-The latest evidence gives us three useful limits:
+The seventh page-count study delivered four accepted proofs within its separate 300-second limit.
+PR #619 has landed product-order facts in `proof start`; its live effect remains unmeasured.
+Keep both observations separate from the original M3 completion gate.
 
-| Study | What happened | What it establishes |
+### Proposed PR sequence
+
+Each PR includes implementation, examples, checks, results and documentation.
+The numbers below describe the work order, not GitHub PR numbers.
+The combined graph-and-analysis PR is now in progress.
+
+| PR | Complete outcome | Completion gate |
 | --- | --- | --- |
-| [Write the three Rust model proofs](tests/agent-eval/proof-writing/local-results/README.md) | 28 of 36 attempts delivered accepted patches; eight timed out. GLM and Kimi delivered no page-count proof | Fr can support access and range proofs; page count remains unfinished |
-| [Write the actual Euclid algorithm proofs](tests/agent-eval/proof-algorithms/README.md) | Eight of twenty attempts delivered accepted patches; twelve timed out | Two repetitions show no general graph advantage; no transfer test was earned |
-| [Repair page-count arguments](tests/agent-eval/proof-argument-repair/README.md) | All eight attempts timed out without a patch. One Kimi draft passed checking near 135 seconds but was not saved or delivered | The predicted argument mistake was not observed, so this does not validate that repair instruction |
+| 1. Complete graphs and code analysis | Find code and callers, trace values and effects, and explain what a change affects | A feature inventory, graph checks and independent runtime checks cover the promised languages and report unresolved behavior |
+| 2. Complete refactoring and transformations | Discover affected code, preview a coordinated change, check it, undo it and deliver it | Every promised operation and language combination has positive, refusal, preservation and replay checks, including cross-language and framework cases |
+| 3. Complete proof authoring and bounded implementation connections | Write, repair, maintain and deliver proofs, with checked source connections for one existing and one new function | All M3 cases have current evidence; original timing failures remain visible; the two implementation connections pass independent checks |
+| 4. Complete recovery and public interfaces | Resume analysis and changes consistently through CLI, Python, WASM/browser and declared integrations | Each promised interface supports its assigned workflows, detects stale state and passes interruption, recovery and delivery checks |
+| 5. Validate unfamiliar tasks and reduce complete costs | Establish where the full tool helps agents and remove measured overhead | Frozen matched trials retain all outcomes; improvements survive independent tasks without weaker correctness or accounting checks |
+| 6. Qualify the complete product and release | Ship an integrated, documented feature set with reproducible evidence | No promised matrix cell remains missing; full hosted CI, artifact checks, examples and release replay pass |
 
-Every failure, interrupted collection and unstarted slot remains recorded. A correct draft,
-a checked proof and a delivered patch are distinct outcomes. Unknown usage and charges stay unknown.
-The [supplied-proof delivery study](tests/agent-eval/proof-algorithms/local-results/M3-delivery/README.md)
-measures delivery of given answers; it cannot replace proof discovery.
+#### PR 1: Complete graphs and code analysis
 
-**Completed:** [#603](https://github.com/e6qu/fun-refactor/pull/603) merged the explicit
-`fr proof start`, `state`, `check` and `save` workflow, dependable JSON errors and Lean reader repairs.
-Its [92-job CI gate](https://github.com/e6qu/fun-refactor/actions/runs/42085550950)
-and all companion workflows passed. These tool checks establish no improvement in GLM or Kimi success.
+The [analysis inventory](docs/analysis-coverage.md) links current features to their checks.
+Complete the inventory of commands, catalogs, language readers, resolvers, SDK methods,
+browser features, recipes and documentation promises. Turn it into a maintained feature coverage matrix.
+Each row names the feature, supported language forms, public interfaces, evidence and remaining work.
+Distinguish implemented, independently checked, missing and intentionally unsupported cases.
+Existing advertised features remain obligations. Removing a promise requires an explicit scope decision;
+marking it unsupported cannot satisfy the completion gate.
 
-**Completed:** [#604](https://github.com/e6qu/fun-refactor/pull/604) ran the
-[eight division-fact sessions](tests/agent-eval/proof-division-facts/README.md) at 150 seconds.
-Four delivered accepted patches in time, two delivered accepted patches late, one timed out
-and one stopped on an observer race now fixed. Tools used 6 to 33 seconds of each session;
-waiting for model replies used the rest. Separate delivery turns cost Kimi two correct proofs.
+Complete the graph gaps this inventory exposes.
+Cover symbol and occurrence identities, lexical scope, imports, aliases, direct and candidate calls, recursion, dependency edges and consumer traversal.
+Connect code graphs, call graphs and project maps through consistent source locations and query results.
+Cover declared cross-language links, configured entry points and relevant build/configuration inputs.
+Test shadowing, duplicate names, ambiguous dispatch, missing imports and external consumers.
+Dynamic or unresolved relationships must retain their uncertainty through graph export and impact analysis.
+Changing code or configuration must invalidate affected graph results.
+Use independent fixtures and real projects; a graph display alone does not complete graph semantics.
 
-**Completed:** [#606](https://github.com/e6qu/fun-refactor/pull/606) gave proof sessions 300 seconds
-and delivered saved proofs with one `fr proof save --deliver` call. `fr proof check` now shows Lean's
-`exact?` suggestions and refuses `native_decide`. In the [second page-count study](tests/agent-eval/proof-page-count/results-300s-native-decide/summary.json)
-Kimi delivered both proofs and GLM none; the grade rejected one Kimi proof for `native_decide`.
-No session used `exact?`. One GLM session hit the client step limit, the other its CPU budget.
+Use the matrix to finish promised control-flow and data-flow operations across their declared language profiles.
+Cover evaluation order, branches, loops, calls, returns, recursion, exceptions, aliases and shared mutation
+where those profiles promise them. Complete the deferred Python invalid-number-input and shared-list cases.
+Include declared source/sink rules, context-specific sanitizers and exact effect locations.
+Connect analysis answers to graph occurrences, compiler settings and the evidence behind each conclusion.
 
-**Completed:** [#607](https://github.com/e6qu/fun-refactor/pull/607) made `fr proof start` list
-library theorems about the model's operations, with exact names from Lean's `.ilean` indexes.
-In the [fourth page-count study](tests/agent-eval/proof-page-count/results-300s-library-facts/summary.json)
-sessions named listed facts and searched library files twice instead of four to eight times.
-None delivered a proof; each ran out of time while fixing Lean errors.
+Check reusable rules against independent execution and compiler results, including renamed and relocated examples.
+Exercise original imports and package initialization rather than relying only on extracted functions.
+Unknown calls, unsupported constructs and exhausted budgets must remain visible to downstream edits and proofs.
+Parsing a language never substitutes for completing its promised analysis operations.
+Update the earlier language-rule obligations only when their exact acceptance conditions pass.
 
-**Completed in #609: proof-check errors that fit and explain themselves.**
+#### PR 2: Complete refactoring and transformations
 
-Across the fourth study's checks, `omega` failed 14 times and lint warnings appeared 14 times.
-The response showed omega's counterexample without the `where` lines naming each variable,
-so a model could not tell which term omega treated as unknown. Warnings shared the byte
-budget with errors, and one omega error lost its whole context.
+Complete every operation promised by the inventory, including rename, signature and parameter changes,
+structural/body edits, batch operations, recipes and their declared language combinations.
+Use graph and analysis results to discover callers, imports, contracts, configuration and relevant tests.
+Preserve comments, formatting, unrelated names, argument evaluation and untouched source as required by each operation.
+Ambiguous references and effectful argument removal must refuse unsafe edits.
 
-1. List errors first, then Lean's suggestions, then warnings.
-2. Keep omega's variable definitions; drop constraint lines first when space runs short.
-3. Drop warnings before shortening any error while errors remain.
-4. Refresh the evidence, then run another four-session study after approval.
+Include declared translation, configuration/markup, cross-stack and framework/application transformations.
+Preserve their explicit arithmetic, evaluation-order, runtime and adapter contracts.
+For each family, deliver complete examples with previews, behavior checks, stale-plan refusal,
+exact undo/redo and patch replay in another checkout. Test competing edits and partial failures.
+Retain M2 regressions and report external consumers that the workspace cannot establish.
+Whole-project migration remains a separate scope decision wherever the current contract excludes it.
 
-The [fifth study](tests/agent-eval/proof-page-count/results-300s-error-order/summary.json) delivered no patch.
-All four sessions ran out of time. Omega failures now carried their `where` lines.
-Kimi used them to name `size * (items / size)` as the missing fact.
-GLM cut its omega failures from two to one. Neither added the division identity in time.
-A failed `fr proof save` returned one line with no diagnostics.
-GLM spent its last three tries on such calls.
+#### PR 3: Complete proofs and implementation connections
 
-**Completed in #613: failed proof saves report like proof checks.**
+Consolidate fact selection, goal inspection, bounded diagnostics and one-call delivery into one qualified proof workflow.
+Include #619's product-order facts, rejected-save diagnostics and operation-based fact selection without benchmark-specific rules.
+Recheck the eight Boolean language cases, both numeric tasks, protected claims, stale proof receipts
+and preservation of unrelated handwritten proofs on the final implementation.
 
-A rejected `fr proof save` now returns the `fr proof check` report and writes nothing.
-Draft locations stay workspace-relative when the workspace path passes through a symlink.
+Report the status of each M3 requirement with the original 150-second comparison
+and the separate 300-second follow-up side by side. The original gate stays open unless its conditions hold.
+Agree any new completion rule before running the comparison.
+Do not rerun the full 36-attempt study to seek a winner or silently extend existing limits.
+Use the smallest declared diagnostic needed for an unresolved question; report negative results as outcomes.
 
-The [sixth study](tests/agent-eval/proof-page-count/results-300s-save-diagnostics/summary.json) delivered one patch.
-Kimi-1 used `Int.tmod_add_mul_tdiv` from `library_facts` and passed at 264 s.
-No session called a failing `fr proof save`, so #613 was not exercised.
-All four sessions searched Lean's library source for lemma names.
-Kimi-2 never ran `fr proof start` and spent its whole session there.
-GLM-1 searched for 175 s before it started the proof.
-GLM-2 traced imports to learn whether `omega` worked after `prelude`.
-`constructor` split its three-part goal into two, and omega lacked the division identity.
-GLM-1 needed `q ≤ q * size`, which `exact?` finds only as `1 * q ≤ size * q`.
+Add a checked implementation/model connection for the existing Rust page-count function and new `fits_window` function.
+Retain source, model, arithmetic semantics, toolchain, proof and trusted components for each.
+Boundary tests and source hashes alone cannot establish that connection.
+Changes to source, model, property or dependencies must invalidate the corresponding claim.
+This addresses the earlier existing/new implementation proof obligations without promising arbitrary-program verification.
 
-**Completed in #616: the skill and `fr proof list` point weak agents past these stalls.**
+#### PR 4: Complete recovery and public interfaces
 
-Each `fr proof list` row carries its `fr proof start` command. The skill gives the division steps,
-the start-first order, the flag ranges and `refine` for three-part goals.
+Finish matrix gaps in the CLI, Python SDK, WASM/browser, agent skills and declared integrations.
+Make graph queries, analysis, previews and checked changes available wherever their public contracts promise them.
+Document intentional interface differences; do not imply that a browser can run an unavailable native compiler.
+Keep human-readable results and structured schemas consistent about uncertainty and completion.
 
-The [seventh study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered four patches.
-All four checks passed, between 185 s and 276 s. No session opened the new division reference.
-Each read the `fr proof start` result, and only two searched Lean's source, for 5 s and about 40 s.
-The longest stall was the product bound `q ≤ size * q`, which omega needs and `library_facts` lacked.
-Kimi-1 spent about 90 s deriving it, and GLM-2 read Lean's source for the lemma's argument order.
-fr rejected three calls: a partial target, `--at 30` and `--timeout-seconds 120`.
-Each error named the accepted form, and the next call succeeded within 4 s.
+Exercise saved findings, dependency-aware reuse, restart, stale review rejection, interrupted writes,
+Git/history operations and delivery across revisions. Verify reused results against fresh analysis.
+Check installable artifacts and runnable examples, including cross-interface handoffs where promised.
+Refresh affected evidence with its original provenance intact. Avoid a second competing workflow or compatibility layer.
 
-**Next PR: `library_facts` lists the product order facts first.**
+#### PR 5: Validate unfamiliar work and reduce overhead
 
-When a listed fact contains a product, `fr proof start` lists `Int.mul_le_mul_of_nonneg_left`
-and `_right` first, with their statements. The success criterion stays steady progress to a finished proof.
+Use complete refactoring, analysis/graph investigation, behavior-change and proof tasks to evaluate the integrated product.
+Reserve unread projects and independent proof examples before implementation inspects them.
+Freeze task checks, profiles, tool setups, repetitions, order, costs and decision rules before model calls.
+Compare the same agent with ordinary tools and with fr, including setup, reading, retries, checks and delivery.
+Separate correctness, complete-attempt success, matched successful times and spending per success.
+Keep missing usage and charges unknown, and keep every failed or unstarted slot.
 
-The earlier argument-repair instruction produced no delivered patch and its predicted error was
-unobserved. This diagnostic tests a different obstacle; it cannot close M3 or establish a benefit
-from graph presentation. A resource refusal blocks launching, rather than permitting weaker checks.
-Do not repeat the full 36-attempt study to seek a passing result. Keep list reversal reserved.
-The named language cases, both numeric tasks and source/model checks below still define M3 completion.
+Use measured bottlenecks to simplify discovery, instructions, checking or delivery within this same PR.
+Validate changes on a separately reserved set; do not tune on the final evaluation tasks.
+Preserve the initial results and report regressions. Two failed diagnostic cycles trigger a review of the hypothesis.
+Do not introduce proof-graph presentation or a proof-search engine without evidence that it addresses an observed obstacle.
+List reversal stays reserved under the existing transfer decision; choose other examples for unrelated questions.
+This work does not silently restart or satisfy the earlier CodeGraph or 48-attempt study.
+If no benefit emerges, publish the negative result and an explicit product decision before release claims.
+
+#### PR 6: Qualify and release the complete product
+
+Check each feature against the shipped tool, tests, examples and documentation.
+Close promised gaps; retain explicit unresolved obligations rather than describing a partial matrix as complete.
+Run the full hosted test gates, language and interface checks, independent patch/proof checks,
+installation tests and release replay against the final candidate.
+Reconcile README, CLI/API references, skills, website, roadmap, bug list and handoff with the same support contract.
+Preserve original study records and refresh only current evidence whose inputs changed.
+Publish bounded claims about supported features and measured agent outcomes, including negative results.
+
+All PRs keep local work serial, guarded and within the existing resource limits.
+Full builds, full gates and large evidence regeneration run on GitHub.
+A 300-second study does not authorize extending the 180-second local guard;
+longer work requires a separately admitted execution environment. A resource refusal stops local work.
+
+### Evidence behind the sequence
+
+M1 and M2 have complete comparisons. Their reports include failed attempts and show no general time or cost savings.
+The original M3 comparison accepted 28 of 36 deliveries. GLM and Kimi did not finish page counting within 150 seconds.
+The later [page-count study](tests/agent-eval/proof-page-count/local-results/summary.json) delivered four accepted proofs within its separate 300-second limit.
+The latest tool change, #619, supplies product-order facts; its effect on live delivery remains unmeasured.
+
+The [Euclid study](tests/agent-eval/proof-algorithms/README.md) accepted eight of twenty deliveries and found no general advantage from proof diagrams.
+The [argument-repair diagnostic](tests/agent-eval/proof-argument-repair/README.md) delivered no patch in eight attempts.
+These results guide the next experiments. They do not limit the product's code or call graphs.
+Detailed attempts, fixes and original limits remain in those reports and Git history.
 
 ### M1. Run the selected agents on three complete tasks
 
-The [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) covers a Boltons rename,
-a Unicode repair and a Lean proof of the fixed staff-or-owner access model.
-It retains every outcome and submitted patch. A timed-out client stays failed even when its patch passes.
-Only patches and summaries are public; full CLI records and credentials remain local.
-Actual charges and unavailable usage remain unknown. A checked model proof leaves its connection to source behavior open.
+The [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) is complete: 27 passed and nine failed.
+It covers a Boltons rename, Unicode repair and access-rule proof with and without fr.
+These familiar tasks establish a baseline, not general agent savings. The report retains every outcome and submitted patch.
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 
-The [latest comparison](tests/agent-eval/project-edits/local-results/README.md) independently checked all 48 submissions.
-All 48 patches passed. Forty-three attempts finished within the original 150-second limit; five timed out and remain failed.
-Every selected agent delivered at least one accepted result per task using a reviewed, contributing fr step.
-The complete milestone belongs in one PR, with its implementation, checks, examples, results and tracking.
-The full PR CI gate must also pass.
+The [48-attempt comparison](tests/agent-eval/project-edits/local-results/README.md) is complete.
+All patches passed independent checks; 43 attempts finished within 150 seconds and five timed out.
+Every selected agent delivered an accepted result for each task using fr.
 
-| Completed case | Concrete behavior |
-| --- | --- |
-| Rust parameter removal | Remove an unused Boolean input across two packages and all five declared calls; preserve other argument evaluation and refuse removal of an argument with effects |
-| TypeScript rename | Change the exported `price` to `quote` through an import alias; keep calls named `displayPrice` and preserve the unrelated `price` function |
-| Regex feature | Add documented length APIs in both packages; count UTF-8 bytes without allocating, produce escaped text with at most one allocation, and preserve append behavior |
-| Python repair | Make `invoice_total(5, 2)` return 7 while preserving the public signature and unrelated source |
-
-Supplied controls also check preserved source, competing edits, failed-check diagnostics, separate patch delivery and exact undo/redo.
-External callers that the workspace cannot identify remain unknown.
-The [task guide](tests/agent-eval/project-edits/README.md) owns the exact frozen requirements and limits.
-
-| Complete comparison | Accepted / 48 | What changed before its first call |
-| --- | ---: | --- |
-| [Original](tests/agent-eval/project-edits/first-results/README.md) | 33 | Fr was available; using it was optional |
-| [Shorter guides](tests/agent-eval/project-edits/guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify examples and repair the local Rust helper |
-| [Actual clock](tests/agent-eval/project-edits/clocked-results/README.md) | 41 | List requirements separately, give the actual finish time and reserve time for the response |
-| [Behavior checks](tests/agent-eval/project-edits/local-results/README.md) | 43 | Check actual byte counts and allocations, avoid optimized development builds, and protect supplied checking files |
-
-Keep all 192 attempts, including failures. These combined changes do not isolate one cause of the differences.
-For matching successful pairs in the latest comparison, adding fr took 33% longer with Luna, 50% with GLM and 17% with Kimi.
-The baseline is the same agent using ordinary tools. Times include preparation, replies, tools, checks and delivery.
-These are code-change times, not execution-speed measurements of the changed programs. No general savings are established.
+The tasks cover Rust parameter removal, a TypeScript export rename, escaped-text length APIs and a Python invoice repair.
+Checks cover behavior, preserved source, effectful arguments, conflicting edits, delivery and exact undo/redo.
+Matching successful attempts took 33% longer with fr for Luna, 50% for GLM and 17% for Kimi.
+Earlier iterations and all 192 attempts remain in the [task reports](tests/agent-eval/project-edits/README.md).
 
 ### M3. Help the agents write, repair and maintain Lean proofs
 
@@ -225,15 +245,19 @@ Keep failed tactics and unsuccessful attempts in the results.
 An unchecked source/model connection remains an open claim in every report.
 A general verified translator or proof of arbitrary programs is not a completion condition for this proof-authoring milestone.
 
-## Work outside the active queue
+## Scope and deferred work
 
-The earlier invalid-number-input and shared-list expansions are no longer the next milestones.
-General Python semantics, new analysis engines, broad translation expansion and standalone cache optimization are outside the active queue.
-A concrete blocker from M1, M2 or M3 can bring the required work into scope.
-Keep working behavior and fix encountered defects; this change does not remove existing capabilities.
+The full advertised feature set is in scope for the proposed sequence.
+The earlier invalid-number-input and shared-list expansions return in PR 1.
+Analysis, graphs, refactoring and declared translation support remain product goals alongside proof authoring.
+Preserve working behavior and fix encountered defects within the relevant complete PR.
+
+Arbitrary-language semantics, unrestricted dynamic resolution, general verified translation,
+new analysis engines and standalone cache optimization require a concrete uncovered obligation or measured blocker.
+Add features to meet a concrete requirement. Do not drop a promised feature to close the matrix.
 
 The former CodeGraph comparison and forty-eight-attempt broad study retain their original plans and outcomes.
-They do not define completion of this focused roadmap and are not restarted.
+They do not define completion of this PR sequence and are not restarted.
 The [earlier checklist](docs/earlier-roadmap-checklist.md) and [retained-results report](docs/roadmap-status.md) preserve unfinished earlier claims without marking them complete.
 
 ## Generalization requirements

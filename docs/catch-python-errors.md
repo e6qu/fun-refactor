@@ -121,10 +121,12 @@ For example, a helper can raise `ValueError(customer_label)` on one branch and `
 The public helper description keeps those classes and origins separate.
 An empty origin map still records a possible error when its class is present.
 
-Custom classes, `except ... as error` bindings, exception groups and shared mutable objects remain unsupported.
-The error name in `as error` refers to an exception object, which this simple-value model does not track.
+`except ... as error` preserves the caught value's origins in that local name.
+Python deletes the name when the handler exits; the analyzer follows that deletion.
+The [analysis guide](analysis-coverage.md) describes known-string conversion failures and local shared lists.
+Custom error classes, exception groups and arbitrary shared objects remain unsupported.
 Calls and arithmetic can also raise implicitly, without an explicit `raise` statement.
-For example, `int('invalid')` can raise `ValueError`; this extension does not model that runtime failure.
+Known-string base-ten conversion includes a possible `ValueError`; most other implicit failures remain unchecked.
 The report continues to state that runtime exception safety is unestablished.
 Neither a finished simple-value analysis nor an empty trace proves the absence of all runtime paths or errors.
 
