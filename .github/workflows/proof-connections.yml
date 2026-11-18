@@ -36,6 +36,10 @@ jobs:
             /*
             !/tests/agent-eval/results/*
       - uses: ./.github/actions/lean-toolchain
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/check-prose.py
       - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
       - uses: Swatinem/rust-cache@v2
         with:
@@ -59,3 +63,7 @@ jobs:
           if-no-files-found: ignore
       - run: cargo test --locked --test proof_cli --test proof_state --test formal_kernel -- --test-threads=1
       - run: cargo clippy --locked --lib --bin fr -- -D warnings
+      - name: Inspect advertised support
+        run: |
+          target/debug/fr --json audit
+          target/debug/fr capabilities

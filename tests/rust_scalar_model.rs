@@ -49,6 +49,16 @@ fn check(source: &str, symbol: &str, tactics: &str) {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
+    success(fr(root.path(), &["spec", "init", "specs", "--write"]));
+    std::fs::write(root.path().join("plan.json"), serde_json::to_vec(&plan).unwrap()).unwrap();
+    success(fr(root.path(), &["spec", "scaffold", "--from", "plan.json", "--write"]));
+    let target = format!("specs/FrSpecs/{}.lean::{}", plan.kernel.module, property.name);
+    std::fs::write(root.path().join("tactics"), tactics.replace("MODEL", model)).unwrap();
+    let saved = success(fr(root.path(), &["proof", "save", &target, "--draft", "tactics",
+        "--bytes", "8192", "--timeout-seconds", "30"]));
+    assert_eq!(saved["proof_checked"], true);
+    let evidence = success(fr(root.path(), &["spec", "evidence", "specs"]));
+    assert_eq!(evidence["rust_scalar_correspondence"][0]["status"], "checked_by_lean");
 }
 
 #[test]
