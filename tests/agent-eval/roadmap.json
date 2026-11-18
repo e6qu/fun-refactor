@@ -38,36 +38,36 @@
       "sha256": "b53612c1143c4a60893929ae10768eb095af94ff5ff06e92c7a034556a876a9d"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-members-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "a1b08b4ff28da585fc6c1ca83206311cd70173dd8af1a353543c12556bf4812b"
+      "sha256": "06600fceabe83127e2d8d22f81f468425e2370dbdae3daccad8b926ed5810d1c"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-members-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "0674efe8b51448100a3606cc02e87d04026479fd1c9f7be26945adb487a2982a"
+      "sha256": "2d270a09514b4ee5d4a4efa9f45393feecb9fa3a8b189f2b01f944a2fb8f9a22"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-members-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "2cb7c3ef62683190c7c3b4179a6891afda274c9d54347a5c3257b6e0a768c345"
+      "sha256": "b93b613d98e033d598daf0ccb2b2c723747fa162255bfe89f5c1afcfb6672fae"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-members-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "c1927215d69af72bd3f8d73daf7f78fab54ada4378b7e9e942b6c2391ca0dfc6"
+      "sha256": "908534dcfd835c4bf4a2e77d9aa273cce6635a6b965af217e573a55bb8952b55"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-18-refactoring-members-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "1582a191abd73ccfab359160a999712cbfccd328490ab3636a2dc3716d636c4b"
+      "sha256": "10258190905b031c411356ceadcdfb18f7b7680657588a0e5c578b8b1e6b03d4"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-18-refactoring-final-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-18-refactoring-members-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "edc4dbb7876eb415a1f94c36e6eb1b7b25eefcf30774d4898c79d144fae71e26"
+      "sha256": "c1a5c210dbb2f1e223ddba0977630a6e99132bfd38820508a5967ce51aae6ddc"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-18-refactoring-final-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-18-refactoring-members-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-18-refactoring-final-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-18-refactoring-members-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "7e9ff177a29b3c220b15f3b36827a7d4d31f210b4aefba6974da62ada3a1286b"
+      "sha256": "3a9884309bb702ef15be777c0495f7000a983bfe2c75fe9fa9751411731c0cd7"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
