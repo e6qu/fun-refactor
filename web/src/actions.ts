@@ -144,10 +144,10 @@ export const ACTIONS: Action[] = [
   },
   {
     id: "graph",
-    label: "Call graph size",
+    label: "Call graph",
     group: "Analyse",
     needs: "workspace",
-    describes: "Functions, edges, and how many came from dispatch instead of a name",
+    describes: "Functions, calls, dispatch candidates and unresolved sites",
     run: (w) => w.graph(),
   },
   {
@@ -216,7 +216,7 @@ export const ACTIONS: Action[] = [
       why: "Uses the resolver is not certain about are reported, not rewritten.",
       fromSubject: true,
     },
-    run: (w, c) => w.rename(c.path, c.line, c.col, c.answer),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "rename", path: c.path, line: c.line, col: c.col, name: c.answer })),
   },
   {
     id: "move_symbol",
@@ -230,7 +230,7 @@ export const ACTIONS: Action[] = [
       example: "src/convert.rs",
       why: "Relative to the workspace root, the same paths the file list shows.",
     },
-    run: (w, c) => w.move_symbol(c.path, c.line, c.col, c.answer),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "move-symbol", path: c.path, line: c.line, col: c.col, destination: c.answer })),
   },
   {
     id: "delete",
@@ -239,7 +239,7 @@ export const ACTIONS: Action[] = [
     needs: "position",
     mutates: true,
     describes: "Refuses while anything still uses it",
-    run: (w, c) => w.delete(c.path, c.line, c.col),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "delete", path: c.path, line: c.line, col: c.col })),
   },
   {
     id: "organize_imports",
@@ -248,7 +248,7 @@ export const ACTIONS: Action[] = [
     needs: "file",
     mutates: true,
     describes: "Drop what is unused and sort what is left",
-    run: (w, c) => w.organize_imports(c.path),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "organize-imports", path: c.path })),
   },
   {
     id: "remove_flag",
@@ -263,7 +263,7 @@ export const ACTIONS: Action[] = [
       why: "A constant, variable or function whose value decided a branch.",
       fromSubject: true,
     },
-    run: (w, c) => w.remove_flag(c.answer, true),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "remove-flag", flag: c.answer, value: true })),
   },
 
   // ---------------------------------------------------- Extract and inline
@@ -275,7 +275,7 @@ export const ACTIONS: Action[] = [
     mutates: true,
     describes: "Name the selected expression and bind it above",
     ask: { label: "Name for it", example: "scaled" },
-    run: (w, c) => w.extract_variable(c.path, c.range!, c.answer),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "extract-variable", path: c.path, range: c.range, name: c.answer })),
   },
   {
     id: "extract_function",
@@ -285,7 +285,7 @@ export const ACTIONS: Action[] = [
     mutates: true,
     describes: "Lift the selected statements out, working out the parameters",
     ask: { label: "Name for it", example: "accumulate" },
-    run: (w, c) => w.extract_function(c.path, c.range!, c.answer),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "extract-function", path: c.path, range: c.range, name: c.answer })),
   },
   {
     id: "inline_variable",
@@ -294,7 +294,7 @@ export const ACTIONS: Action[] = [
     needs: "position",
     mutates: true,
     describes: "Replace each use with the value, and drop the binding",
-    run: (w, c) => w.inline_variable(c.path, c.line, c.col),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "inline-variable", path: c.path, line: c.line, col: c.col })),
   },
   {
     id: "inline_call",
@@ -303,7 +303,7 @@ export const ACTIONS: Action[] = [
     needs: "position",
     mutates: true,
     describes: "Put the callee's body at the call site",
-    run: (w, c) => w.inline_call(c.path, c.line, c.col),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "inline-call", path: c.path, line: c.line, col: c.col })),
   },
   {
     id: "signature",
@@ -317,7 +317,7 @@ export const ACTIONS: Action[] = [
       example: "add:1:offset: f64:0.0",
       why: "One of remove:<i>, move:<from>:<to>, add:<i>:<declaration>:<argument>.",
     },
-    run: (w, c) => w.signature(c.path, c.line, c.col, c.answer),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "signature", path: c.path, line: c.line, col: c.col, change: c.answer })),
   },
 
   // ---------------------------------------------------------------- Rewrite
@@ -337,7 +337,7 @@ export const ACTIONS: Action[] = [
     needs: "position",
     mutates: true,
     describes: "Swap the branches and negate the condition",
-    run: (w, c) => w.rewrite(c.path, c.line, c.col, "invert-if"),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "rewrite", path: c.path, line: c.line, col: c.col, which: "invert-if" })),
   },
   {
     id: "guard-clause",
@@ -346,7 +346,7 @@ export const ACTIONS: Action[] = [
     needs: "position",
     mutates: true,
     describes: "Turn a wrapping if into an early return",
-    run: (w, c) => w.rewrite(c.path, c.line, c.col, "guard-clause"),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "rewrite", path: c.path, line: c.line, col: c.col, which: "guard-clause" })),
   },
   {
     id: "de-morgan",
@@ -355,7 +355,7 @@ export const ACTIONS: Action[] = [
     needs: "position",
     mutates: true,
     describes: "Push a negation through an and/or, keeping the grouping",
-    run: (w, c) => w.rewrite(c.path, c.line, c.col, "de-morgan"),
+    run: (w, c) => w.preview(JSON.stringify({ operation: "rewrite", path: c.path, line: c.line, col: c.col, which: "de-morgan" })),
   },
   {
     id: "restructure",
@@ -376,7 +376,7 @@ export const ACTIONS: Action[] = [
           error: "write it as `pattern => template`, with one arrow",
         });
       }
-      return w.restructure(c.language, pattern, template);
+      return w.preview(JSON.stringify({ operation: "restructure", language: c.language, pattern, template }));
     },
   },
 ];

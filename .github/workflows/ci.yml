@@ -938,6 +938,9 @@ jobs:
       - name: Check the patch it downloads applies
         run: node web/test/patch.mjs
 
+      - name: Check browser review and native patch delivery
+        run: node web/test/review.mjs
+
       - name: Check browser checkpoint replacement and recovery
         run: node web/test/session.mjs
 

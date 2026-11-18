@@ -25,6 +25,104 @@ export async function GET(request: Request, context: { params: { id: string } })
 }
 "#;
 
+fn rename_review(ws: &Workspace, name: &str) -> String {
+    ws.preview(&serde_json::json!({
+        "operation": "rename", "path": "a.py", "line": 1, "col": 5, "name": name
+    }).to_string())
+}
+
+#[test]
+fn browser_reviews_survive_restart_without_applying_early() {
+    let source = "def leaf():\n    return 7\ndef main():\n    return leaf()\n";
+    let ws = workspace(&[("a.py", source)]);
+    let checkpoint = ws.session();
+    let review = rename_review(&ws, "renamed");
+    let value = json(&review);
+    assert_eq!(value["review"]["schema"], "fr-browser-review-1", "{value}");
+    assert_eq!(value["review"]["native_checks"], serde_json::json!([]));
+    assert_eq!(ws.session(), checkpoint);
+    assert_eq!(ws.read("a.py"), source);
+    let mut restarted = Workspace::restore_session(&checkpoint).unwrap();
+    let applied = json(&restarted.apply_review(&review));
+    assert_eq!(applied, value["review"]["result"]);
+    assert_eq!(restarted.read("a.py"), source.replace("leaf", "renamed"));
+    assert_eq!(json(&restarted.transaction_patch(1, false)), value["review"]["patch"]);
+    let fresh = workspace(&[("a.py", &source.replace("leaf", "renamed"))]);
+    assert_eq!(json(&restarted.graph()), json(&fresh.graph()));
+    assert!(json(&restarted.undo(1)).get("error").is_none());
+    assert_eq!(restarted.read("a.py"), source);
+    assert!(json(&restarted.redo(1)).get("error").is_none());
+    assert_eq!(restarted.read("a.py"), source.replace("leaf", "renamed"));
+}
+
+#[test]
+fn browser_reviews_reject_changed_source_history_and_tampered_results() {
+    let source = "def leaf():\n    return 7\n";
+    let mut ws = workspace(&[("a.py", source)]);
+    let review = rename_review(&ws, "renamed");
+    let mut tampered = json(&review);
+    tampered["review"]["result"]["files"][0]["after"] = serde_json::json!("wrong");
+    let before = ws.session();
+    assert!(json(&ws.apply_review(&tampered.to_string())).get("error").is_some());
+    assert_eq!(ws.session(), before);
+    assert!(json(&ws.rename("a.py", 1, 5, "other")).get("error").is_none());
+    let changed = ws.session();
+    assert!(json(&ws.apply_review(&review)).get("error").is_some());
+    assert_eq!(ws.session(), changed);
+    assert!(json(&ws.undo(1)).get("error").is_none());
+    assert_eq!(ws.read("a.py"), source);
+    let undone = ws.session();
+    assert!(json(&ws.apply_review(&review)).get("error").is_some());
+    assert_eq!(ws.session(), undone, "identical source with different history is stale");
+}
+
+#[test]
+fn browser_review_refusals_leave_other_workspaces_and_history_untouched() {
+    let ws = workspace(&[("a.py", "def leaf():\n    return 7\n")]);
+    let other = workspace(&[("a.py", "def other():\n    return 9\n")]);
+    let before = ws.session();
+    for request in [
+        r#"{"operation":"rename","path":"a.py","line":1,"col":5,"name":"not valid"}"#,
+        r#"{"operation":"rename","path":"a.py","line":1,"col":5,"name":"valid","extra":true}"#,
+        r#"{"operation":"unknown"}"#,
+    ] {
+        assert!(json(&ws.preview(request)).get("error").is_some());
+        assert_eq!(ws.session(), before);
+        assert!(other.read("a.py").contains("def other"));
+    }
+}
+
+#[test]
+fn browser_reviews_bind_unrelated_files_and_compaction() {
+    let source = "def leaf():\n    return 7\n";
+    let ws = workspace(&[("a.py", source), ("notes.txt", "original")]);
+    let review = rename_review(&ws, "renamed");
+    let mut different = workspace(&[("a.py", source), ("notes.txt", "changed")]);
+    let before = different.session();
+    assert!(json(&different.apply_review(&review)).get("error").is_some());
+    assert_eq!(different.session(), before);
+    let mut ws = Workspace::restore_session(&ws.session()).unwrap();
+    assert!(json(&ws.apply_review(&review)).get("error").is_none());
+    let next = rename_review(&ws, "next");
+    assert!(json(&ws.compact_history(0)).get("error").is_none());
+    let compacted = ws.session();
+    assert!(json(&ws.apply_review(&next)).get("error").is_some());
+    assert_eq!(ws.session(), compacted);
+}
+
+#[test]
+fn browser_review_limits_and_repeated_application_do_not_write() {
+    let mut ws = workspace(&[("a.py", "def leaf():\n    return 7\n")]);
+    let before = ws.session();
+    assert!(json(&ws.preview(&" ".repeat(65537))).get("error").is_some());
+    assert_eq!(ws.session(), before);
+    let review = rename_review(&ws, "renamed");
+    assert!(json(&ws.apply_review(&review)).get("error").is_none());
+    let applied = ws.session();
+    assert!(json(&ws.apply_review(&review)).get("error").is_some());
+    assert_eq!(ws.session(), applied);
+}
+
 #[test]
 fn a_workspace_loads_and_reports_what_it_read() {
     let ws = workspace(&[

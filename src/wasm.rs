@@ -1,5 +1,7 @@
 //! The browser API.
 
+mod review;
+
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::FactGap;

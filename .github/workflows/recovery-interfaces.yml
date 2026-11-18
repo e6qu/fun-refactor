@@ -1,0 +1,134 @@
+name: Recovery and public interfaces
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/recovery-and-public-interfaces]
+permissions:
+  contents: read
+concurrency:
+  group: recovery-interfaces-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+jobs:
+  recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Format source for review
+        run: |
+          cargo fmt --all
+          git diff --binary > "$RUNNER_TEMP/format.patch"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: recovery-format
+          path: ${{ runner.temp }}/format.patch
+      - run: cargo test --locked --features wasm --test wasm_native browser_review -- --test-threads=1
+      - run: cargo clippy --locked --features wasm --lib -- -D warnings
+      - run: python3 -B tools/check-prose.py
+  playground:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+
+      - name: Install the toolchain
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+
+      - name: Check clang can emit wasm
+        run: clang --print-targets | grep -q wasm32
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: wasm
+
+      - name: Install wasm-bindgen-cli, matching the lockfile
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/{found=1} found && /^version = /{gsub(/[",]/,"",$3); print $3; exit}' Cargo.lock)
+          cargo install wasm-bindgen-cli --version "$version" --locked
+
+      - name: Build the analysis for the browser
+        run: ./tools/build-wasm.sh
+
+      - name: Generate the bindings
+        run: wasm-bindgen --target web --out-dir web/src/wasm target/wasm32-unknown-unknown/release/fun_refactor.wasm
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the playground
+        working-directory: web
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm run build
+          test -f ../docs/playground/index.html
+
+      # The browser API is the one surface no `cargo test` can reach: `src/wasm.rs`
+      # compiles only for wasm32. This drives every method of it against the bundled
+      # sample, in Node, using the same wasm the site ships.
+      - name: Exercise every capability, in every language
+        run: node web/test/api.mjs
+
+      # The download button's promise: what it hands you, `git apply` takes. Checked
+      # by running git, because a patch that does not apply looks exactly like one
+      # that does until someone tries it somewhere else.
+      - name: Check the patch it downloads applies
+        run: node web/test/patch.mjs
+
+      - name: Check browser review and native patch delivery
+        run: node web/test/review.mjs
+
+      - name: Check browser checkpoint replacement and recovery
+        run: node web/test/session.mjs
+
+      # A literal colour works in the theme it was picked for and is invisible in the
+      # other, and neither a build nor a screenshot of one theme can see it.
+      - name: Check both themes name the same colours
+        run: node web/test/style.mjs
+
+      # `?render_as=json` promises the JSON describes the interface that exists. It
+      # is written by hand, so it rots silently: the caller gets an answer, just the
+      # wrong one.
+      - name: Check the machine-readable renderings match the page
+        run: node web/test/render_modes.mjs
+
+      # Every refactoring against every symbol of the sample: nothing may trap, and a
+      # rename must rewrite everything it said it resolved. Point it at a clone to run
+      # the same sweep over a real repository.
+      - name: Sweep every refactoring over every symbol
+        run: node web/test/scale.mjs
+
+      # A number worth watching: this is what a first visit downloads, and it grows
+      # by a megabyte every time a grammar is added.
+      - name: Report what a first visit costs
+        run: |
+          cd docs/playground/assets
+          for f in *.wasm index-*.js; do
+            printf '%-44s %6.2f MB gzipped\n' "$f" "$(gzip -c "$f" | wc -c | awk '{print $1/1048576}')"
+          done

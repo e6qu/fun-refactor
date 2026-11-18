@@ -573,9 +573,50 @@ async function run(action: Action) {
     return;
   }
 
-  const storageError = action.mutates && value?.files ? syncFromWorkspace(value.files) : null;
-  if (storageError) value.persistence_warning = storageError;
+  if (action.mutates) {
+    showReview(value, action.label);
+    return;
+  }
   show(render(value, current, action.empty), action.label);
+}
+
+function showReview(value: any, label: string, openWritten = false) {
+  if (value?.error) {
+    show(`<p class="err">${escapeHtml(String(value.error))}</p>`, label);
+    return;
+  }
+  if (value?.review?.schema !== "fr-browser-review-1") {
+    show('<p class="err">The operation did not return a review.</p>', label);
+    return;
+  }
+  const reviewedWorkspace = workspace;
+  const encoded = JSON.stringify(value);
+  show(
+    '<p class="hint">Review the proposed changes. Your files have not changed. ' +
+      'Refactoring rules and syntax were checked; compiler and project tests still need to run.</p>' +
+      render(value.review.result, current) +
+      '<button id="apply-reviewed-change" type="button">Apply reviewed change</button> ' +
+      '<button id="cancel-reviewed-change" type="button">Cancel</button>',
+    `Review: ${label}`,
+  );
+  document.getElementById("cancel-reviewed-change")!.onclick = () => {
+    show('<p class="hint">Review cancelled. Your files have not changed.</p>', label);
+  };
+  document.getElementById("apply-reviewed-change")!.onclick = () => {
+    if (!workspace || workspace !== reviewedWorkspace) {
+      show('<p class="err">The workspace changed. Preview the operation again.</p>', label);
+      return;
+    }
+    const applied = JSON.parse(workspace.apply_review(encoded));
+    if (applied.error) {
+      show(`<p class="err">${escapeHtml(String(applied.error))}</p>`, label);
+      return;
+    }
+    const storageError = syncFromWorkspace(applied.files);
+    if (storageError) applied.persistence_warning = storageError;
+    show(render(applied, current), label);
+    if (openWritten && applied.files[0]?.path) openFile(applied.files[0].path);
+  };
 }
 
 /**
@@ -1104,7 +1145,9 @@ function openTranslateMenu(anchor: HTMLElement) {
     (language) => {
       const chosen = options.find((o) => o.language === language);
       if (chosen?.unavailable) return;
-      const applied = JSON.parse(workspace!.translate(current, language));
+      const applied = JSON.parse(workspace!.preview(JSON.stringify({
+        operation: "translate", path: current, language,
+      })));
       if (applied.error) {
         show(
           `<p class="err">${escapeHtml(applied.error)}</p>` +
@@ -1113,12 +1156,7 @@ function openTranslateMenu(anchor: HTMLElement) {
         );
         return;
       }
-      const storageError = syncFromWorkspace(applied.files);
-      if (storageError) applied.persistence_warning = storageError;
-      show(render(applied, current), `Rewrite as ${language}`);
-      // The new file is the point; open it.
-      const written = applied.files[0]?.path;
-      if (written) openFile(written);
+      showReview(applied, `Rewrite as ${language}`, true);
     },
     anchor,
   );
