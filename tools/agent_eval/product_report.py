@@ -40,6 +40,17 @@ def complete(row):
             finite(row.get('elapsed_seconds')) and row['elapsed_seconds'] <= plan.LIMITS['wall_seconds'])
 
 
+def costs(rows, graded):
+    accepted = sum(row['complete_accepted'] is True for row in rows) if graded else None
+    total = sum(row['cost'] for row in rows) if all(row['cost'] is not None for row in rows) else None
+    observed_time = sum(row['elapsed_seconds'] for row in rows if row['elapsed_seconds'] is not None)
+    return {'scheduled_attempts': len(rows), 'started_attempts': sum(row['status'] != 'unstarted' for row in rows),
+            'complete_accepted': accepted, 'known_cost_attempts': sum(row['cost'] is not None for row in rows),
+            'total_cost': total, 'cost_per_complete_acceptance': total / accepted if total is not None and accepted else None,
+            'observed_complete_seconds': observed_time if any(row['elapsed_seconds'] is not None for row in rows) else None,
+            'total_complete_seconds': observed_time if all(row['elapsed_seconds'] is not None for row in rows) else None}
+
+
 def summary(root, phase, observations, grading=None):
     require(phase in plan.TASKS, 'choose the comparison round explicitly')
     campaign = plan.campaign(root)
@@ -98,7 +109,9 @@ def summary(root, phase, observations, grading=None):
                    reduction is not None and reduction >= 0.1 - 1e-12)
         by_profile[profile] = {'complete_accepted': accepted if grading is not None else None,
                               'matched_families': matched, 'combined_reduction': reduction,
-                              'benefit_demonstrated': benefit if finished else None}
+                              'benefit_demonstrated': benefit if finished else None,
+                              'costs': {setup: costs([row for row in chosen if row['setup'] == setup], grading is not None)
+                                        for setup in ('files', 'fr')}}
     result['profiles'] = by_profile
     result['billing'] = {'known_attempts': sum(row['cost'] is not None for row in rows),
                          'total': sum(row['cost'] for row in rows) if all(row['cost'] is not None for row in rows) else None}

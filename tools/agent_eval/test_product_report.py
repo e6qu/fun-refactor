@@ -82,6 +82,23 @@ class ProductReportTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 report.summary(ROOT, 'initial', broken)
 
+    def test_failed_attempt_costs_stay_in_spending_per_success(self):
+        rows, observations, grading = self.records()
+        for row in observations.values():
+            row['cost'] = 2
+        selected = next(row for row in rows if row['setup'] == 'fr')
+        observations[selected['id']]['status'] = 'failed'
+        value = report.summary(ROOT, 'initial', observations, grading)
+        cost = value['profiles'][selected['profile']]['costs']['fr']
+        self.assertEqual(cost['total_cost'], 16)
+        self.assertEqual(cost['complete_accepted'], 7)
+        self.assertAlmostEqual(cost['cost_per_complete_acceptance'], 16 / 7)
+        observations[selected['id']]['cost'] = None
+        value = report.summary(ROOT, 'initial', observations, grading)
+        cost = value['profiles'][selected['profile']]['costs']['fr']
+        self.assertIsNone(cost['total_cost'])
+        self.assertIsNone(cost['cost_per_complete_acceptance'])
+
 
 if __name__ == '__main__':
     unittest.main()
