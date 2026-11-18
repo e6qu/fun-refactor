@@ -29,8 +29,8 @@ Reports must distinguish those claims.
 | Application | Exact model selection | Required setting |
 | --- | --- | --- |
 | Codex | `gpt-6-luna` | Fast mode; check and record the effective client service tier |
-| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2; low reasoning in M3 |
-| OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2 and low reasoning in M3 |
+| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2/P5; low reasoning in the original M3 |
+| OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2/P5 and low reasoning in the original M3 |
 
 Freeze client versions, model IDs, reasoning settings and limits before a live comparison.
 Use fresh application state for every attempt and reject model substitutions.
@@ -63,6 +63,9 @@ The [interface coverage guide](docs/interface-coverage.md) tracks browser review
 PR 5 is in progress in [#628](https://github.com/e6qu/fun-refactor/pull/628).
 The [comparison protocol](tests/agent-eval/product-validation/README.md) reserves separate initial and validation tasks.
 The user authorized at most 96 live attempts. Task checks and native admission must pass before calls.
+Initial task controls and private patch checks pass on GitHub. The shared native collector,
+24-case scripted admission, reviewed export and independent grading are wired for the initial round.
+Local admission and all live attempts remain pending; the workstation is below its 64 GiB free-disk floor.
 
 | PR | Complete outcome | Completion gate |
 | --- | --- | --- |
