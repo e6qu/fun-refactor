@@ -4,6 +4,13 @@ Use this list to see what shipped in each release. A release label identifies a 
 For example, a fix about imported values applies only to the supported cases described in the [Python guide](docs/python-contract.md).
 An entry's technical shorthand is historical release wording. Read the [tutorial](TUTORIAL.md) for a first use and the [current status](docs/roadmap-status.md) for remaining work.
 
+## [0.96.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.95.0...fun-refactor-v0.96.0) (2026-11-18)
+
+
+### Features
+
+* check bounded Rust scalar connections to Lean models ([#624](https://github.com/e6qu/fun-refactor/issues/624)) ([fc72556](https://github.com/e6qu/fun-refactor/commit/fc725560cf4a302496eca3b7ae898c0451a8d41a))
+
 ## [0.95.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.94.0...fun-refactor-v0.95.0) (2026-11-18)
 
 
