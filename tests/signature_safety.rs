@@ -311,7 +311,7 @@ fn typescript_function_types_are_not_default_initializers() {
 
 #[test]
 fn typescript_literal_defaults_preserve_javascript_execution() {
-    let source = "function adjust(a = 1, b = 2, c = 3) { return a * 100 + b * 10 + c; }\nconsole.log(adjust(), adjust(4, 5, 6));\n";
+    let source = include_str!("fixtures/signature/literal-defaults.ts");
     let (dir, index) = workspace("a.ts", source);
     let plan = changed(&index, Change::Move { from: 0, to: 2 }).unwrap();
     let after = apply(dir.path(), "a.ts", &plan.edits);
