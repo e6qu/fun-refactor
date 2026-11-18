@@ -82,7 +82,7 @@ They do not prove general source implementation equivalence.
 
 ## Rust scalar connections
 
-Use `fr spec plan src/lib.rs::function --property rust-scalar-model` to request a bounded arithmetic connection.
+Use `fr --json spec plan src/lib.rs::function --property rust-scalar-model` to request a bounded arithmetic connection.
 Save its JSON plan, scaffold it, then write and check tactics through the normal proof workflow.
 Candidate discovery suggests this property only when the source passes its admission rules.
 

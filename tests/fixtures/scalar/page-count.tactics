@@ -10,13 +10,13 @@
   · have selected : FrRustScalar.eval true 5 env condition = some (.bool true) := by
       simpa [hi] using hc
     rw [FrRustScalar.branch_true selected]
-    change some (.int (-1)) = some (.int (MODEL items size))
+    change some (FrPureKernel.Value.int (-1)) = some (FrPureKernel.Value.int (MODEL items size))
     simp [MODEL, hi]
   · by_cases hs : size ≤ 0
     · have selected : FrRustScalar.eval true 5 env condition = some (.bool true) := by
         simpa [hi, hs] using hc
       rw [FrRustScalar.branch_true selected]
-      change some (.int (-1)) = some (.int (MODEL items size))
+      change some (FrPureKernel.Value.int (-1)) = some (FrPureKernel.Value.int (MODEL items size))
       simp [MODEL, hs]
     · have selected : FrRustScalar.eval true 5 env condition = some (.bool false) := by
         simpa [hi, hs] using hc
@@ -56,7 +56,7 @@
             (.binary .eq (.binary .rem (.bound 1) (.bound 2)) (.value (.int 0))) =
             some (.bool true) := by simpa [hr] using compared
         rw [FrRustScalar.branch_true selectedRem]
-        change some (.int (items.tdiv size)) = some (.int (MODEL items size))
+        change some (FrPureKernel.Value.int (items.tdiv size)) = some (FrPureKernel.Value.int (MODEL items size))
         simp [MODEL, hi, hs, hr]
       · have hipos : 0 < items := by
           by_cases h : 0 < items
@@ -73,9 +73,12 @@
         have hamax : items.tdiv size + 1 ≤ 9223372036854775807 := by omega
         have ha : FrRustScalar.checked true (items.tdiv size + 1) = some (.int (items.tdiv size + 1)) := by
           simp [FrRustScalar.checked, FrRustScalar.minimum, FrRustScalar.maximum, hamin, hamax]
+        have hfalse : (items.tmod size == 0) = false := by
+          apply Bool.eq_false_iff.mpr
+          simpa using hr
         have selectedRem : FrRustScalar.eval true 3 localEnv
             (.binary .eq (.binary .rem (.bound 1) (.bound 2)) (.value (.int 0))) =
-            some (.bool false) := by simpa [hr] using compared
+            some (.bool false) := by simpa only [hfalse] using compared
         rw [FrRustScalar.branch_false selectedRem]
         change FrRustScalar.checked true (items.tdiv size + 1) = some (.int (MODEL items size))
         rw [ha]
