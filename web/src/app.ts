@@ -24,7 +24,7 @@ import { draw, type Drawing, type GraphNode } from "./graph";
 import { installHelp, openHelp, livePages, PAGES } from "./help";
 import { decorate } from "./icons";
 import * as menu from "./menu";
-import { escapeHtml, render } from "./render";
+import { escapeHtml, render, renderReview } from "./render";
 import { loadCheckpoint, saveCheckpoint } from "./session";
 import { installShell, setResizeHandler } from "./shell";
 import "./style.css";
@@ -594,7 +594,7 @@ function showReview(value: any, label: string, openWritten = false) {
   show(
     '<p class="hint">Review the proposed changes. Your files have not changed. ' +
       'Refactoring rules and syntax were checked; compiler and project tests still need to run.</p>' +
-      render(value.review.result, current) +
+      renderReview(value.review.result) +
       '<button id="apply-reviewed-change" type="button">Apply reviewed change</button> ' +
       '<button id="cancel-reviewed-change" type="button">Cancel</button>',
     `Review: ${label}`,
@@ -713,7 +713,10 @@ function drawGraph() {
   graphSubject.textContent =
     `${root ? root.name : "here"}: ${drawing.nodes.length} function(s), ` +
     `${drawing.edges.length} edge(s)` +
-    (drawing.more ? ", and more beyond this depth" : "");
+    (drawing.more ? ", and more beyond this depth" : "") +
+    `; ${drawing.unresolved.length} unresolved call(s) here; ` +
+    `${drawing.coverage.gaps.length} workspace coverage gap(s). ` +
+    "External callers and runtime dispatch remain unknown.";
   graphCanvas.appendChild(draw(drawing, (node: GraphNode) => {
     showView("source");
     jumpTo({ path: node.file, line: node.line, col: node.col });

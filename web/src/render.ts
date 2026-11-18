@@ -1,12 +1,4 @@
-/**
- * Turning an answer into something worth reading.
- *
- * The wasm returns the same JSON `fr --json` prints, which means the shapes vary: a
- * list of locations, a rendered tree, a set of diffs, a matrix. Instead of one
- * renderer per action, this reads the shape — a `files` key means a refactoring
- * happened, a `tree` means an analysis printed itself — so an action that returns a
- * familiar shape needs no view code of its own.
- */
+/** Render browser reports while keeping warnings and coverage visible. */
 
 export function escapeHtml(text: string): string {
   return String(text).replace(
@@ -47,13 +39,14 @@ function count(n: number, one: string, many = `${one}s`): string {
 }
 
 /** A refactoring's result: what changed, and what it deliberately did not touch. */
-function renderApplied(value: any): string {
+function renderApplied(value: any, proposed = false): string {
   const files: any[] = value.files ?? [];
   const notes: string[] = value.notes ?? [];
   const warnings: any[] = value.warnings ?? [];
 
   const head = files.length
-    ? count(files.length, "file changed", "files changed")
+    ? count(files.length, proposed ? "file would change" : "file changed",
+        proposed ? "files would change" : "files changed")
     : `<p class="hint">Nothing to change: the analysis found no site it was certain about.</p>`;
 
   const diffs = files
@@ -71,6 +64,36 @@ function renderApplied(value: any): string {
     : "";
 
   return head + diffs + left + said;
+}
+
+export function renderReview(value: any): string {
+  return renderApplied(value, true);
+}
+
+function renderGraph(value: any): string {
+  const graph = value.details;
+  if (!graph) return '<p class="err">The graph report has no coverage details.</p>';
+  const names = new Map(graph.nodes.map((node: any) => [node.id, node.name]));
+  const rows = (title: string, entries: any[], row: (entry: any) => string) =>
+    `<details><summary>${title}: ${entries.length}</summary>` +
+    list(entries.slice(0, 50).map(entry => `<li>${row(entry)}</li>`)) +
+    (entries.length > 50 ? '<p class="hint">Showing the first 50 entries.</p>' : '') + '</details>';
+  return `<dl class="stats"><dt>functions</dt><dd>${graph.functions}</dd>` +
+    `<dt>call edges</dt><dd>${graph.calls}</dd>` +
+    `<dt>dispatch candidates</dt><dd>${graph.hierarchy_edges}</dd></dl>` +
+    '<p class="hint">Coverage: indexed workspace. External callers and runtime dispatch remain unknown.</p>' +
+    rows("Functions", graph.nodes, node =>
+      goto(node.file, node.line ?? 1, 1, node.name)) +
+    rows("Calls", graph.edges, edge =>
+      `${escapeHtml(String(names.get(edge.from)))} → ${escapeHtml(String(names.get(edge.to)))} ` +
+      `(${escapeHtml(edge.confidence)}, ${escapeHtml(edge.origin)}) ` +
+      goto(edge.site.file, edge.site.line ?? 1, edge.site.column ?? 1)) +
+    rows("Unresolved calls", graph.unresolved, call =>
+      `${escapeHtml(call.name)} — ` + goto(call.site.file, call.site.line ?? 1, call.site.column ?? 1)) +
+    rows("File-scope calls", graph.file_scope, call =>
+      `${escapeHtml(call.name)} — ` + goto(call.site.file, call.site.line ?? 1, call.site.column ?? 1)) +
+    rows("Coverage gaps", graph.coverage.gaps, gap =>
+      `${escapeHtml(gap.file)}: ${escapeHtml(gap.reason ?? gap.kind)}`);
 }
 
 /**
@@ -393,13 +416,7 @@ export function render(value: any, path: string, empty?: string): string {
     return renderStats(value);
   }
   if ("functions" in value && "edges" in value) {
-    return `<dl class="stats">
-      <dt>functions</dt><dd>${value.functions}</dd>
-      <dt>call edges</dt><dd>${value.edges}</dd>
-      <dt>dispatch edges</dt><dd>${value.hierarchy_edges}</dd>
-    </dl>
-    <p class="hint">A dispatch edge is a candidate, not a proven call: which
-      implementation runs is a runtime fact.</p>`;
+    return renderGraph(value);
   }
   if ("rows" in value || "capability" in value) return renderCapabilities(value);
 

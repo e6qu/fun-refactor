@@ -26,9 +26,12 @@ export async function GET(request: Request, context: { params: { id: string } })
 "#;
 
 fn rename_review(ws: &Workspace, name: &str) -> String {
-    ws.preview(&serde_json::json!({
-        "operation": "rename", "path": "a.py", "line": 1, "col": 5, "name": name
-    }).to_string())
+    ws.preview(
+        &serde_json::json!({
+            "operation": "rename", "path": "a.py", "line": 1, "col": 5, "name": name
+        })
+        .to_string(),
+    )
 }
 
 #[test]
@@ -46,7 +49,10 @@ fn browser_reviews_survive_restart_without_applying_early() {
     let applied = json(&restarted.apply_review(&review));
     assert_eq!(applied, value["review"]["result"]);
     assert_eq!(restarted.read("a.py"), source.replace("leaf", "renamed"));
-    assert_eq!(json(&restarted.transaction_patch(1, false)), value["review"]["patch"]);
+    assert_eq!(
+        json(&restarted.transaction_patch(1, false)),
+        value["review"]["patch"]
+    );
     let fresh = workspace(&[("a.py", &source.replace("leaf", "renamed"))]);
     assert_eq!(json(&restarted.graph()), json(&fresh.graph()));
     assert!(json(&restarted.undo(1)).get("error").is_none());
@@ -63,9 +69,13 @@ fn browser_reviews_reject_changed_source_history_and_tampered_results() {
     let mut tampered = json(&review);
     tampered["review"]["result"]["files"][0]["after"] = serde_json::json!("wrong");
     let before = ws.session();
-    assert!(json(&ws.apply_review(&tampered.to_string())).get("error").is_some());
+    assert!(json(&ws.apply_review(&tampered.to_string()))
+        .get("error")
+        .is_some());
     assert_eq!(ws.session(), before);
-    assert!(json(&ws.rename("a.py", 1, 5, "other")).get("error").is_none());
+    assert!(json(&ws.rename("a.py", 1, 5, "other"))
+        .get("error")
+        .is_none());
     let changed = ws.session();
     assert!(json(&ws.apply_review(&review)).get("error").is_some());
     assert_eq!(ws.session(), changed);
@@ -73,7 +83,11 @@ fn browser_reviews_reject_changed_source_history_and_tampered_results() {
     assert_eq!(ws.read("a.py"), source);
     let undone = ws.session();
     assert!(json(&ws.apply_review(&review)).get("error").is_some());
-    assert_eq!(ws.session(), undone, "identical source with different history is stale");
+    assert_eq!(
+        ws.session(),
+        undone,
+        "identical source with different history is stale"
+    );
 }
 
 #[test]
@@ -99,7 +113,9 @@ fn browser_reviews_bind_unrelated_files_and_compaction() {
     let review = rename_review(&ws, "renamed");
     let mut different = workspace(&[("a.py", source), ("notes.txt", "changed")]);
     let before = different.session();
-    assert!(json(&different.apply_review(&review)).get("error").is_some());
+    assert!(json(&different.apply_review(&review))
+        .get("error")
+        .is_some());
     assert_eq!(different.session(), before);
     let mut ws = Workspace::restore_session(&ws.session()).unwrap();
     assert!(json(&ws.apply_review(&review)).get("error").is_none());
@@ -121,6 +137,57 @@ fn browser_review_limits_and_repeated_application_do_not_write() {
     let applied = ws.session();
     assert!(json(&ws.apply_review(&review)).get("error").is_some());
     assert_eq!(ws.session(), applied);
+}
+
+#[test]
+fn browser_neighbourhood_keeps_unresolved_calls_and_coverage() {
+    let ws = workspace(&[("a.py", "def entry():\n    unknown()\n")]);
+    let drawing = json(&ws.graph_around("a.py", 1, 5, 2));
+    assert_eq!(drawing["unresolved"][0]["name"], "unknown");
+    assert_eq!(drawing["coverage"]["all_visible_calls_resolved"], false);
+    assert_eq!(drawing["coverage"]["external_callers_known"], false);
+    assert_eq!(drawing["coverage"]["runtime_dispatch_established"], false);
+}
+
+#[test]
+#[cfg(feature = "cli")]
+fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
+    let source = "def leaf():\n    return 7\ndef main():\n    return leaf()\n";
+    let mut ws = workspace(&[("a.py", source)]);
+    let review = rename_review(&ws, "renamed");
+    assert!(json(&ws.apply_review(&review)).get("error").is_none());
+    let receiver = tempfile::tempdir().unwrap();
+    std::fs::write(receiver.path().join("a.py"), source).unwrap();
+    let patch = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(patch.path(), json(&review)["review"]["patch"]["patch"].as_str().unwrap()).unwrap();
+    for args in [vec!["init", "-q"], vec!["apply", "--check"], vec!["apply"]] {
+        let mut command = std::process::Command::new("git");
+        command.current_dir(receiver.path()).args(&args);
+        if args[0] == "apply" {
+            command.arg(patch.path());
+        }
+        assert!(command.output().unwrap().status.success());
+    }
+    assert_eq!(std::fs::read_to_string(receiver.path().join("a.py")).unwrap(), ws.read("a.py"));
+    let sdk = std::process::Command::new("python3")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("PYTHONPATH", concat!(env!("CARGO_MANIFEST_DIR"), "/sdk/python/src"))
+        .args(["-c", "import json,sys; from pathlib import Path; from fr_ir.runtime import FrClient; print(json.dumps(FrClient(Path(sys.argv[1]), executable=sys.argv[2]).call('graph').to_data()))"])
+        .arg(receiver.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .output().unwrap();
+    assert!(sdk.status.success(), "{}", String::from_utf8_lossy(&sdk.stderr));
+    let native: serde_json::Value = serde_json::from_slice(&sdk.stdout).unwrap();
+    let browser = json(&ws.graph())["details"].clone();
+    for key in ["functions", "calls", "source_digests", "coverage", "by_confidence", "by_origin"] {
+        assert_eq!(native[key], browser[key], "{key}");
+    }
+    let names = |report: &serde_json::Value| {
+        report["nodes"].as_array().unwrap().iter()
+            .map(|node| node["name"].as_str().unwrap().to_string())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert_eq!(names(&native), names(&browser));
 }
 
 #[test]

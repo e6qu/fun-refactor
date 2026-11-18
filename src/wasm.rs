@@ -1386,6 +1386,8 @@ impl Workspace {
             root: u32,
             /// True when the walk stopped at `depth` with more to see.
             more: bool,
+            coverage: serde_json::Value,
+            unresolved: Vec<serde_json::Value>,
         }
 
         let graph = crate::analysis::call_graph::CallGraph::build(&self.index);
@@ -1423,12 +1425,22 @@ impl Workspace {
             })
             .collect();
         let more = near.more;
+        let report = graph.report(&self.index, Path::new(""));
+        let unresolved = report["unresolved"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|call| call["caller"].as_u64().is_some_and(|id| known.contains(&(id as u32))))
+            .cloned()
+            .collect();
 
         ok(&Drawing {
             nodes,
             edges,
             root: start.0,
             more,
+            coverage: report["coverage"].clone(),
+            unresolved,
         })
     }
 

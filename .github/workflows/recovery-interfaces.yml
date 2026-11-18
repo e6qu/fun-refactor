@@ -39,10 +39,12 @@ jobs:
         with:
           name: recovery-format
           path: ${{ runner.temp }}/format.patch
-      - run: cargo test --locked --features wasm --test wasm_native browser_review -- --test-threads=1
+      - run: cargo test --locked --features wasm --test wasm_native -- --test-threads=1
       - run: cargo clippy --locked --features wasm --lib -- -D warnings
       - run: python3 -B tools/check-prose.py
   playground:
+    env:
+      RUSTUP_TOOLCHAIN: stable
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

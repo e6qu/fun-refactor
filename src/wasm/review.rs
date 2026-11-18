@@ -12,35 +12,117 @@ const MAX_REVIEW_BYTES: usize = 16 * 1024 * 1024;
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
-    Rename { path: String, line: usize, col: usize, name: String },
-    RemoveFlag { flag: String, value: bool },
-    ExtractVariable { path: String, range: String, name: String },
-    ExtractFunction { path: String, range: String, name: String },
-    InlineVariable { path: String, line: usize, col: usize },
-    InlineCall { path: String, line: usize, col: usize },
-    Signature { path: String, line: usize, col: usize, change: String },
-    MoveSymbol { path: String, line: usize, col: usize, destination: String },
-    OrganizeImports { path: String },
-    Rewrite { path: String, line: usize, col: usize, which: String },
-    Restructure { language: String, pattern: String, template: String },
-    Delete { path: String, line: usize, col: usize },
-    Translate { path: String, language: String },
+    Rename {
+        path: String,
+        line: usize,
+        col: usize,
+        name: String,
+    },
+    RemoveFlag {
+        flag: String,
+        value: bool,
+    },
+    ExtractVariable {
+        path: String,
+        range: String,
+        name: String,
+    },
+    ExtractFunction {
+        path: String,
+        range: String,
+        name: String,
+    },
+    InlineVariable {
+        path: String,
+        line: usize,
+        col: usize,
+    },
+    InlineCall {
+        path: String,
+        line: usize,
+        col: usize,
+    },
+    Signature {
+        path: String,
+        line: usize,
+        col: usize,
+        change: String,
+    },
+    MoveSymbol {
+        path: String,
+        line: usize,
+        col: usize,
+        destination: String,
+    },
+    OrganizeImports {
+        path: String,
+    },
+    Rewrite {
+        path: String,
+        line: usize,
+        col: usize,
+        which: String,
+    },
+    Restructure {
+        language: String,
+        pattern: String,
+        template: String,
+    },
+    Delete {
+        path: String,
+        line: usize,
+        col: usize,
+    },
+    Translate {
+        path: String,
+        language: String,
+    },
 }
 
 impl Request {
     fn run(&self, workspace: &mut Workspace) -> String {
         match self {
-            Self::Rename { path, line, col, name } => workspace.rename(path, *line, *col, name),
+            Self::Rename {
+                path,
+                line,
+                col,
+                name,
+            } => workspace.rename(path, *line, *col, name),
             Self::RemoveFlag { flag, value } => workspace.remove_flag(flag, *value),
-            Self::ExtractVariable { path, range, name } => workspace.extract_variable(path, range, name),
-            Self::ExtractFunction { path, range, name } => workspace.extract_function(path, range, name),
-            Self::InlineVariable { path, line, col } => workspace.inline_variable(path, *line, *col),
+            Self::ExtractVariable { path, range, name } => {
+                workspace.extract_variable(path, range, name)
+            }
+            Self::ExtractFunction { path, range, name } => {
+                workspace.extract_function(path, range, name)
+            }
+            Self::InlineVariable { path, line, col } => {
+                workspace.inline_variable(path, *line, *col)
+            }
             Self::InlineCall { path, line, col } => workspace.inline_call(path, *line, *col),
-            Self::Signature { path, line, col, change } => workspace.signature(path, *line, *col, change),
-            Self::MoveSymbol { path, line, col, destination } => workspace.move_symbol(path, *line, *col, destination),
+            Self::Signature {
+                path,
+                line,
+                col,
+                change,
+            } => workspace.signature(path, *line, *col, change),
+            Self::MoveSymbol {
+                path,
+                line,
+                col,
+                destination,
+            } => workspace.move_symbol(path, *line, *col, destination),
             Self::OrganizeImports { path } => workspace.organize_imports(path),
-            Self::Rewrite { path, line, col, which } => workspace.rewrite(path, *line, *col, which),
-            Self::Restructure { language, pattern, template } => workspace.restructure(language, pattern, template),
+            Self::Rewrite {
+                path,
+                line,
+                col,
+                which,
+            } => workspace.rewrite(path, *line, *col, which),
+            Self::Restructure {
+                language,
+                pattern,
+                template,
+            } => workspace.restructure(language, pattern, template),
             Self::Delete { path, line, col } => workspace.delete(path, *line, *col),
             Self::Translate { path, language } => workspace.translate(path, language),
         }
@@ -74,7 +156,10 @@ fn digest(review: &Review) -> Result<String, String> {
 fn answer(encoded: &str) -> Result<Value, String> {
     let value: Value = serde_json::from_str(encoded).map_err(|error| error.to_string())?;
     if let Some(error) = value.get("error") {
-        return Err(error.as_str().unwrap_or("browser operation failed").to_string());
+        return Err(error
+            .as_str()
+            .unwrap_or("browser operation failed")
+            .to_string());
     }
     Ok(value)
 }
@@ -84,14 +169,17 @@ impl Workspace {
         let result = (|| {
             let checkpoint = self.session();
             answer(&checkpoint)?;
-            let session: Session = serde_json::from_str(&checkpoint).map_err(|error| error.to_string())?;
+            let session: Session =
+                serde_json::from_str(&checkpoint).map_err(|error| error.to_string())?;
             let workspace_basis = session_digest(&session.body)?;
             let mut candidate = Workspace::restore_session(&checkpoint)?;
             let result = answer(&request.run(&mut candidate))?;
             // A successful edit must remain recoverable before it can replace the workspace.
             answer(&candidate.session())?;
             let patch = match result.get("transaction").and_then(Value::as_u64) {
-                Some(transaction) => answer(&candidate.transaction_patch(transaction as u32, false))?,
+                Some(transaction) => {
+                    answer(&candidate.transaction_patch(transaction as u32, false))?
+                }
                 None => Value::Null,
             };
             let review = Review {

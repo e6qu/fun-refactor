@@ -1,13 +1,4 @@
-/**
- * What the playground can do, as data.
- *
- * Every capability the wasm exposes appears here exactly once, with what it needs
- * before it can run — a cursor position, a selection, a name to type — and how to
- * render what comes back. Keeping it as a list and not as a wall of buttons is
- * what makes "can I try every feature from the site?" answerable: the page is built
- * from this array, so a capability that exists in the API and not on the page is a
- * missing entry instead of a forgotten button.
- */
+/** Playground actions and their inputs. Editing actions return a review. */
 
 import type { Workspace } from "./wasm/fun_refactor.js";
 
