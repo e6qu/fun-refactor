@@ -186,6 +186,27 @@ def test_parameter_movement_preserves_noncommutative_results(tmp_path):
     assert "subtotal(2, 3, 0)" in (root/"api.rs").read_text()
 
 
+@pytest.mark.parametrize("source,destination,arguments", [(0, 2, "2, 0, 3"), (2, 0, "0, 3, 2")])
+def test_nonadjacent_movement_shifts_intervening_parameters(tmp_path, source, destination, arguments):
+    root, client = fixture(tmp_path)
+    path = root/"pricing.rs"
+    path.write_text(path.read_text().replace("a + b", "a * 100 + b * 10 + _legacy"))
+    checker = tmp_path/"check.py"
+    checker.write_text(checker.read_text().replace("=='5'", "=='320'"))
+    original = {p.name: p.read_bytes() for p in root.glob("*.rs")}
+    _, change = proposal(client, RefactorRequest.move_parameter(source, destination))
+    assert client.execute(client.review(change)).passed
+    assert f"subtotal({arguments})" in (root/"api.rs").read_text()
+    receiver = tmp_path/"receiver"
+    receiver.mkdir()
+    for name, content in original.items():
+        (receiver/name).write_bytes(content)
+    subprocess.run(["git", "apply", str(root/"artifacts/migration.patch")], cwd=receiver, check=True)
+    subprocess.run([sys.executable, str(checker)], cwd=receiver, check=True)
+    assert {p.name: p.read_bytes() for p in receiver.glob("*.rs")} == {
+        p.name: p.read_bytes() for p in root.glob("*.rs")}
+
+
 def test_function_value_and_unresolved_consumer_refuse_signature_delivery(tmp_path):
     root, client = fixture(tmp_path)
     path = root/"api.rs"

@@ -360,23 +360,19 @@ fn refuses_to_add_past_the_end_of_a_call() {
 }
 
 #[test]
-fn notes_a_call_that_cannot_be_reordered_for_want_of_positions() {
+fn refuses_a_call_that_cannot_be_reordered_for_want_of_positions() {
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$1 $2\"\n}\nf a b\nf a\n")]);
     let index = ws.index();
-    let plan = signature::change(
+    let error = signature::change(
         &index,
         symbol_id(&index, "f"),
         Change::Move { from: 0, to: 1 },
     )
-    .unwrap();
-    assert!(
-        plan.notes.iter().any(|n| n.contains("holds no position")),
-        "got: {:?}",
-        plan.notes
-    );
+    .unwrap_err().to_string();
+    assert!(error.contains("bindings cannot be preserved"), "{error}");
     assert_eq!(
-        applied(&plan, &ws.path("run.sh")),
-        "f() {\n  echo \"$2 $1\"\n}\nf b a\nf a\n"
+        std::fs::read_to_string(ws.path("run.sh")).unwrap(),
+        "f() {\n  echo \"$1 $2\"\n}\nf a b\nf a\n"
     );
 }
 

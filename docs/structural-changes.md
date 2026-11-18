@@ -70,6 +70,7 @@ The fragment for a `refactor` target is JSON. It accepts one of these shapes:
 - `{"operation":"move-parameter","from":0,"to":1}`
 
 Positions are zero-based and below 64. Movement requires distinct positions. Unknown fields refuse.
+Moving from 0 to 2 turns `(a, b, c)` into `(b, c, a)` in declarations and calls.
 The SDK's `RefactorRequest` validates the transport; native preflight checks source and semantics.
 Author batches accept the same request through `from`. Low-level authoring supplies a reviewed
 mutation; scope-bound task delivery adds the required discovery and check selections.
@@ -89,7 +90,9 @@ Signature changes retain unused-parameter and function-value refusals from the n
 Every parameter must have an explicit primitive integer, Boolean or character type.
 When removing a parameter, only its discarded argument must be a literal: an integer, Boolean or character written directly in source.
 Negative integer literals also qualify. The arguments that remain can contain variables or expressions; the edit preserves their order and bytes.
-Moving parameters still requires every argument to be a literal because movement can change evaluation order.
+This checked authoring route requires every argument to be a literal when moving parameters.
+The general `signature` command also accepts plain reads when every argument in the moved range is a literal or plain read.
+Both routes use the same binding checks and refuse effectful removals or reordering.
 
 For example, removing an unused third parameter changes `subtotal(amount, fee, 0)` to `subtotal(amount, fee)`.
 For `subtotal(record_price(), fee, 0)`, the `record_price()` call still runs before evaluating `fee`.

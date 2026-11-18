@@ -237,7 +237,11 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     let dispatched = !family.is_empty();
     let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };
     for member in &members {
-        if index.definition_group(*member).iter().any(|id| !members.contains(id)) {
+        if index
+            .definition_group(*member)
+            .iter()
+            .any(|id| !members.contains(id))
+        {
             return Err(Refusal::Declined {
                 detail: "this signature has conditional or overloaded definitions that cannot be changed independently".into(),
             }.into());
@@ -315,7 +319,11 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                         if index.references_in(&m.file).any(|reference| {
                             m.full_span.contains(reference.span) && reference.name == name
                         }) {
-                            return Err(Refusal::NameCaptured { name, file: m.file.clone() }.into());
+                            return Err(Refusal::NameCaptured {
+                                name,
+                                file: m.file.clone(),
+                            }
+                            .into());
                         }
                     }
                 }
@@ -692,6 +700,27 @@ fn apply_change(
                 safety::argument(site, target, false)?;
             }
             let span = with_separator(source, items, index, target);
+            let includes_comma = source[span.start..target.start].contains(',')
+                || source[target.end..span.end].contains(',');
+            if !includes_comma {
+                // Comments can separate an item from its comma. Preserve their bytes
+                // and remove the punctuation as a separate edit.
+                let (start, end) = if let Some(next) = items.get(index + 1) {
+                    (target.end, next.start)
+                } else if index > 0 {
+                    (items[index - 1].end, target.start)
+                } else {
+                    let node = parsed.root().descendant_for_byte_range(target.start, target.end);
+                    (target.end, node.and_then(|node| node.parent()).map_or(target.end, |node| node.end_byte()))
+                };
+                if let Some(container) = parsed.root().descendant_for_byte_range(start, end) {
+                    if let Some(comma) = descendants(container).into_iter().find(|node| {
+                        node.kind() == "," && node.start_byte() >= start && node.end_byte() <= end
+                    }) {
+                        edits.add(file.to_path_buf(), Edit::new(Span::from(comma), "", "remove argument separator"));
+                    }
+                }
+            }
             edits.add(
                 file.to_path_buf(),
                 Edit::new(span, "", format!("remove parameter {index}")),
@@ -746,9 +775,17 @@ fn apply_change(
         } => {
             if *at > items.len() {
                 return Err(Refusal::Declined {
-                    detail: format!("cannot insert at position {at}: this {} has {} item(s)",
-                        if is_declaration { "declaration" } else { "call" }, items.len()),
-                }.into());
+                    detail: format!(
+                        "cannot insert at position {at}: this {} has {} item(s)",
+                        if is_declaration {
+                            "declaration"
+                        } else {
+                            "call"
+                        },
+                        items.len()
+                    ),
+                }
+                .into());
             }
             let text = if is_declaration {
                 declaration
@@ -790,13 +827,26 @@ fn apply_change(
     Ok(())
 }
 
-fn move_items(edits: &mut EditSet, file: &Path, source: &str, items: &[Span], from: usize, to: usize) {
+fn move_items(
+    edits: &mut EditSet,
+    file: &Path,
+    source: &str,
+    items: &[Span],
+    from: usize,
+    to: usize,
+) {
     let mut order: Vec<usize> = (0..items.len()).collect();
     let moved = order.remove(from);
     order.insert(to, moved);
     for at in from.min(to)..=from.max(to) {
-        edits.add(file.to_path_buf(), Edit::new(items[at], items[order[at]].text(source),
-            format!("move parameter {from} to {to}")));
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                items[at],
+                items[order[at]].text(source),
+                format!("move parameter {from} to {to}"),
+            ),
+        );
     }
 }
 

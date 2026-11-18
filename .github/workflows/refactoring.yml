@@ -51,7 +51,7 @@ jobs:
         with:
           name: refactoring-format
           path: ${{ runner.temp }}/format.patch
-      - run: cargo test --locked --test signature_safety --test signature_hierarchy --test signature_java --test signature_bash --test signature_config --test recipe -- --test-threads=1
+      - run: cargo test --locked --no-fail-fast --test signature_safety --test signature_hierarchy --test signature_java --test signature_bash --test signature_config --test recipe -- --test-threads=1
       - run: 'cargo test --locked --lib refactor:: -- --test-threads=1'
       - run: cargo build --locked --bin fr
       - run: cargo clippy --locked --lib --bin fr -- -D warnings
