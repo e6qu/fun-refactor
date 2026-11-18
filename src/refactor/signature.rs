@@ -258,8 +258,11 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             .any(|id| !members.contains(id))
         {
             return Err(Refusal::Declined {
-                detail: "conditional or overloaded definitions require one coordinated signature change".into(),
-            }.into());
+                detail:
+                    "conditional or overloaded definitions require one coordinated signature change"
+                        .into(),
+            }
+            .into());
         }
     }
     if !dispatched {
