@@ -83,5 +83,18 @@ Validation stays locked until the initial summary and independent grading receip
 are committed and the product implementation is frozen. The release binds both
 records and the checker source used to produce the independent verdicts.
 
-Native admission and live-run integration are still being prepared. No hosted control
-or passing protocol test authorizes a model call by itself.
+The initial round uses `selected_local` and `selected_guarded`, with the existing
+`algorithm_admission` scripted provider. Admission requires all 24 combinations of
+agent, task and setup to finish checking, patch delivery and accounting without a
+model call. Each admission keeps a 128 MiB memory reserve within its 768 MiB ceiling.
+The live freeze binds these receipts, the task seeds, native binaries and hosted checks.
+No hosted control or passing protocol test authorizes a model call by itself.
+
+`product_results export` accepts reviewed notes and the frozen execution plan. It
+publishes summaries and exact delivered patches, including every unstarted or failed
+slot. The `Independently grade product comparisons` workflow restores the qualified
+private checker image and grades all 48 original patches. A valid patch delivered late
+remains a failed complete attempt. Neither exporter nor grader starts a model session.
+
+Local admission and attempts use the required workstation guard and cannot proceed
+below its 64 GiB disk floor. Full builds and independent grading stay on GitHub.

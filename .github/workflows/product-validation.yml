@@ -12,8 +12,10 @@ on:
       - 'tools/agent_eval/selected_local.py'
       - 'tools/agent_eval/selected_guarded.py'
       - 'tools/agent_eval/algorithm_admission.py'
+      - 'tools/agent_eval/selected_public.py'
       - 'tests/agent-eval/product-validation/**'
       - '.github/workflows/product-validation.yml'
+      - '.github/workflows/grade-products.yml'
 permissions:
   contents: read
 concurrency:
@@ -40,7 +42,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: >-
           python3 -B -m unittest agent_eval.test_product_plan agent_eval.test_product_report
-          agent_eval.test_product_runtime agent_eval.test_selected_plan agent_eval.test_selected_grading
+          agent_eval.test_product_runtime agent_eval.test_product_results agent_eval.test_selected_plan agent_eval.test_selected_grading
           agent_eval.test_selected_local agent_eval.test_algorithm_admission
       - name: Check public task-checker syntax
         run: python3 -B -c 'import ast; from pathlib import Path; ast.parse(Path("tools/agent_eval/product_public.py").read_text())'

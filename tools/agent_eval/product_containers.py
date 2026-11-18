@@ -1,7 +1,9 @@
 """Qualify product-task patches in the existing private grader container."""
 import argparse
+import gzip
 import json
 import os
+import subprocess
 from pathlib import Path
 
 from . import product_plan as plan, selected_grading as grading, selected_local as local
@@ -50,6 +52,19 @@ def controls(inputs, rust, output):
         result['bindings'] = local.implementation_bindings('P5-initial')
         result['checker_bindings'] = {str(path.relative_to(ROOT)): common.digest(path)
             for path in sorted((ROOT / 'tools/agent_eval').glob('*.py'))}
+        # Preserve the exact qualified image for later submitted-patch grading.
+        archive = output / 'grader-image.tar.gz'
+        with gzip.open(archive, 'wb') as compressed:
+            process = subprocess.Popen(grading.DOCKER + ['save', image], stdout=subprocess.PIPE)
+            try:
+                while block := process.stdout.read(1024**2):
+                    compressed.write(block)
+                require(process.wait(timeout=60) == 0, 'could not retain the qualified private checker image')
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait(timeout=5)
+        result['private_image_archive_sha256'] = common.digest(archive)
         from .product_runtime import validate_controls
         validate_controls(result, 'P5-initial', verify_commit=False)
         return result

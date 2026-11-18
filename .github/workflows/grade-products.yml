@@ -1,0 +1,96 @@
+name: Independently grade product comparisons
+on:
+  workflow_dispatch:
+    inputs:
+      control_run:
+        description: Successful frozen product qualification run
+        required: true
+        type: string
+      study:
+        description: Original comparison whose reviewed patches must be checked
+        required: true
+        type: choice
+        options: [P5-initial, P5-validation]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: grade-products-${{ inputs.study }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  PYTHONPATH: tools
+  PYTHONDONTWRITEBYTECODE: '1'
+  STUDY: ${{ inputs.study }}
+  CONTROL_RUN: ${{ inputs.control_run }}
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - name: Require the original successful task qualification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$CONTROL_RUN" -gt 0
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CONTROL_RUN" > "$RUNNER_TEMP/control-run.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          row = json.loads((Path(os.environ['RUNNER_TEMP']) / 'control-run.json').read_text())
+          assert row['status'] == 'completed' and row['conclusion'] == 'success'
+          assert row['path'] == '.github/workflows/product-validation.yml'
+          assert row['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+          PY
+      - uses: actions/download-artifact@v8
+        with:
+          name: product-private-controls
+          path: ${{ runner.temp }}/qualification
+          run-id: ${{ inputs.control_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: product-controls-*
+          path: ${{ runner.temp }}/product-controls
+          run-id: ${{ inputs.control_run }}
+          github-token: ${{ github.token }}
+      - name: Bind and arrange the qualified inputs
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          temporary = Path(os.environ['RUNNER_TEMP'])
+          receipt = json.loads((temporary / 'qualification/controls.json').read_text())
+          assert receipt['run'] == os.environ['CONTROL_RUN'] and receipt['study'] == os.environ['STUDY']
+          root = temporary / 'product-controls'
+          for path in root.glob('product-controls-*'):
+              path.rename(root / path.name.removeprefix('product-controls-'))
+          PY
+      - name: Grade every original patch in the qualified private image
+        run: |
+          python3 -B -m agent_eval.product_results grade \
+            --data "tests/agent-eval/product-validation/${STUDY#P5-}/results" \
+            --inputs "$RUNNER_TEMP/product-controls" --qualification "$RUNNER_TEMP/qualification" \
+            --rust "$(rustup toolchain list -v | awk '$1 ~ /^1.99.1/ {print $NF}')" \
+            --study "$STUDY" --output "$RUNNER_TEMP/product-checked"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: product-independent-verdicts
+          path: |
+            ${{ runner.temp }}/product-checked/summary.json
+            ${{ runner.temp }}/product-checked/grading.json
+          retention-days: 30

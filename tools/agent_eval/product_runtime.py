@@ -2,6 +2,7 @@
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 import shlex
 import shutil
@@ -51,6 +52,9 @@ def validate_controls(receipt, study, *, verify_commit=True):
             isinstance(receipt.get('run'), str) and receipt['run'].isdigit() and
             isinstance(receipt.get('source_commit'), str) and len(receipt['source_commit']) == 40,
             'require the successful hosted qualification for this exact product round')
+    require(isinstance(receipt.get('image'), str) and re.fullmatch(r'sha256:[0-9a-f]{64}', receipt['image']) and
+            isinstance(receipt.get('private_image_archive_sha256'), str) and
+            re.fullmatch(r'[0-9a-f]{64}', receipt['private_image_archive_sha256']), 'retain the immutable qualified checker image')
     require(receipt.get('bindings') == local.implementation_bindings(study), 'product qualification inputs changed')
     require(set(receipt.get('seeds', {})) == set(tasks), 'qualify all four unchanged product seeds')
     require(set(receipt.get('reference_patches', {})) == set(tasks), 'bind every supplied admission patch')

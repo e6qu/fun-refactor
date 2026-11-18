@@ -105,6 +105,9 @@ def completed_tool_time(events):
 def export(plan_path, review, destination):
     plan = json.loads(plan_path.read_text())
     milestone = plan['schedule']['milestone']
+    if milestone in {'P5-initial', 'P5-validation'}:
+        from .product_results import export as export_product
+        return export_product(plan_path, review, destination)
     require(milestone in PROOF_STUDIES | {'M2'} and
             hashlib.sha256(encoded({key: value for key, value in plan.items() if key != 'sha256'})).hexdigest() == plan['sha256'],
             'export the unchanged execution plan')

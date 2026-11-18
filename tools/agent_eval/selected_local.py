@@ -68,7 +68,7 @@ def implementation_bindings(milestone):
     if milestone in PRODUCT_STUDIES:
         from . import product_plan
         paths += [ROOT / path for path in product_plan.prepare(ROOT, milestone)['bindings']]
-        paths += [ROOT / '.github/workflows/product-validation.yml']
+        paths += [ROOT / '.github/workflows/product-validation.yml', ROOT / '.github/workflows/grade-products.yml']
     if milestone in PROOF_STUDIES | {'M2'}:
         directory = ROOT / CASE_DIRECTORIES[milestone]
         paths += [ROOT / TASK_PATHS[milestone], directory / 'checkers.json']
