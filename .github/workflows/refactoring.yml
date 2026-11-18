@@ -1,0 +1,63 @@
+name: Refactoring and transformation checks
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - src/refactor/**
+      - src/project/structural_change.rs
+      - src/recipe/**
+      - tests/signature*.rs
+      - tests/refactor*.rs
+      - sdk/python/tests/test_structural_change.py
+      - .github/workflows/refactoring.yml
+permissions:
+  contents: read
+concurrency:
+  group: refactoring-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  RUSTUP_TOOLCHAIN: '1.99.1'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  PYTHONPATH: sdk/python/src:tools
+  PYTHONDONTWRITEBYTECODE: '1'
+jobs:
+  behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Capture formatting changes for review
+        run: |
+          cargo fmt --all
+          git diff --binary > "$RUNNER_TEMP/format.patch"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: refactoring-format
+          path: ${{ runner.temp }}/format.patch
+      - run: cargo test --locked --test signature_safety --test signature_hierarchy --test signature_java --test signature_bash --test signature_config --test recipe -- --test-threads=1
+      - run: cargo test --locked --lib refactor:: -- --test-threads=1
+      - run: cargo build --locked --bin fr
+      - run: cargo clippy --locked --lib --bin fr -- -D warnings
+      - name: Inspect advertised support
+        run: |
+          target/debug/fr --json audit
+          target/debug/fr capabilities
+      - run: python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt
+      - run: python3 -m pytest -q sdk/python/tests/test_structural_change.py

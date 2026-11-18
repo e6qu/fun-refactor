@@ -12,12 +12,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
+mod safety;
+
 /// What to do to a parameter list.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Change {
     /// Remove the parameter at this zero-based position.
     Remove(usize),
-    /// Move a parameter from one position to another.
+    /// Move a parameter to another position, shifting the intervening parameters.
     Move { from: usize, to: usize },
     /// Add a parameter, with the text to insert at each call site.
     Add {
@@ -234,6 +236,32 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     let family = crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol);
     let dispatched = !family.is_empty();
     let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };
+    for member in &members {
+        if index.definition_group(*member).iter().any(|id| !members.contains(id)) {
+            return Err(Refusal::Declined {
+                detail: "this signature has conditional or overloaded definitions that cannot be changed independently".into(),
+            }.into());
+        }
+    }
+    if !dispatched {
+        for reference in index.unresolved_matching(symbol) {
+            if reference.target.is_some() && reference.confidence.is_safe_to_rewrite() {
+                continue;
+            }
+            if !matches!(reference.kind, ReferenceKind::Call | ReferenceKind::Field) {
+                continue;
+            }
+            if let Some(receiver) = super::receiver_declared_type(index, reference) {
+                if sym.qualifier.as_deref() != Some(receiver.as_str()) {
+                    continue;
+                }
+            }
+            return Err(Refusal::Unknowable {
+                detail: format!("a possible caller of `{}` at {} is unresolved; changing only known callers could leave the old signature in use",
+                    sym.name, location(&reference.file, reference.span.start)),
+            }.into());
+        }
+    }
 
     // Every call site must be provable: a missed one is a compile error.
     let mut references: Vec<&crate::model::Reference> = Vec::new();
@@ -278,15 +306,26 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
         match parameter_list(declaration) {
             Some(params) => {
+                safety::parameters(params, &source, m.language, &change)?;
                 let param_spans = without_receiver(m.language, m.kind, &source, list_items(params));
                 still_read(index, m, &param_spans, &change)?;
                 already_declared(&source, &param_spans, &change, m.language)?;
+                if let Change::Add { declaration, .. } = &change {
+                    if let Some(name) = parameter_name(declaration, m.language) {
+                        if index.references_in(&m.file).any(|reference| {
+                            m.full_span.contains(reference.span) && reference.name == name
+                        }) {
+                            return Err(Refusal::NameCaptured { name, file: m.file.clone() }.into());
+                        }
+                    }
+                }
                 apply_change(
                     &mut edits,
                     &Site {
                         file: &m.file,
                         source: &source,
                         language: m.language,
+                        parsed: &parsed,
                     },
                     params.start_byte(),
                     &param_spans,
@@ -352,6 +391,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                             file: &reference.file,
                             source: &call_source,
                             language: reference.language,
+                            parsed: &call_parsed,
                         },
                         opens_at,
                         &arg_spans,
@@ -407,6 +447,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                         file: &reference.file,
                         source: &call_source,
                         language: reference.language,
+                        parsed: &call_parsed,
                     },
                     opens_at,
                     &arg_spans,
@@ -489,6 +530,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                             file: &reference.file,
                             source: &call_source,
                             language: reference.language,
+                            parsed: &call_parsed,
                         },
                         opens_at,
                         &arg_spans,
@@ -525,6 +567,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     file: &reference.file,
                     source: &call_source,
                     language: reference.language,
+                    parsed: &call_parsed,
                 },
                 opens_at,
                 &arg_spans,
@@ -577,7 +620,8 @@ fn defaults_would_be_out_of_order(
     if from >= order.len() || to >= order.len() {
         return false;
     }
-    order.swap(from, to);
+    let moved = order.remove(from);
+    order.insert(to, moved);
     let first_defaulted = order.iter().position(|span| defaulted(span));
     match first_defaulted {
         Some(at) => order[at..].iter().any(|span| !defaulted(span)),
@@ -590,6 +634,7 @@ struct Site<'a> {
     file: &'a std::path::Path,
     source: &'a str,
     language: Language,
+    parsed: &'a Parsed,
 }
 
 /// The name of the parameter a removal targets, read from the declaration.
@@ -619,10 +664,16 @@ fn apply_change(
         file,
         source,
         language,
+        parsed,
     } = *site;
     match change {
         Change::Remove(index) => {
-            let Some(target) = items.get(*index) else {
+            let selected = if !is_declaration && language == Language::Python {
+                safety::python_argument(parsed, source, items, *index, removed_name)
+            } else {
+                items.get(*index).map(|span| (*index, *span))
+            };
+            let Some((index, target)) = selected else {
                 // A declaration must have the parameter; a call may legitimately
                 // omit a defaulted one, so only the declaration is an error.
                 if is_declaration {
@@ -637,21 +688,9 @@ fn apply_change(
                 }
                 return Ok(());
             };
-            let (index, target) = match (is_declaration, removed_name) {
-                (false, Some(name)) => {
-                    let named = |span: &Span| -> Option<String> {
-                        let text = source.get(span.start..span.end)?.trim();
-                        let (head, _) = text.split_once('=')?;
-                        Some(head.trim().to_string())
-                    };
-                    match items.iter().position(|s| named(s).as_deref() == Some(name)) {
-                        Some(at) => (at, items[at]),
-                        None if items.iter().any(|s| named(s).is_some()) => return Ok(()),
-                        None => (*index, *target),
-                    }
-                }
-                _ => (*index, *target),
-            };
+            if !is_declaration {
+                safety::argument(site, target, false)?;
+            }
             let span = with_separator(source, items, index, target);
             edits.add(
                 file.to_path_buf(),
@@ -659,7 +698,10 @@ fn apply_change(
             );
         }
         Change::Move { from, to } => {
-            let (Some(a), Some(b)) = (items.get(*from), items.get(*to)) else {
+            if from == to {
+                return Ok(());
+            }
+            let (Some(_), Some(_)) = (items.get(*from), items.get(*to)) else {
                 if is_declaration {
                     return Err(Refusal::Declined {
                         detail: format!(
@@ -669,6 +711,11 @@ fn apply_change(
                         ),
                     }
                     .into());
+                }
+                if items.len() > *from.min(to) {
+                    return Err(Refusal::Declined {
+                        detail: "this call omits a parameter in the moved range; reordering would change its default binding".into(),
+                    }.into());
                 }
                 return Ok(());
             };
@@ -683,21 +730,26 @@ fn apply_change(
                 }
                 .into());
             }
-            // Swapping the text of two items keeps every byte in between untouched.
-            edits.add(
-                file.to_path_buf(),
-                Edit::new(*a, b.text(source), format!("move parameter {from}")),
-            );
-            edits.add(
-                file.to_path_buf(),
-                Edit::new(*b, a.text(source), format!("move parameter {to}")),
-            );
+            let low = *from.min(to);
+            let high = *from.max(to);
+            if !is_declaration {
+                for span in &items[low..=high] {
+                    safety::argument(site, *span, true)?;
+                }
+            }
+            move_items(edits, file, source, items, *from, *to);
         }
         Change::Add {
             at,
             declaration,
             argument,
         } => {
+            if *at > items.len() {
+                return Err(Refusal::Declined {
+                    detail: format!("cannot insert at position {at}: this {} has {} item(s)",
+                        if is_declaration { "declaration" } else { "call" }, items.len()),
+                }.into());
+            }
             let text = if is_declaration {
                 declaration
             } else {
@@ -736,6 +788,16 @@ fn apply_change(
         }
     }
     Ok(())
+}
+
+fn move_items(edits: &mut EditSet, file: &Path, source: &str, items: &[Span], from: usize, to: usize) {
+    let mut order: Vec<usize> = (0..items.len()).collect();
+    let moved = order.remove(from);
+    order.insert(to, moved);
+    for at in from.min(to)..=from.max(to) {
+        edits.add(file.to_path_buf(), Edit::new(items[at], items[order[at]].text(source),
+            format!("move parameter {from} to {to}")));
+    }
 }
 
 /// Write a parameter list for a declaration or call that has none yet.
@@ -1126,8 +1188,10 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
                 let (a, b) = (from + 1, to + 1);
                 if reference.number == a {
                     b
-                } else if reference.number == b {
-                    a
+                } else if a < b && (a + 1..=b).contains(&reference.number) {
+                    reference.number - 1
+                } else if b < a && (b..a).contains(&reference.number) {
+                    reference.number + 1
                 } else {
                     reference.number
                 }
@@ -1189,6 +1253,7 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
         for reference in references {
             let call = shell_call_at(&call_parsed, sym, file, reference.span)?;
             shell_check_positions(&call, &call_parsed, &call_source, sym, file, &change)?;
+            safety::shell_arguments(&call_parsed, &call_source, file, &call.arguments, &change)?;
             shell_rewrite_call(
                 &mut edits,
                 file,
@@ -1699,7 +1764,12 @@ fn shell_rewrite_call(
             );
         }
         Change::Move { from, to } => {
-            let (Some(a), Some(b)) = (call.arguments.get(*from), call.arguments.get(*to)) else {
+            let (Some(_), Some(_)) = (call.arguments.get(*from), call.arguments.get(*to)) else {
+                if call.arguments.len() > *from.min(to) {
+                    return Err(Refusal::Declined {
+                        detail: "this shell call omits a position in the moved range; its bindings cannot be preserved".into(),
+                    }.into());
+                }
                 notes.push(format!(
                     "{}: the call to `{}` passes {} argument(s), so it holds no position \
                      {from} and {to} both; this left its arguments alone",
@@ -1709,14 +1779,9 @@ fn shell_rewrite_call(
                 ));
                 return Ok(());
             };
-            edits.add(
-                file.to_path_buf(),
-                Edit::new(*a, b.text(source), format!("move argument {from}")),
-            );
-            edits.add(
-                file.to_path_buf(),
-                Edit::new(*b, a.text(source), format!("move argument {to}")),
-            );
+            if from != to {
+                move_items(edits, file, source, &call.arguments, *from, *to);
+            }
         }
         Change::Add { at, argument, .. } => {
             if *at > call.arguments.len() {
