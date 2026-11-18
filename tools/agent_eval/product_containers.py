@@ -14,7 +14,9 @@ def controls(inputs, rust, output):
     output.mkdir(parents=True, exist_ok=False)
     image = grading.build(output / 'image')
     result = {'schema': 'fr-product-private-controls-1', 'passed': False, 'live_model_calls': 0,
-              'image': image, 'controls': {}}
+              'image': image, 'controls': {}, 'seeds': {}, 'reference_patches': {}, 'variants': {},
+              'study': 'P5-initial', 'run': os.environ['GITHUB_RUN_ID'],
+              'source_commit': common.comparison_grade.BASE.git(ROOT, 'rev-parse', 'HEAD').stdout.decode().strip()}
     try:
         for task in plan.TASKS['initial']:
             directory = inputs / task
@@ -32,6 +34,9 @@ def controls(inputs, rust, output):
             empty.write_bytes(b'')
             invalid.write_bytes(b'not a patch\n')
             variants.update(missing=None, empty=empty, invalid=invalid)
+            result['seeds'][task] = receipt['archive_sha256']
+            result['reference_patches'][task] = common.digest(directory / 'reference.patch')
+            result['variants'][task] = sorted(variants)
             for name, patch in variants.items():
                 identity = task + '/' + name
                 result['controls'][identity] = {'status': 'running'}
@@ -42,8 +47,11 @@ def controls(inputs, rust, output):
                 result['controls'][identity] = {'status': 'passed', 'accepted_change': checked['passed'],
                     'submitted_patch_sha256': checked['submitted_patch_sha256']}
         result['passed'] = True
+        result['bindings'] = local.implementation_bindings('P5-initial')
         result['checker_bindings'] = {str(path.relative_to(ROOT)): common.digest(path)
             for path in sorted((ROOT / 'tools/agent_eval').glob('*.py'))}
+        from .product_runtime import validate_controls
+        validate_controls(result, 'P5-initial', verify_commit=False)
         return result
     finally:
         common.save(output / 'controls.json', result)

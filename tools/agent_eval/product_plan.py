@@ -90,6 +90,7 @@ def validation_release(root):
 
 def configuration(root):
     from .selected_plan import prepare
+    from .product_runtime import ADMISSION
     original = prepare(root, 'M1')  # Reuse the exact selected client/profile checks.
     protocol = read(root, DIRECTORY / 'protocol.json')
     require(protocol['schema'] == 'fr-product-comparison-1' and protocol['study'] == 'P5',
@@ -105,6 +106,7 @@ def configuration(root):
     require(protocol['workstation'] == {'wall_seconds': 180, 'rss_bytes': 1024**3,
             'target_bytes': 2 * 1024**3, 'free_disk_bytes': 64 * 1024**3},
             'preserve the outer workstation limits')
+    require(protocol.get('native_admission') == ADMISSION, 'preserve complete native admission before calls')
     return protocol, original
 
 

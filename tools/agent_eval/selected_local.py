@@ -16,7 +16,7 @@ from .bounded_host import run as bounded_run
 from .bounded_host import elapsed_time
 from .selected_cli import configuration, invocation, export_session, verify_export
 from . import selected_tasks as tasks
-from .selected_plan import ALGORITHM_STUDIES, ALGORITHM_TASKS, ADMISSION_STUDIES, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, REPAIR_STUDY, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import ALGORITHM_STUDIES, ALGORITHM_TASKS, ADMISSION_STUDIES, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, PRODUCT_STUDIES, REPAIR_STUDY, CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
@@ -65,6 +65,10 @@ def implementation_bindings(milestone):
     paths += [path for path in (ROOT / 'skills/fr').rglob('*') if path.is_file()]
     paths += [path for path in (ROOT / DIRECTORY).iterdir() if path.is_file() and path.name != 'README.md']
     paths += [ROOT / '.github/actions/lean-toolchain/action.yml', ROOT / '.github/actions/native-tools/python-wheels.txt']
+    if milestone in PRODUCT_STUDIES:
+        from . import product_plan
+        paths += [ROOT / path for path in product_plan.prepare(ROOT, milestone)['bindings']]
+        paths += [ROOT / '.github/workflows/product-validation.yml']
     if milestone in PROOF_STUDIES | {'M2'}:
         directory = ROOT / CASE_DIRECTORIES[milestone]
         paths += [ROOT / TASK_PATHS[milestone], directory / 'checkers.json']
@@ -120,7 +124,13 @@ def checking_input_changes(project, expected):
 
 
 def prompt(task, setup, checkers, milestone):
-    if milestone == DELIVERY_STUDY:
+    if milestone in PRODUCT_STUDIES:
+        from .product_runtime import public_checks
+        request = prepare(ROOT, milestone)['requirements']['tasks'][task]['request']
+        checks = [shlex.join(row['argv']) for row in public_checks(task, checkers)]
+        if task.endswith('-proof'):
+            request += '\nInstalled Lean library source: ' + checkers['lean']['source_root']
+    elif milestone == DELIVERY_STUDY:
         from . import proof_delivery
         require(task == 'euclid', 'delivery uses the fixed executable GCD task')
         request = proof_delivery.request(setup, prepare(ROOT, milestone)['requirements'])
@@ -173,8 +183,10 @@ def prompt(task, setup, checkers, milestone):
         request = ('Complete every requirement:\n' + '\n'.join(
             '- ' + sentence + '.' for sentence in request.removesuffix('.').split('. ')))
     checking_files = ''
-    if milestone in PROOF_STUDIES | {'M2'}:
+    if milestone in PROOF_STUDIES | PRODUCT_STUDIES | {'M2'}:
         checking_files = 'Preserve provided .fr/checks.json'
+        if milestone in PRODUCT_STUDIES and not task.endswith('-proof'):
+            checking_files += ' and .fr/product-check.py'
         if milestone == 'M2' and task == 'regex-escape-len':
             checking_files += ' and .fr/check-escape'
         checking_files += ', including during cleanup; changing or deleting them makes the attempt fail. '
@@ -202,6 +214,8 @@ def prompt(task, setup, checkers, milestone):
         + ('Finish by exporting BOTH returned edit IDs in save order with fr history patch '
            '<FIRST_ID> <SECOND_ID> --output change.patch, then report the passed checks. '
            if milestone == DELIVERY_STUDY else
+           'Finish by running git add -N . to include new files, then write change.patch with git diff --binary HEAD; report the changes and checks. '
+           if milestone in PRODUCT_STUDIES else
            'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. ')
         + 'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
 
@@ -281,11 +295,11 @@ def freeze(inputs, binaries, runtime, output, milestone):
     output.mkdir(parents=True, exist_ok=False)
     proposed = prepare(ROOT, milestone)
     limits = study_limits(milestone)
-    expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in PROOF_STUDIES | {'M1'} else
+    expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in PROOF_STUDIES | PRODUCT_STUDIES | {'M1'} else
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
-    if milestone in PROOF_STUDIES:
+    if milestone in PROOF_STUDIES | PRODUCT_STUDIES:
         expected_runtime |= {'fr_build', 'controls'}
-    if milestone in ADMISSION_STUDIES:
+    if milestone in ADMISSION_STUDIES | PRODUCT_STUDIES:
         expected_runtime.add('admission')
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     clients = {profile['client'] for profile in proposed['profiles'].values()}
@@ -303,14 +317,14 @@ def freeze(inputs, binaries, runtime, output, milestone):
             'installed CLI releases differ from the reviewed local setup: ' + json.dumps(versions))
     checker_paths = {'python': runtime['python'],
         **{name: runtime['rust_root'] / 'bin' / name for name in ('rustc', 'cargo', 'rustdoc')}}
-    if milestone in PROOF_STUDIES | {'M1'}:
+    if milestone in PROOF_STUDIES | PRODUCT_STUDIES | {'M1'}:
         checker_paths.update({name: runtime['lean_root'] / 'bin' / name for name in ('lean', 'lake', 'leanc')})
     else:
         checker_paths.update({name: runtime[name] for name in ('node', 'typescript')})
         checker_paths['objcopy'] = runtime['rust_root'] / 'lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy'
     checkers = {name: {'path': str(path.absolute()), 'sha256': hash_file(path)} for name, path in checker_paths.items()}
     checker_versions = {}
-    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone in PROOF_STUDIES | {'M1'} else ['node', 'typescript', 'objcopy'])
+    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone in PROOF_STUDIES | PRODUCT_STUDIES | {'M1'} else ['node', 'typescript', 'objcopy'])
     for name in names:
         argv = [checkers[name]['path'], '--version']
         if name == 'typescript':
@@ -319,17 +333,21 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require(result.returncode == 0, 'local checker version probe failed: ' + name)
         checker_versions[name] = result.stdout.strip()
     require(checker_versions['rustc'].startswith('rustc 1.98.1 '), 'choose the inspected local Rust 1.98.1 toolchain')
-    if milestone in PROOF_STUDIES | {'M1'}:
+    if milestone in PROOF_STUDIES | PRODUCT_STUDIES | {'M1'}:
         require('4.28.0' in checker_versions['lean'], 'choose the inspected Lean 4.28.0 toolchain')
     else:
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(source_version == settings['fr'] and checker_versions['node'] == 'v' + settings['node'] and
                 checker_versions['typescript'] == 'Version ' + settings['typescript']['version'] and
                 checker_versions['python'] == 'Python ' + settings['local_python'], 'M2 checkers differ from their pins')
-    if milestone in PROOF_STUDIES:
+    if milestone in PROOF_STUDIES | PRODUCT_STUDIES:
         python_packages = {}
-        settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
-        require(checker_versions['python'] == 'Python ' + settings['local_python'], 'M3 Python differs from its pin')
+        settings_path = ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json'
+        if milestone in PRODUCT_STUDIES:
+            from .product_runtime import checkers_path
+            settings_path = checkers_path()
+        settings = json.loads(settings_path.read_text())
+        require(checker_versions['python'] == 'Python ' + settings['local_python'], 'study Python differs from its pin')
         prefix = subprocess.run([checkers['lean']['path'], '--print-prefix'],
                                 capture_output=True, text=True, timeout=10)
         require(prefix.returncode == 0 and Path(prefix.stdout.strip()).resolve() == runtime['lean_root'].resolve(),
@@ -372,7 +390,10 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 'provider_request_cap_enforced': False, 'token_cap_enforced': False,
                 'explanation': 'Native CLI output is recorded. These CLIs do not expose a shared hard token/request cap. '
                                'Enforced limits are wall time, sampled memory/CPU/disk/output and the outer workstation guard.'}}
-    if milestone == 'M2':
+    if milestone in PRODUCT_STUDIES:
+        from .product_runtime import attach_freeze
+        attach_freeze(value, runtime, inputs, milestone)
+    elif milestone == 'M2':
         value['cargo_home'] = str(runtime['cargo_home'].resolve())
         require((runtime['cargo_home'] / 'registry/src').is_dir(), 'prepare the actual pinned offline dependencies first')
         source_paths = list((runtime['cargo_home'] / 'registry/src').rglob('*'))
@@ -578,14 +599,14 @@ def attempt(plan_path, attempt_id):
             (binary_directory / 'fr').symlink_to(value['binaries']['fr']['path'])
             if milestone != DELIVERY_STUDY:
                 shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
-            if milestone in ALGORITHM_STUDIES | {REPAIR_STUDY, 'M3-facts'}:
+            if milestone in ALGORITHM_STUDIES | PRODUCT_STUDIES | {REPAIR_STUDY, 'M3-facts'}:
                 checking_inputs.update({str(path.relative_to(project)): hash_file(path)
                     for path in (project / '.agents/skills/fr').rglob('*') if path.is_file()})
         env = {key: os.environ[key] for key in ('HOME', 'PATH', 'LANG', 'CODEX_HOME', 'XDG_CONFIG_HOME',
             'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME', 'SSL_CERT_FILE', 'CODEX_CA_CERTIFICATE') if key in os.environ}
         checkers = value['checkers']
         tool_path = [binary_directory, Path(checkers['python']['path']).parent, Path(checkers['rustc']['path']).parent]
-        tool_path.append(Path(checkers['lean' if milestone in PROOF_STUDIES | {'M1'} else 'node']['path']).parent)
+        tool_path.append(Path(checkers['lean' if milestone in PROOF_STUDIES | PRODUCT_STUDIES | {'M1'} else 'node']['path']).parent)
         env.update(PATH=os.pathsep.join(map(str, tool_path)) + os.pathsep + env['PATH'], PYTHONDONTWRITEBYTECODE='1',
             FUN_REFACTOR_CACHE=str(project / '.fr/cache'),
             CARGO_NET_OFFLINE='true', RUSTUP_TOOLCHAIN='1.98.1', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1', RAYON_NUM_THREADS='1',
@@ -595,7 +616,11 @@ def attempt(plan_path, attempt_id):
             OPENCODE_DISABLE_DEFAULT_PLUGINS='1', OPENCODE_DISABLE_MODELS_FETCH='1', DISABLE_TELEMETRY='1',
             GOMAXPROCS='1', BUN_JSC_useJIT='false')
         env.update(value['public_check_environment'])
-        if milestone == 'M2':
+        if milestone in PRODUCT_STUDIES:
+            from .product_runtime import install
+            checking_inputs.update(install(project, row['task'], checkers))
+            report['provided_checking_inputs'] = checking_inputs
+        elif milestone == 'M2':
             require(all(hash_file(Path(path)) == expected for path, expected in value['runtime_source_bindings'].items()),
                     'offline dependency or TypeScript checker source changed')
             env['CARGO_HOME'] = value['cargo_home']
@@ -637,7 +662,7 @@ def attempt(plan_path, attempt_id):
         require((shutil.which('fr', path=env['PATH']) is not None) == with_fr, 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':
-            references = [checkers['lean']['source_root']] if milestone in PROOF_STUDIES else []
+            references = [checkers['lean']['source_root']] if milestone in PROOF_STUDIES | PRODUCT_STUDIES else []
             config = configuration(profile, 'fr' if with_fr else 'files', project, read_only_directories=references)
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
@@ -706,7 +731,7 @@ def attempt(plan_path, attempt_id):
                 report['status'] = 'failed'
             retain_result(project, output, report)
         report['elapsed_seconds'] = elapsed_time() - started
-        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS and (output / 'native.stdout').exists():
+        if milestone in PROOF_DIAGNOSTICS | ALGORITHM_TASKS | PRODUCT_STUDIES and (output / 'native.stdout').exists():
             report['native_stdout_sha256'] = hash_file(output / 'native.stdout')
         report['finished_at'] = time.time()
         report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))

@@ -40,6 +40,20 @@
   },
   "profile_policy": "Use the selected-agents high-reasoning profiles for all four P5 tasks; original M3 settings stay unchanged.",
   "retry_failed_slots": false,
+  "native_admission": {
+    "conditions": ["files", "fr"],
+    "complete_workflow_required": true,
+    "session_accounting_required": true,
+    "independent_patch_replay_required": true,
+    "client_context_reserve_bytes": 134217728,
+    "control_limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    }
+  },
   "decision": {
     "correctness": "For each profile, fr must complete at least as many independently accepted attempts as ordinary tools before claiming a benefit.",
     "efficiency": "For that profile, at least two task families must have both repetitions accepted in both setups and at least a 10% reduction in their combined matched complete time with fr.",
