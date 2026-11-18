@@ -1,13 +1,27 @@
-  have hz : FrRustScalar.checked true 0 = some (.int 0) := rfl
-  have hu : FrRustScalar.checked true 1 = some (.int 1) := rfl
-  have hn : FrRustScalar.checked true (-1) = some (.int (-1)) := rfl
+  let env : List FrPureKernel.Value := [.int items, .int size]
+  let condition : FrPureKernel.Term := .binary .or
+    (.binary .lt (.bound 0) (.value (.int 0)))
+    (.binary .le (.bound 1) (.value (.int 0)))
+  have hc : FrRustScalar.eval true 5 env condition =
+      some (.bool (decide (items < 0) || decide (size ≤ 0))) := by
+    apply FrRustScalar.disjunction <;> rfl
+  unfold MODELTerm
   by_cases hi : items < 0
-  · simp_all [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
-      FrPureKernel.applyOperator]
+  · have selected : FrRustScalar.eval true 5 env condition = some (.bool true) := by
+      simpa [hi] using hc
+    rw [FrRustScalar.branch_true selected]
+    change some (.int (-1)) = some (.int (MODEL items size))
+    simp [MODEL, hi]
   · by_cases hs : size ≤ 0
-    · simp_all [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
-        FrPureKernel.applyOperator]
-    · have hi0 : 0 ≤ items := by omega
+    · have selected : FrRustScalar.eval true 5 env condition = some (.bool true) := by
+        simpa [hi, hs] using hc
+      rw [FrRustScalar.branch_true selected]
+      change some (.int (-1)) = some (.int (MODEL items size))
+      simp [MODEL, hs]
+    · have selected : FrRustScalar.eval true 5 env condition = some (.bool false) := by
+        simpa [hi, hs] using hc
+      rw [FrRustScalar.branch_false selected]
+      have hi0 : 0 ≤ items := by omega
       have hs0 : 0 < size := by omega
       have hsn : size ≠ 0 := by omega
       have hin : items ≠ -9223372036854775808 := by omega
@@ -23,9 +37,27 @@
         simp [FrRustScalar.checked, FrRustScalar.minimum, FrRustScalar.maximum, hqmin, hqmax]
       have hrem : FrRustScalar.checked true (items.tmod size) = some (.int (items.tmod size)) := by
         simp [FrRustScalar.checked, FrRustScalar.minimum, FrRustScalar.maximum, hrmin, hrmax]
+      have divided : FrRustScalar.eval true 4 env (.binary .div (.bound 0) (.bound 1)) =
+          some (.int (items.tdiv size)) := by
+        change FrRustScalar.applyOperator true .div (.int items) (.int size) = _
+        simp [FrRustScalar.applyOperator, FrRustScalar.minimum, hsn, hin, hq]
+      rw [FrRustScalar.binding_checked divided]
+      let localEnv : List FrPureKernel.Value := .int (items.tdiv size) :: env
+      have remainder : FrRustScalar.eval true 2 localEnv (.binary .rem (.bound 1) (.bound 2)) =
+          some (.int (items.tmod size)) := by
+        change FrRustScalar.applyOperator true .rem (.int items) (.int size) = _
+        simp [FrRustScalar.applyOperator, FrRustScalar.minimum, hsn, hin, hrem]
+      have compared : FrRustScalar.eval true 3 localEnv
+          (.binary .eq (.binary .rem (.bound 1) (.bound 2)) (.value (.int 0))) =
+          some (.bool (items.tmod size == 0)) := by
+        rw [FrRustScalar.eval, remainder] <;> rfl
       by_cases hr : items.tmod size = 0
-      · simp_all [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
-          FrPureKernel.applyOperator, FrRustScalar.minimum]
+      · have selectedRem : FrRustScalar.eval true 3 localEnv
+            (.binary .eq (.binary .rem (.bound 1) (.bound 2)) (.value (.int 0))) =
+            some (.bool true) := by simpa [hr] using compared
+        rw [FrRustScalar.branch_true selectedRem]
+        change some (.int (items.tdiv size)) = some (.int (MODEL items size))
+        simp [MODEL, hi, hs, hr]
       · have hipos : 0 < items := by
           by_cases h : 0 < items
           · exact h
@@ -41,5 +73,10 @@
         have hamax : items.tdiv size + 1 ≤ 9223372036854775807 := by omega
         have ha : FrRustScalar.checked true (items.tdiv size + 1) = some (.int (items.tdiv size + 1)) := by
           simp [FrRustScalar.checked, FrRustScalar.minimum, FrRustScalar.maximum, hamin, hamax]
-        simp_all [MODEL, MODELTerm, FrRustScalar.eval, FrRustScalar.applyOperator,
-          FrPureKernel.applyOperator, FrRustScalar.minimum]
+        have selectedRem : FrRustScalar.eval true 3 localEnv
+            (.binary .eq (.binary .rem (.bound 1) (.bound 2)) (.value (.int 0))) =
+            some (.bool false) := by simpa [hr] using compared
+        rw [FrRustScalar.branch_false selectedRem]
+        change FrRustScalar.checked true (items.tdiv size + 1) = some (.int (MODEL items size))
+        rw [ha]
+        simp [MODEL, hi, hs, hr]

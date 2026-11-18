@@ -1053,7 +1053,8 @@ pub fn formal_candidates(
                         {
                             vec!["retained-facts-wellformed", "ir-model"]
                         } else {
-                            let mut properties = suggested_properties(&formal.inputs, &formal.output);
+                            let mut properties =
+                                suggested_properties(&formal.inputs, &formal.output);
                             if rust_scalar::property(&formal).is_ok()
                                 && rust_scalar::validate_source(&root, &formal).is_ok()
                             {
@@ -2589,7 +2590,7 @@ fn collect_evidence(
         let parsed = parsers.parse(crate::lang::Language::Lean, &source)?;
         let facts = extractor.extract(&parsed, &spec, &source)?;
         let package = lean_package(root, &spec)?;
-        let package_passed = verification
+        let package_passed = verification.report.ok() && verification
             .packages
             .iter()
             .find(|report| report.package == package)

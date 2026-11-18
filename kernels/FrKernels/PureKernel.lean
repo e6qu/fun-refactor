@@ -240,6 +240,37 @@ def eval (signed : Bool) : Nat → List Value → Term → Option Value
       checked signed (-value)
     | _ => none
 
+theorem branch_true {signed : Bool} {fuel : Nat} {environment : List Value}
+    {condition yes no : Term}
+    (selected : eval signed fuel environment condition = some (.bool true)) :
+    eval signed (fuel + 1) environment (.ite condition yes no) =
+      eval signed fuel environment yes := by
+  rw [eval, selected] <;> rfl
+
+theorem branch_false {signed : Bool} {fuel : Nat} {environment : List Value}
+    {condition yes no : Term}
+    (selected : eval signed fuel environment condition = some (.bool false)) :
+    eval signed (fuel + 1) environment (.ite condition yes no) =
+      eval signed fuel environment no := by
+  rw [eval, selected] <;> rfl
+
+theorem binding_checked {signed : Bool} {fuel : Nat} {environment : List Value}
+    {value body : Term} {result : Value}
+    (checkedValue : eval signed fuel environment value = some result) :
+    eval signed (fuel + 1) environment (.letE value body) =
+      eval signed fuel (result :: environment) body := by
+  rw [eval, checkedValue] <;> rfl
+
+theorem disjunction {signed : Bool} {fuel : Nat} {environment : List Value}
+    {left right : Term} {a b : Bool}
+    (leftChecked : eval signed fuel environment left = some (.bool a))
+    (rightChecked : eval signed fuel environment right = some (.bool b)) :
+    eval signed (fuel + 1) environment (.binary .or left right) = some (.bool (a || b)) := by
+  rw [eval, leftChecked]
+  cases a with
+  | false => rw [rightChecked] <;> rfl
+  | true => rfl
+
 theorem successful_arithmetic_is_bounded (signed : Bool) (value : Int) (result : Value)
     (accepted : checked signed value = some result) :
     minimum signed ≤ value ∧ value ≤ maximum signed := by

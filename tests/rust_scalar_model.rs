@@ -4,6 +4,12 @@ use std::process::Command;
 fn plan(source: &str, symbol: &str) -> (tempfile::TempDir, spec::FormalPlan) {
     let root = tempfile::tempdir().unwrap();
     std::fs::write(root.path().join("subject.rs"), source).unwrap();
+    std::fs::write(root.path().join("subject.rs"), source.replace("pub fn", "pub  fn")).unwrap();
+    let stale = fr(root.path(), &["spec", "evidence", "specs"]);
+    assert!(!stale.status.success());
+    let stale: serde_json::Value = serde_json::from_slice(&stale.stdout).unwrap();
+    assert_eq!(stale["rust_scalar_correspondence"][0]["status"], "unchecked");
+    std::fs::write(root.path().join("subject.rs"), source).unwrap();
     let plan = spec::formal_plan(
         root.path(),
         &format!("subject.rs::{symbol}"),
@@ -61,6 +67,16 @@ fn unsigned_window_preserves_the_guard_over_the_entire_u64_domain() {
         "fits_window",
         include_str!("fixtures/scalar/window.tactics"),
     );
+}
+
+#[test]
+fn scalar_proofs_do_not_depend_on_benchmark_names() {
+    let source = include_str!("agent-eval/proof-writing/fixtures/src/window.rs")
+        .replace("fits_window", "contains_range").replace("offset", "start")
+        .replace("count", "length").replace("total", "capacity");
+    let tactics = include_str!("fixtures/scalar/window.tactics")
+        .replace("offset", "start").replace("count", "length").replace("total", "capacity");
+    check(&source, "contains_range", &tactics);
 }
 
 #[test]
@@ -142,6 +158,20 @@ fn checked_scalar_proofs_use_normal_authoring_and_expire_with_source_or_library_
     ));
     let model = format!("specs/FrSpecs/{}.lean", plan.kernel.module);
     let target = format!("{model}::{}", plan.properties[0].name);
+    let unproved = std::fs::read(root.path().join(&model)).unwrap();
+    let replay = tempfile::tempdir().unwrap();
+    for path in ["subject.rs", "specs/lean-toolchain", "specs/lakefile.toml",
+        "specs/lake-manifest.json", "specs/FrSpecs.lean", "specs/FrSpecs/PureKernel.lean", &model] {
+        let destination = replay.path().join(path);
+        std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        std::fs::copy(root.path().join(path), destination).unwrap();
+    }
+    std::fs::create_dir_all(root.path().join(".fr")).unwrap();
+    let checks = serde_json::json!({"schema": 1, "checks": [{
+        "name": "package", "argv": ["lake", "-d", "specs", "build", "--wfail"],
+        "cwd": ".", "timeout_seconds": 120, "covers": ["fixed scalar connection"]
+    }]});
+    std::fs::write(root.path().join(".fr/checks.json"), checks.to_string()).unwrap();
     std::fs::write(
         root.path().join("tactics"),
         include_str!("fixtures/scalar/window.tactics").replace("MODEL", &plan.kernel.model),
@@ -159,9 +189,26 @@ fn checked_scalar_proofs_use_normal_authoring_and_expire_with_source_or_library_
             "8192",
             "--timeout-seconds",
             "30",
+            "--deliver",
+            "connection.patch",
         ],
     ));
     assert_eq!(saved["proof_checked"], true);
+    assert_eq!(saved["delivery"]["delivered"], true);
+    let transaction = saved["transaction"].as_u64().unwrap().to_string();
+    let proved = std::fs::read(root.path().join(&model)).unwrap();
+    success(fr(root.path(), &["history", "undo", &transaction, "--write"]));
+    assert_eq!(std::fs::read(root.path().join(&model)).unwrap(), unproved);
+    success(fr(root.path(), &["history", "redo", &transaction, "--write"]));
+    assert_eq!(std::fs::read(root.path().join(&model)).unwrap(), proved);
+    let patch = std::fs::read_to_string(root.path().join("connection.patch")).unwrap();
+    assert!(patch.contains(&plan.properties[0].name));
+    let applied = Command::new("git").current_dir(replay.path()).arg("apply")
+        .arg(root.path().join("connection.patch")).output().unwrap();
+    assert!(applied.status.success(), "{}", String::from_utf8_lossy(&applied.stderr));
+    assert_eq!(std::fs::read(replay.path().join(&model)).unwrap(), proved);
+    let replayed = success(fr(replay.path(), &["spec", "evidence", "specs"]));
+    assert_eq!(replayed["rust_scalar_correspondence"][0]["status"], "checked_by_lean");
     let evidence = success(fr(root.path(), &["spec", "evidence", "specs"]));
     assert_eq!(
         evidence["rust_scalar_correspondence"][0]["status"],
@@ -218,6 +265,24 @@ fn checked_scalar_proofs_use_normal_authoring_and_expire_with_source_or_library_
     assert!(!fr(root.path(), &["spec", "evidence", "specs"])
         .status
         .success());
+}
+
+#[test]
+fn unsafe_unsigned_subtraction_cannot_save_a_scalar_connection() {
+    let (root, plan) = plan("pub fn unsafe_difference(left: u64, right: u64) -> u64 { left - right }", "unsafe_difference");
+    success(fr(root.path(), &["spec", "init", "specs", "--write"]));
+    std::fs::write(root.path().join("plan.json"), serde_json::to_vec(&plan).unwrap()).unwrap();
+    success(fr(root.path(), &["spec", "scaffold", "--from", "plan.json", "--write"]));
+    let model = format!("specs/FrSpecs/{}.lean", plan.kernel.module);
+    let target = format!("{model}::{}", plan.properties[0].name);
+    let before = std::fs::read(root.path().join(&model)).unwrap();
+    std::fs::write(root.path().join("tactics"), format!("simp [{}, {}Term, FrRustScalar.eval, FrRustScalar.applyOperator, FrRustScalar.checked, FrRustScalar.minimum, FrRustScalar.maximum]\n", plan.kernel.model, plan.kernel.model)).unwrap();
+    let refused = fr(root.path(), &["proof", "save", &target, "--draft", "tactics",
+        "--bytes", "8192", "--timeout-seconds", "30"]);
+    assert!(!refused.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(report["passed"], false, "{report}");
+    assert_eq!(std::fs::read(root.path().join(&model)).unwrap(), before);
 }
 
 #[test]

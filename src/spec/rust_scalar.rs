@@ -50,46 +50,96 @@ pub(super) fn validate_source(root: &Path, function: &FormalFunction) -> Result<
             pending.extend(node.named_children(&mut node.walk()));
         }
     }
-    let declaration = parsed.root().named_children(&mut parsed.root().walk())
-        .find(|node| node.kind() == "function_item").context("missing Rust function")?;
-    let body = declaration.child_by_field_name("body").context("missing Rust body")?;
-    let bindings = function.inputs.iter().map(|binding|
-        (binding.name.clone(), binding.rust_type.clone())).collect();
-    check_block(body, &source, &bindings, Some(&function.output.rust_type), &function.output.rust_type)
+    let declaration = parsed
+        .root()
+        .named_children(&mut parsed.root().walk())
+        .find(|node| node.kind() == "function_item")
+        .context("missing Rust function")?;
+    let body = declaration
+        .child_by_field_name("body")
+        .context("missing Rust body")?;
+    let bindings = function
+        .inputs
+        .iter()
+        .map(|binding| (binding.name.clone(), binding.rust_type.clone()))
+        .collect();
+    check_block(
+        body,
+        &source,
+        &bindings,
+        Some(&function.output.rust_type),
+        &function.output.rust_type,
+    )
 }
 
 fn children(node: Node<'_>) -> Vec<Node<'_>> {
     node.named_children(&mut node.walk())
-        .filter(|child| !matches!(child.kind(), "line_comment" | "block_comment")).collect()
+        .filter(|child| !matches!(child.kind(), "line_comment" | "block_comment"))
+        .collect()
 }
 
 fn operator<'a>(node: Node<'_>, source: &'a str) -> &'a str {
-    node.child_by_field_name("operator").map(|op| &source[op.byte_range()])
-        .unwrap_or_else(|| source[node.byte_range()].trim_start().get(..1).unwrap_or(""))
+    node.child_by_field_name("operator")
+        .map(|op| &source[op.byte_range()])
+        .unwrap_or_else(|| {
+            source[node.byte_range()]
+                .trim_start()
+                .get(..1)
+                .unwrap_or("")
+        })
 }
 
-fn hint<'a>(node: Node<'_>, source: &str, bindings: &'a BTreeMap<String, String>) -> Option<&'a str> {
+fn hint<'a>(
+    node: Node<'_>,
+    source: &str,
+    bindings: &'a BTreeMap<String, String>,
+) -> Option<&'a str> {
     match node.kind() {
         "identifier" => bindings.get(&source[node.byte_range()]).map(String::as_str),
         "boolean_literal" => Some("bool"),
-        "binary_expression" if matches!(operator(node, source), "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||") => Some("bool"),
+        "binary_expression"
+            if matches!(
+                operator(node, source),
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||"
+            ) =>
+        {
+            Some("bool")
+        }
         "unary_expression" if operator(node, source) == "!" => Some("bool"),
-        "binary_expression" | "unary_expression" | "parenthesized_expression" =>
-            children(node).into_iter().find_map(|child| hint(child, source, bindings)),
+        "binary_expression" | "unary_expression" | "parenthesized_expression" => children(node)
+            .into_iter()
+            .find_map(|child| hint(child, source, bindings)),
         _ => None,
     }
 }
 
-fn check_block(node: Node<'_>, source: &str, outer: &BTreeMap<String, String>, expected: Option<&str>, output: &str) -> Result<()> {
+fn check_block(
+    node: Node<'_>,
+    source: &str,
+    outer: &BTreeMap<String, String>,
+    expected: Option<&str>,
+    output: &str,
+) -> Result<()> {
     let mut bindings = outer.clone();
     for child in children(node) {
         match child.kind() {
             "let_declaration" => {
-                let name = child.child_by_field_name("pattern").context("missing local name")?;
-                ensure!(name.kind() == "identifier", "scalar locals require simple names.");
-                let value = child.child_by_field_name("value").context("missing local value")?;
-                let ty = child.child_by_field_name("type").map(|ty| &source[ty.byte_range()])
-                    .or_else(|| hint(value, source, &bindings)).context("local arithmetic needs an explicit i64 or u64 type.")?.to_owned();
+                let name = child
+                    .child_by_field_name("pattern")
+                    .context("missing local name")?;
+                ensure!(
+                    name.kind() == "identifier",
+                    "scalar locals require simple names."
+                );
+                let value = child
+                    .child_by_field_name("value")
+                    .context("missing local value")?;
+                let ty = child
+                    .child_by_field_name("type")
+                    .map(|ty| &source[ty.byte_range()])
+                    .or_else(|| hint(value, source, &bindings))
+                    .context("local arithmetic needs an explicit i64 or u64 type.")?
+                    .to_owned();
                 check_expression(value, source, &bindings, Some(&ty), output)?;
                 bindings.insert(source[name.byte_range()].to_owned(), ty);
             }
@@ -104,10 +154,19 @@ fn check_block(node: Node<'_>, source: &str, outer: &BTreeMap<String, String>, e
     Ok(())
 }
 
-fn check_expression(node: Node<'_>, source: &str, bindings: &BTreeMap<String, String>, expected: Option<&str>, output: &str) -> Result<()> {
+fn check_expression(
+    node: Node<'_>,
+    source: &str,
+    bindings: &BTreeMap<String, String>,
+    expected: Option<&str>,
+    output: &str,
+) -> Result<()> {
     let inferred = hint(node, source, bindings);
     if let (Some(expected), Some(inferred)) = (expected, inferred) {
-        ensure!(expected == inferred, "scalar expression has incompatible source types.");
+        ensure!(
+            expected == inferred,
+            "scalar expression has incompatible source types."
+        );
     }
     let ty = expected.or(inferred);
     let parts = children(node);
@@ -206,9 +265,11 @@ pub(super) fn property(function: &FormalFunction) -> Result<FormalProperty> {
         .map(|input| {
             let name = &input.name;
             if signed {
-            format!("(_h_{name} : -9223372036854775808 ≤ {name} ∧ {name} ≤ 9223372036854775807)")
+                format!(
+                    "(_h_{name} : -9223372036854775808 ≤ {name} ∧ {name} ≤ 9223372036854775807)"
+                )
             } else {
-            format!("(_h_{name} : {name} ≤ 18446744073709551615)")
+                format!("(_h_{name} : {name} ≤ 18446744073709551615)")
             }
         })
         .collect::<Vec<_>>()
