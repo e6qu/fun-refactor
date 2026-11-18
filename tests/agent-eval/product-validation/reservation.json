@@ -1,0 +1,72 @@
+{
+  "schema": "fr-product-validation-reservation-1",
+  "reserved_from": "2068dc9e55f77401f963575f0b5d9fb01153ade4",
+  "maximum_live_attempts": 96,
+  "rounds": [
+    "initial",
+    "validation"
+  ],
+  "projects": [
+    {
+      "round": "initial",
+      "task": "refactoring",
+      "repository": "wolph/python-utils",
+      "revision": "708ef32dd7e0f27f17a84671656e428cff906bd1",
+      "source_review": "not-opened-before-this-reservation"
+    },
+    {
+      "round": "initial",
+      "task": "graph-analysis",
+      "repository": "andialbrecht/sqlparse",
+      "revision": "09dbe1eec31ed1b3cd05366748865f11ba427d32",
+      "source_review": "not-opened-before-this-reservation"
+    },
+    {
+      "round": "initial",
+      "task": "behavior-change",
+      "repository": "un33k/python-slugify",
+      "revision": "4b6b5b42f050f1ce96899e015247d5e3901cc433",
+      "source_review": "not-opened-before-this-reservation"
+    },
+    {
+      "round": "validation",
+      "task": "refactoring",
+      "repository": "jaraco/jaraco.text",
+      "revision": "2e0d4ecda0acc3321a9f042adaf1b719aba3be08",
+      "source_review": "not-opened-before-this-reservation"
+    },
+    {
+      "round": "validation",
+      "task": "graph-analysis",
+      "repository": "jaraco/jaraco.functools",
+      "revision": "c675099fbf384a979ca8adb2949690c9c429d3de",
+      "source_review": "not-opened-before-this-reservation"
+    },
+    {
+      "round": "validation",
+      "task": "behavior-change",
+      "repository": "cpburnz/python-pathspec",
+      "revision": "3dfbd9192ae36b0058b0e306ea44da132a5a025c",
+      "source_review": "not-opened-before-this-reservation"
+    }
+  ],
+  "proofs": [
+    {
+      "round": "initial",
+      "task": "proof",
+      "id": "bounded-clamp",
+      "origin": "new authored executable Lean example"
+    },
+    {
+      "round": "validation",
+      "task": "proof",
+      "id": "saturating-remaining",
+      "origin": "separately reserved authored executable Lean example"
+    }
+  ],
+  "exclusions": [
+    "Original M3 timing gate and earlier studies remain unchanged.",
+    "List reversal remains reserved under the existing transfer decision."
+  ],
+  "validation_release": "Open validation project source only after the product implementation and initial-round decision are frozen."
+}
