@@ -186,6 +186,21 @@ def check(project, prepared, output):
             baseline = output / 'baseline.json'
             common.save(baseline, prepared['behavior'])
             private('slug-check', project, output / 'behavior.json', '--baseline', str(baseline.resolve()))
+            new_tests = sorted(path for path in common.sources(project) if path not in prepared['original'] and
+                               path.endswith('.py') and (path.startswith('tests/') or path.startswith('test_')))
+            arguments = [sys.executable, '-B', '-m', 'pytest', '-q', '-o', 'addopts=', '-p', 'no:cacheprovider', *new_tests]
+            tested = common.command(arguments, project, output / 'new-tests.json')
+            require(tested['returncode'] == 0, 'the added feature tests must collect and pass')
+            # The original package must fail at least one added test. Otherwise an
+            # empty or irrelevant test file could satisfy the documentation task.
+            original = output / 'original-with-new-tests'
+            common.checkout(project, original)
+            for name in new_tests:
+                target = original / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((project / name).read_bytes())
+            rejected = common.command(arguments, original, output / 'original-new-tests.json')
+            require(rejected['returncode'] == 1, 'the new tests must reject the original missing feature, not fail collection')
         else:
             built = common.command(['lake', 'build', '--wfail'], project / 'specs', output / 'build.json')
             require(built['returncode'] == 0, 'Lean rejected the complete proof')
@@ -286,6 +301,7 @@ def qualify(task, output):
     elif task == 'slugify-bytes':
         mutations = {'character-budget': ('slugify/slugify.py', lambda text: text.replace("result.encode('utf-8')[:max_bytes].decode('utf-8', errors='ignore')", 'result[:max_bytes]')),
                      'accept-bool': ('slugify/slugify.py', lambda text: text.replace('isinstance(max_bytes, bool) or ', '')),
+                     'irrelevant-tests': ('test_max_bytes.py', lambda text: 'def test_placeholder():\n    assert True\n'),
                      'legacy-drift': ('slugify/_legacy.py', lambda text: text + '\n# forbidden legacy edit\n')}
     else:
         mutations = {'unfinished': (PROOF, lambda _: (project / PROOF).read_text()),

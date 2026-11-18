@@ -66,6 +66,9 @@ jobs:
           python-version: '3.14.8'
       - uses: ./.github/actions/lean-toolchain
         if: matrix.task == 'clamp-proof'
+      - name: Install the pinned feature-test runner
+        if: matrix.task == 'slugify-bytes'
+        run: python3 -m pip install 'pytest==9.1.1'
       - name: Qualify fixed tasks and independently reject flawed answers
         env:
           PYTHONPATH: tools
