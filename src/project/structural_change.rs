@@ -71,11 +71,12 @@ fn documentation_node(mut node: Node<'_>, language: Language, source: &str) -> b
     }
 }
 
-fn update_documentation(
+fn review_documentation(
     project: &Project<'_>,
     symbol: &Symbol,
     name: &str,
     plan: &mut crate::refactor::rename::RenamePlan,
+    update: bool,
 ) -> Result<usize> {
     let mentions = crate::mentions::of(project.index, &symbol.name)?;
     let mut updated = Vec::new();
@@ -100,14 +101,14 @@ fn update_documentation(
             .descendant_for_byte_range(mention.span.start, mention.span.end)
             .context("documentation mention has no syntax")?;
         if documentation_node(node, language, source) {
-            plan.edits.add(
+            if update { plan.edits.add(
                 mention.file.clone(),
                 Edit::new(
                     mention.span,
                     name,
                     format!("rename explicit documentation reference to {}", symbol.name),
                 ),
-            );
+            ); }
             updated.push((mention.file, mention.line, mention.col));
         }
     }
@@ -115,7 +116,7 @@ fn update_documentation(
         warning.kind != WarningKind::TextualOccurrence
             || !updated.contains(&(warning.file.clone(), warning.line, warning.col))
     });
-    Ok(updated.len())
+    Ok(if update { updated.len() } else { 0 })
 }
 
 fn ancestor<'a>(parsed: &'a Parsed, span: Span, kind: &str) -> Result<Node<'a>> {
@@ -218,9 +219,9 @@ fn validate_scalar_calls(
                     .map(|span| literal_argument(span.text(source)))
                     .transpose()?
                     .unwrap_or(false),
-                crate::refactor::signature::Change::Move { .. } => {
+                crate::refactor::signature::Change::Move { from, to } => {
                     let mut safe = true;
-                    for span in arguments {
+                    for span in arguments.iter().skip(*from.min(to)).take(from.abs_diff(*to) + 1) {
                         safe &= literal_argument(span.text(source))?;
                     }
                     safe
@@ -249,8 +250,10 @@ fn validate_scalar_calls(
                 .filter(|node| !node.kind().contains("comment"))
                 .nth(*index)
                 .is_some_and(literal),
-            crate::refactor::signature::Change::Move { .. } => {
-                arguments.named_children(&mut cursor).all(literal)
+            crate::refactor::signature::Change::Move { from, to } => {
+                arguments.named_children(&mut cursor)
+                    .filter(|node| !node.kind().contains("comment"))
+                    .skip(*from.min(to)).take(from.abs_diff(*to) + 1).all(literal)
             }
             crate::refactor::signature::Change::Add { .. } => false,
         };
@@ -282,8 +285,8 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
             ensure!(name.len() <= 256, "rename name exceeds 256 bytes.");
             let mut plan = crate::refactor::rename::plan(project.index, symbol.id, &name)?;
             let documentation_edits = match documentation {
-                Documentation::Preserve => 0,
-                Documentation::Update => update_documentation(project, symbol, &name, &mut plan)?,
+                Documentation::Preserve => review_documentation(project, symbol, &name, &mut plan, false)?,
+                Documentation::Update => review_documentation(project, symbol, &name, &mut plan, true)?,
             };
             ensure!(plan.warnings.is_empty(), "structural rename has unresolved, dispatch or textual warnings; resolve them first.");
             (

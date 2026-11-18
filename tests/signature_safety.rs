@@ -198,6 +198,21 @@ fn added_parameters_cannot_capture_existing_names_or_ignore_positions() {
 }
 
 #[test]
+fn adding_a_required_python_parameter_after_a_default_refuses() {
+    let source = "def adjust(a=1):\n    return a\n";
+    let (_dir, index) = workspace("a.py", source);
+    let error = changed(&index, Change::Add { at: 1, declaration: "b".into(), argument: "2".into() }).unwrap_err().to_string();
+    assert!(error.contains("required parameter after a default"), "{error}");
+}
+
+#[test]
+fn decorated_python_calling_conventions_require_explicit_migration() {
+    let source = "def decorate(f):\n    return f\n@decorate\ndef adjust(unused):\n    return 1\nadjust(0)\n";
+    let (_dir, index) = workspace("a.py", source);
+    assert!(changed(&index, Change::Remove(0)).is_err());
+}
+
+#[test]
 fn removing_a_commented_argument_keeps_a_valid_separator() {
     let source = "fn adjust(a: i32, /* unused */ b: i32, c: i32) -> i32 { a + c }\nfn run() { adjust(1, /* drop */ 2, 3); }\n";
     let (dir, index) = workspace("a.rs", source);

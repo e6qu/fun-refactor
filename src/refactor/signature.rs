@@ -310,8 +310,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
         match parameter_list(declaration) {
             Some(params) => {
-                safety::parameters(params, &source, m.language, &change)?;
                 let param_spans = without_receiver(m.language, m.kind, &source, list_items(params));
+                safety::parameters(params, &source, m.language, &param_spans, &change)?;
                 still_read(index, m, &param_spans, &change)?;
                 already_declared(&source, &param_spans, &change, m.language)?;
                 if let Change::Add { declaration, .. } = &change {
@@ -341,7 +341,13 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     true,
                     None,
                 )?;
-                removing = removed_parameter_name(&source, &param_spans, &change, m.language);
+                let removed = removed_parameter_name(&source, &param_spans, &change, m.language);
+                if m.language == Language::Python && removing.is_some() && removing != removed {
+                    return Err(Refusal::Declined {
+                        detail: "this method family uses different parameter names; keyword callers need an explicit binding migration".into(),
+                    }.into());
+                }
+                removing = removed;
             }
             // A declaration can legitimately have no parameter list to change: SCSS spells a
             // no-argument mixin `@mixin reset { }`, with no parentheses at all.
@@ -1000,9 +1006,6 @@ fn nonpositional_arguments_block_change(
     language: Language,
     change: &Change,
 ) -> bool {
-    if language != Language::Python {
-        return false;
-    }
     let Some(arguments) = argument_list(call) else {
         return false;
     };
@@ -1012,11 +1015,11 @@ fn nonpositional_arguments_block_change(
     for argument in arguments.named_children(&mut cursor) {
         match argument.kind() {
             "keyword_argument" => has_keyword = true,
-            "list_splat" | "dictionary_splat" => has_expansion = true,
+            "list_splat" | "dictionary_splat" | "spread_element" | "variadic_argument" => has_expansion = true,
             _ => {}
         }
     }
-    has_expansion || (has_keyword && !matches!(change, Change::Remove(_)))
+    has_expansion || (has_keyword && (language != Language::Python || !matches!(change, Change::Remove(_))))
 }
 
 /// The call expression whose callee is at `span`.

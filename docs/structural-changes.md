@@ -90,7 +90,8 @@ Signature changes retain unused-parameter and function-value refusals from the n
 Every parameter must have an explicit primitive integer, Boolean or character type.
 When removing a parameter, only its discarded argument must be a literal: an integer, Boolean or character written directly in source.
 Negative integer literals also qualify. The arguments that remain can contain variables or expressions; the edit preserves their order and bytes.
-This checked authoring route requires every argument to be a literal when moving parameters.
+This checked authoring route requires every argument in the moved range to be a literal.
+Arguments outside that range retain their order and may contain calls.
 The general `signature` command also accepts plain reads when every argument in the moved range is a literal or plain read.
 Both routes use the same binding checks and refuse effectful removals or reordering.
 
