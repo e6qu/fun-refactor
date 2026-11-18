@@ -55,9 +55,11 @@ The numbers below describe the work order, not GitHub PR numbers.
 PR 1 landed in [#621](https://github.com/e6qu/fun-refactor/pull/621) with passing hosted checks.
 PR 2 landed in [#623](https://github.com/e6qu/fun-refactor/pull/623) with passing hosted checks and refreshed evidence.
 Its [coverage guide](docs/refactoring-coverage.md) tracks the operation families and their checks.
-PR 3 is in progress. It adds bounded Rust scalar correspondence obligations and qualifies proof authoring.
-Its [coverage guide](docs/proof-coverage.md) separates product checks from historical agent outcomes.
+PR 3 merged in [#624](https://github.com/e6qu/fun-refactor/pull/624), covering proof authoring and bounded Rust scalar connections.
+The [proof coverage guide](docs/proof-coverage.md) separates product checks from historical agent outcomes.
 The original M3 timing gate remains open.
+PR 4 is in progress in [#625](https://github.com/e6qu/fun-refactor/pull/625).
+The [interface coverage guide](docs/interface-coverage.md) tracks browser review, recovery, graph reporting and cross-interface delivery.
 
 | PR | Complete outcome | Completion gate |
 | --- | --- | --- |

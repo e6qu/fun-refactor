@@ -1,72 +1,99 @@
-# Undo a change in the browser playground
+# Review and recover browser changes
 
-If a playground rename changes the wrong function, inspect the saved change and undo it. You can redo it if needed.
-The browser checks that the affected files still match the saved change. Edited files require another review before it can safely reverse the operation.
+The playground keeps files in memory and saves completed edits in browser storage.
+Review a proposed change, apply it, then export its patch for checks in a complete checkout.
 
-WASM, or WebAssembly, lets the browser run the compiled tool.
-Its workspace is an in-memory set of files. A transaction records one edit's before and after contents.
-For a mistaken rename, inspect that transaction and request undo to restore those contents.
-Browser history is bounded and belongs to that workspace; export a patch when you need to take the change elsewhere.
+## Review before applying
 
-## Commands, results and limits
+Every refactoring and translation action in the playground shows a diff before writing.
+**Apply reviewed change** accepts that review; **Cancel** leaves files and history alone.
+The review includes warnings, proposed file contents and the transaction patch.
 
-Every successful refactoring in the WASM `Workspace` records one in-memory transaction. The apply
-report returns its numeric `transaction` and `frmb1:` transaction basis. `history()` lists retained
-records and the applied and redo stacks.
+The JavaScript API exposes the same route:
 
-`undo(id)` accepts only the latest applied transaction. `redo(id)` accepts only the latest undone
-transaction. Before either operation writes, the workspace compares every selected path with the
-recorded expected snapshot. A mismatch refuses the complete transition, preserving all current
-files. Starting a new transaction abandons the redo stack.
+```javascript
+const review = workspace.preview(JSON.stringify({
+  operation: "rename", path: "app.py", line: 1, col: 5, name: "render"
+}));
+const proposal = JSON.parse(review);
+if (proposal.error) throw new Error(proposal.error);
+// Inspect proposal.review.result and proposal.review.patch before continuing.
+const result = JSON.parse(workspace.apply_review(review));
+if (result.error) throw new Error(result.error);
+```
 
-The record distinguishes an absent file from an empty file. Undo therefore removes a file created by
-a translation or other refactoring, and redo recreates it before the changed paths are reindexed.
-Unrelated files are outside the transaction and remain untouched.
+Requests cover rename, remove-flag, extract-variable, extract-function, inline-variable,
+inline-call, signature, move-symbol, organize-imports, rewrite, restructure, delete and translate.
+Unknown operations, fields and invalid arguments refuse.
+Positions use 1-based lines and columns; ranges use `line:column-line:column`.
 
-Illustration: rename a checkout helper, then change an unrelated note in the playground.
-Undo can reverse the rename while keeping the note. If you edit the renamed helper itself,
-undo refuses the conflict; inspect it before choosing another change.
+| Operation | Request fields besides `operation` |
+| --- | --- |
+| `rename` | `path`, `line`, `col`, `name` |
+| `remove-flag` | `flag`, `value` (boolean) |
+| `extract-variable`, `extract-function` | `path`, `range`, `name` |
+| `inline-variable`, `inline-call`, `delete` | `path`, `line`, `col` |
+| `signature` | `path`, `line`, `col`, `change` in the CLI signature spelling |
+| `move-symbol` | `path`, `line`, `col`, `destination` |
+| `organize-imports` | `path` |
+| `rewrite` | `path`, `line`, `col`, `which` from `rewrites_at` |
+| `restructure` | `language`, `pattern`, `template` |
+| `translate` | `path`, `language` from `translations` |
 
-`transaction_patch(id, reverse)` exports one transaction. `patch()` folds every currently applied
-transaction back to the loaded workspace basis. Both call the same Rust Git text renderer as native
-`fr history patch`; the playground's Download Patch button uses the cumulative form. Exports include
-a SHA-256 digest, byte count and Git diff-section count.
+A review binds the entire current session, request, warnings, proposed result and patch.
+Apply repeats the operation on a private copy and compares the new review before replacing live state.
+Changed source, undo/redo history or compaction requires a new review.
+A saved review still works after restoring the identical session.
+A review digest detects altered contents; it does not authenticate who approved the change.
 
-Browser history retains at most 256 records, 1,024 changed paths per transaction, 16 MiB of snapshots
-per transaction and 64 MiB total. `compact_history(keep)` retains the newest requested undo and redo
-steps. It folds older applied steps into the cumulative patch basis, then discards old redo and
-abandoned records. The cumulative patch remains byte-identical. Compacted transaction IDs cannot be
-undone, redone or exported individually, and IDs are never reused.
+The existing direct mutation methods still perform their named operation immediately.
+Use `preview` and `apply_review` when the caller needs a separate review step.
+Both routes apply refactoring rules and reparse changed files.
+Neither runs native compilers, project tests or Lean. The review reports an empty `native_checks` list.
 
-The Download Patch button includes all currently applied changes since the loaded starting files.
-For example, a rename followed by a body repair contributes both changes to that patch.
-Keep a separate export before discarding history you may need to reverse individually.
+Requests have a 64 KiB limit; reviews have a 16 MiB limit.
+The starting and proposed sessions must fit the checkpoint limits below.
+A refused preview or apply leaves the live workspace unchanged.
 
-`session()` exports `fr-browser-session-1`, a canonical checkpoint containing current files and the
-complete retained history. `Workspace.from_session(text)` accepts at most 4 MiB and 4,096 files. It
-checks the envelope digest, schema, relative paths, record bases, stack membership, size limits and
-the complete applied and redo snapshot chains before constructing a workspace. Unknown fields,
-changed bytes, unsafe paths and inconsistent intermediate states refuse the whole restoration.
+## Undo, redo and patch delivery
 
-The playground stores that envelope under one versioned `localStorage` key after loading a workspace
-and after each completed apply, undo or redo. A page opened without `?repo=` restores it before any
-network request. An explicit repository parameter loads that repository and replaces the checkpoint.
-If storage is unavailable or full, the current edit remains applied and the page reports the storage
-failure. A failed write leaves the prior checkpoint in place.
+A successful edit returns its transaction ID and `frmb1:` basis.
+`history()` lists retained records and the applied and redo stacks.
+`undo(id)` accepts the latest applied transaction; `redo(id)` accepts the latest undone one.
+Both compare every selected file with its recorded snapshot before writing.
+A conflict refuses the whole transition. Unrelated files remain untouched.
+Starting another transaction abandons the redo stack.
 
-UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+Snapshots distinguish absent files from empty ones, so undo removes newly created files.
+`transaction_patch(id, reverse)` exports one transaction.
+`patch()` exports all currently applied changes since the starting workspace.
+Both use the native Git text renderer and return a digest, byte count and section count.
+The Download Patch button uses the cumulative patch. Check it in a complete native checkout.
 
-Rust mutations and browser storage replacement are synchronous. Only a fully completed transaction
-can produce a checkpoint, so reload recovery selects the previous or next complete state. There is no
-pending browser mutation to replay. Invalid saved state is removed and the ordinary loader continues.
-Browser snapshots remain UTF-8 regular files projected as mode `0644`; executable modes and symlinks
-remain native-only concerns.
+History retains at most 256 records, 1,024 paths per transaction, 16 MiB per transaction
+and 64 MiB overall. `compact_history(keep)` retains the newest requested undo and redo steps.
+It folds older applied edits into the cumulative patch basis, preserving the patch bytes.
+Discarded IDs cannot be undone, redone or exported individually; IDs never repeat.
 
-[`FrKernels.MemoryHistory`](../kernels/FrKernels/MemoryHistory.lean) anchors the finite transition
-predicate and proves that non-top or abandoned records cannot transition. Each live status permits
-only its inverse action. A multi-snapshot mismatch refuses the whole abstract replacement, and
-apply/undo restores the selected snapshot list. Restoration theorems require valid schema, digest,
-history and finite file and payload bounds. Compaction theorems cover the retention boundary and the
-zero and complete list cases. Executable comparisons include every transition input and machine-size
-restoration and compaction boundaries. Reindexing, SHA-256, browser storage, JavaScript, Git and full
-agreement between Rust and the model remain dependent on tests or stated assumptions.
+## Restart
+
+`session()` exports a canonical `fr-browser-session-1` checkpoint.
+`Workspace.from_session(text)` accepts at most 4 MiB and 4,096 distinct current or historical paths.
+It checks the digest, schema, relative paths, record bases, stacks, limits and snapshot chains.
+Unknown fields or inconsistent state refuse the entire restoration.
+Limits count UTF-8 bytes, not JavaScript characters.
+
+The playground replaces one versioned `localStorage` entry after loading, applying, undoing or redoing.
+Without `?repo=`, a reload restores that checkpoint before making a network request.
+An explicit repository parameter loads that repository and replaces the checkpoint.
+The loader removes invalid saved state before continuing.
+
+If storage fails, the edit remains in memory and the page reports the failure.
+A failed storage write keeps the prior checkpoint. Export the current patch before closing.
+Mutations and checkpoint replacement are synchronous: reload selects the previous or next complete state.
+Browser snapshots contain UTF-8 regular files with mode `0644`; native history also handles modes and symlinks.
+
+The [interface coverage guide](interface-coverage.md) links restart, stale-review and delivery tests.
+The [Lean memory-history model](../kernels/FrKernels/MemoryHistory.lean) proves finite transition,
+restoration and compaction properties. Tests cover the Rust adapter, hashing and browser storage.
+These model theorems do not prove the browser or filesystem implementation.

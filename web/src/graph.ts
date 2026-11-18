@@ -1,8 +1,4 @@
-// The call graph around the cursor, drawn as SVG.
-//
-// `graph()` answers with three counts, which says how big the graph is and nothing
-// about its shape. This asks `graph_around`, which returns the nodes and the edges
-// within a few hops of one symbol, and lays them out in columns by distance.
+// Draw the call graph around the cursor in columns by distance.
 
 export type GraphNode = {
   id: number;
@@ -20,6 +16,12 @@ export type Drawing = {
   edges: GraphEdge[];
   root: number;
   more: boolean;
+  unresolved: unknown[];
+  coverage: {
+    gaps: unknown[];
+    external_callers_known: boolean;
+    runtime_dispatch_established: boolean;
+  };
 };
 
 const NODE_HEIGHT = 26;

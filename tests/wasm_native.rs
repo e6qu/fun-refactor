@@ -25,6 +25,221 @@ export async function GET(request: Request, context: { params: { id: string } })
 }
 "#;
 
+fn rename_review(ws: &Workspace, name: &str) -> String {
+    ws.preview(
+        &serde_json::json!({
+            "operation": "rename", "path": "a.py", "line": 1, "col": 5, "name": name
+        })
+        .to_string(),
+    )
+}
+
+#[test]
+fn browser_reviews_survive_restart_without_applying_early() {
+    let source = "def leaf():\n    return 7\ndef main():\n    return leaf()\n";
+    let ws = workspace(&[("a.py", source)]);
+    let checkpoint = ws.session();
+    let review = rename_review(&ws, "renamed");
+    let value = json(&review);
+    assert_eq!(value["review"]["schema"], "fr-browser-review-1", "{value}");
+    assert_eq!(value["review"]["native_checks"], serde_json::json!([]));
+    assert_eq!(ws.session(), checkpoint);
+    assert_eq!(ws.read("a.py"), source);
+    let mut restarted = Workspace::restore_session(&checkpoint).unwrap();
+    let applied = json(&restarted.apply_review(&review));
+    assert_eq!(applied, value["review"]["result"]);
+    assert_eq!(restarted.read("a.py"), source.replace("leaf", "renamed"));
+    assert_eq!(
+        json(&restarted.transaction_patch(1, false)),
+        value["review"]["patch"]
+    );
+    let fresh = workspace(&[("a.py", &source.replace("leaf", "renamed"))]);
+    assert_eq!(json(&restarted.graph()), json(&fresh.graph()));
+    assert!(json(&restarted.undo(1)).get("error").is_none());
+    assert_eq!(restarted.read("a.py"), source);
+    assert!(json(&restarted.redo(1)).get("error").is_none());
+    assert_eq!(restarted.read("a.py"), source.replace("leaf", "renamed"));
+}
+
+#[test]
+fn browser_reviews_reject_changed_source_history_and_tampered_results() {
+    let source = "def leaf():\n    return 7\n";
+    let mut ws = workspace(&[("a.py", source)]);
+    let review = rename_review(&ws, "renamed");
+    let mut tampered = json(&review);
+    tampered["review"]["result"]["files"][0]["after"] = serde_json::json!("wrong");
+    let before = ws.session();
+    assert!(json(&ws.apply_review(&tampered.to_string()))
+        .get("error")
+        .is_some());
+    assert_eq!(ws.session(), before);
+    assert!(json(&ws.rename("a.py", 1, 5, "other"))
+        .get("error")
+        .is_none());
+    let changed = ws.session();
+    assert!(json(&ws.apply_review(&review)).get("error").is_some());
+    assert_eq!(ws.session(), changed);
+    assert!(json(&ws.undo(1)).get("error").is_none());
+    assert_eq!(ws.read("a.py"), source);
+    let undone = ws.session();
+    assert!(json(&ws.apply_review(&review)).get("error").is_some());
+    assert_eq!(
+        ws.session(),
+        undone,
+        "identical source with different history is stale"
+    );
+}
+
+#[test]
+fn browser_review_refusals_leave_other_workspaces_and_history_untouched() {
+    let ws = workspace(&[("a.py", "def leaf():\n    return 7\n")]);
+    let other = workspace(&[("a.py", "def other():\n    return 9\n")]);
+    let before = ws.session();
+    for request in [
+        r#"{"operation":"rename","path":"a.py","line":1,"col":5,"name":"not valid"}"#,
+        r#"{"operation":"rename","path":"a.py","line":1,"col":5,"name":"valid","extra":true}"#,
+        r#"{"operation":"unknown"}"#,
+    ] {
+        assert!(json(&ws.preview(request)).get("error").is_some());
+        assert_eq!(ws.session(), before);
+        assert!(other.read("a.py").contains("def other"));
+    }
+}
+
+#[test]
+fn browser_reviews_bind_unrelated_files_and_compaction() {
+    let source = "def leaf():\n    return 7\n";
+    let ws = workspace(&[("a.py", source), ("notes.txt", "original")]);
+    let review = rename_review(&ws, "renamed");
+    let mut different = workspace(&[("a.py", source), ("notes.txt", "changed")]);
+    let before = different.session();
+    assert!(json(&different.apply_review(&review))
+        .get("error")
+        .is_some());
+    assert_eq!(different.session(), before);
+    let mut ws = Workspace::restore_session(&ws.session()).unwrap();
+    assert!(json(&ws.apply_review(&review)).get("error").is_none());
+    let next = rename_review(&ws, "next");
+    assert!(json(&ws.compact_history(0)).get("error").is_none());
+    let compacted = ws.session();
+    assert!(json(&ws.apply_review(&next)).get("error").is_some());
+    assert_eq!(ws.session(), compacted);
+}
+
+#[test]
+fn browser_review_limits_and_repeated_application_do_not_write() {
+    let mut ws = workspace(&[("a.py", "def leaf():\n    return 7\n")]);
+    let before = ws.session();
+    assert!(json(&ws.preview(&" ".repeat(65537))).get("error").is_some());
+    assert_eq!(ws.session(), before);
+    let review = rename_review(&ws, "renamed");
+    assert!(json(&ws.apply_review(&review)).get("error").is_none());
+    let applied = ws.session();
+    assert!(json(&ws.apply_review(&review)).get("error").is_some());
+    assert_eq!(ws.session(), applied);
+}
+
+#[test]
+fn browser_neighbourhood_keeps_unresolved_calls_and_coverage() {
+    let ws = workspace(&[("a.py", "def entry():\n    unknown()\n")]);
+    let drawing = json(&ws.graph_around("a.py", 1, 5, 2));
+    assert_eq!(drawing["unresolved"][0]["name"], "unknown");
+    assert_eq!(drawing["coverage"]["all_visible_calls_resolved"], false);
+    assert_eq!(drawing["coverage"]["external_callers_known"], false);
+    assert_eq!(drawing["coverage"]["runtime_dispatch_established"], false);
+}
+
+#[test]
+fn browser_review_refuses_an_edit_that_would_exceed_checkpoint_capacity() {
+    let source = "def leaf():\n    return 7\n# ".to_string() + &"x".repeat(1_500_000) + "\n";
+    let ws = workspace(&[("a.py", &source)]);
+    let before = ws.session();
+    assert!(json(&before).get("error").is_none());
+    let review = json(&rename_review(&ws, "renamed"));
+    assert!(review["error"].as_str().unwrap().contains("4 MiB"));
+    assert_eq!(ws.session(), before);
+}
+
+#[test]
+#[cfg(feature = "cli")]
+fn reviewed_browser_patch_has_the_same_graph_through_the_python_sdk() {
+    let source = "def leaf():\n    return 7\ndef main():\n    return leaf()\n";
+    let mut ws = workspace(&[("a.py", source)]);
+    let review = rename_review(&ws, "renamed");
+    assert!(json(&ws.apply_review(&review)).get("error").is_none());
+    let receiver = tempfile::tempdir().unwrap();
+    std::fs::write(receiver.path().join("a.py"), source).unwrap();
+    let patch = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(
+        patch.path(),
+        json(&review)["review"]["patch"]["patch"].as_str().unwrap(),
+    )
+    .unwrap();
+    for args in [vec!["init", "-q"], vec!["apply", "--check"], vec!["apply"]] {
+        let mut command = std::process::Command::new("git");
+        command.current_dir(receiver.path()).args(&args);
+        if args[0] == "apply" {
+            command.arg(patch.path());
+        }
+        assert!(command.output().unwrap().status.success());
+    }
+    assert_eq!(
+        std::fs::read_to_string(receiver.path().join("a.py")).unwrap(),
+        ws.read("a.py")
+    );
+    let sdk = std::process::Command::new("python3")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("PYTHONPATH", concat!(env!("CARGO_MANIFEST_DIR"), "/sdk/python/src"))
+        .args(["-c", "import json,sys; from pathlib import Path; from fr_ir.runtime import FrClient; print(json.dumps(FrClient(Path(sys.argv[1]), executable=sys.argv[2]).call('graph').to_data()))"])
+        .arg(receiver.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .output().unwrap();
+    assert!(
+        sdk.status.success(),
+        "{}",
+        String::from_utf8_lossy(&sdk.stderr)
+    );
+    let native: serde_json::Value = serde_json::from_slice(&sdk.stdout).unwrap();
+    let browser = json(&ws.graph())["details"].clone();
+    for key in [
+        "functions",
+        "calls",
+        "source_digests",
+        "coverage",
+        "by_confidence",
+        "by_origin",
+    ] {
+        assert_eq!(native[key], browser[key], "{key}");
+    }
+    let names = |report: &serde_json::Value| {
+        report["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|node| node["name"].as_str().unwrap().to_string())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert_eq!(names(&native), names(&browser));
+    let named_edges = |report: &serde_json::Value| {
+        let names = report["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|node| (node["id"].as_u64().unwrap(), node["name"].clone()))
+            .collect::<BTreeMap<_, _>>();
+        let mut edges = report["edges"].as_array().unwrap().clone();
+        for edge in &mut edges {
+            let from = edge["from"].as_u64().unwrap();
+            let to = edge["to"].as_u64().unwrap();
+            edge["from"] = names[&from].clone();
+            edge["to"] = names[&to].clone();
+        }
+        edges.sort_by_cached_key(serde_json::Value::to_string);
+        edges
+    };
+    assert_eq!(named_edges(&native), named_edges(&browser));
+}
+
 #[test]
 fn a_workspace_loads_and_reports_what_it_read() {
     let ws = workspace(&[

@@ -13,17 +13,18 @@ code and call graphs, analysis, refactoring, transformations, proofs, recovery a
 The smaller-agent milestones validate this scope; they do not replace it.
 
 The seventh page-count study delivered four accepted proofs within its separate 300-second limit.
-The local history through #619 includes product-order facts in `fr proof start`.
+PR #619 added product-order facts to `fr proof start`.
 Its effect on live proof delivery remains unmeasured.
 The [plan's evidence section](../PLAN.md#evidence-behind-the-sequence) links the retained studies.
-PR #604 has merged; its interrupted collection remains a historical record, not the active work queue.
 
 PR 1 landed in [#621](https://github.com/e6qu/fun-refactor/pull/621). Its [coverage guide](analysis-coverage.md) links features to checks.
 The hosted behavior checks, evidence refresh and full CI passed before merge.
 PR 2 landed in [#623](https://github.com/e6qu/fun-refactor/pull/623) with passing hosted checks and refreshed evidence.
 Its [coverage guide](refactoring-coverage.md) tracks the operation families and signature binding repairs.
-PR 3 is [#624](https://github.com/e6qu/fun-refactor/pull/624).
+PR 3 merged in [#624](https://github.com/e6qu/fun-refactor/pull/624).
 Its [coverage guide](proof-coverage.md) tracks proof authoring, bounded Rust connections and the remaining M3 gate.
+PR 4 is in progress in [#625](https://github.com/e6qu/fun-refactor/pull/625).
+The [interface guide](interface-coverage.md) covers reviewed browser edits, recovery, graph reports and native handoffs.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 

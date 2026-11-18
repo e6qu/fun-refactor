@@ -1,5 +1,7 @@
 //! The browser API.
 
+mod review;
+
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::FactGap;
@@ -46,21 +48,18 @@ fn session_path(path: &str) -> bool {
 #[wasm_bindgen]
 pub struct Workspace {
     index: Index,
-    /// This workspace's bytes.
     files: crate::vfs::Handle,
     /// The last file this parsed, and the text behind it.
     parsed: std::cell::RefCell<Option<(PathBuf, String, crate::parse::Parsed)>>,
     /// Paths in the caller's order, so the file list holds still.
     order: Vec<PathBuf>,
-    /// What the extractor found in each file, kept so an edit re-extracts only the files it
-    /// touched.
+    /// Cached facts let edits re-extract only the changed files.
     facts: std::collections::BTreeMap<PathBuf, (Language, crate::model::FileFacts)>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
     history: crate::memory_history::History,
 }
 
-/// A rendered tree or report, printed by the analysis that owns it.
 #[derive(Serialize)]
 struct FlowText {
     tree: String,
@@ -281,7 +280,10 @@ impl Workspace {
             facts.insert(path.clone(), (*language, one.clone()));
             extracted.push((path.clone(), *language, one));
         }
-        let index = Index::build_from_facts(&extracted);
+        let mut index = Index::build_from_facts(&extracted);
+        for (path, language, source) in &sources {
+            index.note_content(path.clone(), *language, source);
+        }
 
         Ok(Workspace {
             index,
@@ -1331,7 +1333,6 @@ impl Workspace {
         Ok((PathBuf::from(path), Span::new(at(start)?, at(end)?)))
     }
 
-    /// The line a byte offset falls on, for display.
     fn line_of(&self, path: &Path, offset: usize) -> usize {
         crate::vfs::read_to_string(path)
             .map(|source| LineIndex::new(&source).line_col(offset, &source).line)
@@ -1364,8 +1365,7 @@ impl Workspace {
             name: String,
             file: String,
             line: usize,
-            /// The column of the name, so a click lands on the symbol and not on the
-            /// indentation before it.
+            /// The name's column, used for click navigation.
             col: usize,
             /// Hops from the symbol the reader asked about.
             rank: i32,
@@ -1384,6 +1384,8 @@ impl Workspace {
             root: u32,
             /// True when the walk stopped at `depth` with more to see.
             more: bool,
+            coverage: serde_json::Value,
+            unresolved: Vec<serde_json::Value>,
         }
 
         let graph = crate::analysis::call_graph::CallGraph::build(&self.index);
@@ -1421,12 +1423,26 @@ impl Workspace {
             })
             .collect();
         let more = near.more;
+        let report = graph.report(&self.index, Path::new(""));
+        let unresolved = report["unresolved"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|call| {
+                call["caller"]
+                    .as_u64()
+                    .is_some_and(|id| known.contains(&(id as u32)))
+            })
+            .cloned()
+            .collect();
 
         ok(&Drawing {
             nodes,
             edges,
             root: start.0,
             more,
+            coverage: report["coverage"].clone(),
+            unresolved,
         })
     }
 
@@ -1618,6 +1634,11 @@ impl Workspace {
             }
         }
         self.index = Index::build_from_facts(&all);
+        for (path, (language, _)) in &self.facts {
+            if let Some(source) = self.files.borrow().get(path) {
+                self.index.note_content(path.clone(), *language, source);
+            }
+        }
         Ok(())
     }
 }
