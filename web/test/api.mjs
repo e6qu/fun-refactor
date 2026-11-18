@@ -13,6 +13,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -428,7 +429,7 @@ function applied(name, fn) {
           };
         },
       }));
-      assert(JSON.stringify(json(reviewedResult, { allowError: true })) === JSON.stringify(value),
+      assert(isDeepStrictEqual(json(reviewedResult, { allowError: true }), value),
         `review and direct operation disagree: ${reviewedResult} / ${result}`);
       if (!value.error) assert(reviewed.session() === w.session(), "review changed the resulting session");
     } finally {
