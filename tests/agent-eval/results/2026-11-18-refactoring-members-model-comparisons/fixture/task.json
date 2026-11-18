@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "task": "Retain old/new Boolean model preservation through checked refactoring and translation",
+  "revision": "1aa36204c4463c41e4233c0d43dd8f51d930799f",
+  "domain": "Pure explicitly typed Rust/Python Boolean functions with at most eight parameters; universal equivalence or after-implies-before under an explicit argument mapping",
+  "budgets": {"source_bytes": 65536, "parameters": 8, "request_bytes": 262144},
+  "positive": ["renamed and reordered parameters", "unused parameter removal", "Rust to Python Boolean translation", "stricter acceptance rule"],
+  "negative": ["wrong parameter mapping", "weakened acceptance rule", "integer arithmetic", "calls and effects", "unknown fields", "tampered snapshots or generated models"],
+  "stale": ["source", "baseline", "relation", "argument mapping", "proof", "toolchain"],
+  "oracle": "Independent Python truth table and compiled Rust outputs for every Boolean input, plus Lean proof checking and exact patch apply/reverse/reapply",
+  "claims": "Deterministic acceptance and Lean model theorems only; no live-agent, token-saving, or source-implementation proof claim"
+}
