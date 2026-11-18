@@ -12,6 +12,7 @@ class ProductReportTests(unittest.TestCase):
         observations = {row['id']: {'status': 'completed', 'independent_outcome': 'passed',
             'patch_delivered': True, 'patch_sha256': 'a' * 64, 'checking_inputs_preserved': True,
             'accounting_complete': True, 'resource_stop': None,
+            'fr_contribution': ['Source lookup used in the delivered change.'] if row['setup'] == 'fr' else [],
             'elapsed_seconds': 80 if row['setup'] == 'fr' else 100} for row in rows}
         grading = {'schema': 'fr-product-grading-1', 'round': 'initial', 'run': '123',
             'source_commit': 'b' * 40, 'checker_bindings': {'tools/agent_eval/product_tasks.py': 'c' * 64},
@@ -62,6 +63,14 @@ class ProductReportTests(unittest.TestCase):
             mutate(broken)
             with self.assertRaises(ValueError):
                 report.summary(ROOT, 'initial', observations, broken)
+
+    def test_ordinary_work_in_fr_setup_does_not_demonstrate_fr_benefit(self):
+        _, observations, grading = self.records()
+        for row in observations.values():
+            row['fr_contribution'] = []
+        value = report.summary(ROOT, 'initial', observations, grading)
+        self.assertTrue(all(not row['benefit_demonstrated'] for row in value['profiles'].values()))
+        self.assertTrue(all(row['complete_accepted'] for row in value['attempts']))
 
     def test_other_round_unknown_fields_and_false_numbers_refuse(self):
         rows, observations, _ = self.records()

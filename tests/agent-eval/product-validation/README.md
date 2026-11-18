@@ -64,3 +64,24 @@ failure or missing cost cannot count as an improvement.
 The exact task checkers and decision thresholds must be committed and checked before
 calls. Neither this preparation nor a scripted rehearsal closes the live comparison.
 The original M3 gate, the stopped CodeGraph study and list reversal remain unchanged.
+
+## Preparation and grading
+
+The `Unfamiliar product tasks` workflow prepares the four initial tasks on GitHub.
+Each task retains its unchanged seed, source hashes and license, then checks a
+reference solution and deliberately flawed answers. It replays the reference patch
+in a fresh checkout and verifies exact reversal and replay. The shared private grader
+also checks the delivered control patches without network access or runner credentials.
+Reference solutions and private observations are separate from the live seed archive.
+
+The report keeps artifact correctness, complete-attempt acceptance and measured fr
+contributions separate. It applies the frozen timing rule only to matched families
+with both repetitions accepted in both setups and contributing fr actions. Unknown
+charges remain unknown even when all other checks pass.
+
+Validation stays locked until the initial summary and independent grading receipts
+are committed and the product implementation is frozen. The release binds both
+records and the checker source used to produce the independent verdicts.
+
+Native admission and live-run integration are still being prepared. No hosted control
+or passing protocol test authorizes a model call by itself.

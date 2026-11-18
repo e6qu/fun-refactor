@@ -144,7 +144,7 @@ def run(task, milestone):
         result['checker_versions'] = {name: subprocess.check_output([name, '--version'], text=True, timeout=10).strip()
                                       for name in ('lean', 'python3')}
         require(result['checker_versions']['lean'].startswith('Lean (version ' + settings['lean'] + ',') and
-                result['checker_versions']['python3'] == 'Python ' + settings['hosted_python'],
+                result['checker_versions']['python3'] == 'Python ' + settings['independent_python'],
                 'private product checkers differ from their frozen versions')
         verdict = cases.check(changed, prepared, root / 'changed-checks')
     elif milestone == 'M2':

@@ -35,7 +35,7 @@ jobs:
         env:
           PYTHONPATH: tools
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python3 -B -m unittest agent_eval.test_product_plan agent_eval.test_product_report agent_eval.test_selected_plan
+        run: python3 -B -m unittest agent_eval.test_product_plan agent_eval.test_product_report agent_eval.test_selected_plan agent_eval.test_selected_grading
       - name: Check public task-checker syntax
         run: python3 -B -c 'import ast; from pathlib import Path; ast.parse(Path("tools/agent_eval/product_public.py").read_text())'
   task-controls:

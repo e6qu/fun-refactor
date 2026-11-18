@@ -62,6 +62,11 @@ def summary(root, phase, observations, grading=None):
         require(row['status'] in {'unstarted', 'completed', 'failed'}, 'retain a terminal or unstarted slot')
         require(row['elapsed_seconds'] is None or finite(row['elapsed_seconds']), 'invalid complete-attempt time')
         require(row['cost'] is None or finite(row['cost']), 'invalid recorded cost')
+        contribution = row['fr_contribution']
+        require(contribution is None or isinstance(contribution, list) and len(contribution) <= 8 and
+                all(isinstance(action, str) and 0 < len(action) <= 240 and '\n' not in action for action in contribution),
+                'retain concise reviewed fr contributions, not raw transcripts')
+        require(row['setup'] == 'fr' or not contribution, 'ordinary tools cannot claim an fr contribution')
         if row['status'] == 'unstarted':
             require(all(row[key] is None for key in ('elapsed_seconds', 'usage', 'cost', 'independent_outcome')) and
                     row['patch_delivered'] is False, 'unstarted time, usage and cost must stay unknown')
@@ -80,7 +85,8 @@ def summary(root, phase, observations, grading=None):
         matched = []
         for family in plan.FAMILIES:
             group = [row for row in chosen if row['family'] == family]
-            if len(group) == 4 and all(row['complete_accepted'] is True for row in group):
+            if len(group) == 4 and all(row['complete_accepted'] is True and
+                    (row['setup'] == 'files' or row['fr_contribution']) for row in group):
                 times = {setup: sum(row['elapsed_seconds'] for row in group if row['setup'] == setup)
                          for setup in ('files', 'fr')}
                 reduction = 1 - times['fr'] / times['files'] if times['files'] > 0 else None
