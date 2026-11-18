@@ -60,18 +60,25 @@ def change(client, policy):
         TaskDelivery(patch='artifacts/rename.patch'), acceptance_checks=['behavior']))
 
 
-def test_python_import_alias_and_documentation_rename_executes_and_replays(tmp_path):
+@pytest.mark.parametrize('policy', ['update', 'preserve'])
+def test_python_import_alias_and_documentation_policy_execute_and_replay(tmp_path, policy):
     original = '"""Use price to calculate an item."""\ndef price(value):\n    """price(3) returns 6."""\n    return value * 2\n'
     root, client = fixture(tmp_path, original)
     before = {name: (root / name).read_bytes() for name in ('helper.py', 'caller.py')}
-    result = client.execute(client.review(change(client, 'update')))
+    review = client.review(change(client, policy))
+    assert all((root / name).read_bytes() == source for name, source in before.items())
+    result = client.execute(review)
     assert result.passed
     acceptance = [stage for stage in result.at('/workflow/stages') if stage['stage'] == 'check-acceptance']
     assert acceptance and all(stage['status'] == 'passed' and stage['result']['passed'] is True
         for stage in acceptance)
-    assert 'price as charge' not in (root / 'caller.py').read_text().replace('line_price as charge', '')
-    assert 'line_price(3)' in (root / 'helper.py').read_text()
-    assert 'return charge(3)' in (root / 'caller.py').read_text()
+    if policy == 'update':
+        expected = original.replace('price', 'line_price')
+    else:
+        expected = original.replace('def price(', 'def line_price(')
+    assert (root / 'helper.py').read_text() == expected
+    assert (root / 'caller.py').read_text() == (
+        'from helper import line_price as charge\ndef total():\n    return charge(3)\n')
     patch = root / 'artifacts/rename.patch'
     subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=root, check=True)
     assert all((root / name).read_bytes() == source for name, source in before.items())
@@ -81,24 +88,17 @@ def test_python_import_alias_and_documentation_rename_executes_and_replays(tmp_p
         "import sys;sys.path.insert(0,'.');import caller;assert caller.total()==6"], cwd=root, check=True)
 
 
+@pytest.mark.parametrize('policy', ['update', 'preserve'])
 @pytest.mark.parametrize('text', [
     'def price(value):\n    return value * 2\nlookup = "price"\n',
     'def price(value):\n    return value * 2\nraw = b"price"\n',
     'def price(value):\n    return value * 2\nif True:\n    "price"\n',
     'def price(value):\n    f"price"\n    return value * 2\n',
 ])
-def test_documentation_policy_cannot_hide_executable_string_mentions(tmp_path, text):
+def test_documentation_policy_cannot_hide_executable_string_mentions(tmp_path, text, policy):
     root, client = fixture(tmp_path, text)
     with pytest.raises(FrRuntimeError, match='textual|unresolved'):
-        client.review(change(client, 'update'))
-    assert (root / 'helper.py').read_text() == text
-
-
-def test_preserved_documentation_still_requires_resolving_its_mentions(tmp_path):
-    text = 'def price(value):\n    """price returns twice its input."""\n    return value * 2\n'
-    root, client = fixture(tmp_path, text)
-    with pytest.raises(FrRuntimeError, match='textual|unresolved'):
-        client.review(change(client, 'preserve'))
+        client.review(change(client, policy))
     assert (root / 'helper.py').read_text() == text
 
 

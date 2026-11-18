@@ -597,11 +597,18 @@ of three forms.
 | Form | What it does |
 |---|---|
 | `remove:<i>` | Drop the parameter at index `i`, and its argument at every call |
-| `move:<from>:<to>` | Reorder, and reorder every call's arguments to match |
+| `move:<from>:<to>` | Move one parameter, shift the intervening parameters, and update calls to match |
 | `add:<i>:<declaration>:<argument>` | Insert a parameter, and pass `<argument>` at every call |
 
 `remove:1` drops the second parameter. `add:0:limit: int:50` puts `limit: int`
 first and passes `50`.
+
+Moving position 0 to 2 changes `(a, b, c)` to `(b, c, a)`.
+Removed arguments must be literals; moved arguments must be literals or plain reads throughout the moved range.
+Calls, property access, indexing and other expressions with unchecked evaluation refuse.
+Retained arguments keep their order and source bytes. Shell substitutions with effects also refuse.
+Python keyword arguments follow their parameter names. A partially omitted moved range refuses rather than changing default bindings.
+See [refactoring coverage](docs/refactoring-coverage.md) for checks and remaining limits.
 
 ### `fr move`
 

@@ -52,7 +52,8 @@ Keep both observations separate from the original M3 completion gate.
 
 Each PR includes implementation, examples, checks, results and documentation.
 The numbers below describe the work order, not GitHub PR numbers.
-The combined graph-and-analysis PR is now in progress.
+PR 1 landed in [#621](https://github.com/e6qu/fun-refactor/pull/621) with passing hosted checks.
+PR 2 is in progress. Its [coverage guide](docs/refactoring-coverage.md) tracks the operation families and their checks.
 
 | PR | Complete outcome | Completion gate |
 | --- | --- | --- |
@@ -248,7 +249,7 @@ A general verified translator or proof of arbitrary programs is not a completion
 ## Scope and deferred work
 
 The full advertised feature set is in scope for the proposed sequence.
-The earlier invalid-number-input and shared-list expansions return in PR 1.
+PR #621 added the bounded invalid-number-input and shared-list expansions described in the analysis guide.
 Analysis, graphs, refactoring and declared translation support remain product goals alongside proof authoring.
 Preserve working behavior and fix encountered defects within the relevant complete PR.
 

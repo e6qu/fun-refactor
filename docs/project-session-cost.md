@@ -22,9 +22,9 @@ Seconds below include the coordinator, source copy, Python starts, questions, ed
 
 | Project | CLI seconds | Python restarted | Python kept running | Saved restarted | Saved kept running |
 |---|---:|---:|---:|---:|---:|
-| glob | 0.693 | 1.039 (+49.9%) | 0.827 (+19.4%) | 1.228 (+77.1%) | 0.976 (+40.8%) |
-| boltons | 2.392 | 2.722 (+13.8%) | 2.501 (+4.5%) | 2.823 (+18.0%) | 2.579 (+7.8%) |
-| jmespath | 0.828 | 1.190 (+43.7%) | 0.987 (+19.2%) | 1.465 (+76.8%) | 1.235 (+49.1%) |
+| glob | 0.697 | 1.025 (+47.1%) | 0.814 (+16.8%) | 1.419 (+103.6%) | 1.089 (+56.3%) |
+| boltons | 2.372 | 2.798 (+18.0%) | 2.633 (+11.0%) | 2.932 (+23.6%) | 3.078 (+29.8%) |
+| jmespath | 0.995 | 1.271 (+27.8%) | 1.082 (+8.8%) | 1.562 (+57.1%) | 1.373 (+38.1%) |
 
 The CLI baseline includes a Python coordinator. These percentages measure the added library, process and saved-answer work in this procedure; they do not compare Python with Rust as programming languages. All approaches use the same optimized native executable.
 
@@ -34,21 +34,21 @@ CPU seconds sum user and system processor work for the session and its waited-fo
 
 | Project / approach | Median CPU seconds | Maximum sampled memory MiB | Median final fr cache KiB | Median final saved data KiB |
 |---|---:|---:|---:|---:|
-| glob / cli-fresh | 0.68 | 51.1 | 153.7 | 0.0 |
-| glob / sdk-fresh | 1.01 | 79.8 | 153.7 | 0.0 |
-| glob / sdk-running | 0.81 | 80.0 | 153.7 | 0.0 |
-| glob / saved-fresh | 1.19 | 78.5 | 153.7 | 516.1 |
-| glob / saved-running | 0.96 | 81.6 | 153.7 | 516.1 |
-| boltons / cli-fresh | 2.38 | 81.1 | 908.9 | 0.0 |
-| boltons / sdk-fresh | 2.69 | 103.4 | 908.9 | 0.0 |
-| boltons / sdk-running | 2.48 | 105.2 | 908.9 | 0.0 |
-| boltons / saved-fresh | 2.80 | 107.0 | 908.9 | 192.1 |
-| boltons / saved-running | 2.56 | 106.7 | 908.9 | 192.1 |
-| jmespath / cli-fresh | 0.82 | 60.2 | 297.9 | 0.0 |
-| jmespath / sdk-fresh | 1.17 | 84.2 | 297.9 | 0.0 |
-| jmespath / sdk-running | 0.97 | 85.6 | 297.9 | 0.0 |
-| jmespath / saved-fresh | 1.44 | 86.1 | 297.9 | 856.1 |
-| jmespath / saved-running | 1.21 | 89.1 | 297.9 | 856.1 |
+| glob / cli-fresh | 0.67 | 50.0 | 153.7 | 0.0 |
+| glob / sdk-fresh | 1.00 | 80.0 | 153.7 | 0.0 |
+| glob / sdk-running | 0.80 | 81.2 | 153.7 | 0.0 |
+| glob / saved-fresh | 1.18 | 78.6 | 153.7 | 516.1 |
+| glob / saved-running | 0.94 | 83.1 | 153.7 | 516.1 |
+| boltons / cli-fresh | 2.35 | 81.4 | 908.9 | 0.0 |
+| boltons / sdk-fresh | 2.67 | 104.4 | 908.9 | 0.0 |
+| boltons / sdk-running | 2.46 | 105.3 | 908.9 | 0.0 |
+| boltons / saved-fresh | 2.80 | 108.0 | 908.9 | 192.1 |
+| boltons / saved-running | 2.55 | 107.0 | 908.9 | 192.1 |
+| jmespath / cli-fresh | 0.82 | 57.1 | 297.9 | 0.0 |
+| jmespath / sdk-fresh | 1.17 | 84.5 | 297.9 | 0.0 |
+| jmespath / sdk-running | 0.97 | 84.7 | 297.9 | 0.0 |
+| jmespath / saved-fresh | 1.44 | 85.8 | 297.9 | 852.1 |
+| jmespath / saved-running | 1.20 | 89.0 | 297.9 | 852.1 |
 
 Full answers remain local; clients reply with content fingerprints, which identify the answer bytes. Equal evidence objects share one recorded file. Evidence hashing, database snapshots and recording are instrumentation included in elapsed time. Evidence archives are separate from the production caches and saved data above. Directory and filesystem block overhead are unmeasured.
 
@@ -58,10 +58,10 @@ The installed SDK has precompiled modules checked against its exact source. Thes
 
 | Setup | Seconds |
 |---|---:|
-| boltons download seconds | 0.262 |
+| boltons download seconds | 0.158 |
 | bytecode compile seconds | 0.142 |
-| glob download seconds | 0.188 |
-| jmespath download seconds | 0.186 |
+| glob download seconds | 0.163 |
+| jmespath download seconds | 0.104 |
 | wheel build seconds | 0.765 |
 | wheel install seconds | 0.365 |
 
@@ -69,4 +69,4 @@ Native compilation, dependency provisioning and runner startup are workflow setu
 
 All three projects were already familiar. The original first JMESPath evaluation remains unchanged and separately audited. Three repetitions cannot establish general savings. There is no live agent, model-token, billing or CodeGraph comparison here. Earlier measurements use different procedures and runners; compare approaches within this run.
 
-[Raw record](../tests/agent-eval/results/2026-10-22-project-sessions-44157616024/result.json) | [Workflow run](https://github.com/e6qu/fun-refactor/actions/runs/44157616024) | [Previous saved-answer comparison](distinct-answer-hashing.md)
+[Raw record](../tests/agent-eval/results/2026-10-22-project-sessions-44249350837/result.json) | [Workflow run](https://github.com/e6qu/fun-refactor/actions/runs/44249350837) | [Previous saved-answer comparison](distinct-answer-hashing.md)

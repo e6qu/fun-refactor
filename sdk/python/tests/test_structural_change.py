@@ -186,6 +186,66 @@ def test_parameter_movement_preserves_noncommutative_results(tmp_path):
     assert "subtotal(2, 3, 0)" in (root/"api.rs").read_text()
 
 
+@pytest.mark.parametrize("source,destination,arguments", [(0, 2, "2, 0, 3"), (2, 0, "0, 3, 2")])
+def test_nonadjacent_movement_shifts_intervening_parameters(tmp_path, source, destination, arguments):
+    root, client = fixture(tmp_path)
+    path = root/"pricing.rs"
+    path.write_text(path.read_text().replace("a + b", "a * 100 + b * 10 + _legacy"))
+    checker = tmp_path/"check.py"
+    checker.write_text(checker.read_text().replace("=='5'", "=='320'"))
+    original = {p.name: p.read_bytes() for p in root.glob("*.rs")}
+    _, change = proposal(client, RefactorRequest.move_parameter(source, destination))
+    assert client.execute(client.review(change)).passed
+    assert f"subtotal({arguments})" in (root/"api.rs").read_text()
+    receiver = tmp_path/"receiver"
+    receiver.mkdir()
+    for name, content in original.items():
+        (receiver/name).write_bytes(content)
+    subprocess.run(["git", "apply", str(root/"artifacts/migration.patch")], cwd=receiver, check=True)
+    subprocess.run([sys.executable, str(checker)], cwd=receiver, check=True)
+    assert {p.name: p.read_bytes() for p in receiver.glob("*.rs")} == {
+        p.name: p.read_bytes() for p in root.glob("*.rs")}
+
+
+@pytest.mark.parametrize("in_macro", [False, True])
+def test_movement_keeps_effects_outside_the_moved_range(tmp_path, in_macro):
+    root, client = fixture(tmp_path)
+    path = root/"pricing.rs"
+    path.write_text(path.read_text().replace("a + b", "a * 100 + b * 10 + _legacy"))
+    call = "crate::pricing::subtotal(3, 2, record())"
+    body = f"assert_eq!({call}, 320); 320" if in_macro else call
+    (root/"api.rs").write_text('fn record() -> i64 { println!("record"); 0 }\n'
+                              'pub fn quote() -> i64 { ' + body + ' }\n')
+    checker = tmp_path/"check.py"
+    checker.write_text(checker.read_text().replace("=='5'", "=='record\\n320'"))
+    _, change = proposal(client, RefactorRequest.move_parameter(0, 1))
+    assert client.execute(client.review(change)).passed
+    assert "subtotal(2, 3, record())" in (root/"api.rs").read_text()
+
+
+def test_explicit_documentation_preservation_does_not_block_rename(tmp_path):
+    root, client = fixture(tmp_path)
+    path = root/"pricing.rs"
+    documentation = "/// subtotal combines the two amounts.\n"
+    path.write_text(documentation + path.read_text())
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
+    assert client.execute(client.review(change)).passed
+    assert path.read_text().startswith(documentation)
+    assert "fn sum_values(" in path.read_text()
+    assert "pricing::sum_values(" in (root/"api.rs").read_text()
+
+
+def test_preserving_documentation_does_not_ignore_executable_strings(tmp_path):
+    root, client = fixture(tmp_path)
+    path = root/"pricing.rs"
+    path.write_text(path.read_text() + 'pub const NAME: &str = "subtotal";\n')
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
+    before = path.read_bytes()
+    with pytest.raises(FrRuntimeError, match="textual|unresolved"):
+        client.review(change)
+    assert path.read_bytes() == before
+
+
 def test_function_value_and_unresolved_consumer_refuse_signature_delivery(tmp_path):
     root, client = fixture(tmp_path)
     path = root/"api.rs"

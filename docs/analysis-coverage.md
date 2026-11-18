@@ -31,7 +31,7 @@ The table below connects the analysis features to their implementation checks.
 | Saved answers | Reuse only when source, imports, settings and analyzer inputs still match | [Saved flow checks](../sdk/python/tests/test_flow.py), [effect checks](../sdk/python/tests/test_runtime_effects.py) |
 
 These links identify checks, not a claim that they passed on every revision.
-The combined [graph-and-analysis PR](../PLAN.md#pr-1-complete-graphs-and-code-analysis) remains open until its hosted checks and required evidence pass.
+The combined [graph-and-analysis PR #621](https://github.com/e6qu/fun-refactor/pull/621) passed its hosted checks and evidence audits before merge.
 Refactoring, translation and public-interface completion have their own PRs in that plan.
 
 The maintained language matrix comes from [the capability registry](../src/capabilities.rs), available as `fr capabilities --json`.
@@ -40,8 +40,8 @@ It distinguishes implemented operations, refused operations and operations that 
 the [coverage report](../tools/capability-report.py) rejects unexercised claims in the complete native gate.
 Those drivers establish example coverage. The behavioral tests above check resolution, mutation and invalidation in more depth.
 
-This PR owns symbols, calls, impact, flow, provenance, entry points, stitching, duplicates, dead code, declared types and HTTP-contract analysis.
-The refactoring PR owns rename, deletion, restructuring, extraction, inlining, signatures, rewrites, imports, flag removal, moves and translation.
+This guide covers symbols, calls, impact, flow, provenance, entry points, stitching, duplicates, dead code, declared types and HTTP-contract analysis.
+The [refactoring guide](refactoring-coverage.md) covers rename, deletion, restructuring, extraction, inlining, signatures, rewrites, imports, flag removal, moves and translation.
 Both sets remain product requirements. Per-language refusals document current limits; they do not cancel roadmap promises.
 
 ## Inspect a graph

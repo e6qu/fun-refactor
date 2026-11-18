@@ -18,9 +18,10 @@ Its effect on live proof delivery remains unmeasured.
 The [plan's evidence section](../PLAN.md#evidence-behind-the-sequence) links the retained studies.
 PR #604 has merged; its interrupted collection remains a historical record, not the active work queue.
 
-PR 1 combines graphs and code analysis. Its [coverage guide](analysis-coverage.md) links features to checks.
-The implementation adds call-site exports, source digests, caught conversion errors and local shared-list analysis.
-Finish the hosted behavior checks, evidence refresh and full CI before marking it complete.
+PR 1 landed in [#621](https://github.com/e6qu/fun-refactor/pull/621). Its [coverage guide](analysis-coverage.md) links features to checks.
+The hosted behavior checks, evidence refresh and full CI passed before merge.
+PR 2 covers refactoring and transformations; its [coverage guide](refactoring-coverage.md) tracks the operation families.
+Current implementation work closes signature binding and evaluation gaps shared by commands and recipes.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 
