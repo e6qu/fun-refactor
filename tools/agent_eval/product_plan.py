@@ -44,7 +44,7 @@ def validation_release(root):
     require(path.is_file(), 'validation source stays reserved until the initial decision and implementation are frozen')
     value = json.loads(path.read_text())
     require(set(value) == {'schema', 'implementation_commit', 'initial_results_commit',
-                          'initial_summary_sha256', 'decision', 'production_trees'},
+                          'initial_summary_sha256', 'initial_grading_sha256', 'decision', 'production_trees'},
             'validation release must identify the checked initial results and frozen product')
     require(value['schema'] == 'fr-product-validation-release-1' and
             value['decision'] in {'keep', 'revise', 'discard'}, 'unknown validation release or decision')
@@ -61,6 +61,17 @@ def validation_release(root):
     require(hashlib.sha256(original).hexdigest() == value['initial_summary_sha256'],
             'initial-round result differs from its committed release')
     summary = json.loads(original)
+    from .product_report import validate_grading
+    grading_bytes = subprocess.check_output(['git', '-C', str(root), 'show',
+        value['initial_results_commit'] + ':' + str(DIRECTORY / 'initial/results/grading.json')], timeout=10)
+    require(hashlib.sha256(grading_bytes).hexdigest() == value['initial_grading_sha256'],
+            'independent grading differs from the committed validation release')
+    grading = validate_grading(summary, json.loads(grading_bytes))
+    for name, digest in grading['checker_bindings'].items():
+        checked = subprocess.check_output(['git', '-C', str(root), 'show',
+            grading['source_commit'] + ':' + name], timeout=10)
+        require(hashlib.sha256(checked).hexdigest() == digest,
+                'the grading source differs from its recorded hosted inputs')
     require(summary.get('round') == 'initial' and len(summary.get('attempts', [])) == 48 and
             {row['id'] for row in summary['attempts']} ==
             {row['id'] for row in campaign(root)['attempts'] if row['round'] == 'initial'} and

@@ -229,7 +229,14 @@ def reference(project, prepared):
     else:
         path = project / PROOF
         text = path.read_text()
-        text = text.replace('  sorry\n', '  unfold clamp\n  split <;> simp_all <;> split <;> simp_all <;> omega\n')
+        text = text.replace('  sorry\n',
+            '  by_cases below : value < lower\n'
+            '  · simp [clamp, below, Nat.not_lt_of_ge ordered, ordered]\n'
+            '  · by_cases above : upper < value\n'
+            '    · simp [clamp, below, above, Nat.not_lt_of_ge ordered, ordered]\n'
+            '    · have lo : lower ≤ value := by omega\n'
+            '      have hi : value ≤ upper := by omega\n'
+            '      simp [clamp, below, above, lo, hi]\n')
         path.write_text(text)
 
 
