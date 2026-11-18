@@ -274,7 +274,12 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 continue;
             }
             if let Some(receiver) = super::receiver_declared_type(index, reference) {
-                if sym.qualifier.as_deref() != Some(receiver.as_str()) {
+                if sym.qualifier.as_deref() != Some(receiver.as_str())
+                    && index.named_like(&sym.name).any(|other| {
+                        other.kind.is_callable()
+                            && other.qualifier.as_deref() == Some(receiver.as_str())
+                    })
+                {
                     continue;
                 }
             }

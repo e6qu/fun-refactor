@@ -128,6 +128,19 @@ fn member_reads_do_not_cross_mutable_bindings_or_other_member_reads() {
 }
 
 #[test]
+fn a_record_callback_is_not_an_unrelated_method() {
+    for (file, source) in [
+        ("a.go", "package main\nfunc adjust(a int, b int) int { return a * 10 + b }\ntype Held struct { adjust func(int, int) int }\nfunc main() { h := Held{adjust: adjust}; _ = h.adjust(1, 2) }\n"),
+        ("a.zig", "fn adjust(a: i32, b: i32) i32 { return a * 10 + b; }\nconst Held = struct { adjust: *const fn (i32, i32) i32 };\nfn run() void { const h = Held{ .adjust = &adjust }; _ = h.adjust(1, 2); }\n"),
+    ] {
+        let (_dir, index) = workspace(file, source);
+        let id = index.find_symbols("adjust", None).into_iter()
+            .find(|symbol| symbol.kind == fun_refactor::model::SymbolKind::Function && symbol.qualifier.is_none()).unwrap().id;
+        assert!(signature::change(&index, id, Change::Move { from: 0, to: 1 }).is_err());
+    }
+}
+
+#[test]
 fn omitted_defaults_cannot_silently_change_positions() {
     let source = "def adjust(a=1, b=2, c=3):\n    return a * 100 + b * 10 + c\nprint(adjust(9))\n";
     let (_dir, index) = workspace("a.py", source);
