@@ -205,9 +205,26 @@ pub(super) fn parameters(
             return Err(refuse("signature change cannot preserve variadic, grouped or keyword-only parameter bindings; use explicit positional parameters"));
         }
     }
-    if language != Language::Python {
-        return Ok(());
+    let parameters: Vec<_> = parameters
+        .into_iter()
+        .filter(|node| items.contains(&Span::from(*node)))
+        .collect();
+    let affected: Vec<_> = match change {
+        Change::Remove(at) => parameters.get(*at).into_iter().copied().collect(),
+        Change::Move { from, to } if from != to => parameters
+            .iter().skip(*from.min(to)).take(from.abs_diff(*to) + 1).copied().collect(),
+        _ => Vec::new(),
+    };
+    if matches!(language, Language::Python | Language::TypeScript | Language::Tsx) {
+        for parameter in &affected {
+            if parameter.child_by_field_name("value")
+                .is_some_and(|value| !simple_value(value, source, false))
+            {
+                return Err(refuse("changing this parameter would remove or reorder a default expression whose evaluation may have effects or fail"));
+            }
+        }
     }
+    if language != Language::Python { return Ok(()); }
     if list
         .parent()
         .and_then(|node| node.parent())
@@ -215,10 +232,6 @@ pub(super) fn parameters(
     {
         return Err(refuse("a decorator can replace this function's calling convention; its signature binding is not established"));
     }
-    let parameters: Vec<_> = parameters
-        .into_iter()
-        .filter(|node| items.contains(&Span::from(*node)))
-        .collect();
     if let Change::Add {
         at, declaration, ..
     } = change
@@ -250,24 +263,8 @@ pub(super) fn parameters(
             }
         }
     }
-    // Python evaluates defaults and annotations when it defines the function.
-    let affected: Vec<_> = match change {
-        Change::Remove(at) => parameters.get(*at).into_iter().copied().collect(),
-        Change::Move { from, to } if from != to => parameters
-            .iter()
-            .skip(*from.min(to))
-            .take(from.abs_diff(*to) + 1)
-            .copied()
-            .collect(),
-        _ => Vec::new(),
-    };
+    // Python can also evaluate annotations when defining the function.
     for parameter in affected {
-        if parameter
-            .child_by_field_name("value")
-            .is_some_and(|value| !simple_value(value, source, false))
-        {
-            return Err(refuse("changing this parameter would remove or reorder a default expression whose evaluation may have effects or fail"));
-        }
         if parameter
             .child_by_field_name("type")
             .is_some_and(|annotation| {

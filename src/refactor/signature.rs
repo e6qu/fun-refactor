@@ -615,7 +615,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 /// Rewrite one parameter or argument list.
 fn defaults_would_be_out_of_order(
     language: Language,
-    source: &str,
+    parsed: &Parsed,
     items: &[Span],
     from: usize,
     to: usize,
@@ -626,14 +626,16 @@ fn defaults_would_be_out_of_order(
     ) {
         return false;
     }
-    // `?` is TypeScript's other way of saying the same thing.
+    // Read syntax: an arrow in a type is not an initializer. TypeScript permits
+    // initialized parameters before required ones, but not optional `?` parameters.
     let defaulted = |span: &Span| {
-        let text = span.text(source);
-        text.contains('=')
-            || text
-                .split(':')
-                .next()
-                .is_some_and(|name| name.ends_with('?'))
+        parsed.root().descendant_for_byte_range(span.start, span.end).is_some_and(|node| {
+            if language == Language::Python {
+                node.child_by_field_name("value").is_some()
+            } else {
+                node.kind() == "optional_parameter"
+            }
+        })
     };
     let mut order: Vec<&Span> = items.iter().collect();
     if from >= order.len() || to >= order.len() {
@@ -772,7 +774,7 @@ fn apply_change(
                 }
                 return Ok(());
             };
-            if is_declaration && defaults_would_be_out_of_order(language, source, items, *from, *to)
+            if is_declaration && defaults_would_be_out_of_order(language, parsed, items, *from, *to)
             {
                 return Err(Refusal::Declined {
                     detail: format!(

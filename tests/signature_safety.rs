@@ -236,6 +236,43 @@ fn a_sass_addition_cannot_fill_an_earlier_omitted_parameter() {
 }
 
 #[test]
+fn typescript_default_expressions_keep_their_evaluation() {
+    for (parameters, change) in [
+        ("unused = record()", Change::Remove(0)),
+        ("left = record(), right = record()", Change::Move { from: 0, to: 1 }),
+    ] {
+        let source = format!("function record() {{ console.log('effect'); return 1; }}\nfunction adjust({parameters}) {{ return 0; }}\nadjust();\n");
+        let (_dir, index) = workspace("a.ts", &source);
+        let error = changed(&index, change).unwrap_err().to_string();
+        assert!(error.contains("default expression"), "{error}");
+    }
+}
+
+#[test]
+fn typescript_function_types_are_not_default_initializers() {
+    let source = "function adjust(callback: () => number, value: number) { return callback() + value; }\nfunction choose() { return 1; }\nadjust(choose, 3);\n";
+    let (dir, index) = workspace("a.ts", source);
+    let plan = changed(&index, Change::Move { from: 0, to: 1 }).unwrap();
+    let after = apply(dir.path(), "a.ts", &plan.edits);
+    assert!(after.contains("adjust(value: number, callback: () => number)"), "{after}");
+    assert!(after.contains("adjust(3, choose)"), "{after}");
+}
+
+#[test]
+fn typescript_literal_defaults_preserve_javascript_execution() {
+    let source = "function adjust(a = 1, b = 2, c = 3) { return a * 100 + b * 10 + c; }\nconsole.log(adjust(), adjust(4, 5, 6));\n";
+    let (dir, index) = workspace("a.ts", source);
+    let plan = changed(&index, Change::Move { from: 0, to: 2 }).unwrap();
+    let after = apply(dir.path(), "a.ts", &plan.edits);
+    let evaluate = |source: &str| {
+        let result = Command::new("node").args(["-e", source]).output().unwrap();
+        assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+        result.stdout
+    };
+    assert_eq!(evaluate(source), evaluate(&after));
+}
+
+#[test]
 fn decorated_python_calling_conventions_require_explicit_migration() {
     let source =
         "def decorate(f):\n    return f\n@decorate\ndef adjust(unused):\n    return 1\nadjust(0)\n";
