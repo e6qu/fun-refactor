@@ -10,7 +10,7 @@ import subprocess
 import time
 
 from . import selected_tasks as tasks
-from .selected_plan import ALGORITHM_TASKS, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, require
+from .selected_plan import ALGORITHM_TASKS, PROOF_STUDIES, PROOF_DIAGNOSTICS, PRODUCT_STUDIES, CASE_DIRECTORIES, ROOT, encoded, require
 
 
 def restore_dependency_cache(source, destination):
@@ -35,7 +35,8 @@ def check_boundary(milestone):
     require(not Path('/var/run/docker.sock').exists(), 'private grader can see the runner Docker socket')
     readonly = ['/inputs/original', '/inputs/project.json', '/inputs/delivery.json', '/inputs/change.patch',
                 '/review/tools', '/opt/rust']
-    readonly += (['/opt/lean', '/opt/tool/bin/fr'] if milestone in PROOF_STUDIES | {'M1'} else
+    readonly += (['/opt/lean'] if milestone in PRODUCT_STUDIES else
+                 ['/opt/lean', '/opt/tool/bin/fr'] if milestone in PROOF_STUDIES | {'M1'} else
                  ['/opt/node/bin/node', '/opt/typescript', '/review/target/cargo-home/registry'])
     require(all(os.statvfs(path).f_flag & os.ST_RDONLY for path in readonly), 'private source or tool mount is writable')
     return {'uid': os.geteuid(), 'effective_capabilities': 0, 'new_privileges_allowed': False,
@@ -48,7 +49,12 @@ def run(task, milestone):
             'runner credentials and environment must stay outside the private grader')
     original = Path('/inputs/original')
     prepared = json.loads(Path('/inputs/project.json').read_text())
-    if milestone == 'M2':
+    if milestone in PRODUCT_STUDIES:
+        from . import product_tasks as cases
+        requirements = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'tasks.json').read_text())['tasks']
+        require(task in requirements and prepared['requirement'] == requirements[task],
+                'private product task requirements differ')
+    elif milestone == 'M2':
         from . import project_edits_tasks as cases
         require(task in cases.TASKS and prepared['requirement'] == cases.TASKS[task], 'private M2 task requirements differ')
     elif milestone in ALGORITHM_TASKS:
@@ -98,7 +104,14 @@ def run(task, milestone):
         paths = [entry[2].decode() for entry in entries]
     except UnicodeError:
         return {**result, 'reason': 'patch paths must be UTF-8'}
-    if milestone == 'M2':
+    if milestone in PRODUCT_STUDIES:
+        permitted = set(prepared['original'])
+        if task == 'slugify-bytes':
+            permitted |= {path for path in paths if not Path(path).is_absolute() and
+                all(part not in {'.', '..'} and part not in tasks.IGNORED for part in Path(path).parts) and
+                (Path(path).suffix in {'.md', '.rst'} or
+                 ((path.startswith('tests/') or path.startswith('test_')) and path.endswith('.py')))}
+    elif milestone == 'M2':
         permitted = set(prepared['original']) | {path for path in paths if task == 'regex-escape-len'
             and path.startswith(('src/', 'regex-syntax/src/')) and path.endswith('.rs')
             and all(part not in {'.', '..'} for part in Path(path).parts)}
@@ -126,7 +139,15 @@ def run(task, milestone):
             if (changed / path).is_file():
                 os.utime(changed / path, ns=(modified, modified))
     binary = Path('/opt/tool/bin/fr')
-    if milestone == 'M2':
+    if milestone in PRODUCT_STUDIES:
+        settings = json.loads((ROOT / 'tests/agent-eval/product-validation/checkers.json').read_text())
+        result['checker_versions'] = {name: subprocess.check_output([name, '--version'], text=True, timeout=10).strip()
+                                      for name in ('lean', 'python3')}
+        require(result['checker_versions']['lean'].startswith('Lean (version ' + settings['lean'] + ',') and
+                result['checker_versions']['python3'] == 'Python ' + settings['independent_python'],
+                'private product checkers differ from their frozen versions')
+        verdict = cases.check(changed, prepared, root / 'changed-checks')
+    elif milestone == 'M2':
         checkers = {'python': '/opt/python/bin/python3', 'cargo': '/opt/rust/bin/cargo', 'rustc': '/opt/rust/bin/rustc',
                     'node': '/opt/node/bin/node', 'typescript': '/opt/typescript/bin/tsc'}
         result['checker_versions'] = {name: subprocess.check_output([path, '--version'], text=True, timeout=10).strip()
@@ -159,7 +180,7 @@ def run(task, milestone):
     tasks.comparison_grade.BASE.initialize(receiver)
     tasks.comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
     require(tasks.sources(receiver) == candidate_sources, 'receiver differs from the submitted patch')
-    if milestone == 'M2':
+    if milestone in PRODUCT_STUDIES | {'M2'}:
         result['receiver'] = {'passed': True, 'source_identity_verified': True,
             'checked_source_sha256': hashlib.sha256(encoded(candidate_sources)).hexdigest(),
             'scope': 'All language checks ran in the first fresh patch receiver. This second copy has identical source bytes and modes.'}

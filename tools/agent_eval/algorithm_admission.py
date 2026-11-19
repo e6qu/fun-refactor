@@ -18,7 +18,7 @@ from . import proof_writing_tasks as proof
 from .opencode2_client import scripted_configuration
 from .selected_cli import configuration, invocation, export_session, verify_export
 from .selected_guarded import GUARD, IndependentSampler
-from .selected_plan import ALGORITHM_STUDIES, ADMISSION_STUDIES, CASE_DIRECTORIES, DELIVERY_STUDY, REPAIR_STUDY, ROOT, encoded, prepare, require
+from .selected_plan import ALGORITHM_STUDIES, ADMISSION_STUDIES, PRODUCT_STUDIES, CASE_DIRECTORIES, DELIVERY_STUDY, REPAIR_STUDY, ROOT, encoded, prepare, require
 
 CONTROL_LIMITS = {'wall_seconds': 60, 'rss_bytes': 805306368, 'cpu_limit_seconds': 25,
                   'disk_bytes': 67108864, 'transcript_bytes': 131072}
@@ -34,6 +34,9 @@ POLICY = {'complete_workflow_required', 'session_accounting_required', 'conditio
 
 def admission(study):
     """One admission description per study, read from its frozen requirements."""
+    if study in PRODUCT_STUDIES:
+        from .product_runtime import admission_spec
+        return admission_spec(study)
     from .proof_feedback import DIAGNOSTIC_ADMISSIONS
     require(study in ADMISSION_STUDIES, 'choose the native admission study explicitly')
     requirements = prepare(ROOT, study)['requirements']['native_admission']
@@ -181,15 +184,20 @@ def child(args):
     spec = admission(args.study)
     require(args.setup in spec['conditions'], 'admit one declared condition of the selected study')
     from . import proof_feedback
+    from . import product_runtime
     validator = {'diagnostic': proof_feedback.validate_controls, 'delivery': delivery.validate_controls,
-                 'algorithm': algorithms.validate_controls}[spec['kind']]
-    validator(json.loads(args.controls.read_text()), args.study)
+                 'algorithm': algorithms.validate_controls, 'product': product_runtime.validate_controls}[spec['kind']]
+    controls = validator(json.loads(args.controls.read_text()), args.study)
     local.identity()
-    profile = json.loads((ROOT / 'tests/agent-eval/proof-writing/profiles.json').read_text())[args.profile]
+    profile = (prepare(ROOT, args.study)['profiles'][args.profile] if spec['kind'] == 'product' else
+               json.loads((ROOT / 'tests/agent-eval/proof-writing/profiles.json').read_text())[args.profile])
     project = args.output / 'project'
     seed = json.loads((args.inputs / 'seed.json').read_text())
     local.unpack(args.inputs / 'original.tar.gz', seed, project)
-    if args.study in {REPAIR_STUDY, 'M3-page-count'}:
+    if spec['kind'] == 'product':
+        require(seed['task'] in prepare(ROOT, args.study)['requirements']['tasks'] and
+                controls['seeds'][seed['task']] == seed['archive_sha256'], 'admit a qualified product seed')
+    elif args.study in {REPAIR_STUDY, 'M3-page-count'}:
         prepared = json.loads((args.inputs / 'project.json').read_text())
         require(prepared['task'] == 'page-count' and common.sources(project) == prepared['original'] and
                 prepared['lean_arguments'] == ['-j1'] and
@@ -209,10 +217,13 @@ def child(args):
             require((project / source).read_bytes() == (ROOT / algorithms.DIRECTORY / 'fixtures' / fixture).read_bytes(),
                     'admit the exact qualified task, including its entry module')
     common.comparison_grade.BASE.initialize(project)
+    (project / '.git/info/exclude').write_text('\n'.join(sorted((common.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     directory = project / '.fr'
     directory.mkdir(exist_ok=True)
     protected = {}
-    if spec['kind'] == 'diagnostic':
+    if spec['kind'] == 'product':
+        protected, product_checkers = product_runtime.install_admission(args, project, seed, controls)
+    elif spec['kind'] == 'diagnostic':
         protected = proof_feedback.install_diagnostic_admission(project, args.setup, args.lean_root, prepared, args.study)
     elif spec['kind'] == 'delivery':
         protected = delivery.install(project, args.setup, args.lean_root / 'bin/lake')
@@ -229,12 +240,16 @@ def child(args):
     control_script = args.output / 'complete-workflow.sh'
     tools = args.output / 'bin'
     tools.mkdir()
-    (tools / 'fr').symlink_to(args.fr)
+    with_fr = spec['kind'] != 'product' or args.setup == 'fr'
+    if with_fr:
+        (tools / 'fr').symlink_to(args.fr)
     env = {key: os.environ[key] for key in ('HOME', 'PATH', 'LANG', 'CODEX_HOME', 'SSL_CERT_FILE',
            'CODEX_CA_CERTIFICATE', 'PYTHONPATH') if key in os.environ}
     env['PATH'] = os.pathsep.join((str(tools), str(Path(sys.executable).parent),
                                  str(args.lean_root / 'bin'), env['PATH']))
-    control_script.write_text(script(args.lean_root, env['PATH'], args.study, args.setup))
+    require((shutil.which('fr', path=env['PATH']) is not None) == with_fr, 'wrong fr availability in admission')
+    control_script.write_text(product_runtime.admission_script(seed['task'], args.setup, product_checkers, env['PATH'])
+                             if spec['kind'] == 'product' else script(args.lean_root, env['PATH'], args.study, args.setup))
     for key, name in [('XDG_CONFIG_HOME', 'config'), ('XDG_DATA_HOME', 'data'),
                       ('XDG_STATE_HOME', 'state'), ('XDG_CACHE_HOME', 'cache')]:
         path = args.output / name
@@ -255,11 +270,11 @@ def child(args):
     with transport(profile, command, expected_output, args.output) as (endpoint, requests, errors, warmups):
         if profile['client'] == 'opencode2':
             config = scripted_configuration(profile, endpoint)
-            config.update(configuration(profile, 'fr', project,
+            config.update(configuration(profile, 'fr' if with_fr else 'files', project,
                 read_only_directories=[(args.lean_root / 'src/lean').resolve()]))
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
         argv, stdin = invocation(profile, {profile['client']: {'path': str(args.client)}}, project,
-            args.output, 'Check the fixed proof workflow and report readiness.', 'workspace-write')
+            args.output, 'Check the fixed task workflow and report readiness.', 'workspace-write')
         if profile['client'] == 'codex':
             argv += ['--config', 'openai_base_url=' + json.dumps(endpoint + '/v1')]
         with (args.output / 'native.stdout').open('xb') as stdout, (args.output / 'native.stderr').open('xb') as stderr:
@@ -289,7 +304,8 @@ def child(args):
         common.save(args.output / 'child.json', {'passed': True, 'scripted_requests': len(requests),
             'scripted_errors': len(errors), 'complete_workflow': True,
             **{name: name in spec['features'] for name in FEATURES},
-            'session_accounting': True, 'warmups': len(warmups)})
+            'session_accounting': True, 'warmups': len(warmups),
+            **({'task': seed['task']} if spec['kind'] == 'product' else {})})
 
 
 def observe(args):
@@ -297,7 +313,11 @@ def observe(args):
     require(all(path.is_file() for path in (args.fr, args.client, args.controls, args.lean_root / 'bin/lake',
                 args.inputs / 'seed.json', args.inputs / 'original.tar.gz')),
             'admission requires existing pinned tools and qualified task inputs')
-    settings = json.loads((ROOT / CASE_DIRECTORIES[args.study] / 'checkers.json').read_text())
+    settings_path = ROOT / CASE_DIRECTORIES[args.study] / 'checkers.json'
+    if args.study in PRODUCT_STUDIES:
+        from .product_runtime import checkers_path
+        settings_path = checkers_path()
+    settings = json.loads(settings_path.read_text())
     python_runtime = native_python(settings['local_python'])
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     os.nice(15)
@@ -338,9 +358,9 @@ if __name__ == '__main__':
     for name in ('fr', 'client', 'lean-root', 'inputs', 'controls', 'output', 'guard'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--profile', required=True)
-    parser.add_argument('--study', choices=tuple(sorted(ADMISSION_STUDIES)), required=True)
+    parser.add_argument('--study', choices=tuple(sorted(ADMISSION_STUDIES | PRODUCT_STUDIES)), required=True)
     parser.add_argument('--setup', choices=('workflow', 'fr', *delivery.SETUPS, 'shared-skill', 'argument-repair',
-                        'select-facts', 'supplied-declarations'), required=True)
+                        'select-facts', 'supplied-declarations', 'files'), required=True)
     args = parser.parse_args()
     for name in ('fr', 'client', 'lean_root', 'inputs', 'controls', 'output', 'guard'):
         setattr(args, name, getattr(args, name).resolve())

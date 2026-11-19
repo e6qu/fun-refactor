@@ -23,8 +23,11 @@ PR 2 landed in [#623](https://github.com/e6qu/fun-refactor/pull/623) with passin
 Its [coverage guide](refactoring-coverage.md) tracks the operation families and signature binding repairs.
 PR 3 merged in [#624](https://github.com/e6qu/fun-refactor/pull/624).
 Its [coverage guide](proof-coverage.md) tracks proof authoring, bounded Rust connections and the remaining M3 gate.
-PR 4 is in progress in [#625](https://github.com/e6qu/fun-refactor/pull/625).
+PR 4 merged in [#625](https://github.com/e6qu/fun-refactor/pull/625).
 The [interface guide](interface-coverage.md) covers reviewed browser edits, recovery, graph reports and native handoffs.
+PR 5 is in progress in [#628](https://github.com/e6qu/fun-refactor/pull/628).
+Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
+Validation projects stay unopened until the implementation and initial-round decision are frozen.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 

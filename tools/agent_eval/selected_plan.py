@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DIRECTORY = Path('tests/agent-eval/selected-agents')
 INPUTS = ('clients.json', 'profiles.json', 'tasks.json')
 REPAIR_STUDY = 'M3-argument-repair'
+PRODUCT_STUDIES = frozenset({'P5-initial', 'P5-validation'})
 CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits'),
                     'M3': Path('tests/agent-eval/proof-writing'),
                     'M3-feedback': Path('tests/agent-eval/proof-feedback'),
@@ -19,6 +20,8 @@ DELIVERY_STUDY = 'M3-delivery'
 ALGORITHM_TASKS = ALGORITHM_STUDIES | {DELIVERY_STUDY}
 CASE_DIRECTORIES.update({name: Path('tests/agent-eval/proof-algorithms') for name in ALGORITHM_STUDIES})
 CASE_DIRECTORIES[DELIVERY_STUDY] = Path('tests/agent-eval/proof-delivery')
+CASE_DIRECTORIES.update({name: Path('tests/agent-eval/product-validation') / name.removeprefix('P5-')
+                        for name in PRODUCT_STUDIES})
 PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY})
 ADMISSION_STUDIES = ALGORITHM_TASKS | {REPAIR_STUDY, 'M3-facts', 'M3-page-count'}
 PROOF_STUDIES = PROOF_DIAGNOSTICS | ALGORITHM_TASKS | {'M3'}
@@ -30,6 +33,7 @@ PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.
                  'M3-facts': CASE_DIRECTORIES['M3'] / 'profiles.json'}
 PROFILE_PATHS.update({name: CASE_DIRECTORIES['M3'] / 'profiles.json' for name in ALGORITHM_TASKS})
 PROFILE_PATHS[REPAIR_STUDY] = CASE_DIRECTORIES['M3'] / 'profiles.json'
+PROFILE_PATHS.update({name: DIRECTORY / 'profiles.json' for name in PRODUCT_STUDIES})
 TASK_PATHS = {name: path / ('requirements.json' if name in {'M3-construction', 'M3-page-count', 'M3-facts', REPAIR_STUDY} else 'tasks.json')
               for name, path in CASE_DIRECTORIES.items()}
 TASK_PATHS.update({name: CASE_DIRECTORIES[name] / 'requirements.json' for name in ALGORITHM_TASKS})
@@ -45,6 +49,9 @@ def require(condition, message):
 
 
 def prepare(root, milestone):
+    if milestone in PRODUCT_STUDIES:
+        from .product_plan import prepare as product_plan
+        return product_plan(root, milestone)
     if milestone == DELIVERY_STUDY:
         from .proof_delivery import protocol
         require(root == ROOT, 'prepare delivery from the current committed checkout')

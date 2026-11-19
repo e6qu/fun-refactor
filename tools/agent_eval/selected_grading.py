@@ -14,7 +14,7 @@ from . import selected_tasks as tasks
 from .container_resources import ContainerResources, audit, limits
 from .isolated_grade import DOCKER, invoke
 from .selected_native import IMAGE_BUILD_SECONDS, boundary
-from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, require
+from .selected_plan import ALGORITHM_TASKS, DELIVERY_STUDY, PROOF_STUDIES, PROOF_DIAGNOSTICS, PRODUCT_STUDIES, CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, require
 
 SOURCE_LIMIT = 32 * 1024**2
 
@@ -70,7 +70,7 @@ def command(image, name, mounts, task, milestone):
         '--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,uid=65534,gid=65534,mode=0700',
         '--tmpfs=/tmp:rw,exec,nosuid,nodev,size=128m,mode=1777',
         '--tmpfs=/review/target:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700']
-    if milestone in PROOF_STUDIES:
+    if milestone in PROOF_STUDIES | PRODUCT_STUDIES:
         arguments += ['--env=LEAN_NUM_THREADS=1', '--env=FR_LEAN_JOBS=1']
     for source, destination in mounts:
         require(',' not in str(source) and source.exists(), 'grader mount needs an existing path without commas')
@@ -112,7 +112,11 @@ def grade(image, task, original, prepared, binary, rust, patch, output, *, miles
             (ROOT / 'tests/agent-eval/project-changes', '/review/tests/agent-eval/project-changes'),
             (ROOT / 'tests/agent-eval/python-repositories/boltons.tar.gz',
              '/review/tests/agent-eval/python-repositories/boltons.tar.gz')]
-        if milestone in PROOF_STUDIES | {'M1'}:
+        if milestone in PRODUCT_STUDIES:
+            require(not tools and binary is None, 'product checks use independent Python and Lean, without fr')
+            directory = Path('tests/agent-eval/product-validation')
+            mounts += [(Path('/opt/lean'), '/opt/lean'), (ROOT / directory, '/review/' + str(directory))]
+        elif milestone in PROOF_STUDIES | {'M1'}:
             require(not tools and binary is not None, 'proof grading requires its explicit fr and Lean tool paths')
             mounts += [(binary, '/opt/tool/bin/fr'), (Path('/opt/lean'), '/opt/lean')]
             if milestone in PROOF_STUDIES:
