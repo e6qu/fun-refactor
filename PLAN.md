@@ -69,7 +69,9 @@ Initial task controls and private patch checks pass on GitHub. The shared native
 Disk cleanup restored the workstation above its 64 GiB free-space floor. Six Codex
 non-proof admission checks passed; the proof check stopped at 807 MiB aggregate RSS,
 above its unchanged 768 MiB ceiling. The sequence stopped with 17 checks unstarted.
-All 24 checks must pass before live calls; investigate proof memory on hosted runners.
+All 24 checks must pass before live calls. The [hosted memory diagnostic](tests/agent-eval/product-validation/memory/README.md)
+found that the unchanged Linux checker nearly fills the ceiling without a client;
+ARM macOS attribution is pending. Keep admission blocked under the existing limits.
 PR 6's [package qualification](docs/product-qualification.md) landed in [#629](https://github.com/e6qu/fun-refactor/pull/629).
 Full CI and all four native platforms, WASM and SDK consumers passed.
 Complete-bundle verification landed in [#631](https://github.com/e6qu/fun-refactor/pull/631) with 109 successful checks.

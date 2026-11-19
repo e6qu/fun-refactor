@@ -1,0 +1,250 @@
+{
+  "schema": "fr-product-native-stop-1",
+  "source_commit": "13f06a4b88d35bb8a332f3320166c1d03d9d9dba",
+  "qualification_run": "44540267464",
+  "live_model_calls": 0,
+  "passed": 6,
+  "failed": 1,
+  "unstarted": 17,
+  "decision": "Stop local admission at the unchanged memory ceiling. Diagnose on hosted runners before considering fresh admission.",
+  "scope": "Reviewed resource records only. Native streams and provider records remain private.",
+  "cases": [
+    {
+      "profile": "codex-luna-fast",
+      "task": "utils-rename",
+      "setup": "files",
+      "passed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 7.596904790989356,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 234438656,
+        "sampled_cpu_seconds": 1.64,
+        "sampled_disk_growth_bytes": 1212343,
+        "transcript_bytes": 3694
+      },
+      "summary_sha256": "2edb608bca1b877ad0162490d4ab8bbffa4757a3fc2f6f254f8ee39ca9c596af"
+    },
+    {
+      "profile": "codex-luna-fast",
+      "task": "utils-rename",
+      "setup": "fr",
+      "passed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 6.729549249983393,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 240123904,
+        "sampled_cpu_seconds": 1.76,
+        "sampled_disk_growth_bytes": 1288876,
+        "transcript_bytes": 3694
+      },
+      "summary_sha256": "e7d64c3aa8d55e45ea123241daf42352b1308db5ce07e326643cdf2a346b55ee"
+    },
+    {
+      "profile": "codex-luna-fast",
+      "task": "sqlparse-graph",
+      "setup": "files",
+      "passed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 5.741591958008939,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 186253312,
+        "sampled_cpu_seconds": 1.27,
+        "sampled_disk_growth_bytes": 1886472,
+        "transcript_bytes": 3694
+      },
+      "summary_sha256": "2f3b50193210983fdce2377927ff34aef690d6510f36512e4b714d1ee14765bc"
+    },
+    {
+      "profile": "codex-luna-fast",
+      "task": "sqlparse-graph",
+      "setup": "fr",
+      "passed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 6.141234583017649,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 252624896,
+        "sampled_cpu_seconds": 1.9000000000000001,
+        "sampled_disk_growth_bytes": 1962830,
+        "transcript_bytes": 3694
+      },
+      "summary_sha256": "d54dcf8876b5c9a999d6243e4928594f20f24a36a81336834dc97dd7badaab26"
+    },
+    {
+      "profile": "codex-luna-fast",
+      "task": "slugify-bytes",
+      "setup": "files",
+      "passed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 5.743228167004418,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 223313920,
+        "sampled_cpu_seconds": 1.33,
+        "sampled_disk_growth_bytes": 8908694,
+        "transcript_bytes": 3694
+      },
+      "summary_sha256": "18a9b8ca3adf5d62bb54f5183adf4c8415142c01ca01b9f906e2c15dab099787"
+    },
+    {
+      "profile": "codex-luna-fast",
+      "task": "slugify-bytes",
+      "setup": "fr",
+      "passed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 9.398510540981079,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 331972608,
+        "sampled_cpu_seconds": 4.37,
+        "sampled_disk_growth_bytes": 8989841,
+        "transcript_bytes": 3694
+      },
+      "summary_sha256": "a216e672d11061672c8fc4fa4690d2fa0513a1b2b779ac0744a25b5abb7aaee1"
+    },
+    {
+      "profile": "codex-luna-fast",
+      "task": "clamp-proof",
+      "setup": "files",
+      "passed": false,
+      "resources": {
+        "exit_code": 125,
+        "process_exit_code": -9,
+        "timed_out": false,
+        "stop_reason": "rss_bytes",
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 6.6513225410017185,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 845709312,
+        "sampled_cpu_seconds": 1.73,
+        "sampled_disk_growth_bytes": 43588,
+        "transcript_bytes": 3648
+      },
+      "summary_sha256": "79f544e4d4762076869b9d52e4b018c2b6eb66e3709d2c7d7bdef393d999b9ad",
+      "peak": {
+        "rss_bytes": 845709312,
+        "processes": [
+          {
+            "executable": "Python",
+            "rss_bytes": 18481152,
+            "cpu_seconds": 0.1
+          },
+          {
+            "executable": "Python",
+            "rss_bytes": 48250880,
+            "cpu_seconds": 0.78
+          },
+          {
+            "executable": "codex",
+            "rss_bytes": 114032640,
+            "cpu_seconds": 0.2
+          },
+          {
+            "executable": "codex-code-mode-host",
+            "rss_bytes": 30343168,
+            "cpu_seconds": 0.02
+          },
+          {
+            "executable": "bash",
+            "rss_bytes": 2293760,
+            "cpu_seconds": 0.02
+          },
+          {
+            "executable": "lake",
+            "rss_bytes": 60686336,
+            "cpu_seconds": 0.07
+          },
+          {
+            "executable": "lean",
+            "rss_bytes": 571621376,
+            "cpu_seconds": 0.45
+          }
+        ]
+      }
+    }
+  ],
+  "checker_sha256": {
+    "lean": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+    "lake": "0e56506385ec20d56bffd7c031c4d48573ab5fdb74e5246ec8c45a220bebc68b",
+    "leanc": "66ed34023fa49555ccc8ea3d256904e08cb893bb394bbcc71fa72278d584acfc"
+  },
+  "client_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+  "guard_sha256": "6d510ceb748031cf2577b2c59137c1b82355483da4a4977fad3f9bfe31a6ff6c",
+  "client_context_reserve_bytes": 134217728
+}
