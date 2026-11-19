@@ -26,8 +26,10 @@ Its [coverage guide](proof-coverage.md) tracks proof authoring, bounded Rust con
 PR 4 merged in [#625](https://github.com/e6qu/fun-refactor/pull/625).
 The [interface guide](interface-coverage.md) covers reviewed browser edits, recovery, graph reports and native handoffs.
 PR 5's harness merged in [#628](https://github.com/e6qu/fun-refactor/pull/628) with passing full CI.
-The live comparison remains open at 0 of 96 attempts. Disk cleanup restored the required free space;
-fresh native admission remains the next local gate.
+The live comparison remains open at 0 of 96 attempts. Disk cleanup restored the required free space.
+Six Codex non-proof admission checks passed; the proof check exceeded the unchanged 768 MiB
+memory ceiling, stopping the sequence with 17 checks unstarted. Preserve the failure and investigate
+proof memory on hosted runners before fresh admission. Do not raise limits or start live calls.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
 PR 6's [package qualification](product-qualification.md) merged in [#629](https://github.com/e6qu/fun-refactor/pull/629).
