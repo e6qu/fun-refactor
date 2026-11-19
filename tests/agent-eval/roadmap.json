@@ -110,12 +110,12 @@
       "sha256": "ba810a2ae9fad0b9bd23a990253f626eee991bebe82b38739b30487fc9555dc8"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-18-recovery-interfaces-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-19-contract-qualification-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-18-recovery-interfaces-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-19-contract-qualification-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "8a1cf5ef2410ae38650fe9ea80900663fa9b42bd4c7faf36c4a3e2c0b53b4b3f"
+      "sha256": "4af955f25013b13609c6d7603c704d19b587c636784ee16d8afee169997cefd3"
     },
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-18-recovery-interfaces-index-resolution/result.json",
