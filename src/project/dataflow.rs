@@ -622,7 +622,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
-        if let Some(value) = self.list_call(&resolved, function, &arguments, node, env) {
+        if let Some(value) =
+            self.list_call(&resolved, function, &arguments, &argument_names, node, env)
+        {
             return value;
         }
         if self.solver.enabled {

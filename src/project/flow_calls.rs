@@ -1172,6 +1172,37 @@ pub(super) fn contract() -> Value {
         "implicit_exceptions":false})
 }
 
+/// Map each parameter to its explicit argument, leaving omitted defaults empty.
+/// Values and shared-object identities must use the same binding rules.
+pub(super) fn argument_slots(
+    parameters: &[Parameter<'_>],
+    source: &str,
+    names: &[Option<String>],
+) -> Option<Vec<Option<usize>>> {
+    let mut slots = vec![None; parameters.len()];
+    let mut position = 0;
+    let mut keywords = false;
+    for (argument, keyword) in names.iter().enumerate() {
+        let slot = if let Some(keyword) = keyword {
+            keywords = true;
+            parameters.iter().position(|p| {
+                p.kind != Kind::PositionalOnly && &source[p.node.byte_range()] == keyword
+            })?
+        } else {
+            if keywords || parameters.get(position)?.kind == Kind::KeywordOnly {
+                return None;
+            }
+            let slot = position;
+            position += 1;
+            slot
+        };
+        if slots[slot].replace(argument).is_some() {
+            return None;
+        }
+    }
+    Some(slots)
+}
+
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     pub(super) fn function_parameters<'n>(
         &self,
@@ -1265,30 +1296,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return None;
         };
-        let mut slots: Vec<Option<Flow>> = vec![None; parameters.len()];
-        let mut position = 0;
-        for (value, keyword) in values.into_iter().zip(names) {
-            let slot = if let Some(keyword) = keyword {
-                parameters.iter().position(|p| {
-                    p.kind != Kind::PositionalOnly && &source[p.node.byte_range()] == keyword
-                })
-            } else {
-                let next = parameters
-                    .get(position)
-                    .filter(|p| p.kind != Kind::KeywordOnly)
-                    .map(|_| position);
-                position += 1;
-                next
-            };
-            let Some(slot) = slot else {
-                self.cutoff(format!("invalid-call-binding:{name}"));
-                return None;
-            };
-            if slots[slot].replace(value).is_some() {
-                self.cutoff(format!("invalid-call-binding:{name}"));
-                return None;
-            }
-        }
+        let Some(indices) =
+            argument_slots(&parameters, source, names).filter(|_| values.len() == names.len())
+        else {
+            self.cutoff(format!("invalid-call-binding:{name}"));
+            return None;
+        };
+        let mut slots: Vec<_> = indices
+            .into_iter()
+            .map(|index| index.map(|index| values[index].clone()))
+            .collect();
         for (slot, parameter) in slots.iter_mut().zip(&parameters) {
             if slot.is_none() {
                 if let Some(default) = parameter.default {

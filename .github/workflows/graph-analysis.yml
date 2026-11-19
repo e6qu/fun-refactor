@@ -53,6 +53,8 @@ jobs:
           name: graph-analysis-format
           path: ${{ runner.temp }}/format.patch
       - run: cargo test --locked --test graph_export --test call_graph_cache --test qualified_calls --test analysis_boundaries -- --test-threads=1
+      - name: Check current call binding and assignments
+        run: cargo test --locked --test call_binding --test scalar_assignments -- --skip acceptance --test-threads=1
       - run: cargo build --locked --bin fr
       - run: cargo clippy --locked --lib --bin fr -- -D warnings
       - name: Inspect advertised support
@@ -60,4 +62,4 @@ jobs:
           target/debug/fr --json audit
           target/debug/fr capabilities
       - run: python3 -m pip install --require-hashes -r .github/actions/native-tools/python-wheels.txt
-      - run: python3 -m pytest -q sdk/python/tests/test_graph_analysis.py sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_finally_flow.py sdk/python/tests/test_exception_handlers.py sdk/python/tests/test_standard_library.py
+      - run: python3 -m pytest -q sdk/python/tests/test_graph_analysis.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_finally_flow.py sdk/python/tests/test_exception_handlers.py sdk/python/tests/test_standard_library.py
