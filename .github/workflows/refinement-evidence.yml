@@ -1719,6 +1719,7 @@ jobs:
         run: |
           python3 -B tools/test-retain-python-contract.py
           python3 -B tools/test-python-contract-writer.py
+          python3 -B tools/test-python-contract-qualification.py
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
@@ -1746,6 +1747,17 @@ jobs:
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
       - name: Collect reports alongside interface checks, then reject altered records
         run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json
+      - name: Qualify the reviewed acceptance counts and paired rule coverage
+        run: >-
+          python3 -B tools/python-contract-qualification.py
+          --report target/python-contract/result.json
+          --output target/python-qualification/result.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-contract-qualification
+          path: target/python-qualification/result.json
+          if-no-files-found: error
+          retention-days: 90
       - uses: actions/upload-artifact@v7
         if: always()
         with:

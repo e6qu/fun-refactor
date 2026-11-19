@@ -50,6 +50,12 @@ class RegistryAllocations(unittest.TestCase):
 
 
 class PythonContract(unittest.TestCase):
+    def test_qualification_catalog_matches_the_retained_summary(self):
+        qualification = contract.profile.load('python-contract-qualification')
+        catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
+        qualification.check_catalog(catalog, self.report['summary'])
+        qualification.rule_coverage(contract.cases(), contract.RULES)
+
     @classmethod
     def setUpClass(cls):
         override = os.environ.get('FR_PYTHON_CONTRACT_REPORT')

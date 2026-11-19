@@ -30,8 +30,11 @@ The live comparison remains open at 0 of 96 attempts. Local admission is blocked
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
 PR 6's [package qualification](product-qualification.md) merged in [#629](https://github.com/e6qu/fun-refactor/pull/629).
-Full CI and all six package jobs passed. Complete-bundle verification now checks the download set,
+Full CI and all six package jobs passed. Complete-bundle verification merged in
+[#631](https://github.com/e6qu/fun-refactor/pull/631) with 109 successful checks. It checks the download set,
 receipt digests, consumer outcomes and source/checker revisions before publishing.
+The Python contract qualification now requires the acceptance catalog to match the independently audited corpus;
+new support must retain original and renamed/moved cases and receive an explicit acceptance-count review.
 Keep those artifact results separate from the unfinished comparison and M3 timing gate.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
