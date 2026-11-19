@@ -221,7 +221,10 @@ publication; choose `false` explicitly when collecting several repairs before
 one final gate. The workflow refuses publishing directly to `main`.
 
 Release Please prepares the version and changelog pull request. Merging it publishes the release tag;
-the workflow then builds native archives, the WASM package and the Python package, with checksums.
+the workflow builds and qualifies native archives, the WASM package and the Python distributions.
+Candidate pull requests use the same packaging jobs. Fresh consumers check the extracted archives,
+installed wheel and rebuilt source archive before those exact files can be uploaded.
+See [package qualification](product-qualification.md) for checks, receipts and remaining product gates.
 It checks out the commit resolved from the published tag. Preparing the next release pull request runs separately,
 so an API error in that bookkeeping cannot block downloads for an already published release.
 Existing downloads are never overwritten. Keep installation instructions independent of a specific version number.
@@ -235,13 +238,14 @@ gh workflow run release.yml --ref APPROVED_WORKFLOW_BRANCH --field existing_tag=
 Replace the branch with the reviewed workflow branch and `VERSION` with the published release's version.
 This completes an existing release; it does not create a tag or release another commit.
 The workflow verifies the published tag, its package version and the absence of downloads before building.
-If an individual build fails after other downloads have arrived, rerun that failed job in the same run.
+If a package build fails, rerun the failed jobs in the same run; publishing waits for every package.
+If the upload itself stops after attaching some files, inspect the partial release before retrying.
+The workflow never overwrites an existing asset.
 
-Before release, require passing default, WASM and deep lanes and archive-shape checks on GitHub.
+Before release, require passing full CI and package qualification on GitHub.
 
 ```sh
 cargo test --test release
-cargo test --test packaging
 ```
 
 ## Resolution ambiguity checks

@@ -3,6 +3,8 @@
 use std::collections::BTreeSet;
 
 const WORKFLOW: &str = include_str!("../.github/workflows/release.yml");
+const PACKAGES: &str = include_str!("../.github/workflows/package-product.yml");
+const CANDIDATE: &str = include_str!("../.github/workflows/product-qualification.yml");
 const CI: &str = include_str!("../.github/workflows/ci.yml");
 const TITLE: &str = include_str!("../.github/workflows/pr-title.yml");
 const README: &str = include_str!("../README.md");
@@ -14,7 +16,7 @@ const SDK_PROJECT: &str = include_str!("../sdk/python/pyproject.toml");
 
 /// Every `target:` the binaries matrix names.
 fn targets() -> BTreeSet<String> {
-    WORKFLOW
+    PACKAGES
         .lines()
         .filter_map(|line| line.trim().strip_prefix("- target: "))
         .map(|t| t.trim().to_string())
@@ -82,7 +84,7 @@ fn both_systems_and_both_architectures_are_covered() {
     // And the browser build, which is not a target in the matrix because it is
     // packaged differently: a module and its loader rather than an executable.
     assert!(
-        WORKFLOW.contains("wasm32-unknown-unknown"),
+        PACKAGES.contains("wasm32-unknown-unknown"),
         "the release workflow builds nothing for the browser."
     );
     assert!(
@@ -93,14 +95,13 @@ fn both_systems_and_both_architectures_are_covered() {
 
 #[test]
 fn every_artifact_travels_with_its_checksum() {
-    // A download nobody can verify is a download nobody should run.
-    let packaged = WORKFLOW.matches("shasum -a 256").count();
-    let uploaded = WORKFLOW.matches(".tar.gz.sha256\"").count();
-    assert!(
-        packaged >= 2 && uploaded >= 2,
-        "{packaged} package step(s) write a checksum and {uploaded} upload step(s) \
-         send one. Every artifact needs both."
-    );
+    assert_eq!(PACKAGES.matches("shasum -a 256").count(), 2);
+    assert!(PACKAGES.contains("sha256sum *.whl *.tar.gz"));
+    assert!(WORKFLOW.contains("sha256sum --check"));
+    assert!(WORKFLOW.contains("*.tar.gz *.whl *.sha256 *.check.json"));
+    assert!(WORKFLOW.contains("needs: [release-please, packages]"));
+    assert!(!WORKFLOW.contains("cargo build"));
+    assert!(!WORKFLOW.contains("python -m build"));
 }
 
 #[test]
@@ -137,12 +138,18 @@ fn every_released_version_agrees() {
 #[test]
 fn the_release_builds_checks_and_attaches_the_python_sdk() {
     for required in [
-        "python tools/check-sdk-package.py --fr target/release/fr",
-        "python -m build --no-isolation --outdir dist sdk/python",
-        "dist/*.whl dist/*.tar.gz dist/*.sha256",
+        "python -B .qualification/tools/check-sdk-package.py --fr target/release/fr --dist dist",
+        "python -I -m build --no-isolation --outdir dist sdk/python",
+        "name: product-sdk",
     ] {
-        assert!(WORKFLOW.contains(required), "release omits `{required}`");
+        assert!(PACKAGES.contains(required), "packaging omits `{required}`");
     }
+    let shared = "uses: ./.github/workflows/package-product.yml";
+    assert!(WORKFLOW.contains(shared) && CANDIDATE.contains(shared));
+    assert!(WORKFLOW.contains("commit: ${{ needs.release-please.outputs.commit }}"));
+    assert!(CANDIDATE.contains("commit: ${{ github.sha }}"));
+    assert!(PACKAGES.contains("ref: ${{ github.workflow_sha }}"));
+    assert!(PACKAGES.contains("--kind wasm --web-root web"));
     assert!(
         !WORKFLOW.contains("--clobber"),
         "release publication must refuse to overwrite existing downloads"
@@ -165,7 +172,7 @@ fn a_clean_consumer_installs_the_wheel_and_checks_the_native_contract() {
         String::from_utf8_lossy(&output.stderr)
     );
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["schema"], "fr-sdk-package-check-1");
+    assert_eq!(report["schema"], "fr-sdk-package-check-2");
     assert_eq!(report["passed"], true);
 }
 
@@ -323,12 +330,12 @@ fn the_browser_check_reads_where_the_release_writes() {
         .map(|(dir, _)| format!("web/{dir}/wasm"))
         .expect("the check names the directory it loads from");
     assert!(
-        WORKFLOW.contains(&format!("--out-dir {loaded}")),
+        PACKAGES.contains(&format!("--out-dir {loaded}")),
         "the release generates bindings somewhere other than {loaded}, which is \
          where the browser check loads them from."
     );
     assert!(
-        WORKFLOW.contains(&format!("cp {loaded}/*")),
+        PACKAGES.contains(&format!("cp {loaded}/*")),
         "the release packages bindings from somewhere other than {loaded}."
     );
     assert!(
@@ -346,11 +353,11 @@ fn an_archive_is_named_from_the_version_and_not_the_tag() {
         "an archive takes its name from the tag, which carries the package name."
     );
     for shape in [
-        "name=\"fr-v${{ needs.release-please.outputs.version }}",
-        "name=\"fun-refactor-v${{ needs.release-please.outputs.version }}",
+        "name=\"fr-v${{ inputs.version }}",
+        "name=\"fun-refactor-v${{ inputs.version }}",
     ] {
         assert!(
-            WORKFLOW.contains(shape),
+            PACKAGES.contains(shape),
             "no packaging step names its archive `{shape}…`."
         );
     }
@@ -366,7 +373,10 @@ fn no_job_asks_for_a_runner_that_is_retired() {
     // A job naming a retired image waits for a runner that never comes.
     for retired in ["macos-13", "macos-11", "macos-12", "ubuntu-20.04"] {
         assert!(
-            !WORKFLOW.contains(retired) && !CI.contains(retired) && !TITLE.contains(retired),
+            !WORKFLOW.contains(retired)
+                && !PACKAGES.contains(retired)
+                && !CI.contains(retired)
+                && !TITLE.contains(retired),
             "a job asks for {retired}, which GitHub no longer offers. It waits \
              for a runner that never comes."
         );
