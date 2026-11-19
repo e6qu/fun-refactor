@@ -242,11 +242,10 @@ If a package build fails, rerun the failed jobs in the same run; publishing wait
 If the upload itself stops after attaching some files, inspect the partial release before retrying.
 The workflow never overwrites an existing asset.
 
-Before release, require passing default, WASM and deep lanes and archive-shape checks on GitHub.
+Before release, require passing full CI and package qualification on GitHub.
 
 ```sh
 cargo test --test release
-cargo test --test packaging
 ```
 
 ## Resolution ambiguity checks
