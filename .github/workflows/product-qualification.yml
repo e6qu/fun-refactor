@@ -10,6 +10,9 @@ on:
       - 'tools/check-release-package.py'
       - 'tools/check-sdk-package.py'
       - 'tools/test-release-packages.py'
+      - 'tools/product_bundle.py'
+      - 'tools/check-product-bundle.py'
+      - 'tools/test-product-bundle.py'
       - 'sdk/python/**'
   workflow_dispatch:
 
@@ -36,6 +39,7 @@ jobs:
       - name: Check package refusal controls and release selection
         run: |
           python3 -B tools/test-release-packages.py
+          python3 -B tools/test-product-bundle.py
           python3 -B tools/test-release-request.py
       - name: Read the source version
         id: source

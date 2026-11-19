@@ -15,6 +15,9 @@ on:
       - '.github/workflows/release.yml'
       - 'tools/release-request.py'
       - 'tools/test-release-request.py'
+      - 'tools/product_bundle.py'
+      - 'tools/check-product-bundle.py'
+      - 'tools/test-product-bundle.py'
   workflow_dispatch:
     inputs:
       existing_tag:
@@ -47,7 +50,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
-      - run: python3 -B tools/test-release-request.py
+      - run: |
+          python3 -B tools/test-release-request.py
+          python3 -B tools/test-product-bundle.py
 
   release-please:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -127,11 +132,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          sparse-checkout: tools
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
       - uses: actions/download-artifact@v7
         with:
-          pattern: product-*
+          name: qualified-product
           path: dist
-          merge-multiple: true
       - name: Verify and attach the qualified files
         env:
           GH_TOKEN: ${{ github.token }}
@@ -139,6 +151,8 @@ jobs:
           RELEASE_TAG: ${{ needs.release-please.outputs.tag }}
         run: |
           set -euo pipefail
-          cd dist
-          for checksum in *.sha256; do sha256sum --check "$checksum"; done
-          gh release upload "$RELEASE_TAG" *.tar.gz *.whl *.sha256 *.check.json
+          python3 -B tools/check-product-bundle.py --dist dist \
+            --version "${{ needs.release-please.outputs.version }}" \
+            --source-commit "${{ needs.release-please.outputs.commit }}" \
+            --checker-commit "${{ github.workflow_sha }}"
+          gh release upload "$RELEASE_TAG" dist/*

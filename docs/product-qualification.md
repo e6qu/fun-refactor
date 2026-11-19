@@ -4,6 +4,10 @@
 It does not establish agent benefit or close missing feature obligations. PR 5 remains at 0 of 96 live attempts,
 and the original M3 150-second gate remains open. Reserved validation projects stay unopened.
 
+The installed-consumer checks landed in [#629](https://github.com/e6qu/fun-refactor/pull/629).
+Its [full CI](https://github.com/e6qu/fun-refactor/actions/runs/44487429807) and
+[four native platforms, WASM and SDK qualification](https://github.com/e6qu/fun-refactor/actions/runs/44487429786) passed.
+
 ## One build, checked before upload
 
 [Product qualification](../.github/workflows/product-qualification.yml) runs on packaging and SDK pull requests
@@ -15,10 +19,17 @@ test harness still come from the selected source commit; a failed consumer check
 
 The workflow builds four native archives, the browser archive, and the Python wheel and source archive.
 Each job checks the finished package before retaining it as a GitHub Actions artifact. Receipts identify
-the archive or distribution by SHA-256. Candidate artifacts expire after 14 days and are not releases.
+the archive or distribution by SHA-256 and record the product and checker commits.
+Candidate downloads expire after 14 days. The separate `qualification-evidence` artifact retains
+the manifest and consumer receipts for 90 days, subject to repository retention settings.
 
-The release workflow waits for every package job, downloads those artifacts, verifies their checksums,
-and attaches those exact files and receipts to the selected release. It never rebuilds a wheel after checking it.
+After every package job passes, a bundle job requires the seven downloads, six checksum files and six receipts.
+It verifies the file set, hashes, versions, source/checker commits and required consumer checks, then writes
+`fun-refactor-vVERSION.qualification.json`. Missing or unexpected files, failed checks and mixed revisions refuse.
+The `qualified-product` artifact contains those 19 files and their manifest.
+
+The release job downloads only `qualified-product`, verifies the manifest against its expected version and commits,
+then attaches the checked files to the selected release. It never rebuilds a wheel after checking it.
 Existing release selection still requires a published source tag; manual completion accepts only the latest
 release with no assets. Ordinary pushes do not start release builds.
 
@@ -36,7 +47,23 @@ while all engine code comes from the archive under test.
 
 `tools/test-release-packages.py` checks rejection of changed checksums, wrong filenames, unsafe archive paths,
 duplicate members, links, missing files, failed native execution and ambiguous SDK distributions.
+`tools/test-product-bundle.py` checks incomplete bundles, mixed revisions, substituted receipts,
+altered manifests and failed or missing native, browser and SDK consumer checks.
 These controls and release-selection controls run before candidate builds. Full CI remains a separate gate.
+
+## Verify a downloaded bundle
+
+Put the release's downloads, checksums, receipts and qualification manifest in one directory, then run:
+
+```sh
+python3 -B tools/check-product-bundle.py --dist downloads --version VERSION \
+  --source-commit SOURCE_COMMIT --checker-commit CHECKER_COMMIT
+```
+
+Use the source and checker commits selected by the reviewed workflow run. Both must be full Git object IDs.
+The command checks recorded consumer outcomes and every file digest; it does not rerun the consumers.
+The manifest records integrity and provenance within that workflow's trust boundary. It is not a signature
+or an independent authentication of an arbitrary bundle. Stable three-part release versions are supported.
 
 ## What remains outside this check
 

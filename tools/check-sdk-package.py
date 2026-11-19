@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from product_bundle import provenance
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -90,13 +91,17 @@ if __name__ == '__main__':
     parser.add_argument('--dist', type=Path, help='Check these already-built distributions without rebuilding them')
     parser.add_argument('--version', help='Require this release version in both installed consumers')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--source-commit')
+    parser.add_argument('--checker-commit')
     args = parser.parse_args()
+    identity = provenance(args.source_commit, args.checker_commit)
     try:
         result = check(args.fr.resolve(), args.dist.resolve() if args.dist else None, args.version)
     except subprocess.CalledProcessError as error:
         print(error.stdout or '', file=sys.stderr)
         print(error.stderr or '', file=sys.stderr)
         raise
+    result['provenance'] = identity
     payload = json.dumps(result, indent=2, sort_keys=True) + '\n'
     if args.output:
         args.output.write_text(payload)
