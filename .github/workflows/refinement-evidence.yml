@@ -1711,7 +1711,8 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /*
-            !/tests/agent-eval/results/
+            !/tests/agent-eval/results/*
+            /tests/agent-eval/results/2026-09-25-flow-cache/
             !/tests/agent-eval/opencode/
             !/tests/agent-eval/*/*results*/
       - run: rustup toolchain install stable --profile minimal --component rustfmt
