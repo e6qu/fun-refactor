@@ -1,0 +1,54 @@
+name: Product qualification
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/product-qualification.yml'
+      - '.github/workflows/package-product.yml'
+      - '.github/workflows/release.yml'
+      - 'tools/package-consumer.py'
+      - 'tools/check-release-package.py'
+      - 'tools/check-sdk-package.py'
+      - 'tools/test-release-packages.py'
+      - 'sdk/python/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.source.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Check package refusal controls and release selection
+        run: |
+          python3 -B tools/test-release-packages.py
+          python3 -B tools/test-release-request.py
+      - name: Read the source version
+        id: source
+        run: |
+          python3 -B - <<'PY'
+          import os, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('Cargo.toml').read_text())['package']['version']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('version=' + version + '\n')
+          PY
+
+  packages:
+    needs: controls
+    uses: ./.github/workflows/package-product.yml
+    with:
+      commit: ${{ github.sha }}
+      version: ${{ needs.controls.outputs.version }}

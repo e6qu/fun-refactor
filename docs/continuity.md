@@ -25,9 +25,12 @@ PR 3 merged in [#624](https://github.com/e6qu/fun-refactor/pull/624).
 Its [coverage guide](proof-coverage.md) tracks proof authoring, bounded Rust connections and the remaining M3 gate.
 PR 4 merged in [#625](https://github.com/e6qu/fun-refactor/pull/625).
 The [interface guide](interface-coverage.md) covers reviewed browser edits, recovery, graph reports and native handoffs.
-PR 5 is in progress in [#628](https://github.com/e6qu/fun-refactor/pull/628).
+PR 5's harness merged in [#628](https://github.com/e6qu/fun-refactor/pull/628) with passing full CI.
+The live comparison remains open at 0 of 96 attempts. Local admission is blocked by the 64 GiB free-disk floor.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
+PR 6's independent [package qualification](product-qualification.md) runs on GitHub while that block remains.
+Keep its artifact results separate from the unfinished comparison and M3 timing gate.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 

@@ -60,12 +60,15 @@ The [proof coverage guide](docs/proof-coverage.md) separates product checks from
 The original M3 timing gate remains open.
 PR 4 merged in [#625](https://github.com/e6qu/fun-refactor/pull/625) with passing hosted checks and refreshed evidence.
 The [interface coverage guide](docs/interface-coverage.md) tracks browser review, recovery, graph reporting and cross-interface delivery.
-PR 5 is in progress in [#628](https://github.com/e6qu/fun-refactor/pull/628).
+PR 5's comparison harness merged in [#628](https://github.com/e6qu/fun-refactor/pull/628) with passing full CI.
+The milestone remains open: none of the 96 authorized live attempts has run.
 The [comparison protocol](tests/agent-eval/product-validation/README.md) reserves separate initial and validation tasks.
 The user authorized at most 96 live attempts. Task checks and native admission must pass before calls.
 Initial task controls and private patch checks pass on GitHub. The shared native collector,
 24-case scripted admission, reviewed export and independent grading are wired for the initial round.
 Local admission and all live attempts remain pending; the workstation is below its 64 GiB free-disk floor.
+PR 6's independent [package qualification](docs/product-qualification.md) can proceed on GitHub runners.
+It checks the files a user downloads; it does not close PR 5 or the original M3 timing gate.
 
 | PR | Complete outcome | Completion gate |
 | --- | --- | --- |
