@@ -224,6 +224,8 @@ Release Please prepares the version and changelog pull request. Merging it publi
 the workflow builds and qualifies native archives, the WASM package and the Python distributions.
 Candidate pull requests use the same packaging jobs. Fresh consumers check the extracted archives,
 installed wheel and rebuilt source archive before those exact files can be uploaded.
+The bundle gate requires every advertised download and verifies its receipt, version and source revision.
+Publishing rechecks the resulting manifest and uploads only that complete bundle.
 See [package qualification](product-qualification.md) for checks, receipts and remaining product gates.
 It checks out the commit resolved from the published tag. Preparing the next release pull request runs separately,
 so an API error in that bookkeeping cannot block downloads for an already published release.

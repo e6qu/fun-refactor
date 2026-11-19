@@ -93,6 +93,7 @@ jobs:
             --archive "dist/${{ steps.package.outputs.name }}.tar.gz" \
             --checksum "dist/${{ steps.package.outputs.name }}.tar.gz.sha256" \
             --version "${{ inputs.version }}" \
+            --source-commit "${{ inputs.commit }}" --checker-commit "${{ github.workflow_sha }}" \
             --output "dist/${{ steps.package.outputs.name }}.check.json"
 
       - uses: actions/upload-artifact@v6
@@ -177,6 +178,7 @@ jobs:
             --archive "dist/${{ steps.package.outputs.name }}.tar.gz" \
             --checksum "dist/${{ steps.package.outputs.name }}.tar.gz.sha256" \
             --version "${{ inputs.version }}" \
+            --source-commit "${{ inputs.commit }}" --checker-commit "${{ github.workflow_sha }}" \
             --output "dist/${{ steps.package.outputs.name }}.check.json"
 
       - uses: actions/upload-artifact@v6
@@ -234,6 +236,7 @@ jobs:
         run: |
           python -B .qualification/tools/check-sdk-package.py --fr target/release/fr --dist dist \
             --version "${{ inputs.version }}" \
+            --source-commit "${{ inputs.commit }}" --checker-commit "${{ github.workflow_sha }}" \
             --output "dist/fun-refactor-ir-v${{ inputs.version }}.check.json"
           ( cd dist && sha256sum *.whl *.tar.gz > "fun-refactor-ir-v${{ inputs.version }}.sha256" )
 
@@ -243,4 +246,45 @@ jobs:
           path: dist/*
           if-no-files-found: error
           retention-days: 14
+
+
+  bundle:
+    name: Verify the complete release bundle
+    needs: [binaries, wasm, sdk]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          sparse-checkout: tools
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: product-*
+          path: dist
+          merge-multiple: true
+      - name: Qualify the complete download set
+        run: |
+          python3 -B tools/check-product-bundle.py --dist dist --write \
+            --version "${{ inputs.version }}" \
+            --source-commit "${{ inputs.commit }}" --checker-commit "${{ github.workflow_sha }}"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: qualified-product
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain the qualification manifest and consumer receipts
+        uses: actions/upload-artifact@v6
+        with:
+          name: qualification-evidence
+          path: |
+            dist/*.qualification.json
+            dist/*.check.json
+          if-no-files-found: error
+          retention-days: 90
 

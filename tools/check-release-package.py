@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from product_bundle import provenance
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -89,7 +90,10 @@ if __name__ == '__main__':
     parser.add_argument('--kind', choices=('native', 'wasm'), required=True)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--web-root', type=Path, help='Browser harness from the selected product source')
+    parser.add_argument('--source-commit')
+    parser.add_argument('--checker-commit')
     args = parser.parse_args()
+    identity = provenance(args.source_commit, args.checker_commit)
     try:
         result = check(args.archive.resolve(), args.checksum.resolve(), args.version, args.kind,
                        args.web_root.resolve() if args.web_root else None)
@@ -97,5 +101,6 @@ if __name__ == '__main__':
         print(error.stdout or '', file=sys.stderr)
         print(error.stderr or '', file=sys.stderr)
         raise
+    result['provenance'] = identity
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     print(json.dumps(result, sort_keys=True))

@@ -29,8 +29,10 @@ PR 5's harness merged in [#628](https://github.com/e6qu/fun-refactor/pull/628) w
 The live comparison remains open at 0 of 96 attempts. Local admission is blocked by the 64 GiB free-disk floor.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
-PR 6's independent [package qualification](product-qualification.md) runs on GitHub while that block remains.
-Keep its artifact results separate from the unfinished comparison and M3 timing gate.
+PR 6's [package qualification](product-qualification.md) merged in [#629](https://github.com/e6qu/fun-refactor/pull/629).
+Full CI and all six package jobs passed. Complete-bundle verification now checks the download set,
+receipt digests, consumer outcomes and source/checker revisions before publishing.
+Keep those artifact results separate from the unfinished comparison and M3 timing gate.
 A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
 Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
 

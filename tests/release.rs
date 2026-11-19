@@ -97,8 +97,12 @@ fn both_systems_and_both_architectures_are_covered() {
 fn every_artifact_travels_with_its_checksum() {
     assert_eq!(PACKAGES.matches("shasum -a 256").count(), 2);
     assert!(PACKAGES.contains("sha256sum *.whl *.tar.gz"));
-    assert!(WORKFLOW.contains("sha256sum --check"));
-    assert!(WORKFLOW.contains("*.tar.gz *.whl *.sha256 *.check.json"));
+    assert!(PACKAGES.contains("needs: [binaries, wasm, sdk]"));
+    assert!(PACKAGES.contains("tools/check-product-bundle.py --dist dist --write"));
+    assert!(WORKFLOW.contains("name: qualified-product"));
+    assert!(!WORKFLOW.contains("pattern: product-*"));
+    assert!(WORKFLOW.contains("tools/check-product-bundle.py --dist dist"));
+    assert!(WORKFLOW.contains("gh release upload \"$RELEASE_TAG\" dist/*"));
     assert!(WORKFLOW.contains("needs: [release-please, packages]"));
     assert!(!WORKFLOW.contains("cargo build"));
     assert!(!WORKFLOW.contains("python -m build"));
