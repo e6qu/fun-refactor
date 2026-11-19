@@ -249,7 +249,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 continue;
             };
             let mut slots = BTreeSet::new();
-            // A negative index is relative to each possible length after a join.
             for length in list.minimum..=list.items.len() {
                 if let Some(slot) = list_slot(index_value, length) {
                     slots.insert(slot);

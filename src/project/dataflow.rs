@@ -62,7 +62,7 @@ pub(super) fn expression_contract() -> Value {
 
 pub(super) fn effect_contract() -> Value {
     json!({"exception_safety_established":false,"shared_mutable_values_supported":true,
-        "complete_means":"The value model finished. Shared mutation covers bounded local lists and positional helper calls; arbitrary objects and runtime exception safety remain unchecked."})
+        "complete_means":"The value model finished. Shared mutation covers bounded local lists and helpers with checked argument binding. Arbitrary objects and runtime exception safety remain unchecked."})
 }
 
 #[path = "flow_modules.rs"]

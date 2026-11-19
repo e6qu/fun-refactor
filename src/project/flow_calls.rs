@@ -1172,8 +1172,6 @@ pub(super) fn contract() -> Value {
         "implicit_exceptions":false})
 }
 
-/// Map each parameter to its explicit argument, leaving omitted defaults empty.
-/// Values and shared-object identities must use the same binding rules.
 pub(super) fn argument_slots(
     parameters: &[Parameter<'_>],
     source: &str,

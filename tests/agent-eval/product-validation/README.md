@@ -108,6 +108,6 @@ Private process records retain the failure; further memory investigation belongs
 hosted runners. All 24 checks still need to pass before calls. Full builds and
 independent grading stay on GitHub.
 
-The [hosted memory diagnostic](memory/README.md) retains the original stop, Linux
-measurements and a replay audit. ARM macOS attribution remains pending. Neither
-the diagnostic nor a smaller import control admits the complete native task.
+The [hosted memory diagnostic](memory/README.md) retains the original stop, both
+platform measurements and a replay audit. ARM macOS checking alone takes 589–605 MiB;
+the final Linux run also retains a memory refusal. The native admission block remains.

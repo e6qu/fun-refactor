@@ -99,13 +99,15 @@ class ProofMemoryTests(unittest.TestCase):
 
     def test_retained_artifact_replays_and_changed_measurements_refuse(self):
         data = memory.ROOT / memory.tasks.plan.DIRECTORY / 'memory/2026-11-19'
-        archive = data / 'linux.zip'
-        provenance = json.loads((data / 'linux-provenance.json').read_text())
-        self.assertEqual(memory.tasks.common.digest(archive), provenance['artifact_sha256'])
-        original = memory.audit(archive)
-        self.assertFalse(original['admitted'])
-        self.assertEqual(len(original['cases']), 8)
-        self.assertEqual(original, json.loads((data / 'linux.json').read_text()))
+        for name in ('linux', 'linux-final', 'macos-first', 'macos-final'):
+            with self.subTest(artifact=name):
+                archive = data / (name + '.zip')
+                provenance = json.loads((data / (name + '-provenance.json')).read_text())
+                self.assertEqual(memory.tasks.common.digest(archive), provenance['artifact_sha256'])
+                original = memory.audit(archive)
+                self.assertFalse(original['admitted'])
+                self.assertEqual(len(original['cases']), 8)
+                self.assertEqual(original, json.loads((data / (name + '.json')).read_text()))
         with tempfile.TemporaryDirectory() as temporary, zipfile.ZipFile(archive) as source:
             root = Path(temporary)
             source.extractall(root)
