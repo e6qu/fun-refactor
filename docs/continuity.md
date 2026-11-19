@@ -29,7 +29,9 @@ PR 5's harness merged in [#628](https://github.com/e6qu/fun-refactor/pull/628) w
 The live comparison remains open at 0 of 96 attempts. Disk cleanup restored the required free space.
 Six Codex non-proof admission checks passed; the proof check exceeded the unchanged 768 MiB
 memory ceiling, stopping the sequence with 17 checks unstarted. Preserve the failure and investigate
-proof memory on hosted runners before fresh admission. Do not raise limits or start live calls.
+proof memory on hosted runners before fresh admission. The [memory diagnostic](../tests/agent-eval/product-validation/memory/README.md)
+retains the Linux result and its audit; ARM macOS is still queued. The checker alone leaves no
+admission margin on Linux. Do not raise limits or start live calls.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
 PR 6's [package qualification](product-qualification.md) merged in [#629](https://github.com/e6qu/fun-refactor/pull/629).

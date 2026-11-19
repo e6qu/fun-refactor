@@ -5,7 +5,9 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+import tempfile
 from unittest.mock import patch
+import zipfile
 
 from . import bounded_host as host, client_memory_profile as profile
 from . import product_runtime as runtime, product_tasks as tasks, selected_local as local
@@ -73,6 +75,46 @@ def completed(resources):
             ('stop_reason', 'monitor_error', 'launch_error')))
 
 
+def audit(directory):
+    """Replay attribution from retained samples; never infer native admission."""
+    if directory.is_file():
+        names = {'summary.json'} | {f'{case}-{repetition}/{name}' for case in CASES
+            for repetition in range(REPETITIONS) for name in
+            ('resources.json', 'profile.json', 'profile.jsonl', 'stdout', 'stderr')}
+        with zipfile.ZipFile(directory) as archive, tempfile.TemporaryDirectory() as temporary:
+            members = archive.infolist()
+            require(len(members) == len({member.filename for member in members}) and
+                    all(member.filename in names for member in members) and
+                    sum(member.file_size for member in members) <= 8 * 1024**2,
+                    'unexpected or oversized diagnostic archive')
+            archive.extractall(temporary)
+            return audit(Path(temporary))
+    result = json.loads((directory / 'summary.json').read_text())
+    require(result['schema'] == 'fr-product-proof-memory-1' and result['admitted'] is False and
+            result['live_model_calls'] == 0 and result['limits'] == runtime.CONTROL_LIMITS,
+            'diagnostics cannot change limits or grant admission')
+    first = result['cases'][:len(CASES)]
+    stopped = [row['case'] for row in first if not row['completed']]
+    repetitions = 1 if stopped else REPETITIONS
+    require([(row['case'], row['repetition']) for row in result['cases']] ==
+            [(case, repetition) for repetition in range(repetitions) for case in CASES],
+            'retain every diagnostic case and never retry a stopped case')
+    require(result.get('stopped_cases', []) == [row['case'] for row in result['cases'] if not row['completed']],
+            'keep every diagnostic stop visible')
+    limits = dict(runtime.CONTROL_LIMITS)
+    limits['cpu_seconds'] = limits.pop('cpu_limit_seconds')
+    for row in result['cases']:
+        path = directory / (row['case'] + '-' + str(row['repetition']))
+        resources = json.loads((path / 'resources.json').read_text())
+        require(resources == row['resources'] and resources['limits'] == limits and
+                row['completed'] is completed(resources), 'resource record or verdict changed')
+        require(profile.audit(path, resources) == row['profile'] == json.loads((path / 'profile.json').read_text()),
+                'process attribution differs from retained samples')
+        require(all(tasks.common.digest(path / name) == row[name + '_sha256'] for name in ('stdout', 'stderr')),
+                'diagnostic command output changed')
+    return result
+
+
 def measure(inputs, run_path, lean_root, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run proof memory diagnostics on GitHub')
     run = json.loads(run_path.read_text())
@@ -119,19 +161,27 @@ def measure(inputs, run_path, lean_root, output):
                 'stderr_sha256': tasks.common.digest(row / 'stderr')}
             result['cases'].append(record)
             tasks.common.save(output / 'summary.json', result)
+            require(record['completed'] or resources['stop_reason'] in
+                    {'rss_bytes', 'wall_seconds', 'cpu_seconds', 'disk_bytes', 'transcript_bytes'},
+                    'diagnostic command or monitor failed; inspect its retained output')
             # Do not rerun a refused case. Other controls answer independent questions.
             if not record['completed']:
                 result.setdefault('stopped_cases', []).append(case)
         if result.get('stopped_cases'):
             break
-    return result
+    return audit(output)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest='operation', required=True)
+    measuring = commands.add_parser('measure')
     for name in ('inputs', 'run', 'lean-root', 'output'):
-        parser.add_argument('--' + name, type=Path, required=True)
+        measuring.add_argument('--' + name, type=Path, required=True)
+    checking = commands.add_parser('audit')
+    checking.add_argument('directory', type=Path)
     args = parser.parse_args()
-    result = measure(args.inputs.resolve(), args.run.resolve(), args.lean_root.resolve(), args.output.resolve())
+    result = (audit(args.directory.resolve()) if args.operation == 'audit' else
+              measure(args.inputs.resolve(), args.run.resolve(), args.lean_root.resolve(), args.output.resolve()))
     print(json.dumps({'cases': len(result['cases']), 'completed': sum(row['completed'] for row in result['cases']),
                       'admitted': result['admitted'], 'live_model_calls': result['live_model_calls']}))

@@ -12,7 +12,8 @@ permissions:
   actions: read
 concurrency:
   group: product-memory-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve measurements already queued or running when review updates arrive.
+  cancel-in-progress: false
 jobs:
   measure:
     name: Proof checker memory (${{ matrix.runner }})
@@ -84,7 +85,7 @@ jobs:
           rm "$RUNNER_TEMP/$archive"
       - name: Measure the unchanged proof and separate import controls
         run: >-
-          python3 -B -m agent_eval.product_memory
+          python3 -B -m agent_eval.product_memory measure
           --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json"
           --lean-root "$RUNNER_TEMP/lean-memory-tool" --output "$RUNNER_TEMP/proof-memory"
       - uses: actions/upload-artifact@v7

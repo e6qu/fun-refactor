@@ -107,3 +107,7 @@ stopped at the unchanged 768 MiB ceiling. The remaining 17 checks were not start
 Private process records retain the failure; further memory investigation belongs on
 hosted runners. All 24 checks still need to pass before calls. Full builds and
 independent grading stay on GitHub.
+
+The [hosted memory diagnostic](memory/README.md) retains the original stop, Linux
+measurements and a replay audit. ARM macOS attribution remains pending. Neither
+the diagnostic nor a smaller import control admits the complete native task.
