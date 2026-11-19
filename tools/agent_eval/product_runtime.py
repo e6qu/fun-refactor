@@ -79,9 +79,22 @@ def admission_spec(study):
             'conditions': tuple(value['conditions']), 'by_condition': True, 'requirements': value}
 
 
+def patch_script():
+    """Include new files without writing the sandbox's protected Git metadata."""
+    return '''git --no-optional-locks diff --binary HEAD > change.patch
+git ls-files --others --exclude-standard -z | while IFS= read -r -d '' file; do
+    if git diff --no-index --binary -- /dev/null "$file" >> change.patch; then
+        :
+    else
+        test "$?" -eq 1
+    fi
+done
+test -s change.patch'''
+
+
 def admission_script(task, setup, checkers, search_path):
     require(task in plan.TASKS['initial'] and setup in ('files', 'fr'), 'choose a qualified initial task and setup')
-    lines = ['set -eu', 'export PATH=' + shlex.quote(search_path)]
+    lines = ['set -euo pipefail', 'export PATH=' + shlex.quote(search_path)]
     if setup == 'fr':
         lines.append('cat .agents/skills/fr/SKILL.md > /dev/null')
         if task == 'clamp-proof':
@@ -91,12 +104,12 @@ def admission_script(task, setup, checkers, search_path):
             name, path = {'utils-rename': ('to_int', 'python_utils/converters.py'),
                           'sqlparse-graph': ('parsestream', 'sqlparse/__init__.py'),
                           'slugify-bytes': ('slugify', 'slugify/slugify.py')}[task]
-            arguments = ['fr', '--json', 'project', 'find', name, '--in', path, '--signature', '--bytes', '2048']
+            arguments = ['fr', '--json', 'project', 'find', name, '--in', path, '--signature', '--source', '--bytes', '2048']
         lines.append(shlex.join(arguments) + ' > .fr/admission-discovery.json')
     lines += ['git apply .fr/admission-reference.patch']
     lines += [shlex.join(row['argv']) for row in public_checks(task, checkers)]
     # New feature tests/docs and graph output must enter the delivered patch too.
-    lines += ['git add -N .', 'git diff --binary HEAD > change.patch', 'test -s change.patch',
+    lines += [patch_script(),
               "printf 'COMPLETE_ALGORITHM_WORKFLOW\\n'"]
     return '\n'.join(lines) + '\n'
 

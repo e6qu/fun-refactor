@@ -41,6 +41,9 @@ resource refusals. Never retry a failed slot. Report independently accepted outp
 separately from attempts completed within limits. Missing usage or charges stay unknown.
 Report setup costs, matched successful times and total spending per success separately.
 A successful ordinary edit without a contributing fr step does not establish fr use.
+Both setups must include tracked edits and new files in `change.patch` without writing
+Git metadata. Scripted admission uses ordinary Git diffs and checks the complete patch
+in a fresh checkout; Codex's protection of `.git` remains in place.
 
 ## Improve only what the evidence identifies
 

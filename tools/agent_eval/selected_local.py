@@ -214,7 +214,9 @@ def prompt(task, setup, checkers, milestone):
         + ('Finish by exporting BOTH returned edit IDs in save order with fr history patch '
            '<FIRST_ID> <SECOND_ID> --output change.patch, then report the passed checks. '
            if milestone == DELIVERY_STUDY else
-           'Finish by running git add -N . to include new files, then write change.patch with git diff --binary HEAD; report the changes and checks. '
+           'Write change.patch with git --no-optional-locks diff --binary HEAD. Append each new untracked file '
+           'with git diff --no-index --binary -- /dev/null FILE (exit status 1 means a diff was produced). '
+           'Include new tests and documentation without writing Git metadata; report the changes and checks. '
            if milestone in PRODUCT_STUDIES else
            'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. ')
         + 'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
