@@ -9,6 +9,9 @@ and the original M3 150-second gate remains open. Reserved validation projects s
 [Product qualification](../.github/workflows/product-qualification.yml) runs on packaging and SDK pull requests
 and can be dispatched manually. It calls the same [packaging workflow](../.github/workflows/package-product.yml)
 as a release, using an exact source commit and its package version.
+Checker scripts come from the reviewed workflow revision, so manual completion of an older release
+does not depend on that release already containing the new scripts. Product builds and the browser
+test harness still come from the selected source commit; a failed consumer check prevents upload.
 
 The workflow builds four native archives, the browser archive, and the Python wheel and source archive.
 Each job checks the finished package before retaining it as a GitHub Actions artifact. Receipts identify

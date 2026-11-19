@@ -14,7 +14,7 @@ SOURCE = 'def leaf():\n    return 7\n\ndef main():\n    return leaf()\n'
 
 def run(arguments, root, *, data=None, succeeds=True):
     result = subprocess.run(list(map(str, arguments)), cwd=root, input=data, capture_output=True, timeout=30)
-    if (result.returncode == 0) != succeeds:
+    if result.returncode != (0 if succeeds else 1):
         raise AssertionError(f'consumer command returned {result.returncode}: {result.stderr.decode(errors="replace")[:2000]}')
     return result.stdout
 
@@ -50,9 +50,9 @@ def exercise(binary, version, sdk):
                 try:
                     value = client.call(*arguments).to_data()
                 except FrRuntimeError as error:
-                    if succeeds or error.exit_code in (None, 0):
+                    if succeeds or error.exit_code != 1 or error.report is None:
                         raise
-                    return None
+                    return error.report
                 assert succeeds, 'a refused change unexpectedly succeeded'
                 return value
         else:
@@ -62,7 +62,7 @@ def exercise(binary, version, sdk):
 
             def call(*arguments, succeeds=True):
                 output = run([binary, '--json', '-C', root, *arguments], root, succeeds=succeeds)
-                return json.loads(output) if succeeds else None
+                return json.loads(output)
 
         graph(call('graph'), SOURCE, 'leaf')
         plan = call('rename', 'leaf', 'renamed', '--save-plan')
@@ -94,7 +94,8 @@ def exercise(binary, version, sdk):
         pending = call('rename', 'renamed', 'final_name', '--save-plan')
         drift = changed.replace('return 7', 'return 8')
         source.write_text(drift)
-        call('history', 'apply', str(pending['transaction']), '--write', succeeds=False)
+        refusal = call('history', 'apply', str(pending['transaction']), '--write', succeeds=False)
+        assert 'source changed after planning' in refusal['error']['message']
         assert source.read_text() == drift
         graph(call('graph'), drift, 'renamed')
         return {'passed': True, 'version': version, 'distribution_version': installed,

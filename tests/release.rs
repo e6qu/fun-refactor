@@ -138,7 +138,7 @@ fn every_released_version_agrees() {
 #[test]
 fn the_release_builds_checks_and_attaches_the_python_sdk() {
     for required in [
-        "python -B tools/check-sdk-package.py --fr target/release/fr --dist dist",
+        "python -B .qualification/tools/check-sdk-package.py --fr target/release/fr --dist dist",
         "python -I -m build --no-isolation --outdir dist sdk/python",
         "name: product-sdk",
     ] {
@@ -148,6 +148,8 @@ fn the_release_builds_checks_and_attaches_the_python_sdk() {
     assert!(WORKFLOW.contains(shared) && CANDIDATE.contains(shared));
     assert!(WORKFLOW.contains("commit: ${{ needs.release-please.outputs.commit }}"));
     assert!(CANDIDATE.contains("commit: ${{ github.sha }}"));
+    assert!(PACKAGES.contains("ref: ${{ github.workflow_sha }}"));
+    assert!(PACKAGES.contains("--kind wasm --web-root web"));
     assert!(
         !WORKFLOW.contains("--clobber"),
         "release publication must refuse to overwrite existing downloads"

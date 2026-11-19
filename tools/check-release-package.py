@@ -38,7 +38,7 @@ def unpack(archive, checksum, destination):
     return destination / prefix
 
 
-def check(archive, checksum, version, kind):
+def check(archive, checksum, version, kind, web_root=None):
     with tempfile.TemporaryDirectory(prefix='fr-release-consumer-') as temporary:
         consumer = Path(temporary)
         package = unpack(archive, checksum, consumer)
@@ -59,7 +59,7 @@ def check(archive, checksum, version, kind):
             if not all((package / name).is_file() for name in ('fun_refactor.js', 'fun_refactor_bg.wasm')):
                 raise ValueError('browser package lacks its JavaScript or WebAssembly module')
             web = consumer / 'web'
-            shutil.copytree(ROOT / 'web', web, ignore=shutil.ignore_patterns('node_modules', 'dist', 'wasm'))
+            shutil.copytree(web_root or ROOT / 'web', web, ignore=shutil.ignore_patterns('node_modules', 'dist', 'wasm'))
             shutil.copytree(package, web / 'src/wasm')
             program = """import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
@@ -88,9 +88,11 @@ if __name__ == '__main__':
     parser.add_argument('--version', required=True)
     parser.add_argument('--kind', choices=('native', 'wasm'), required=True)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--web-root', type=Path, help='Browser harness from the selected product source')
     args = parser.parse_args()
     try:
-        result = check(args.archive.resolve(), args.checksum.resolve(), args.version, args.kind)
+        result = check(args.archive.resolve(), args.checksum.resolve(), args.version, args.kind,
+                       args.web_root.resolve() if args.web_root else None)
     except subprocess.CalledProcessError as error:
         print(error.stdout or '', file=sys.stderr)
         print(error.stderr or '', file=sys.stderr)
