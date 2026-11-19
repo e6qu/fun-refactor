@@ -1695,7 +1695,7 @@ jobs:
           git commit -m 'test: record Python report writing comparison'
           git push origin "HEAD:refs/heads/$BRANCH"
 
-  python-contract:
+  python-contract-build:
     if: inputs.group == 'python-contract'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1707,6 +1707,13 @@ jobs:
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+            !/tests/agent-eval/*/*results*/
       - run: rustup toolchain install stable --profile minimal --component rustfmt
       - uses: actions/setup-python@v7
         with:
@@ -1745,6 +1752,42 @@ jobs:
           python3 -B tools/reader_examples.py --fr target/debug/fr
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py::test_complete_lesson_uses_separate_processes_and_rechecks_edits
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-contract-binary
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 7
+
+  python-contract:
+    if: inputs.group == 'python-contract'
+    needs: python-contract-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+            !/tests/agent-eval/*/*results*/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - uses: actions/download-artifact@v7
+        with:
+          name: python-contract-binary
+          path: target/debug
+      - run: chmod +x target/debug/fr
       - name: Collect reports alongside interface checks, then reject altered records
         run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json
       - name: Qualify the reviewed acceptance counts and paired rule coverage
