@@ -66,12 +66,14 @@ The [comparison protocol](tests/agent-eval/product-validation/README.md) reserve
 The user authorized at most 96 live attempts. Task checks and native admission must pass before calls.
 Initial task controls and private patch checks pass on GitHub. The shared native collector,
 24-case scripted admission, reviewed export and independent grading are wired for the initial round.
-Local admission and all live attempts remain pending; the workstation is below its 64 GiB free-disk floor.
+Local admission and all live attempts remain pending. Disk cleanup restored the workstation above
+its 64 GiB free-space floor; fresh native admission is still required before calls.
 PR 6's [package qualification](docs/product-qualification.md) landed in [#629](https://github.com/e6qu/fun-refactor/pull/629).
 Full CI and all four native platforms, WASM and SDK consumers passed.
 Complete-bundle verification landed in [#631](https://github.com/e6qu/fun-refactor/pull/631) with 109 successful checks.
 It binds the download set, consumer receipts and source/checker revisions before publication.
-Current work reconciles the declared Python contract with its independently checked case inventory.
+The Python contract qualification checks all 495 authored examples and 990 original/renamed cases
+against reviewed acceptance counts. Broader language coverage still needs separate evidence.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |
