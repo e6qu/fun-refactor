@@ -2,6 +2,7 @@
 import copy
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -23,7 +24,8 @@ class ProductRuntimeTests(unittest.TestCase):
             for setup in ('files', 'fr'):
                 prompt = local.prompt('slugify-bytes', setup, checkers, 'P5-initial')
                 self.assertIn('/python -B .fr/product-check.py slugify-bytes', prompt)
-                self.assertIn('git add -N .', prompt)
+                self.assertIn('git diff --no-index --binary -- /dev/null FILE', prompt)
+                self.assertNotIn('git add', prompt)
                 self.assertIn('150-second deadline', prompt)
             (project / '.fr/product-check.py').write_text('pass\n')
             self.assertEqual(local.checking_input_changes(project, protected), ['.fr/product-check.py'])
@@ -34,11 +36,49 @@ class ProductRuntimeTests(unittest.TestCase):
             for setup in ('files', 'fr'):
                 text = runtime.admission_script(task, setup, checkers, '/pinned:/usr/bin:/bin')
                 self.assertIn('git apply .fr/admission-reference.patch', text)
-                self.assertIn('git add -N .', text)
-                self.assertIn('git diff --binary HEAD > change.patch', text)
+                self.assertIn(runtime.patch_script(), text)
+                self.assertNotIn('git add', text)
                 self.assertEqual('fr --json' in text, setup == 'fr')
+                if setup == 'fr' and not task.endswith('-proof'):
+                    self.assertIn('--signature --source --bytes 2048', text)
                 self.assertIn('/lean/bin/lake -d specs build --wfail' if task.endswith('-proof') else
                               '/python -B .fr/product-check.py ' + task, text)
+
+    def test_complete_patch_replays_without_writing_readonly_git_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / 'project'
+            project.mkdir()
+            (project / 'tracked.txt').write_text('before\n')
+            (project / 'gone.txt').write_text('removed\n')
+            (project / 'binary.bin').write_bytes(b'\x00before')
+            runtime.common.comparison_grade.BASE.initialize(project)
+            (project / '.git/info/exclude').write_text('.fr\nchange.patch\n')
+            (project / 'tracked.txt').write_text('after\n')
+            (project / 'gone.txt').unlink()
+            (project / 'binary.bin').write_bytes(b'\x00after')
+            executable = project / 'new script.sh'
+            executable.write_text('#!/bin/sh\nexit 0\n')
+            executable.chmod(0o755)
+            (project / 'new\nfile.txt').write_text('new file\n')
+            (project / '.fr').mkdir()
+            (project / '.fr/scratch').write_text('ignored scratch data\n')
+            git = project / '.git'
+            before = {p.relative_to(git): p.read_bytes() for p in git.rglob('*') if p.is_file()}
+            modes = {p: p.stat().st_mode & 0o777 for p in [git, *git.rglob('*')]}
+            try:
+                for p, mode in modes.items():
+                    p.chmod(mode & ~0o222)
+                subprocess.run(['/bin/bash', '-euo', 'pipefail', '-c', runtime.patch_script()],
+                               cwd=project, capture_output=True, check=True, timeout=10)
+                self.assertEqual(before, {p.relative_to(git): p.read_bytes() for p in git.rglob('*') if p.is_file()})
+            finally:
+                for p, mode in modes.items():
+                    p.chmod(mode)
+            self.assertNotIn(b'ignored scratch data', (project / 'change.patch').read_bytes())
+            receiver = Path(temporary) / 'receiver'
+            runtime.common.checkout(project, receiver)
+            runtime.common.comparison_grade.BASE.git(receiver, 'apply', str(project / 'change.patch'))
+            self.assertEqual(runtime.common.sources(receiver), runtime.common.sources(project))
 
     def test_all_24_admissions_and_their_resource_reserve_are_required(self):
         schedule = plan.prepare(ROOT, 'P5-initial')

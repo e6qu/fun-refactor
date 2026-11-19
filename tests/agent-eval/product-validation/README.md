@@ -41,6 +41,9 @@ resource refusals. Never retry a failed slot. Report independently accepted outp
 separately from attempts completed within limits. Missing usage or charges stay unknown.
 Report setup costs, matched successful times and total spending per success separately.
 A successful ordinary edit without a contributing fr step does not establish fr use.
+Both setups must include tracked edits and new files in `change.patch` without writing
+Git metadata. Scripted admission uses ordinary Git diffs and checks the complete patch
+in a fresh checkout; Codex's protection of `.git` remains in place.
 
 ## Improve only what the evidence identifies
 
@@ -97,4 +100,10 @@ private checker image and grades all 48 original patches. A valid patch delivere
 remains a failed complete attempt. Neither exporter nor grader starts a model session.
 
 Local admission and attempts use the required workstation guard and cannot proceed
-below its 64 GiB disk floor. Full builds and independent grading stay on GitHub.
+below its 64 GiB disk floor. Cleanup restored that capacity on November 19. With
+[hosted controls](https://github.com/e6qu/fun-refactor/actions/runs/44540267464), six Codex
+non-proof checks passed before the proof check reached 807 MiB aggregate RSS and
+stopped at the unchanged 768 MiB ceiling. The remaining 17 checks were not started.
+Private process records retain the failure; further memory investigation belongs on
+hosted runners. All 24 checks still need to pass before calls. Full builds and
+independent grading stay on GitHub.

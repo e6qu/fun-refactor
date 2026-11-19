@@ -1045,6 +1045,12 @@ from exceptions after calling the entry function. External source and sink hooks
 Hosted collection and tests that reject altered records validate the full inventory, including deliberate
 CLI refusals and emitted incomplete reports. B.contract requires every independently reviewed
 assertion in the active report. The earlier 252-case report remains historical evidence.
+The current corpus has 366 incomplete cases. PR #621 made the caught-error binding and
+local list-allocation examples complete, including each example's renamed/moved variant.
+Those four changes explain the reduction from 370; no example or refusal was removed.
+`tools/python-contract-qualification.py` audits the retained report, requires all catalog assertions
+to match, and checks that every declared rule has paired original and renamed/moved examples.
+It reports counts for complete, incomplete and refused cases separately and never rewrites acceptance criteria.
 The active report tied to recorded source inputs and acceptance assertions are selected by the
 [generated roadmap status](roadmap-status.md#bcontract-specify-reusable-python-behavior).
 Repository-general flow and exception/alias semantics remain separate acceptance items.

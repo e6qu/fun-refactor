@@ -14,7 +14,7 @@ RULES = {
     'defaults': 'Omitted immutable literals and captured prior local or imported scalar defaults carry no source origins. Explicit arguments replace checked scalar or object defaults; omitted object defaults stay incomplete. Definitions capture earlier values/functions or unshadowed builtins without calling them.',
     'returns': 'Substitute scalar helper summaries; capture return and explicit raise values before cleanup.',
     'cleanup': 'Run finally for normal, return, explicit raise, break and continue exits. Cleanup can replace that exit; nested sections keep pending values separate.',
-    'handlers': 'Match supported explicit builtin errors in clause order. Keep each class with its own value origins across helpers, cleanup and lexically active reraises. Bound error objects and custom classes remain unchecked.',
+    'handlers': 'Match supported builtin errors in clause order. Preserve value origins through helpers, cleanup, reraises and local caught-error names. Delete caught-error names after the handler; custom classes remain unchecked.',
     'recursion': 'Recursive scalar summaries grow to a fixed point; each call substitutes its own origins.',
     'imports': 'Resolve static local modules within one root; check names in cyclic initialization order and preserve defining-file identities and lookup evidence.',
     'rules': 'Sources, sinks, sanitizers and propagators are caller-supplied contracts.',

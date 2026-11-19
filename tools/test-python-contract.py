@@ -13,7 +13,8 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-11-18-recovery-interfaces-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-19-contract-qualification-python-contract/result.json'
+ContractQualification = contract.profile.load('test-python-contract-qualification').ContractQualification
 
 
 class RegistryAllocations(unittest.TestCase):
@@ -50,6 +51,12 @@ class RegistryAllocations(unittest.TestCase):
 
 
 class PythonContract(unittest.TestCase):
+    def test_qualification_catalog_matches_the_retained_summary(self):
+        qualification = contract.profile.load('python-contract-qualification')
+        catalog = json.loads((ROOT / 'tests/agent-eval/roadmap.json').read_text())
+        qualification.check_catalog(catalog, self.report['summary'])
+        qualification.rule_coverage(contract.cases(), contract.RULES)
+
     @classmethod
     def setUpClass(cls):
         override = os.environ.get('FR_PYTHON_CONTRACT_REPORT')
