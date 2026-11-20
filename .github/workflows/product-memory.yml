@@ -15,7 +15,30 @@ concurrency:
   # Preserve measurements already queued or running when review updates arrive.
   cancel-in-progress: false
 jobs:
+  audit:
+    name: Audit retained proof memory without new measurements
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.10'
+      - name: Replay retained samples and reject altered records
+        env:
+          PYTHONPATH: tools
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -B -m unittest agent_eval.test_product_memory
   measure:
+    if: github.event_name == 'workflow_dispatch'
+    needs: audit
     name: Proof checker memory (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
@@ -47,8 +70,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.10'
-      - name: Check diagnostic refusals without Lean or model calls
-        run: python3 -B -m unittest agent_eval.test_product_memory
       - name: Authenticate the original successful qualification
         env:
           GH_TOKEN: ${{ github.token }}

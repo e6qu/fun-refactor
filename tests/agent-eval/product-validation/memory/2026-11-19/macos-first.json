@@ -1,0 +1,501 @@
+{
+  "schema": "fr-product-proof-memory-1",
+  "run": "44560547064",
+  "source_commit": "94ced26d79f5b08f2c8fbacac40217c1ebbf8604",
+  "qualification_run": "44542024683",
+  "qualification_commit": "31e9d44d3cda81d39a41f5f9bfa03b97daff4de8",
+  "platform": "Darwin",
+  "machine": "arm64",
+  "lean_version": "Lean (version 4.28.0, arm64-apple-darwin24.6.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b, Release)",
+  "lean_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+  "seed_sha256": "3043d8f7732a271e39a37d00778e572fe6f26b4fae7bc6b8f55f52b840780ff4",
+  "reference_patch_sha256": "8e814c735e44602be7c9dbf09c2f3c150200506e9c39297ad9616195d73c6978",
+  "limits": {
+    "wall_seconds": 60,
+    "rss_bytes": 805306368,
+    "cpu_limit_seconds": 25,
+    "disk_bytes": 67108864,
+    "transcript_bytes": 131072
+  },
+  "live_model_calls": 0,
+  "admitted": false,
+  "scope": "Checker-only diagnostics, without a native client. Fresh package outputs, not an OS cache reset. Import controls do not replace the protected task. A stopped case is retained, never retried.",
+  "cases": [
+    {
+      "case": "package",
+      "repetition": 0,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 5.24529195800001,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 635437056,
+        "sampled_cpu_seconds": 1.07,
+        "sampled_disk_growth_bytes": 128567,
+        "transcript_bytes": 108
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 42,
+        "trace_sha256": "83da04c68ca3c2aceb34e9e3e192dcac75d5bc164255672f78098ad904f48be3",
+        "peak": {
+          "rss_bytes": 635437056,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 4.884524250000013,
+            "group": 1850,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.05,
+                "executable": "lake",
+                "pid": 1850,
+                "rss_bytes": 59899904
+              },
+              {
+                "cpu_seconds": 0.78,
+                "executable": "lean",
+                "pid": 1853,
+                "rss_bytes": 575537152
+              }
+            ],
+            "started_seconds": 4.8641819170000105
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 635437056
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "d1e542f9f4c0975d52e7422694ceed3931aadf88171330dc16a15b58b090566a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "direct-proof",
+      "repetition": 0,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.33671833399999684,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 568082432,
+        "sampled_cpu_seconds": 0.3,
+        "sampled_disk_growth_bytes": 927,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 3,
+        "trace_sha256": "d5cf5bcb92341d5df1472ab6fcd4111b692bb9068f4cd9de5dfa96565adef83f",
+        "peak": {
+          "rss_bytes": 568082432,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.31904695799998706,
+            "group": 1995,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.3,
+                "executable": "lean",
+                "pid": 1995,
+                "rss_bytes": 568082432
+              }
+            ],
+            "started_seconds": 0.2759736249999918
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 568082432
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "std-import",
+      "repetition": 0,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.31919695799999204,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 405766144,
+        "sampled_cpu_seconds": 0.15,
+        "sampled_disk_growth_bytes": 923,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 3,
+        "trace_sha256": "72fe00eb52bb9d48df7c0a2d9290724b3e0d898b4af59adf5585e5a8935d5eed",
+        "peak": {
+          "rss_bytes": 405766144,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.17164791700000137,
+            "group": 2001,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.15,
+                "executable": "lean",
+                "pid": 2001,
+                "rss_bytes": 405766144
+              }
+            ],
+            "started_seconds": 0.12879666700000314
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 405766144
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "init-import",
+      "repetition": 0,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.1833905410000085,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 323354624,
+        "sampled_cpu_seconds": 0.13,
+        "sampled_disk_growth_bytes": 621,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 2,
+        "trace_sha256": "3b1dfeab1de040ea357b2b38fb1a73277505b3a1ecf561dbc0032b61611e6df2",
+        "peak": {
+          "rss_bytes": 323354624,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.14642775000000086,
+            "group": 2008,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.13,
+                "executable": "lean",
+                "pid": 2008,
+                "rss_bytes": 323354624
+              }
+            ],
+            "started_seconds": 0.12635070800000392
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 323354624
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "package",
+      "repetition": 1,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.8100331249999897,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 600997888,
+        "sampled_cpu_seconds": 0.52,
+        "sampled_disk_growth_bytes": 115284,
+        "transcript_bytes": 109
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 7,
+        "trace_sha256": "b38d1d3baa9fca05bf9fce04961c37812538d08f9bf74fbc23b354a86722cd63",
+        "peak": {
+          "rss_bytes": 600997888,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.6716847080000008,
+            "group": 2014,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.04,
+                "executable": "lake",
+                "pid": 2014,
+                "rss_bytes": 60145664
+              },
+              {
+                "cpu_seconds": 0.26,
+                "executable": "lean",
+                "pid": 2021,
+                "rss_bytes": 540852224
+              }
+            ],
+            "started_seconds": 0.6295899160000005
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 600997888
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "f701aac6beedc877bc245ad56273fc87d906d8f724fa838ba271b0e06878eedc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "direct-proof",
+      "repetition": 1,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.32773379200000363,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 568524800,
+        "sampled_cpu_seconds": 0.3,
+        "sampled_disk_growth_bytes": 924,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 3,
+        "trace_sha256": "53fd0a6efa11340035668c3a556c71454656ba42babdfe241abed64a0f971214",
+        "peak": {
+          "rss_bytes": 568524800,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.3153668340000024,
+            "group": 2029,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.3,
+                "executable": "lean",
+                "pid": 2029,
+                "rss_bytes": 568524800
+              }
+            ],
+            "started_seconds": 0.2727053339999941
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 568524800
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "std-import",
+      "repetition": 1,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.3080606660000029,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 557350912,
+        "sampled_cpu_seconds": 0.28,
+        "sampled_disk_growth_bytes": 930,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 3,
+        "trace_sha256": "f064abb00bb03ad32691158f157e6cbb07040d96727dfc33a999678e4f86aa79",
+        "peak": {
+          "rss_bytes": 557350912,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.29693466700000215,
+            "group": 2037,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.28,
+                "executable": "lean",
+                "pid": 2037,
+                "rss_bytes": 557350912
+              }
+            ],
+            "started_seconds": 0.27571275000001094
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 557350912
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "init-import",
+      "repetition": 1,
+      "completed": true,
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.25690620799998953,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 319225856,
+        "sampled_cpu_seconds": 0.13,
+        "sampled_disk_growth_bytes": 619,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 2,
+        "trace_sha256": "ea6a32639f875a00f21e885f067b1a4641bd3a4a08b700e7c739dfc5f0dceb08",
+        "peak": {
+          "rss_bytes": 319225856,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.15802454200000682,
+            "group": 2043,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.13,
+                "executable": "lean",
+                "pid": 2043,
+                "rss_bytes": 319225856
+              }
+            ],
+            "started_seconds": 0.12437000000001319
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 319225856
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

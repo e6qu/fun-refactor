@@ -35,7 +35,7 @@ change the task imports or hide checking outside the complete-attempt measuremen
 The [Linux job](https://github.com/e6qu/fun-refactor/actions/runs/44560547064/job/135688313793)
 completed both repetitions. The original [artifact](2026-11-19/linux.zip),
 [summary](2026-11-19/linux.json) and [download provenance](2026-11-19/linux-provenance.json)
-are retained. The ARM macOS job is still queued; no result is implied for it.
+are retained. Both platform jobs and the final retry have now completed.
 
 | Checker-only case | Sampled peak RSS across two repetitions |
 | --- | ---: |
@@ -53,7 +53,25 @@ The import controls indicate a substantial import cost, but these short runs use
 **Decision:** keep native proof admission blocked. This diagnostic has not shown
 a correction that preserves the complete task, checking requirements and limits.
 Do not start the live comparison or substitute the smaller import control.
-The separate ARM macOS result remains necessary for platform-specific attribution.
+The [final hosted run](https://github.com/e6qu/fun-refactor/actions/runs/44564485493)
+retains both platforms, including a Linux package-check memory refusal:
+
+| Final checker-only case | ARM macOS sampled peak | Linux sampled peak |
+| --- | ---: | ---: |
+| Original package build | 589–605 MiB | 755 MiB completed; 770 MiB stopped |
+| Same proof checked directly | 538–548 MiB | 659–667 MiB |
+| Trivial example importing Std | 509 MiB | 534–659 MiB |
+| Trivial example importing Init | 308–335 MiB | 397–412 MiB |
+
+The [original macOS artifact](2026-11-19/macos-first.zip),
+[final macOS artifact](2026-11-19/macos-final.zip) and
+[final Linux artifact](2026-11-19/linux-final.zip) keep all samples and command outputs.
+Each has a neighbouring JSON summary and provenance record with its original GitHub checksum.
+The macOS Lean executable hash matches the original workstation admission record.
+The checker leaves only about 35–51 MiB below the 640 MiB admission budget after its
+reserve, before adding the client and controllers. The original full native check
+already exceeded the ceiling. Keep the block; these measurements do not admit a retry.
+No live calls or reserved validation sources were used.
 
 Replay the retained samples without running Lean:
 

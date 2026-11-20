@@ -27,7 +27,7 @@ The table below connects the analysis features to their implementation checks.
 | Value flow across helpers | Parameter binding, recursion, local/imported helpers and scalar summaries; CLI and Python | [Summary tests](../tests/flow_summaries.rs), [imported flow](../tests/imported_flow.rs) |
 | Package initialization | Original imports, aliases, re-exports, startup effects and missing dependencies | [Package flow](../tests/package_flow.rs), [Python contract](python-contract.md) |
 | Conversion errors and caught values | Base-ten conversion of known strings; builtin handlers with local error names | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py) |
-| Shared lists | Local list identities, aliases, fixed-index reads/writes, append, extend, clear and positional helper calls | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [effect examples](../tools/python-effects.py) |
+| Shared lists | Local list identities, aliases, signed fixed-index reads/writes, append, extend, clear, insert, pop, reverse and helpers with checked argument binding | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [effect examples](../tools/python-effects.py) |
 | Saved answers | Reuse only when source, imports, settings and analyzer inputs still match | [Saved flow checks](../sdk/python/tests/test_flow.py), [effect checks](../sdk/python/tests/test_runtime_effects.py) |
 
 These links identify checks, not a claim that they passed on every revision.
@@ -66,14 +66,14 @@ The browser's `graph()` result includes the same export under `details` beside i
 ## Trace a shared list
 
 ```python
-def replace_first(items, value):
-    items[0] = value
+def replace_last(items, *, value=0):
+    items[-1] = value
 
 def entry():
     values = [read_input()]
     alias = values
-    replace_first(alias, 0)
-    send(values[0])
+    replace_last(items=alias)
+    send(values.pop())
 ```
 
 With `read_input` and `send` declared as source and sink, the trace should show that the replacement removes the original input connection.
@@ -81,7 +81,11 @@ Changing the helper to append the input instead should preserve that connection 
 Use the [Python guide](python-contract.md) to declare these rules and run `project dataflow --summaries --imports`.
 
 The list model allows up to 64 objects and 64 items per object within the existing query budgets.
-It tracks aliases of local lists, constant nonnegative indices and positional calls to known helpers.
+It tracks aliases of local lists, signed constant indices and checked positional/keyword calls to known helpers.
+Negative indices follow each possible list length after a branch. Lists with one known identity and length support
+`insert`, `pop` and `reverse`; `pop` carries the removed item’s flow into its result.
+Helpers preserve positional-only and keyword-only rules and checked scalar defaults.
+Calls with missing, duplicate or invalid arguments remain incomplete.
 Unknown indices, possible out-of-range access, nested shared objects, returned list identities and recursive list helpers leave the answer incomplete.
 A helper's mutation must affect every alias of the same list. Rebinding an alias must leave the original list intact.
 

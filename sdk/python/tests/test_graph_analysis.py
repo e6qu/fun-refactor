@@ -140,10 +140,11 @@ def test_unsupported_list_behavior_stays_incomplete(tmp_path, body, cutoff):
     assert cutoff in report['cutoffs'], report['cutoffs']
 
 
-def test_imported_helper_mutation_survives_move_and_alias(tmp_path):
+@pytest.mark.parametrize('call', ['replace(values, read())', 'replace(value=read(), items=values)'])
+def test_imported_helper_mutation_survives_move_and_alias(tmp_path, call):
     (tmp_path / 'helpers.py').write_text('def update(items, value):\n    items[0] = value\n')
     source = ('from helpers import update as replace\n'
-              'def entry():\n    values = [0]\n    replace(values, read())\n    send(values[0])\n')
+              f'def entry():\n    values = [0]\n    {call}\n    send(values[0])\n')
     report = analyze(tmp_path, source)
     assert report['complete'], report['cutoffs']
     assert report['witnesses']
@@ -160,11 +161,12 @@ def test_shared_aliases_remain_shared_inside_the_helper(tmp_path):
     assert report['witnesses']
 
 
-def test_saved_list_answers_invalidate_after_an_imported_helper_changes(tmp_path):
+@pytest.mark.parametrize('call', ['update(values)', 'update(items=values)'])
+def test_saved_list_answers_invalidate_after_an_imported_helper_changes(tmp_path, call):
     helper = tmp_path / 'helpers.py'
     helper.write_text('def update(items):\n    items[0] = 0\n')
     source = ('from helpers import update\ndef entry():\n'
-              '    values = [read()]\n    update(values)\n    send(values[0])\n')
+              f'    values = [read()]\n    {call}\n    send(values[0])\n')
     analyze(tmp_path, source)
     client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
     cache = FlowCache(MemoryObjectStore())
@@ -199,3 +201,107 @@ def test_list_calls_keep_keyword_only_parameter_rules(tmp_path):
     report = analyze(tmp_path, source)
     assert not report['complete']
     assert 'list-call-signature-unchecked' in report['cutoffs']
+
+
+@pytest.mark.parametrize('body, expected, witness', [
+    ('values = [0, read()]\nsend(values[-1])', ['Customer'], True),
+    ('values = [read(), 0]\nvalues[-2] = 0\nsend(values[0])', ['0'], False),
+    ('values = [read()]\nsend(values[-0])', ['Customer'], True),
+    ('values = [read()]\nsend(values[(+0)])', ['Customer'], True),
+    ('values = [0, read()]\nsend(values[0x1])', ['Customer'], True),
+    ('values = [0, read()]\nsend(values[-0b1])', ['Customer'], True),
+    ('values = [0, read()]\nsend(values[0x_1])', ['Customer'], True),
+    ('values = [0, read()]\nalias = values\nsend(alias.pop())\nsend(values[0])', ['Customer', '0'], True),
+    ('values = [read(), 0]\nalias = values\nalias.pop(0)\nsend(values[0])', ['0'], False),
+    ('values = [read(), 0]\nsend(values.pop(-2))\nsend(values[0])', ['Customer', '0'], True),
+    ('values = [0]\nalias = values\nalias.insert(0, read())\nsend(values[0])', ['Customer'], True),
+    ('values = [read()]\nvalues.insert(-100, 0)\nsend(values[0])', ['0'], False),
+    ('values = [0]\nvalues.insert(100, read())\nsend(values[-1])', ['Customer'], True),
+    ('values = [read(), 0]\nvalues.insert(-1, 0)\nsend(values[-2])', ['0'], False),
+    ('values = [read(), 0]\nalias = values\nalias.reverse()\nsend(values[0])', ['0'], False),
+    ('values = [read(), 0]\nvalues.reverse()\nsend(values[-1])', ['Customer'], True),
+    ('values = []\nvalues.reverse()\nvalues.insert(-1, read())\nsend(values.pop())', ['Customer'], True),
+    ('values = [read()]\nif read():\n    values.append(0)\nvalues[-1] = 0\nsend(values[0])', ['Customer'], True),
+    ('values = [0]\nif read():\n    values.append(read())\nsend(values[-1])', ['Customer'], True),
+    ('first = [0]\nsecond = [0, read()]\nvalues = first\nif read():\n    values = second\nsend(values[-1])', ['Customer'], True),
+])
+@pytest.mark.parametrize('renamed', [False, True])
+def test_signed_indices_and_mutations_match_python(tmp_path, body, expected, witness, renamed):
+    source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    if renamed:
+        source = source.replace('values', 'customers').replace('alias', 'shared')
+    assert execute(source, 'Customer') == expected
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is witness
+
+
+@pytest.mark.parametrize('parameters, call', [
+    ('items, value', 'update(items=values, value=read())'),
+    ('items, value', 'update(value=read(), items=values)'),
+    ('items, value', 'update(values, value=read())'),
+    ('*, items, value', 'update(value=read(), items=values)'),
+    ('items, /, *, value', 'update(values, value=read())'),
+    ('items, value=0', 'update(items=values)'),
+    ('*, items, value=0', 'update(items=values)'),
+    ('items, value=0', 'update(value=read(), items=values)'),
+])
+@pytest.mark.parametrize('renamed', [False, True])
+def test_list_helper_binding_matches_python(tmp_path, parameters, call, renamed):
+    source = (f'def update({parameters}):\n    items[-1] = value\n'
+              f'def entry():\n    values = [read()]\n    {call}\n    send(values[0])\n')
+    if renamed:
+        source = source.replace('update', 'replace_last').replace('items', 'shared').replace('value', 'customer')
+    expected = ['Customer'] if 'read()' in call else ['0']
+    assert execute(source, 'Customer') == expected
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is (expected == ['Customer'])
+
+
+def test_helper_arguments_evaluate_once_in_keyword_order(tmp_path):
+    source = ('def update(*, items, value):\n    items[0] = value\n'
+              'def entry():\n    values = [0, read()]\n'
+              '    update(value=values.pop(), items=values)\n    send(values[0])\n')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+
+
+@pytest.mark.parametrize('parameters, call', [
+    ('items, /', 'update(items=values)'),
+    ('*, items', 'update(values)'),
+    ('items', 'update(values, items=values)'),
+    ('items', 'update(values, unknown=0)'),
+    ('items, value', 'update(items=values)'),
+])
+def test_invalid_list_helper_bindings_remain_incomplete(tmp_path, parameters, call):
+    source = (f'def update({parameters}):\n    items.clear()\n'
+              f'def entry():\n    values = [read()]\n    {call}\n    send(values[0])\n')
+    with pytest.raises(subprocess.CalledProcessError) as failure:
+        execute(source, 'Customer')
+    assert 'TypeError' in failure.value.stderr
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert any('binding' in reason or 'signature' in reason for reason in report['cutoffs'])
+
+
+@pytest.mark.parametrize('body, cutoff', [
+    ('values = []\nvalues.pop()', 'list-index-may-raise'),
+    ('values = [read()]\nsend(values[-2])', 'list-index-may-raise'),
+    ('values = [read()]\nvalues.pop(-2)', 'list-index-may-raise'),
+    ('values = [read()]\nvalues.pop(read())', 'list-index-unchecked'),
+    ('values = [read()]\nvalues.insert(read(), 0)', 'list-index-unchecked'),
+    ('values = [read()]\nvalues.reverse(0)', 'list-method-arguments'),
+    ('values = [read()]\nvalues.pop(index=0)', 'list-method-arguments'),
+    ('values = [read()]\nvalues.insert(0, values)', 'nested-list-identity-unchecked'),
+    ('values = [read()]\nif read():\n    values.append(0)\nvalues.pop()', 'list-mutation-target-unchecked'),
+    ('values = [read()]\nif read():\n    values.append(0)\nvalues.reverse()', 'list-mutation-target-unchecked'),
+    ('values = [read()]\nif read():\n    values.append(0)\nsend(values[-2])', 'list-index-may-raise'),
+])
+def test_list_extensions_preserve_uncertainty(tmp_path, body, cutoff):
+    source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert cutoff in report['cutoffs'], report['cutoffs']

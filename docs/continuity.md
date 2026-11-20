@@ -30,8 +30,12 @@ The live comparison remains open at 0 of 96 attempts. Disk cleanup restored the 
 Six Codex non-proof admission checks passed; the proof check exceeded the unchanged 768 MiB
 memory ceiling, stopping the sequence with 17 checks unstarted. Preserve the failure and investigate
 proof memory on hosted runners before fresh admission. The [memory diagnostic](../tests/agent-eval/product-validation/memory/README.md)
-retains the Linux result and its audit; ARM macOS is still queued. The checker alone leaves no
-admission margin on Linux. Do not raise limits or start live calls.
+retains both platform results and their audits, including the final Linux memory refusal.
+ARM macOS checking alone takes 589–605 MiB, before adding the client and controllers.
+The original native admission block remains. Do not raise limits or start live calls.
+Independent analysis work in [#637](https://github.com/e6qu/fun-refactor/pull/637) extends signed list indices, insert/pop/reverse and checked
+helper argument binding. Its source-bound collections passed, including 990 Python contract cases
+and 1,949 SDK tests. The full-product and live-comparison completion gates remain open.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
 PR 6's [package qualification](product-qualification.md) merged in [#629](https://github.com/e6qu/fun-refactor/pull/629).
