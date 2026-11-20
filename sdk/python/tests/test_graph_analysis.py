@@ -129,8 +129,6 @@ def test_helper_mutation_reaches_every_alias(tmp_path, clear, witness):
 @pytest.mark.parametrize('body, cutoff', [
     ('values = []\nsend(values[0])', 'list-index-may-raise'),
     ('values = [read()]\nsend(values[read()])', 'list-index-unchecked'),
-    ('values = []\nvalues.append(values)\nsend(values)', 'nested-list-identity-unchecked'),
-    ('values = [read()]\nreturn values', 'list-return-identity-unchecked'),
     ('values = [read()]\nif read():\n    values = 0\nvalues.clear()', 'list-binding-type-unchecked'),
 ])
 def test_unsupported_list_behavior_stays_incomplete(tmp_path, body, cutoff):
@@ -295,7 +293,6 @@ def test_invalid_list_helper_bindings_remain_incomplete(tmp_path, parameters, ca
     ('values = [read()]\nvalues.insert(read(), 0)', 'list-index-unchecked'),
     ('values = [read()]\nvalues.reverse(0)', 'list-method-arguments'),
     ('values = [read()]\nvalues.pop(index=0)', 'list-method-arguments'),
-    ('values = [read()]\nvalues.insert(0, values)', 'nested-list-identity-unchecked'),
     ('values = [read()]\nif read():\n    values.append(0)\nvalues.pop()', 'list-mutation-target-unchecked'),
     ('values = [read()]\nif read():\n    values.append(0)\nvalues.reverse()', 'list-mutation-target-unchecked'),
     ('values = [read()]\nif read():\n    values.append(0)\nsend(values[-2])', 'list-index-may-raise'),
@@ -305,3 +302,115 @@ def test_list_extensions_preserve_uncertainty(tmp_path, body, cutoff):
     report = analyze(tmp_path, source)
     assert not report['complete']
     assert cutoff in report['cutoffs'], report['cutoffs']
+
+
+@pytest.mark.parametrize('prelude, body, expected, witness', [
+    ('def relay(items):\n    return items\n',
+     'values = [read()]\nalias = relay(values)\nalias[0] = 0\nsend(values[0])', ['0'], False),
+    ('def relay(items):\n    return items\n',
+     'values = [0]\nrelay(values)[0] = read()\nsend(values[0])', ['Customer'], True),
+    ('def make(value):\n    return [value]\n',
+     'values = make(read())\nsend(values[0])', ['Customer'], True),
+    ('def make(value):\n    return [value]\n',
+     'first = make(read())\nsecond = make(0)\nsecond[0] = 0\nsend(first[0])', ['Customer'], True),
+    ('def make(value):\n    return [value]\n',
+     'first = make(read())\nsecond = make(0)\nfirst[0] = read()\nsend(second[0])', ['0'], False),
+    ('def make(value):\n    return [value]\ndef relay(value):\n    return make(value)\n',
+     'send(relay(read())[0])', ['Customer'], True),
+    ('def make(value):\n    return [[value]]\n',
+     'values = make(read())\nvalues[0][0] = 0\nsend(values[0][0])', ['0'], False),
+    ('def relay(*, items):\n    return items[0]\n',
+     'values = [[read()]]\nalias = relay(items=values)\nalias.clear()\nalias.append(0)\nsend(values[0][0])', ['0'], False),
+    ('', 'values = [read()]\nouter = [values]\nalias = outer[0]\nalias[0] = 0\nsend(values[0])', ['0'], False),
+    ('', 'values = [0]\nouter = [values]\nouter[0][0] = read()\nsend(values[0])', ['Customer'], True),
+    ('', 'outer = [[read()]]\nouter[0] = [0]\nsend(outer[0][0])', ['0'], False),
+    ('', 'values = [read()]\nouter = []\nouter.append(values)\nvalues[0] = 0\nsend(outer[0][0])', ['0'], False),
+    ('', 'values = [0]\nouter = []\nouter.insert(0, values)\nouter[0][0] = read()\nsend(values[0])', ['Customer'], True),
+    ('', 'values = [read()]\nouter = [values]\ncopy = []\ncopy.extend(outer)\ncopy[0][0] = 0\nsend(values[0])', ['0'], False),
+    ('', 'values = [read()]\nouter = [values]\nalias = outer.pop()\nalias[0] = 0\nsend(values[0])', ['0'], False),
+    ('', 'values = [read()]\nouter = [values, [0]]\nouter.reverse()\nouter[-1][0] = 0\nsend(values[0])', ['0'], False),
+    ('', 'values = [read()]\nvalues.append(values)\nvalues[1][0] = 0\nsend(values[0])', ['0'], False),
+    ('', 'values = [read()]\nvalues.insert(0, values)\nvalues[0][-1] = 0\nsend(values[-1])', ['0'], False),
+    ('', 'values = [[read()]]\nalias = values[0]\nvalues[0] = [0]\nsend(alias[0])', ['Customer'], True),
+    ('', 'values = [[read()]]\nalias = values[0]\nvalues.clear()\nsend(alias[0])', ['Customer'], True),
+    ('', 'values = [[read()]]\nalias = values[0]\nalias = [0]\nsend(values[0][0])', ['Customer'], True),
+    ('', 'values = [read()]\nouter = [values]\nvalues = [0]\nsend(outer[0][0])', ['Customer'], True),
+    ('def replace(items):\n    items[0] = 0\n    return 0\n',
+     'values = [read()]\nouter = [values, replace(values)]\nsend(outer[0][0])', ['0'], False),
+    ('', 'values = [read()]\nouter = [values, [0]]\nouter.pop()[0] = outer.pop()[0]\nsend(values[0])', ['0'], False),
+    ('', 'values = [0]\nouter = [values, [read()]]\nouter.pop(0).append(outer.pop()[0])\nsend(values[1])', ['Customer'], True),
+    ('def relay(items):\n    try:\n        return items\n    finally:\n        items[0] = 0\n',
+     'values = [read()]\nsend(relay(values)[0])', ['0'], False),
+    ('def relay(items):\n    try:\n        return items\n    finally:\n        items = [0]\n',
+     'values = [read()]\nsend(relay(values)[0])', ['Customer'], True),
+    ('def relay(items):\n    try:\n        return items\n    finally:\n        return [0]\n',
+     'values = [read()]\nsend(relay(values)[0])', ['0'], False),
+    ('def relay(items):\n    try:\n        return [items]\n    finally:\n        items[0] = 0\n',
+     'values = [read()]\nsend(relay(values)[0][0])', ['0'], False),
+    ('def relay(items):\n    try:\n        return items[0]\n    finally:\n        items[0] = 0\n',
+     'values = [read()]\nsend(relay(values))', ['Customer'], True),
+    ('def relay(items):\n    try:\n        return items\n    finally:\n        try:\n            pass\n        finally:\n            items[0] = 0\n',
+     'values = [read()]\nsend(relay(values)[0])', ['0'], False),
+    ('def replace(items):\n    items[0] = 0\n    return items\n',
+     'values = [read()]\nalias = replace(values) if True else values\nsend(alias[0])', ['0'], False),
+    ('def replace(items):\n    items[0] = 0\n    return items\n',
+     'values = [read()]\nalias = values if False else replace(values)\nsend(alias[0])', ['0'], False),
+    ('', 'values = [read()]\nalias = False or values\nalias[0] = 0\nsend(values[0])', ['0'], False),
+    ('', 'values = [read()]\nalias = True and values\nalias[0] = 0\nsend(values[0])', ['0'], False),
+])
+@pytest.mark.parametrize('renamed', [False, True])
+def test_returned_and_nested_list_identities_match_python(tmp_path, prelude, body, expected, witness, renamed):
+    source = prelude + 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    if renamed:
+        source = source.replace('values', 'customers').replace('items', 'shared').replace('relay', 'forward')
+    assert execute(source, 'Customer') == expected
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is witness
+
+
+@pytest.mark.parametrize('selector', [
+    'replace(values) if read() else values',
+    'values if read() else replace(values)',
+    'read() and replace(values)',
+    'read() or replace(values)',
+])
+def test_conditional_mutation_preserves_the_unexecuted_alternative(tmp_path, selector):
+    source = ('def replace(items):\n    items[0] = 0\n    return items\n'
+              f'def entry():\n    values = [read()]\n    {selector}\n    send(values[0])\n')
+    execute(source, 'Customer')
+    execute(source, '')
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+
+
+@pytest.mark.parametrize('body, cutoff', [
+    ('values = [[read()]]\nsend(values[0][2])', 'list-index-may-raise'),
+    ('values = [[read()]]\nvalues[0] = 0\nsend(values[0][0])', 'unsupported-expression:subscript'),
+    ('values = [[read()]]\nif read():\n    values[0] = 0\nvalues[0].clear()', 'list-binding-type-unchecked'),
+    ('values = [[read()]]\nvalues[0][read()] = 0', 'list-index-unchecked'),
+    ('values = [*[read()]]\nsend(values[0])', 'list-unpacking-unchecked'),
+    ('values = []\nwhile read():\n    values.append([read()])', 'repeated-list-allocation'),
+])
+def test_nested_list_boundaries_remain_visible(tmp_path, body, cutoff):
+    source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert cutoff in report['cutoffs'], report['cutoffs']
+
+
+def test_recursive_list_helpers_do_not_reuse_scalar_summaries(tmp_path):
+    source = ('def relay(items):\n    if read():\n        return relay(items)\n    return items\n'
+              'def entry():\n    values = [read()]\n    send(relay(values)[0])\n')
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert 'list-call-depth-budget' in report['cutoffs']
+
+
+def test_nested_allocation_keeps_the_existing_object_budget(tmp_path):
+    body = '\n'.join(f'value{index} = []' for index in range(64)) + '\nouter = [value0]\n'
+    source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert 'list-object-budget' in report['cutoffs']

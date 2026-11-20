@@ -2,16 +2,53 @@ use super::*;
 
 const ITEMS: usize = 64;
 
+#[derive(Clone)]
+pub(super) struct References {
+    pub ids: BTreeSet<String>,
+    pub scalar: bool,
+}
+
+impl Default for References {
+    fn default() -> Self {
+        Self { ids: BTreeSet::new(), scalar: true }
+    }
+}
+
+impl References {
+    pub fn join(&mut self, other: &Self) -> bool {
+        let before = self.ids.len();
+        self.ids.extend(other.ids.iter().cloned());
+        let changed = before != self.ids.len() || !self.scalar && other.scalar;
+        self.scalar |= other.scalar;
+        changed
+    }
+}
+
+#[derive(Clone, Default)]
+struct Element {
+    flow: Flow,
+    references: References,
+}
+
+impl Element {
+    fn join(&mut self, other: &Self) -> bool {
+        let before = self.flow.len();
+        merge(&mut self.flow, other.flow.clone());
+        self.references.join(&other.references) | (before != self.flow.len())
+    }
+}
+
 #[derive(Clone, Default)]
 pub(super) struct Lists {
     pub bindings: BTreeMap<String, BTreeSet<String>>,
     uncertain: BTreeSet<String>,
     objects: BTreeMap<String, List>,
+    expressions: BTreeMap<(PathBuf, usize), References>,
 }
 
 #[derive(Clone)]
 struct List {
-    items: Vec<Flow>,
+    items: Vec<Element>,
     minimum: usize,
 }
 
@@ -43,13 +80,11 @@ impl Lists {
                     changed |= minimum != target.minimum;
                     target.minimum = minimum;
                     if list.items.len() > target.items.len() {
-                        target.items.resize_with(list.items.len(), Flow::new);
+                        target.items.resize_with(list.items.len(), Element::default);
                         changed = true;
                     }
                     for (left, right) in target.items.iter_mut().zip(&list.items) {
-                        let before = left.len();
-                        merge(left, right.clone());
-                        changed |= before != left.len();
+                        changed |= left.join(right);
                     }
                 }
             }
@@ -57,20 +92,27 @@ impl Lists {
         changed
     }
 
-    fn ids(&self, node: Node<'_>, source: &str) -> BTreeSet<String> {
-        calls::unparenthesized(node)
-            .filter(|node| node.kind() == "identifier")
-            .and_then(|node| self.bindings.get(&source[node.byte_range()]))
-            .cloned()
-            .unwrap_or_default()
+    pub fn references(&self, node: Node<'_>, file: &Path, source: &str) -> References {
+        let Some(node) = calls::unparenthesized(node) else { return References::default() };
+        if node.kind() == "identifier" {
+            let name = &source[node.byte_range()];
+            return self.bindings.get(name).map_or_else(References::default, |ids| References {
+                ids: ids.clone(), scalar: self.uncertain.contains(name),
+            });
+        }
+        self.expressions.get(&(file.to_owned(), node.start_byte())).cloned().unwrap_or_default()
     }
 
-    fn contents(&self, ids: &BTreeSet<String>) -> Flow {
+    pub fn contents(&self, ids: &BTreeSet<String>) -> Flow {
         let mut result = Flow::new();
-        for id in ids {
+        let mut visited = BTreeSet::new();
+        let mut pending: Vec<_> = ids.iter().collect();
+        while let Some(id) = pending.pop() {
+            if !visited.insert(id) { continue; }
             if let Some(list) = self.objects.get(id) {
                 for item in &list.items {
-                    merge(&mut result, item.clone());
+                    merge(&mut result, item.flow.clone());
+                    pending.extend(item.references.ids.iter());
                 }
             }
         }
@@ -123,8 +165,63 @@ fn list_slot(index: i64, length: usize) -> Option<usize> {
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
+    pub(super) fn list_references(&self, node: Node<'t>, env: &Environment) -> References {
+        env.lists.borrow().references(node, self.file, self.source)
+    }
+
+    pub(super) fn record_list_references(&self, node: Node<'t>, env: &Environment, refs: References) {
+        let key = (self.file.to_owned(), node.start_byte());
+        if refs.ids.is_empty() {
+            env.lists.borrow_mut().expressions.remove(&key);
+        } else {
+            env.lists.borrow_mut().expressions.insert(key, refs);
+        }
+    }
+
+    fn list_element(&self, node: Node<'t>, flow: Flow, env: &Environment) -> Element {
+        let references = self.list_references(node, env);
+        Element { flow: if references.scalar { flow } else { Flow::new() }, references }
+    }
+
+    fn element_flow(&self, value: &Element, env: &Environment) -> Flow {
+        let mut flow = value.flow.clone();
+        merge(&mut flow, env.lists.borrow().contents(&value.references.ids));
+        flow
+    }
+
+    pub(super) fn list_literal(&mut self, node: Node<'t>, env: &Environment) -> Flow {
+        let items = children(node);
+        if items.len() > ITEMS || env.lists.borrow().objects.len() >= ITEMS {
+            self.cutoff("list-object-budget");
+            return Flow::new();
+        }
+        let mut values = Vec::new();
+        for item in items {
+            if item.kind() == "list_splat" { self.cutoff("list-unpacking-unchecked"); }
+            let flow = self.expression(item, env);
+            if !self.normal { return Flow::new(); }
+            values.push(self.list_element(item, flow, env));
+        }
+        let id = format!("{}:{}:{}", self.list_sites.join("/"), self.file.display(), node.start_byte());
+        if env.lists.borrow().objects.contains_key(&id) {
+            self.cutoff("repeated-list-allocation");
+            return Flow::new();
+        }
+        if env.lists.borrow().objects.len() >= ITEMS {
+            self.cutoff("list-object-budget");
+            return Flow::new();
+        }
+        env.lists.borrow_mut().objects.insert(id.clone(), List { minimum: values.len(), items: values });
+        let ids = BTreeSet::from([id]);
+        let flow = env.lists.borrow().contents(&ids);
+        self.record_list_references(node, env, References { ids, scalar: false });
+        self.extend(flow, node, "list-allocation")
+    }
+
     pub(super) fn list_value(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
-        let ids = env.lists.borrow().ids(node, self.source);
+        let node = calls::unparenthesized(node)?;
+        if node.kind() != "identifier" { return None; }
+        let ids = self.list_references(node, env).ids;
         if ids.is_empty() {
             return None;
         }
@@ -164,52 +261,29 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let Some(right) = calls::unparenthesized(right) else {
             return false;
         };
-        let aliases = env.lists.borrow().ids(right, self.source);
-        if right.kind() != "list" && aliases.is_empty() {
+        if matches!(right.kind(), "assignment" | "tuple" | "expression_list") {
             return false;
         }
         let name = self.text(left).to_owned();
-        let ids = if right.kind() == "list" {
-            let items = children(right);
-            if items.len() > ITEMS || env.lists.borrow().objects.len() >= ITEMS {
-                self.cutoff("list-object-budget");
-                return true;
-            }
-            let mut values = Vec::new();
-            for item in items {
-                if matches!(item.kind(), "list" | "list_splat")
-                    || !env.lists.borrow().ids(item, self.source).is_empty()
-                {
-                    self.cutoff("nested-list-identity-unchecked");
-                }
-                values.push(self.expression(item, env));
-                if !self.normal {
-                    return true;
-                }
-            }
-            let id = format!("{}:{}", self.file.display(), right.start_byte());
-            let mut heap = env.lists.borrow_mut();
-            if heap.objects.contains_key(&id) {
-                self.cutoff("repeated-list-allocation");
-                return true;
-            }
-            heap.objects.insert(
-                id.clone(),
-                List {
-                    minimum: values.len(),
-                    items: values,
-                },
-            );
-            BTreeSet::from([id])
+        let flow = self.expression(right, env);
+        if !self.normal { return true; }
+        let refs = self.list_references(right, env);
+        let plain = self.plain_string(right, env);
+        if refs.ids.is_empty() {
+            if !self.tick(left, "definition") { return true; }
+            env.lists.borrow_mut().bindings.remove(&name);
+            env.lists.borrow_mut().uncertain.remove(&name);
         } else {
-            self.expression(right, env);
-            aliases
-        };
-        env.lists.borrow_mut().bindings.insert(name.clone(), ids);
-        env.lists.borrow_mut().uncertain.remove(&name);
-        env.values.insert(name.clone(), Flow::new());
+            env.lists.borrow_mut().bindings.insert(name.clone(), refs.ids);
+            if refs.scalar {
+                env.lists.borrow_mut().uncertain.insert(name.clone());
+            } else {
+                env.lists.borrow_mut().uncertain.remove(&name);
+            }
+        }
+        env.values.insert(name.clone(), self.extend(flow, left, "definition"));
         env.defined.insert(name.clone());
-        env.plain_strings.remove(&name);
+        if plain { env.plain_strings.insert(name); } else { env.plain_strings.remove(&name); }
         true
     }
 
@@ -219,10 +293,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         env: &Environment,
     ) -> Option<BTreeMap<String, BTreeSet<usize>>> {
         let value = node.child_by_field_name("value")?;
-        let ids = env.lists.borrow().ids(value, self.source);
+        self.expression(value, env);
+        if !self.normal { return Some(BTreeMap::new()); }
+        let references = self.list_references(value, env);
+        let ids = references.ids;
         if ids.is_empty() {
             return None;
         }
+        if references.scalar { self.cutoff("list-binding-type-unchecked"); }
         if node
             .children_by_field_name("subscript", &mut node.walk())
             .count()
@@ -239,7 +317,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("list-index-unchecked");
             return Some(BTreeMap::new());
         };
-        self.expression(value, env);
         self.expression(index, env);
         let mut selected = BTreeMap::new();
         for id in ids {
@@ -263,35 +340,40 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
 
     pub(super) fn list_item(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
         let selected = self.indexed_list(node, env)?;
-        let mut value = Flow::new();
-        let heap = env.lists.borrow();
-        for (id, slots) in selected {
-            if let Some(list) = heap.objects.get(&id) {
-                for slot in slots {
-                    if let Some(item) = list.items.get(slot) {
-                        merge(&mut value, item.clone());
+        let mut value = None::<Element>;
+        {
+            let heap = env.lists.borrow();
+            for (id, slots) in selected {
+                if let Some(list) = heap.objects.get(&id) {
+                    for slot in slots {
+                        if let Some(item) = list.items.get(slot) {
+                            match &mut value {
+                                Some(value) => { value.join(item); }
+                                None => value = Some(item.clone()),
+                            }
+                        }
                     }
                 }
             }
         }
-        Some(self.extend(value, node, "list-item"))
+        let value = value.unwrap_or_default();
+        self.record_list_references(node, env, value.references.clone());
+        Some(self.extend(self.element_flow(&value, env), node, "list-item"))
     }
 
     fn list_write(&mut self, left: Node<'t>, right: Node<'t>, env: &Environment) -> bool {
-        let Some(value) = left.child_by_field_name("value") else {
-            return false;
-        };
-        if env.lists.borrow().ids(value, self.source).is_empty() {
+        if left.child_by_field_name("value").is_none() {
             return false;
         }
         let flow = self.expression(right, env);
         if !self.normal {
             return true;
         }
-        if right.kind() == "list" || !env.lists.borrow().ids(right, self.source).is_empty() {
-            self.cutoff("nested-list-identity-unchecked");
-        }
+        let mut value = self.list_element(right, flow, env);
+        value.flow = self.extend(value.flow, left, "list-write");
         let Some(selected) = self.indexed_list(left, env) else {
+            self.cutoff("list-write-target-unchecked");
+            self.effect_limit(left, "shared-write", "The assignment target is not an established local list.");
             return true;
         };
         let strong = selected.len() == 1 && selected.values().all(|slots| slots.len() == 1);
@@ -300,11 +382,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if let Some(list) = heap.objects.get_mut(&id) {
                 for slot in slots {
                     if let Some(item) = list.items.get_mut(slot) {
-                        let flow = self.extend(flow.clone(), left, "list-write");
                         if strong {
-                            *item = flow;
+                            *item = value.clone();
                         } else {
-                            merge(item, flow);
+                            item.join(&value);
                         }
                     }
                 }
@@ -319,10 +400,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return None;
         }
         let object = function.child_by_field_name("object")?;
-        let ids = env.lists.borrow().ids(object, self.source);
+        let object_kind = calls::unparenthesized(object)?.kind();
+        if matches!(object_kind, "identifier" | "attribute") && self.list_references(object, env).ids.is_empty() {
+            return None;
+        }
+        self.expression(object, env);
+        if !self.normal { return Some(Flow::new()); }
+        let references = self.list_references(object, env);
+        let ids = references.ids;
         if ids.is_empty() {
             return None;
         }
+        if references.scalar { self.cutoff("list-binding-type-unchecked"); }
         let method = self
             .text(function.child_by_field_name("attribute")?)
             .to_owned();
@@ -348,10 +437,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("list-method-arguments");
             return Some(Flow::new());
         }
-        self.expression(object, env);
         let mut values = Vec::new();
         for argument in &arguments {
-            values.push(self.expression(*argument, env));
+            let flow = self.expression(*argument, env);
+            values.push(self.list_element(*argument, flow, env));
             if !self.normal {
                 return Some(Flow::new());
             }
@@ -365,14 +454,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 self.cutoff("list-index-unchecked");
                 return Some(Flow::new());
             };
-            if method == "insert"
-                && (calls::unparenthesized(arguments[1]).is_some_and(|node| node.kind() == "list")
-                    || !env.lists.borrow().ids(arguments[1], self.source).is_empty())
-            {
-                self.cutoff("nested-list-identity-unchecked");
-            }
             let strong = ids.len() == 1;
-            let mut result = Flow::new();
+            let mut result = None::<Element>;
             for id in ids {
                 let mut heap = env.lists.borrow_mut();
                 let list = heap.objects.get_mut(&id)?;
@@ -380,7 +463,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     self.cutoff("list-mutation-target-unchecked");
                     if method == "pop" {
                         for item in &list.items {
-                            merge(&mut result, item.clone());
+                            match &mut result {
+                                Some(value) => { value.join(item); }
+                                None => result = Some(item.clone()),
+                            }
                         }
                     }
                     continue;
@@ -388,7 +474,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 match method.as_str() {
                     "pop" => {
                         if let Some(slot) = list_slot(index, list.items.len()) {
-                            merge(&mut result, list.items.remove(slot));
+                            result = Some(list.items.remove(slot));
                             list.minimum -= 1;
                         } else {
                             self.cutoff("list-index-may-raise");
@@ -406,35 +492,32 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             index
                         }
                         .clamp(0, length) as usize;
-                        list.items
-                            .insert(slot, self.extend(values[1].clone(), node, "list-write"));
+                        let mut value = values[1].clone();
+                        value.flow = self.extend(value.flow, node, "list-write");
+                        list.items.insert(slot, value);
                         list.minimum += 1;
                     }
                     "reverse" => list.items.reverse(),
                     _ => unreachable!(),
                 }
             }
-            return Some(self.extend(result, node, "list-method-result"));
+            let result = result.unwrap_or_default();
+            self.record_list_references(node, env, result.references.clone());
+            return Some(self.extend(self.element_flow(&result, env), node, "list-method-result"));
         }
         let addition = if method == "extend" {
-            let refs = env.lists.borrow().ids(arguments[0], self.source);
-            if refs.len() != 1 {
+            let refs = &values[0].references;
+            if refs.ids.len() != 1 || refs.scalar {
                 self.cutoff("list-extend-source-unchecked");
                 return Some(Flow::new());
             }
             let heap = env.lists.borrow();
-            let list = &heap.objects[refs.first().unwrap()];
+            let list = &heap.objects[refs.ids.first().unwrap()];
             if list.minimum != list.items.len() {
                 self.cutoff("list-extend-length-unchecked");
             }
             list.items.clone()
         } else {
-            if method == "append"
-                && (calls::unparenthesized(arguments[0]).is_some_and(|node| node.kind() == "list")
-                    || !env.lists.borrow().ids(arguments[0], self.source).is_empty())
-            {
-                self.cutoff("nested-list-identity-unchecked");
-            }
             values
         };
         let strong = ids.len() == 1;
@@ -457,7 +540,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     addition
                         .iter()
                         .cloned()
-                        .map(|flow| self.extend(flow, node, "list-write")),
+                        .map(|mut value| {
+                            value.flow = self.extend(value.flow, node, "list-write");
+                            value
+                        }),
                 );
             }
         }
@@ -483,11 +569,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     Some(*value)
                 };
                 value
-                    .map(|value| env.lists.borrow().ids(value, self.source))
+                    .map(|value| self.list_references(value, env))
                     .unwrap_or_default()
             })
             .collect();
-        if refs.iter().all(BTreeSet::is_empty) {
+        if refs.iter().all(|value| value.ids.is_empty()) && !self.list_factory(name) {
             return None;
         }
         if self.active.iter().any(|active| active == name) || self.active.len() >= self.depth {
@@ -517,24 +603,62 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut heap = env.lists.borrow().clone();
         heap.bindings.clear();
         heap.uncertain.clear();
+        heap.expressions.clear();
         for (parameter, slot) in parameters.into_iter().zip(slots) {
-            if let Some(ids) = slot
+            if let Some(refs) = slot
                 .and_then(|slot| refs.get(slot))
-                .filter(|ids| !ids.is_empty())
+                .filter(|refs| !refs.ids.is_empty())
             {
-                heap.bindings
-                    .insert(source[parameter.node.byte_range()].to_owned(), ids.clone());
+                let parameter = source[parameter.node.byte_range()].to_owned();
+                heap.bindings.insert(parameter.clone(), refs.ids.clone());
+                if refs.scalar { heap.uncertain.insert(parameter); }
             }
         }
         let saved = (
             self.file,
             self.source,
             std::mem::take(&mut self.returned_lists),
+            std::mem::take(&mut self.return_references),
         );
+        self.list_sites.push(format!("{}:{}", self.file.display(), call.start_byte()));
         (self.file, self.source) = (file, source);
         let result = self.invoke_with_lists(name, function, arguments, heap);
+        self.list_sites.pop();
+        let references = self.return_references.clone();
         env.lists.borrow_mut().objects = self.returned_lists.objects.clone();
-        (self.file, self.source, self.returned_lists) = saved;
+        (self.file, self.source, self.returned_lists, self.return_references) = saved;
+        self.record_list_references(call, env, references);
         Some(self.extend(result, call, "list-helper-result"))
+    }
+
+    fn list_factory(&mut self, name: &str) -> bool {
+        if let Some(value) = self.list_factories.get(name) { return *value; }
+        let mut pending = vec![name.to_owned()];
+        let mut visited = BTreeSet::new();
+        let mut found = false;
+        while let Some(name) = pending.pop() {
+            if !visited.insert(name.clone()) { continue; }
+            let Some(function) = self.functions.get(&name) else { continue; };
+            let (file, source) = self.contexts[&name];
+            let mut nodes: Vec<_> = function.child_by_field_name("body").into_iter().collect();
+            while let Some(node) = nodes.pop() {
+                if node.kind() == "list" { found = true; break; }
+                if matches!(node.kind(), "function_definition" | "class_definition" | "lambda") { continue; }
+                if node.kind() == "call" {
+                    if let Some(target) = node.child_by_field_name("function") {
+                        let text: String = source[target.byte_range()].chars().filter(|c| !c.is_whitespace()).collect();
+                        let target = self.modules.map_or_else(
+                            || self.function_aliases.get(&text).map_or_else(|| text.clone(), |(target, _)| target.clone()),
+                            |modules| modules.resolve(file, &text),
+                        );
+                        if self.functions.contains_key(&target) { pending.push(target); }
+                    }
+                }
+                nodes.extend(node.named_children(&mut node.walk()));
+            }
+            if found { break; }
+        }
+        self.list_factories.insert(name.to_owned(), found);
+        found
     }
 }

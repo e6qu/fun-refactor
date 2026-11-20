@@ -19,6 +19,7 @@ pub(super) fn join_pending(into: &mut Environment, from: &Environment) -> bool {
             let count = previous.flow.len();
             merge(&mut previous.flow, value.flow.clone());
             changed |= previous.flow.len() != count;
+            changed |= previous.references.join(&value.references);
             if previous.plain_string && !value.plain_string {
                 previous.plain_string = false;
                 changed = true;

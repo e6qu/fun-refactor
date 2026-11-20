@@ -42,6 +42,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     fn expression_value(&mut self, node: Node<'t>, env: &Environment) -> (Flow, Truth) {
+        self.record_list_references(node, env, lists::References::default());
         if !self.normal {
             return (Flow::new(), Truth::Unknown);
         }
@@ -68,6 +69,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .named_children(&mut node.walk())
             .filter(|child| child.kind() != "comment")
             .collect();
+        let mut references = lists::References::default();
         let (flow, truth) = match node.kind() {
             "boolean_operator" if children.len() == 2 => {
                 let Some(operator) = node.child_by_field_name("operator") else {
@@ -83,19 +85,26 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                 };
                 let (left, truth) = self.expression_value(children[0], env);
+                let left_references = self.list_references(children[0], env);
                 if !self.normal {
                     return (Flow::new(), Truth::Unknown);
                 }
                 if truth == short {
+                    references = left_references;
                     (left, truth)
                 } else {
+                    let before = env.lists.borrow().clone();
                     let (right, right_truth) = self.expression_value(children[1], env);
+                    let right_references = self.list_references(children[1], env);
                     let right_normal = self.normal;
                     if truth == Truth::Unknown {
+                        env.lists.borrow_mut().join(&before);
+                        references = left_references;
                         self.normal = true;
                         let mut result = left;
                         if right_normal {
                             merge(&mut result, right);
+                            references.join(&right_references);
                         }
                         (
                             result,
@@ -106,6 +115,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             },
                         )
                     } else if right_normal {
+                        references = right_references;
                         (right, right_truth)
                     } else {
                         (Flow::new(), Truth::Unknown)
@@ -120,18 +130,28 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 let mut result = Flow::new();
                 let mut normal = false;
                 let mut truth = None;
+                let before = env.lists.borrow().clone();
+                let mut joined_heap = None::<lists::Lists>;
                 for (index, excluded) in [(0, Truth::False), (2, Truth::True)] {
                     if condition == excluded {
                         continue;
                     }
+                    *env.lists.borrow_mut() = before.clone();
                     self.normal = true;
                     let (value, alternative) = self.expression_value(children[index], env);
+                    match &mut joined_heap {
+                        Some(heap) => { heap.join(&env.lists.borrow()); }
+                        None => joined_heap = Some(env.lists.borrow().clone()),
+                    }
                     if self.normal {
                         merge(&mut result, value);
+                        let selected = self.list_references(children[index], env);
+                        if normal { references.join(&selected); } else { references = selected; }
                         normal = true;
                         truth = Some(truth.map_or(alternative, |old: Truth| old.join(alternative)));
                     }
                 }
+                *env.lists.borrow_mut() = joined_heap.unwrap_or(before);
                 self.normal = normal;
                 (result, truth.unwrap_or(Truth::Unknown))
             }
@@ -153,6 +173,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             "parenthesized_expression" | "not_operator" if children.len() == 1 => {
                 let (flow, truth) = self.expression_value(children[0], env);
+                if node.kind() == "parenthesized_expression" {
+                    references = self.list_references(children[0], env);
+                }
                 (
                     flow,
                     if node.kind() == "not_operator" {
@@ -167,6 +190,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 (Flow::new(), Truth::Unknown)
             }
         };
+        self.record_list_references(node, env, references);
         (self.extend(flow, node, "expression"), truth)
     }
 }

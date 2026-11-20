@@ -152,6 +152,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 self.cutoff("list-destructuring-identity-unchecked");
             }
             values.push(self.expression(leaf, state));
+            if !self.list_references(leaf, state).ids.is_empty() {
+                self.cutoff("list-destructuring-identity-unchecked");
+            }
             plain_strings.push(self.plain_string(leaf, state));
             if !self.normal {
                 return;
