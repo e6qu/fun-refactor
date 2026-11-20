@@ -20,7 +20,9 @@ jobs:
         with:
           python-version: '3.14.8'
       - name: Check preflight controls
-        run: python3 -B tools/test-evidence-preflight.py
+        run: |
+          python3 -B tools/check-prose.py
+          python3 -B tools/test-evidence-preflight.py
       - name: List every stale current report
         run: python3 -B tools/evidence-preflight.py --output "$RUNNER_TEMP/evidence-preflight.json"
       - uses: actions/upload-artifact@v7
