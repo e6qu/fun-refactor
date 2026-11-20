@@ -724,7 +724,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 && block.syntax.is_some_and(|n| {
                     !matches!(
                         n.kind(),
-                        "expression_statement" | "pass_statement" | "comment"
+                        "expression_statement" | "delete_statement" | "pass_statement" | "comment"
                     )
                 })
             {

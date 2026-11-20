@@ -170,3 +170,13 @@ def test_imported_copy_answers_invalidate_after_source_changes(tmp_path, module,
     assert any(point['path'] == module + '.py'
                for witness in changed.report.at('/witnesses')
                for point in witness['trace']['occurrences'])
+
+
+@pytest.mark.parametrize('value', ['[read()][:]', '[read()].copy()', '[] + [read()]',
+                                  '[] + [] + [read()]', '([read()] + [])[:].copy()'])
+def test_nested_allocations_at_the_same_start_offset_stay_distinct(tmp_path, value):
+    source = program(f'values = {value}\nsend(values[0])')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']

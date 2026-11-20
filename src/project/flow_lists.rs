@@ -323,10 +323,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return Flow::new();
         }
         let id = format!(
-            "{}:{}:{}",
+            "{}:{}:{}:{}:{}",
             self.list_sites.join("/"),
             self.file.display(),
-            node.start_byte()
+            node.start_byte(),
+            node.end_byte(),
+            node.kind()
         );
         if env.lists.borrow().objects.contains_key(&id) {
             self.cutoff("repeated-list-allocation");
