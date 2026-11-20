@@ -115,19 +115,21 @@
       "scope": "Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-19-shared-lists-compiler-profile/result.json",
+      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-20-list-budget-compiler-profile/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-19-shared-lists-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-budget-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-19-shared-lists-python-contract/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tests/investigation.rs"
+      ],
+      "freshness": "stale",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
@@ -199,6 +201,7 @@
         "tests/agent-eval/python-repository-flow/cohort.json",
         "tests/compiler_evidence.rs",
         "tests/flow_fixed_point.rs",
+        "tests/investigation.rs",
         "tests/semantic_evidence.rs",
         "tools/compiler-profile.py",
         "tools/evidence_basis.py",
@@ -213,8 +216,10 @@
     },
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-11-19-shared-lists-text-package-recheck",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/refinement-evidence.yml"
+      ],
+      "freshness": "stale",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
@@ -442,8 +447,10 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-20-shared-lists-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/refinement-evidence.yml"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -466,35 +473,41 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 4,
+      "demonstrated": 2,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [],
+      "remaining": [
+        "B.contract",
+        "B.repository-flow"
+      ],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.repository-mutations"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
+        "D.structural",
         "D.existing-proof",
         "D.new-proof"
       ],
@@ -502,7 +515,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -634,7 +647,9 @@
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [],
+      "blockers": [
+        "python-contract: stale source binding"
+      ],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "Keep the 495 paired Python examples, SDK conversion/list checks and corruption controls passing. Review every changed completeness expectation before updating acceptance counts. Broader language-rule engineering and whole-language correctness remain separate.",
@@ -677,12 +692,14 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Specify reusable Python behavior"
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [],
+      "blockers": [
+        "original-package-questions: stale source binding"
+      ],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -726,7 +743,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace values in unfamiliar projects"
     },
     {
@@ -819,7 +836,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -838,7 +857,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -915,7 +934,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -934,7 +955,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {

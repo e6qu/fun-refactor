@@ -102,12 +102,12 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-19-shared-lists-compiler-profile/result.json",
+      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-20-list-budget-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-19-shared-lists-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-budget-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "d5a78afad861738fea264f9fea9e0afa4ebc778516ab798b00d0c83d35611e22"
+      "sha256": "45a473adbc206ef541113c9ad8be1f1eb10a593f9bcbcdf494da1dd27974f766"
     },
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-19-shared-lists-python-contract/result.json",
