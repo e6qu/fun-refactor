@@ -55,6 +55,26 @@ struct List {
     minimum: usize,
 }
 
+struct IndexedList {
+    slots: BTreeMap<String, BTreeSet<usize>>,
+    receiver: Flow,
+}
+
+fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
+    // Keep the alias route only for origins still present in the object. An old
+    // binding snapshot must never restore values removed by a later mutation.
+    for (origin, trace) in &mut current {
+        if let Some(previous) = prior.get(origin) {
+            for point in &previous.occurrences {
+                if !trace.occurrences.iter().any(|existing| existing.id == point.id) {
+                    trace.occurrences.push(point.clone());
+                }
+            }
+        }
+    }
+    current
+}
+
 impl Lists {
     pub fn join(&mut self, other: &Self) -> bool {
         let mut changed = false;
@@ -281,7 +301,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         {
             self.cutoff("list-binding-type-unchecked");
         }
-        Some(self.extend(env.lists.borrow().contents(&ids), node, "list-read"))
+        let mut flow = env.lists.borrow().contents(&ids);
+        if let Some(prior) = env.values.get(self.text(node)) {
+            flow = through_alias(flow, prior);
+        }
+        Some(self.extend(flow, node, "list-read"))
     }
 
     pub(super) fn list_assignment(&mut self, assignment: Node<'t>, env: &mut Environment) -> bool {
@@ -345,11 +369,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         &mut self,
         node: Node<'t>,
         env: &Environment,
-    ) -> Option<BTreeMap<String, BTreeSet<usize>>> {
+    ) -> Option<IndexedList> {
         let value = node.child_by_field_name("value")?;
-        self.expression(value, env);
+        let receiver = self.expression(value, env);
         if !self.normal {
-            return Some(BTreeMap::new());
+            return Some(IndexedList { slots: BTreeMap::new(), receiver });
         }
         let references = self.list_references(value, env);
         let ids = references.ids;
@@ -368,12 +392,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .any(|child| child.kind() == ",")
         {
             self.cutoff("list-index-unchecked");
-            return Some(BTreeMap::new());
+            return Some(IndexedList { slots: BTreeMap::new(), receiver });
         }
         let index = node.child_by_field_name("subscript")?;
         let Some(index_value) = integer_index(index, self.source) else {
             self.cutoff("list-index-unchecked");
-            return Some(BTreeMap::new());
+            return Some(IndexedList { slots: BTreeMap::new(), receiver });
         };
         self.expression(index, env);
         let mut selected = BTreeMap::new();
@@ -393,7 +417,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             selected.insert(id, slots);
         }
-        Some(selected)
+        Some(IndexedList { slots: selected, receiver })
     }
 
     pub(super) fn list_item(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
@@ -401,7 +425,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut value = None::<Element>;
         {
             let heap = env.lists.borrow();
-            for (id, slots) in selected {
+            for (id, slots) in selected.slots {
                 if let Some(list) = heap.objects.get(&id) {
                     for slot in slots {
                         if let Some(item) = list.items.get(slot) {
@@ -418,7 +442,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let value = value.unwrap_or_default();
         self.record_list_references(node, env, value.references.clone());
-        Some(self.extend(self.element_flow(&value, env), node, "list-item"))
+        let flow = through_alias(self.element_flow(&value, env), &selected.receiver);
+        Some(self.extend(flow, node, "list-item"))
     }
 
     fn list_write(&mut self, left: Node<'t>, right: Node<'t>, env: &Environment) -> bool {
@@ -431,7 +456,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let mut value = self.list_element(right, flow, env);
         value.flow = self.extend(value.flow, left, "list-write");
-        let Some(selected) = self.indexed_list(left, env) else {
+        let Some(indexed) = self.indexed_list(left, env) else {
             self.cutoff("list-write-target-unchecked");
             self.effect_limit(
                 left,
@@ -440,6 +465,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             );
             return true;
         };
+        let selected = indexed.slots;
         let strong = selected.len() == 1 && selected.values().all(|slots| slots.len() == 1);
         let mut heap = env.lists.borrow_mut();
         for (id, slots) in selected {
