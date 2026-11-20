@@ -36,7 +36,7 @@ ARM macOS checking alone takes 589–605 MiB, before adding the client and contr
 The original native admission block remains. Do not raise limits or start live calls.
 Independent analysis work merged in [#637](https://github.com/e6qu/fun-refactor/pull/637), adding signed list indices,
 insert/pop/reverse and checked helper binding. Full CI and post-merge release checks passed.
-The next increment preserves returned list identities and nested aliases, with independent runtime checks,
+Returned list identities and nested aliases have independent runtime checks,
 cross-file cache invalidation and 12 new paired contract examples. Run the
 [evidence preflight](evidence-refresh.md) before collecting reports and before full CI.
 The full-product and live-comparison completion gates remain open.
