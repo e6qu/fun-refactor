@@ -33,7 +33,7 @@ proof memory on hosted runners before fresh admission. The [memory diagnostic](.
 retains both platform results and their audits, including the final Linux memory refusal.
 ARM macOS checking alone takes 589–605 MiB, before adding the client and controllers.
 The original native admission block remains. Do not raise limits or start live calls.
-Independent analysis work now extends signed list indices, insert/pop/reverse and checked
+Independent analysis work in [#637](https://github.com/e6qu/fun-refactor/pull/637) extends signed list indices, insert/pop/reverse and checked
 helper argument binding; full qualification still requires refreshed source-bound evidence.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.

@@ -66,14 +66,14 @@ The browser's `graph()` result includes the same export under `details` beside i
 ## Trace a shared list
 
 ```python
-def replace_first(items, value):
-    items[0] = value
+def replace_last(items, *, value=0):
+    items[-1] = value
 
 def entry():
     values = [read_input()]
     alias = values
-    replace_first(alias, 0)
-    send(values[0])
+    replace_last(items=alias)
+    send(values.pop())
 ```
 
 With `read_input` and `send` declared as source and sink, the trace should show that the replacement removes the original input connection.
@@ -82,13 +82,11 @@ Use the [Python guide](python-contract.md) to declare these rules and run `proje
 
 The list model allows up to 64 objects and 64 items per object within the existing query budgets.
 It tracks aliases of local lists, signed constant indices and checked positional/keyword calls to known helpers.
-Negative indices follow each possible list length after a branch. Fixed-size lists support
+Negative indices follow each possible list length after a branch. Lists with one known identity and length support
 `insert`, `pop` and `reverse`; `pop` carries the removed item’s flow into its result.
 Helpers preserve positional-only and keyword-only rules and checked scalar defaults.
 Calls with missing, duplicate or invalid arguments remain incomplete.
 Unknown indices, possible out-of-range access, nested shared objects, returned list identities and recursive list helpers leave the answer incomplete.
-Insert, pop and reverse also require one known list identity with a fixed length.
-The 64-object and 64-item budgets still apply.
 A helper's mutation must affect every alias of the same list. Rebinding an alias must leave the original list intact.
 
 ## Follow a conversion failure
