@@ -59,7 +59,6 @@ fn the_json_export_carries_nodes_and_edges() {
 
 #[test]
 fn the_counts_stay_beside_the_graph() {
-    // Whatever read the old shape keeps working against the new one.
     let tmp = workspace(&[("a.rs", CALLS_RS)]);
     let printed = graph_json(&tmp);
     assert_eq!(printed["functions"], 2);
@@ -173,7 +172,6 @@ fn dot_labels_carry_the_file_under_the_name() {
 
 #[test]
 fn a_call_at_file_scope_is_counted_apart_from_an_unresolved_one() {
-    // A shell script calls its own function at the top level.
     let tmp = workspace(&[(
         "lib.sh",
         "#!/usr/bin/env bash\ndeploy() {\n  target=prod\n}\n\ndeploy\n",

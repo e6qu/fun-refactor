@@ -27,6 +27,8 @@ env:
   PYTHONPATH: sdk/python/src:tools
   PYTHONDONTWRITEBYTECODE: '1'
 jobs:
+  evidence:
+    uses: ./.github/workflows/evidence-preflight.yml
   behavior:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

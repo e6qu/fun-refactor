@@ -254,6 +254,8 @@ type Flow = BTreeMap<String, Trace>;
 struct PendingReturn {
     flow: Flow,
     plain_string: bool,
+    references: lists::References,
+    site: Option<Occurrence>,
 }
 
 #[derive(Clone)]
@@ -337,6 +339,9 @@ struct Analyzer<'a, 'p, 't> {
     may_raise: bool,
     sink_flows: BTreeMap<String, summaries::SinkFlow>,
     returned_lists: lists::Lists,
+    return_references: lists::References,
+    list_sites: Vec<String>,
+    list_factories: BTreeMap<String, bool>,
 }
 
 pub fn local_module_admitted(source: bool, package_missing: bool, stub_missing: bool) -> bool {
@@ -385,6 +390,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         flow
     }
     fn expression(&mut self, node: Node<'t>, env: &Environment) -> Flow {
+        self.record_list_references(node, env, lists::References::default());
         if self.solver.enabled && !self.normal {
             return Flow::new();
         }
@@ -405,6 +411,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if let Some(value) = self.list_value(node, env) {
             return value;
+        }
+        if node.kind() == "list" {
+            return self.list_literal(node, env);
         }
         if node.kind() == "subscript" {
             if let Some(value) = self.list_item(node, env) {
@@ -778,6 +787,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut may_raise = false;
         let mut normal_return = false;
         let mut returned_lists = None::<lists::Lists>;
+        let mut return_references = None::<lists::References>;
         let mut return_text = None;
         let parent_block = self.current_block.clone();
         self.active.push(name.to_owned());
@@ -836,9 +846,41 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if block.operation == Operation::Exit {
                 normal_return = true;
                 if let Some(value) = state.pending_returns.get(&0) {
-                    merge(&mut result, value.flow.clone());
+                    let mut flow = if value.references.scalar {
+                        value.flow.clone()
+                    } else {
+                        Flow::new()
+                    };
+                    merge(
+                        &mut flow,
+                        state.lists.borrow().contents(&value.references.ids),
+                    );
+                    if let Some(site) = &value.site {
+                        for trace in flow.values_mut() {
+                            if !trace
+                                .occurrences
+                                .iter()
+                                .any(|previous| previous.id == site.id)
+                            {
+                                trace.occurrences.push(site.clone());
+                            }
+                        }
+                    }
+                    merge(&mut result, flow);
+                    match &mut return_references {
+                        Some(refs) => {
+                            refs.join(&value.references);
+                        }
+                        None => return_references = Some(value.references.clone()),
+                    }
                     return_text = Some(return_text.is_none_or(|prior| prior) && value.plain_string);
                 } else {
+                    match &mut return_references {
+                        Some(refs) => {
+                            refs.join(&lists::References::default());
+                        }
+                        None => return_references = Some(lists::References::default()),
+                    }
                     return_text = Some(false);
                 }
             }
@@ -882,13 +924,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             self.cutoff("raise-contract-unchecked");
                         }
                         let mut value = Flow::new();
+                        let mut references = lists::References::default();
                         for expression in node.named_children(&mut node.walk()) {
-                            if block.operation == Operation::Return
-                                && self.list_value(expression, &state).is_some()
-                            {
-                                self.cutoff("list-return-identity-unchecked");
-                            }
                             merge(&mut value, self.expression(expression, &state));
+                            references = self.list_references(expression, &state);
                         }
                         let value = self.extend(
                             value,
@@ -910,6 +949,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 PendingReturn {
                                     flow: value,
                                     plain_string: plain,
+                                    references,
+                                    site: Some(self.occurrence(node, "return")),
                                 },
                             );
                         } else if self.normal {
@@ -977,6 +1018,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             PendingReturn {
                                 flow: Flow::new(),
                                 plain_string: false,
+                                references: lists::References::default(),
+                                site: None,
                             },
                         );
                     }
@@ -1006,6 +1049,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.return_text = return_text;
         self.normal = normal_return;
         self.returned_lists = returned_lists.unwrap_or_default();
+        self.return_references = return_references.unwrap_or_default();
         self.summaries.push(json!({"function":name,"inputs":inputs,"return_origins":result.keys().collect::<Vec<_>>(),
             "block_visits":visits,"converged":queue.is_empty(),"claim":if self.solver.enabled {"one symbolic summary evaluation; global convergence reported separately"} else {"context-specific evaluation; recursive summaries unsupported"}}));
         result
@@ -2036,6 +2080,9 @@ impl Project<'_> {
             may_raise: false,
             sink_flows: BTreeMap::new(),
             returned_lists: lists::Lists::default(),
+            return_references: lists::References::default(),
+            list_sites: Vec::new(),
+            list_factories: BTreeMap::new(),
         };
         if let Some(modules) = &modules {
             analyzer.cutoffs.extend(modules.cutoffs.clone());

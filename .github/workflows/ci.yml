@@ -20,6 +20,8 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  evidence-preflight:
+    uses: ./.github/workflows/evidence-preflight.yml
   project-changes:
     name: Original saved findings and delivered project changes
     runs-on: ubuntu-24.04
@@ -115,6 +117,7 @@ jobs:
             --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
 
   current-project-changes:
+    needs: evidence-preflight
     name: Current saved findings and delivered project changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -196,6 +199,7 @@ jobs:
           PY
 
   current-session-cost:
+    needs: evidence-preflight
     name: Current CLI and Python session measurements
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -230,6 +234,7 @@ jobs:
           PY
 
   original-package-questions:
+    needs: evidence-preflight
     name: Original package answers and current text examples
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -733,6 +738,7 @@ jobs:
         run: ./tools/check.sh ${{ matrix.slice }}
 
   native:
+    needs: evidence-preflight
     name: native (${{ matrix.kind }}-${{ matrix.index }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -781,6 +787,7 @@ jobs:
           retention-days: 7
 
   static:
+    needs: evidence-preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -820,13 +827,14 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, selected-agents, project-edit-controls, project-edit-delivery, project-edit-private, project-edit-results, project-edit-archives, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
+    needs: [evidence-preflight, native, static, agent-study, selected-agents, project-edit-controls, project-edit-delivery, project-edit-private, project-edit-results, project-edit-archives, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every native group and independent check
         env:
+          EVIDENCE_PREFLIGHT: ${{ needs.evidence-preflight.result }}
           NATIVE: ${{ needs.native.result }}
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
@@ -844,6 +852,7 @@ jobs:
           CURRENT_PROJECT_CHANGES: ${{ needs.current-project-changes.result }}
           CURRENT_SESSION_COST: ${{ needs.current-session-cost.result }}
         run: |
+          test "$EVIDENCE_PREFLIGHT" = success &&
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
           test "$AGENT_STUDY" = success &&

@@ -27,7 +27,7 @@ The table below connects the analysis features to their implementation checks.
 | Value flow across helpers | Parameter binding, recursion, local/imported helpers and scalar summaries; CLI and Python | [Summary tests](../tests/flow_summaries.rs), [imported flow](../tests/imported_flow.rs) |
 | Package initialization | Original imports, aliases, re-exports, startup effects and missing dependencies | [Package flow](../tests/package_flow.rs), [Python contract](python-contract.md) |
 | Conversion errors and caught values | Base-ten conversion of known strings; builtin handlers with local error names | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py) |
-| Shared lists | Local list identities, aliases, signed fixed-index reads/writes, append, extend, clear, insert, pop, reverse and helpers with checked argument binding | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [effect examples](../tools/python-effects.py) |
+| Shared lists | Local, returned and nested identities; signed fixed-index reads/writes; append, extend, clear, insert, pop, reverse; helpers with checked argument binding | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [contract examples](../tools/python_contract_cases.py), [effect examples](../tools/python-effects.py) |
 | Saved answers | Reuse only when source, imports, settings and analyzer inputs still match | [Saved flow checks](../sdk/python/tests/test_flow.py), [effect checks](../sdk/python/tests/test_runtime_effects.py) |
 
 These links identify checks, not a claim that they passed on every revision.
@@ -86,7 +86,12 @@ Negative indices follow each possible list length after a branch. Lists with one
 `insert`, `pop` and `reverse`; `pop` carries the removed item’s flow into its result.
 Helpers preserve positional-only and keyword-only rules and checked scalar defaults.
 Calls with missing, duplicate or invalid arguments remain incomplete.
-Unknown indices, possible out-of-range access, nested shared objects, returned list identities and recursive list helpers leave the answer incomplete.
+Known helpers can return a list or allocate a new one. Nested lists retain the identity of each contained list;
+mutating an inner list reaches its aliases, while replacing an outer slot leaves old aliases intact.
+Cleanup can mutate a returned list; rebinding the helper's local name does not replace the pending return.
+Cycles are traversed within the same object budget.
+Unknown indices, possible out-of-range access, mixed list/scalar receivers, repeated allocation at one
+call path, unpacking and recursive list helpers leave the answer incomplete.
 A helper's mutation must affect every alias of the same list. Rebinding an alias must leave the original list intact.
 
 ## Follow a conversion failure
