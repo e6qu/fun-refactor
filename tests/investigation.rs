@@ -8,11 +8,7 @@ fn report(root: &Path, args: &[&str]) -> Value {
         .args(args)
         .output()
         .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    assert!(output.status.success(), "{output:?}");
     serde_json::from_slice(&output.stdout).unwrap()
 }
 
@@ -494,13 +490,26 @@ fn flow_response_budget_reports_omission_and_shadowed_calls_stay_unknown() {
     source.push_str("    return x\n");
     fs::write(dir.path().join("long.py"), source).unwrap();
     let handle = function_handle(dir.path(), "long");
+    let refused = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(dir.path())
+        .args([
+            "project", "dataflow", &handle, "--bytes", "2048", "--steps", "512",
+        ])
+        .output()
+        .unwrap();
+    assert!(!refused.status.success(), "{refused:?}");
+    assert!(
+        String::from_utf8_lossy(&refused.stdout).contains("response metadata exceeds byte budget"),
+        "{refused:?}"
+    );
     let result = report(
         dir.path(),
         &[
-            "project", "dataflow", &handle, "--bytes", "4096", "--steps", "512",
+            "project", "dataflow", &handle, "--bytes", "8192", "--steps", "512",
         ],
     );
     assert_eq!(result["complete"], false);
     assert!(result["cutoffs"].to_string().contains("response-budget"));
-    assert!(serde_json::to_vec(&result).unwrap().len() < 4096);
+    assert!(serde_json::to_vec(&result).unwrap().len() < 8192);
 }
