@@ -162,7 +162,8 @@ def inspect(reader, selected, native, digests):
             path = roadmap.safe(reader.root, name)
             if not isinstance(expected, str) or not re.fullmatch('[0-9a-f]{64}', expected):
                 raise ValueError('invalid input digest: ' + name)
-            key = (value.get('schema'), name)
+            # Only Python release metadata uses a schema-specific normalization.
+            key = (value.get('schema') if name == 'sdk/python/src/fr_ir/_version.py' else None, name)
             if key not in digests:
                 if path.is_file():
                     digests[key] = roadmap.binding_digest(path, value.get('schema'), reader.root)

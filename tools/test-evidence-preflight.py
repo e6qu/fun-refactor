@@ -72,6 +72,19 @@ class Freshness(unittest.TestCase):
         path.write_text(path.read_text().replace('1.0.0', '1.0.1'))
         self.assertEqual(self.inspect(selected)['state'], 'current')
 
+    def test_report_schemas_keep_their_own_python_version_normalization(self):
+        name = 'sdk/python/src/fr_ir/_version.py'
+        path = self.save(name, 'VERSION = "1.0.0"  # x-release-please-version\n')
+        digests = {}
+        reader = preflight.Reader(self.root)
+        for index, schema in enumerate(('fr-python-contract-3', 'fr-python-repository-acceptance-2')):
+            report = f'version-{index}.json'
+            self.save(report, json.dumps({'schema': schema, 'source_bindings': {
+                name: preflight.roadmap.binding_digest(path, schema, self.root)}}))
+            row = preflight.inspect(reader, {'path': report, 'selected_by': [schema]}, set(), digests)
+            self.assertEqual(row['state'], 'current')
+        self.assertEqual(len(digests), 2)
+
     def test_digest_tampering_and_missing_reports_are_errors(self):
         selected = self.report()
         self.save('result.json', '{}')
