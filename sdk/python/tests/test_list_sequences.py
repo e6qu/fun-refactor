@@ -135,3 +135,38 @@ def test_slice_bounds_are_evaluated_once_even_when_unchecked(tmp_path):
     assert not report['complete']
     assert 'list-slice-bounds-unchecked' in report['cutoffs']
     assert report['witnesses']
+
+
+@pytest.mark.parametrize('module', ['helpers', 'moved_helpers'])
+@pytest.mark.parametrize('copy', ['items[:]', 'items.copy()', 'items + []'])
+def test_imported_copy_answers_invalidate_after_source_changes(tmp_path, module, copy):
+    from fr_ir.runtime import FrClient
+    from fr_ir.context import MemoryObjectStore
+    from fr_ir.flow import FlowCache
+    from test_graph_analysis import ROOT
+
+    helper = tmp_path / (module + '.py')
+    helper.write_text(f'def relay(items):\n    result = {copy}\n    result[0] = 0\n    return result\n')
+    source = program('values = [read()]\nsend(relay(values)[0])', f'from {module} import relay\n')
+    analyze(tmp_path, source)
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+
+    def query(selected):
+        handle = client.project('find', 'entry').definition_target().handle
+        return selected.analyze(client, handle, standard_library=('builtins',),
+                                rules=tmp_path / 'rules.json', context='html', steps=4096,
+                                depth=8, max_bytes=1048576, summaries=True, imports=True)
+
+    cold = query(cache)
+    assert cold.report.at('/complete') and not cold.witnesses
+    assert query(cache).reused
+    helper.write_text(f'def relay(items):\n    return {copy}\n')
+    changed = query(cache)
+    assert not changed.reused
+    assert changed.report.at('/complete') and changed.witnesses
+    fresh = query(FlowCache(MemoryObjectStore()))
+    assert changed.witnesses == fresh.witnesses
+    assert any(point['path'] == module + '.py'
+               for witness in changed.report.at('/witnesses')
+               for point in witness['trace']['occurrences'])

@@ -27,7 +27,7 @@ The table below connects the analysis features to their implementation checks.
 | Value flow across helpers | Parameter binding, recursion, local/imported helpers and scalar summaries; CLI and Python | [Summary tests](../tests/flow_summaries.rs), [imported flow](../tests/imported_flow.rs) |
 | Package initialization | Original imports, aliases, re-exports, startup effects and missing dependencies | [Package flow](../tests/package_flow.rs), [Python contract](python-contract.md) |
 | Conversion errors and caught values | Base-ten conversion of known strings; builtin handlers with local error names | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py) |
-| Shared lists | Local, returned and nested identities; signed fixed-index reads/writes; append, extend, clear, insert, pop, reverse; helpers with checked argument binding | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [contract examples](../tools/python_contract_cases.py), [effect examples](../tools/python-effects.py) |
+| Shared lists | Local, returned and nested identities; signed fixed-index reads/writes; append, extend, clear, insert, pop, reverse, copy; slices, concatenation and deletion; helpers with checked argument binding | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [contract examples](../tools/python_contract_cases.py), [sequence checks](../sdk/python/tests/test_list_sequences.py), [effect examples](../tools/python-effects.py) |
 | Saved answers | Reuse only when source, imports, settings and analyzer inputs still match | [Saved flow checks](../sdk/python/tests/test_flow.py), [effect checks](../sdk/python/tests/test_runtime_effects.py) |
 
 These links identify checks, not a claim that they passed on every revision.
@@ -90,6 +90,16 @@ Known helpers can return a list or allocate a new one. Nested lists retain the i
 mutating an inner list reaches its aliases, while replacing an outer slot leaves old aliases intact.
 Cleanup can mutate a returned list; rebinding the helper's local name does not replace the pending return.
 Cycles are traversed within the same object budget.
+
+For one known list identity and length, slices accept omitted bounds, `None`, and signed integer
+constants, including negative steps. Bounds clip to the list; a zero step remains incomplete.
+`items[:]`, `items.copy()` and `left + right` allocate new outer lists while sharing nested lists.
+Replacing an item in the copy leaves the original outer list intact; mutating an inner list reaches both.
+Slice assignment snapshots the replacement after evaluating the target, so self-replacement is safe.
+A step-one slice can grow or shrink; extended slices require matching replacement lengths.
+`del items[index]` and `del items[slice]` update every alias of the outer list. Multiple deletion targets
+run left to right. Unknown bounds, mismatched extended slices, arbitrary replacement iterables and
+ambiguous identities or lengths remain incomplete. The same 64-object and 64-item limits apply.
 Unknown indices, possible out-of-range access, mixed list/scalar receivers, repeated allocation at one
 call path, unpacking and recursive list helpers leave the answer incomplete.
 A helper's mutation must affect every alias of the same list. Rebinding an alias must leave the original list intact.

@@ -75,7 +75,9 @@ ARM macOS checking uses 589–605 MiB before the native client and controllers.
 Both platforms’ measurements are retained. Keep admission blocked under the existing limits.
 Independent feature work landed in [#637](https://github.com/e6qu/fun-refactor/pull/637): signed list indexing,
 insert/pop/reverse, checked helper binding and refreshed analysis evidence. Full CI and post-merge release checks passed.
-Returned list identities and nested aliases now cover checked helper calls, cleanup and cache invalidation.
+[PR #639](https://github.com/e6qu/fun-refactor/pull/639) merged returned list identities and nested aliases,
+covering checked helper calls, cleanup and cache invalidation. Its full CI passed.
+The next increment adds bounded slicing, shallow copies, concatenation and deletion, with independent runtime checks.
 Independent Python examples check each new rule.
 A [report freshness preflight](docs/evidence-refresh.md) identifies affected current reports before expensive CI gates.
 The workstation is again below its 64 GiB floor; execution and evidence collection remain on GitHub.
@@ -84,7 +86,7 @@ Full CI and all four native platforms, WASM and SDK consumers passed.
 Complete-bundle verification landed in [#631](https://github.com/e6qu/fun-refactor/pull/631) with 109 successful checks.
 It binds the download set, consumer receipts and source/checker revisions before publication.
 The Python contract qualification checks original and renamed/moved examples against reviewed acceptance counts.
-The current corpus has 507 examples and 1,014 cases, including 12 new paired list-identity examples.
+The current corpus has 527 examples and 1,054 cases, including 20 new paired list-sequence examples.
 The 366 incomplete cases and 18 refusals remain unchanged. Broader language coverage still needs separate evidence.
 PR 5 and the original M3 timing gate remain open.
 

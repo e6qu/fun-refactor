@@ -164,11 +164,11 @@ fn children(node: Node<'_>) -> Vec<Node<'_>> {
         .collect()
 }
 
-fn integer_index(node: Node<'_>, source: &str) -> Option<i64> {
+fn integer_value(node: Node<'_>, source: &str) -> Option<i128> {
     let node = calls::unparenthesized(node)?;
     if node.kind() == "unary_operator" {
         let operator = node.child_by_field_name("operator")?;
-        let value = integer_index(node.child_by_field_name("argument")?, source)?;
+        let value = integer_value(node.child_by_field_name("argument")?, source)?;
         return match &source[operator.byte_range()] {
             "+" => Some(value),
             "-" => value.checked_neg(),
@@ -190,7 +190,11 @@ fn integer_index(node: Node<'_>, source: &str) -> Option<i64> {
     } else {
         (text.as_str(), 10)
     };
-    i64::from_str_radix(digits, radix).ok()
+    i128::from_str_radix(digits, radix).ok()
+}
+
+fn integer_index(node: Node<'_>, source: &str) -> Option<i64> {
+    integer_value(node, source)?.try_into().ok()
 }
 
 fn list_slot(index: i64, length: usize) -> Option<usize> {
@@ -459,6 +463,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     pub(super) fn list_binary(&mut self, node: Node<'t>, env: &Environment, flow: Flow) -> Flow {
+        if !self.normal { return flow; }
         let Some(left) = node.child_by_field_name("left") else { return flow; };
         let Some(right) = node.child_by_field_name("right") else { return flow; };
         let left = self.list_references(left, env);
