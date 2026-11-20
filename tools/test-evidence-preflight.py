@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('preflight', ROOT / 'tools/evidence-preflight.py')
@@ -55,6 +56,15 @@ class Freshness(unittest.TestCase):
         selected = self.report()
         (self.root / 'src/lib.rs').unlink()
         self.assertEqual(self.inspect(selected)['changed_sources'], ['src/lib.rs'])
+
+    def test_sparse_historical_receipt_uses_its_git_blob(self):
+        name = 'tests/agent-eval/results/earlier/receipt.json'
+        data = b'{"receipt": true}'
+        self.save('result.json', json.dumps({'source_bindings': {name: hashlib.sha256(data).hexdigest()}}))
+        reader = preflight.Reader(self.root)
+        with patch.object(preflight.subprocess, 'check_output', side_effect=[str(len(data)).encode(), data]):
+            row = preflight.inspect(reader, {'path': 'result.json', 'selected_by': ['current']}, set(), {})
+        self.assertEqual(row['state'], 'current')
 
     def test_release_version_is_normalized(self):
         selected = self.report()

@@ -164,7 +164,13 @@ def inspect(reader, selected, native, digests):
                 raise ValueError('invalid input digest: ' + name)
             key = (value.get('schema'), name)
             if key not in digests:
-                digests[key] = roadmap.binding_digest(path, value.get('schema'), reader.root) if path.is_file() else None
+                if path.is_file():
+                    digests[key] = roadmap.binding_digest(path, value.get('schema'), reader.root)
+                elif name.startswith('tests/agent-eval/results/'):
+                    # Current reports can depend on a historical receipt omitted by sparse checkout.
+                    digests[key] = hashlib.sha256(reader.read(name)).hexdigest()
+                else:
+                    digests[key] = None
             if digests[key] != expected:
                 changed.add(name)
         if 'native-source-inputs.txt' in bindings:
@@ -173,6 +179,11 @@ def inspect(reader, selected, native, digests):
             client = reader.root / 'sdk/python/src'
             changed.update(path.relative_to(reader.root).as_posix() for path in client.rglob('*.py')
                            if path.relative_to(reader.root).as_posix() not in bindings)
+        if value.get('schema') == 'fr-project-changes-recheck':
+            for directory in ('sdk/python/src', 'sdk/python/tests'):
+                changed.update(path.relative_to(reader.root).as_posix()
+                               for path in (reader.root / directory).rglob('*.py')
+                               if path.relative_to(reader.root).as_posix() not in bindings)
         row.update(state='stale' if changed else 'current' if bindings or archived_sources else 'not-source-bound',
                    changed_sources=sorted(changed))
     except (ValueError, KeyError, OSError, subprocess.SubprocessError) as error:

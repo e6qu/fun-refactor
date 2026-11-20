@@ -834,6 +834,7 @@ jobs:
     steps:
       - name: Require every native group and independent check
         env:
+          EVIDENCE_PREFLIGHT: ${{ needs.evidence-preflight.result }}
           NATIVE: ${{ needs.native.result }}
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
@@ -851,6 +852,7 @@ jobs:
           CURRENT_PROJECT_CHANGES: ${{ needs.current-project-changes.result }}
           CURRENT_SESSION_COST: ${{ needs.current-session-cost.result }}
         run: |
+          test "$EVIDENCE_PREFLIGHT" = success &&
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
           test "$AGENT_STUDY" = success &&
