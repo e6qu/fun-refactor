@@ -38,36 +38,36 @@
       "sha256": "b53612c1143c4a60893929ae10768eb095af94ff5ff06e92c7a034556a876a9d"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-identities-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-slices-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "b2126d915d65348750bf2cf2a1a93e2c0520a29484f1c99710e67df35bccbf1c"
+      "sha256": "7330359cc364cca286772ec23cdefcc08160f2272100e2a9f286f916c1cd0d86"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-identities-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-slices-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "6f79f976e4a71b42cecd28dc141f3fb8f45acab8c25bf679e51b284ae66f6d2f"
+      "sha256": "beb13c83b9ed5f02c38c87ed24b068cc0a508625e6bffb0ca9eaaa4effbdc088"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-identities-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-slices-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "0e172e7008cd89df0ae75d656a4275009ef79cc8eae60d119ba3ced5b142649f"
+      "sha256": "148bd338e571e7a6b9103c1916a332fac9648e5d0e90b753a7549b79996d4e9b"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-identities-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-11-20-list-slices-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "5b533c5006122946643460c265984dd08c07bc863bd45639eda17de165368deb"
+      "sha256": "9f3f2e9a437736ae04adcf1b76f945f34e8100abe4a306ac793c6b2e80a79338"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-11-19-shared-lists-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-20-list-identities-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-11-20-list-slices-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "1a9985db648ae5d64b96f5df23b0d4d7866bce3fe512b0b07cf48b25b48f238f"
+      "sha256": "7dbbd7ae479dd352f048674758dfcd7e2fbc1e66c6d49ab3cad81944757a1153"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-20-list-identities-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-11-20-list-slices-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-python-contract/result.json",
       "scope": "16 declared Python rules; 527 authored programs and 1054 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "69be65e8455f597d8f1faaa7c68d9f22909453b04137e6db0d73f07e499a7001"
+      "sha256": "99b638d25804bb97ef0843faed2a28dbb8f360f9ecc0ff5982a4b42c784203b9"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-20-list-identities-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-11-20-list-slices-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-20-list-identities-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-11-20-list-slices-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "ce36a3735cb36175cbd167d35766d7fd0f009093cef066e0199bb8c19c313db8"
+      "sha256": "2bf1e1d3edfe5e5d4a7374fff6b5fed121c3b1be63bfd52824772d26a6f66e0e"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
