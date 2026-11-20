@@ -31,7 +31,9 @@ PYTHON_SELECTORS = (
     'compiler-profile', 'python-contract', 'workflow-route-context',
     'guide-body-context', 'recovery-delivery-context', 'source-repair-context',
 )
-LIMIT = 32 * 1024 * 1024
+# The existing retention format permits a 64 MiB expanded collection.
+LIMIT = 64 * 1024 * 1024
+TOTAL_LIMIT = 128 * 1024 * 1024
 
 
 class Reader:
@@ -56,7 +58,7 @@ class Reader:
                           cwd=self.root, stderr=subprocess.DEVNULL, timeout=10)
         else:
             raise ValueError('missing input: ' + name)
-        if size > LIMIT or self.used + size > 4 * LIMIT:
+        if size > LIMIT or self.used + size > TOTAL_LIMIT:
             raise ValueError('report read budget exceeded: ' + name)
         data = load()
         self.used += len(data)
@@ -85,7 +87,8 @@ def selections(reader):
         if sha256 and row['sha256'] and row['sha256'] != sha256:
             raise ValueError('report selectors disagree: ' + path)
         row['sha256'] = sha256 or row['sha256']
-        row['selected_by'].append(name)
+        if name not in row['selected_by']:
+            row['selected_by'].append(name)
 
     scalar = reader.json('tests/agent-eval/current-scalar-reports.json')
     if scalar['schema'] != 'fr-current-scalar-reports':
