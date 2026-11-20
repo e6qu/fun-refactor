@@ -668,7 +668,8 @@ jobs:
           import runpy
           from pathlib import Path
           runpy.run_path('tools/ci-shards.py')['checkout_inputs'](
-              {'sources': [Path('tests/agent-eval/representative-acceptance.json').read_text()],
+              {'sources': [Path('tests/agent-eval/representative-acceptance.json').read_text(),
+                           Path('tools/test-compiler-profile.py').read_text()],
                'guides': False, 'catalog': True})
           PY
       - uses: actions/setup-python@v7
