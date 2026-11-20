@@ -163,17 +163,32 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             "comparison_operator" if children.len() >= 2 => {
                 let mut result = Flow::new();
+                let mut skipped = None::<lists::Lists>;
                 for (index, child) in children.into_iter().enumerate() {
+                    if index >= 2 {
+                        match &mut skipped {
+                            Some(heap) => {
+                                heap.join(&env.lists.borrow());
+                            }
+                            None => skipped = Some(env.lists.borrow().clone()),
+                        }
+                    }
                     let (value, _) = self.expression_value(child, env);
                     if !self.normal {
                         let prior_comparison_can_finish_false = index >= 2;
                         self.normal = prior_comparison_can_finish_false;
+                        if let Some(heap) = skipped {
+                            env.lists.borrow_mut().join(&heap);
+                        }
                         return (
                             if self.normal { result } else { Flow::new() },
                             Truth::Unknown,
                         );
                     }
                     merge(&mut result, value);
+                }
+                if let Some(heap) = skipped {
+                    env.lists.borrow_mut().join(&heap);
                 }
                 (result, Truth::Unknown)
             }

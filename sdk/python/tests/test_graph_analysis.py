@@ -36,6 +36,17 @@ def execute(source, value):
     return json.loads(run.stdout)
 
 
+@pytest.mark.parametrize('comparison', ['0 > 1 > clear(values)', '0 < 1 < 0 < clear(values)'])
+def test_short_circuited_comparisons_preserve_list_contents(tmp_path, comparison):
+    source = ('def clear(items):\n    items[0] = 0\n    return 0\n'
+              'def entry():\n    values = [read()]\n'
+              f'    result = {comparison}\n    send(values[0])\n')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+
+
 @pytest.mark.parametrize('base', ['', ', 10'])
 @pytest.mark.parametrize('moved', [False, True])
 def test_invalid_number_input_reaches_its_bound_error_handler(tmp_path, base, moved):
