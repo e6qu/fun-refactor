@@ -29,7 +29,30 @@ env:
   CARGO_INCREMENTAL: "0"
 
 jobs:
+  prepare:
+    if: ${{ !inputs.external_replays_only }}
+    name: Build repository command audits
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lean-audit
+      - name: Check inventory and executable controls
+        run: python3 tools/test-deep-audit.py
+      - name: Compile the complete command audit executable
+        run: python3 tools/deep-audit.py build --output target/deep-audit-binaries
+      - uses: actions/upload-artifact@v7
+        with:
+          name: command-audit-binaries
+          path: target/deep-audit-binaries/
+          if-no-files-found: error
+          retention-days: 7
+
   audit:
+    needs: prepare
     if: ${{ !inputs.external_replays_only }}
     name: Repository audit (${{ matrix.target }}-${{ matrix.index }})
     runs-on: ubuntu-latest
@@ -52,6 +75,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install the Rust toolchain
+        if: matrix.target != 'commands_agree'
         run: rustup toolchain install stable --profile minimal
 
       - uses: actions/setup-node@v7
@@ -105,14 +129,26 @@ jobs:
           /opt/lean/bin/lean --version
 
       - uses: Swatinem/rust-cache@v2
+        if: matrix.target != 'commands_agree'
         with:
           key: lean-audit
+
+      - uses: actions/download-artifact@v8
+        if: matrix.target == 'commands_agree'
+        with:
+          name: command-audit-binaries
+          path: target/deep-audit-binaries
 
       - name: Run the assigned audit inventory
         env:
           TARGET: ${{ matrix.target }}
           INDEX: ${{ matrix.index }}
-        run: python3 tools/deep-audit.py "$TARGET" "$INDEX"
+        run: |
+          if [ "$TARGET" = commands_agree ]; then
+            python3 tools/deep-audit.py "$TARGET" "$INDEX" --binary-directory target/deep-audit-binaries
+          else
+            python3 tools/deep-audit.py "$TARGET" "$INDEX"
+          fi
       - uses: actions/upload-artifact@v7
         with:
           name: deep-${{ matrix.target }}-${{ matrix.index }}
@@ -151,16 +187,17 @@ jobs:
 
   complete:
     name: Complete deep audit
-    needs: [audit, external-replays]
+    needs: [prepare, audit, external-replays]
     if: ${{ !cancelled() && !inputs.external_replays_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require all audits and external replays
         env:
+          PREPARE: ${{ needs.prepare.result }}
           AUDIT: ${{ needs.audit.result }}
           REPLAYS: ${{ needs.external-replays.result }}
-        run: test "$AUDIT" = success && test "$REPLAYS" = success
+        run: test "$PREPARE" = success && test "$AUDIT" = success && test "$REPLAYS" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:

@@ -51,6 +51,67 @@ class AuditTests(unittest.TestCase):
                 self.assertEqual(run.call_count, int(failed))
                 self.assertFalse(list(directory.iterdir()))
 
+    def test_prepared_audit_rejects_stale_swapped_and_changed_binaries(self):
+        for corrupt in (None, "revision", "target", "sha256", "extra", "binary"):
+            with self.subTest(corrupt=corrupt), tempfile.TemporaryDirectory() as temp:
+                directory = Path(temp)
+                binary = directory / "commands_agree"
+                binary.write_bytes(b"compiled audit")
+                manifest = {"revision": "revision", "target": "commands_agree",
+                            "sha256": audit.digest(binary)}
+                if corrupt == "binary":
+                    binary.write_bytes(b"changed executable")
+                elif corrupt:
+                    manifest[corrupt] = "different"
+                (directory / "manifest.json").write_text(json.dumps(manifest))
+                if corrupt:
+                    with self.assertRaises(ValueError):
+                        audit.prepared_command(directory, "commands_agree", "revision")
+                else:
+                    self.assertEqual(audit.prepared_command(directory, "commands_agree", "revision"),
+                                     [str(binary.resolve())])
+                    with self.assertRaises(ValueError):
+                        audit.prepared_command(directory, "conformance", "revision")
+
+    def test_build_retains_only_one_matching_test_executable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            executable = directory / "compiled"
+            executable.write_bytes(b"compiled audit")
+            row = {"reason": "compiler-artifact", "target": {"name": "commands_agree"},
+                   "profile": {"test": True}, "executable": str(executable)}
+            for rows in ([], [row, row], [row]):
+                output = directory / str(len(rows))
+                with patch.object(audit.subprocess, "check_output", return_value="\n".join(map(json.dumps, rows))):
+                    if len(rows) != 1:
+                        with self.assertRaises(ValueError):
+                            audit.build(output, "revision")
+                        self.assertFalse(output.exists())
+                    else:
+                        audit.build(output, "revision")
+                        self.assertEqual(audit.prepared_command(output, "commands_agree", "revision"),
+                                         [str((output / "commands_agree").resolve())])
+
+    def test_prepared_execution_keeps_inventory_and_failure_checks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            with patch.object(audit, "prepared_command", return_value=["/prepared/audit"]), \
+                    patch.object(audit.subprocess, "check_output", return_value="one: test\n"), \
+                    patch.object(audit.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "audit")) as run:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    audit.run("commands_agree", 0, directory, "revision", directory)
+                self.assertEqual(run.call_args.args[0][0], "/prepared/audit")
+                self.assertIn("--include-ignored", run.call_args.args[0])
+                self.assertFalse(list(directory.glob("*.json")))
+
+    def test_expensive_usage_scans_get_separate_shards(self):
+        names = sorted(audit.WEIGHTS)
+        groups = audit.shards.partition(names, audit.COUNTS["commands_agree"], audit.WEIGHTS)
+        slow = {"the_self_hosted_recipe_replays_without_changing_the_workspace",
+                "usages_reports_the_references_that_resolved_to_the_symbol",
+                "usages_reports_the_name_where_it_appears_in_prose"}
+        self.assertTrue(all(len(slow.intersection(group)) <= 1 for group in groups))
+
     def evidence(self, directory):
         for target, count in audit.COUNTS.items():
             names = [f"test_{index}" for index in range(count)]
