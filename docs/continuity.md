@@ -40,7 +40,7 @@ insert/pop/reverse and checked helper binding. Full CI and post-merge release ch
 independent runtime checks,
 cross-file cache invalidation and 12 new paired contract examples. Run the
 [evidence preflight](evidence-refresh.md) before collecting reports and before full CI.
-The next increment covers bounded slices, shallow copies, concatenation and deletion.
+Bounded slices, shallow copies, concatenation and deletion have passed their focused behavior checks.
 The full-product and live-comparison completion gates remain open.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.

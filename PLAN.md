@@ -77,7 +77,7 @@ Independent feature work landed in [#637](https://github.com/e6qu/fun-refactor/p
 insert/pop/reverse, checked helper binding and refreshed analysis evidence. Full CI and post-merge release checks passed.
 [PR #639](https://github.com/e6qu/fun-refactor/pull/639) merged returned list identities and nested aliases,
 covering checked helper calls, cleanup and cache invalidation. Its full CI passed.
-The next increment adds bounded slicing, shallow copies, concatenation and deletion, with independent runtime checks.
+Bounded slicing, shallow copies, concatenation and deletion now have independent runtime checks.
 Independent Python examples check each new rule.
 A [report freshness preflight](docs/evidence-refresh.md) identifies affected current reports before expensive CI gates.
 The workstation is again below its 64 GiB floor; execution and evidence collection remain on GitHub.
