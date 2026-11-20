@@ -483,6 +483,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 {
                     merge(&mut flow, self.expression(child, env));
                 }
+                if node.kind() == "binary_operator" {
+                    flow = self.list_binary(node, env, flow);
+                }
                 self.extend(flow, node, "expression")
             }
             _ => {
@@ -1121,6 +1124,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                 }
             }
+            "delete_statement" => self.list_delete(node, state),
             "pass_statement" | "comment" => (),
             _ => self.cutoff(format!("unsupported-statement:{}", node.kind())),
         }
