@@ -122,6 +122,13 @@ class Freshness(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'read budget'):
             preflight.Reader(self.root).read('oversized.json')
 
+    def test_reports_do_not_accumulate_in_the_read_budget(self):
+        selected = [self.report(name) for name in ('first.json', 'second.json')]
+        size = sum((self.root / row['path']).stat().st_size for row in selected)
+        with patch.object(preflight, 'selections', return_value=selected), \
+                patch.object(preflight, 'TOTAL_LIMIT', size - 1):
+            self.assertTrue(preflight.compute(self.root)['passed'])
+
 
 if __name__ == '__main__':
     unittest.main()

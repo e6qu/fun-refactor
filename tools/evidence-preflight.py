@@ -199,7 +199,14 @@ def compute(root):
     reader = Reader(root)
     native = set(native_source_paths(root))
     digests = {}
-    rows = [inspect(reader, row, native, digests) for row in selections(reader)]
+    selected = selections(reader)
+    rows = []
+    for row in selected:
+        # Bound each report and its dependencies; do not retain earlier report
+        # payloads merely to inspect the next one. The digest cache stays small.
+        reader.cache.clear()
+        reader.used = 0
+        rows.append(inspect(reader, row, native, digests))
     return {'schema': 'fr-evidence-preflight-1',
             'passed': all(row['state'] not in {'stale', 'error'} for row in rows),
             'scope': 'Current report input freshness; behavior and archive audits still run separately.',
