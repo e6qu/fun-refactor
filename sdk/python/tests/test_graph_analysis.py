@@ -47,6 +47,17 @@ def test_short_circuited_comparisons_preserve_list_contents(tmp_path, comparison
     assert report['witnesses']
 
 
+def test_cleanup_updates_a_return_that_can_be_a_list_or_scalar(tmp_path):
+    source = ('def relay(items, flag, value):\n    try:\n'
+              '        return items if flag else 0\n    finally:\n        items[0] = value\n'
+              'def entry():\n    values = [0]\n    send(relay(values, read(), read()))\n')
+    assert execute(source, 'Customer') == ["['Customer']"]
+    assert execute(source, '') == ['0']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+
+
 @pytest.mark.parametrize('base', ['', ', 10'])
 @pytest.mark.parametrize('moved', [False, True])
 def test_invalid_number_input_reaches_its_bound_error_handler(tmp_path, base, moved):
