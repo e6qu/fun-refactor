@@ -1555,6 +1555,21 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Fetch the contract and roadmap audit inputs
+        run: |
+          python3 -B - <<'PYTHON'
+          import runpy
+          from pathlib import Path
+          runpy.run_path('tools/ci-shards.py')['checkout_inputs'](
+              {'sources': [Path('tests/agent-eval/test_roadmap_status.py').read_text(),
+                           Path('tools/test-python-contract.py').read_text()],
+               'guides': False, 'catalog': True})
+          PYTHON
+          python3 -B tools/test-ci-shards.py
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -1574,7 +1589,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-python-contract" \
+          git add --sparse "tests/agent-eval/results/$EVIDENCE_PREFIX-python-contract" \
             tools/test-python-contract.py tests/agent-eval/roadmap.json \
             docs/roadmap-status.md docs/roadmap-status.json
           git commit -m 'test: retain validated Python boundary evidence'
