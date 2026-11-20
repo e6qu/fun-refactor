@@ -851,7 +851,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     } else {
                         Flow::new()
                     };
-                    merge(&mut flow, state.lists.borrow().contents(&value.references.ids));
+                    merge(
+                        &mut flow,
+                        state.lists.borrow().contents(&value.references.ids),
+                    );
                     if let Some(site) = &value.site {
                         for trace in flow.values_mut() {
                             if !trace
