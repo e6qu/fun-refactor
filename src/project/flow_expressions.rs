@@ -140,13 +140,19 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     self.normal = true;
                     let (value, alternative) = self.expression_value(children[index], env);
                     match &mut joined_heap {
-                        Some(heap) => { heap.join(&env.lists.borrow()); }
+                        Some(heap) => {
+                            heap.join(&env.lists.borrow());
+                        }
                         None => joined_heap = Some(env.lists.borrow().clone()),
                     }
                     if self.normal {
                         merge(&mut result, value);
                         let selected = self.list_references(children[index], env);
-                        if normal { references.join(&selected); } else { references = selected; }
+                        if normal {
+                            references.join(&selected);
+                        } else {
+                            references = selected;
+                        }
                         normal = true;
                         truth = Some(truth.map_or(alternative, |old: Truth| old.join(alternative)));
                     }

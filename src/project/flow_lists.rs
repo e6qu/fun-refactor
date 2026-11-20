@@ -10,7 +10,10 @@ pub(super) struct References {
 
 impl Default for References {
     fn default() -> Self {
-        Self { ids: BTreeSet::new(), scalar: true }
+        Self {
+            ids: BTreeSet::new(),
+            scalar: true,
+        }
     }
 }
 
@@ -93,14 +96,23 @@ impl Lists {
     }
 
     pub fn references(&self, node: Node<'_>, file: &Path, source: &str) -> References {
-        let Some(node) = calls::unparenthesized(node) else { return References::default() };
+        let Some(node) = calls::unparenthesized(node) else {
+            return References::default();
+        };
         if node.kind() == "identifier" {
             let name = &source[node.byte_range()];
-            return self.bindings.get(name).map_or_else(References::default, |ids| References {
-                ids: ids.clone(), scalar: self.uncertain.contains(name),
-            });
+            return self
+                .bindings
+                .get(name)
+                .map_or_else(References::default, |ids| References {
+                    ids: ids.clone(),
+                    scalar: self.uncertain.contains(name),
+                });
         }
-        self.expressions.get(&(file.to_owned(), node.start_byte())).cloned().unwrap_or_default()
+        self.expressions
+            .get(&(file.to_owned(), node.start_byte()))
+            .cloned()
+            .unwrap_or_default()
     }
 
     pub fn contents(&self, ids: &BTreeSet<String>) -> Flow {
@@ -108,7 +120,9 @@ impl Lists {
         let mut visited = BTreeSet::new();
         let mut pending: Vec<_> = ids.iter().collect();
         while let Some(id) = pending.pop() {
-            if !visited.insert(id) { continue; }
+            if !visited.insert(id) {
+                continue;
+            }
             if let Some(list) = self.objects.get(id) {
                 for item in &list.items {
                     merge(&mut result, item.flow.clone());
@@ -169,7 +183,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         env.lists.borrow().references(node, self.file, self.source)
     }
 
-    pub(super) fn record_list_references(&self, node: Node<'t>, env: &Environment, refs: References) {
+    pub(super) fn record_list_references(
+        &self,
+        node: Node<'t>,
+        env: &Environment,
+        refs: References,
+    ) {
         let key = (self.file.to_owned(), node.start_byte());
         if refs.ids.is_empty() {
             env.lists.borrow_mut().expressions.remove(&key);
@@ -180,12 +199,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
 
     fn list_element(&self, node: Node<'t>, flow: Flow, env: &Environment) -> Element {
         let references = self.list_references(node, env);
-        Element { flow: if references.scalar { flow } else { Flow::new() }, references }
+        Element {
+            flow: if references.scalar { flow } else { Flow::new() },
+            references,
+        }
     }
 
     fn element_flow(&self, value: &Element, env: &Environment) -> Flow {
         let mut flow = value.flow.clone();
-        merge(&mut flow, env.lists.borrow().contents(&value.references.ids));
+        merge(
+            &mut flow,
+            env.lists.borrow().contents(&value.references.ids),
+        );
         flow
     }
 
@@ -197,12 +222,21 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let mut values = Vec::new();
         for item in items {
-            if item.kind() == "list_splat" { self.cutoff("list-unpacking-unchecked"); }
+            if item.kind() == "list_splat" {
+                self.cutoff("list-unpacking-unchecked");
+            }
             let flow = self.expression(item, env);
-            if !self.normal { return Flow::new(); }
+            if !self.normal {
+                return Flow::new();
+            }
             values.push(self.list_element(item, flow, env));
         }
-        let id = format!("{}:{}:{}", self.list_sites.join("/"), self.file.display(), node.start_byte());
+        let id = format!(
+            "{}:{}:{}",
+            self.list_sites.join("/"),
+            self.file.display(),
+            node.start_byte()
+        );
         if env.lists.borrow().objects.contains_key(&id) {
             self.cutoff("repeated-list-allocation");
             return Flow::new();
@@ -211,7 +245,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("list-object-budget");
             return Flow::new();
         }
-        env.lists.borrow_mut().objects.insert(id.clone(), List { minimum: values.len(), items: values });
+        env.lists.borrow_mut().objects.insert(
+            id.clone(),
+            List {
+                minimum: values.len(),
+                items: values,
+            },
+        );
         let ids = BTreeSet::from([id]);
         let flow = env.lists.borrow().contents(&ids);
         self.record_list_references(node, env, References { ids, scalar: false });
@@ -220,7 +260,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
 
     pub(super) fn list_value(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
         let node = calls::unparenthesized(node)?;
-        if node.kind() != "identifier" { return None; }
+        if node.kind() != "identifier" {
+            return None;
+        }
         let ids = self.list_references(node, env).ids;
         if ids.is_empty() {
             return None;
@@ -266,24 +308,36 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let name = self.text(left).to_owned();
         let flow = self.expression(right, env);
-        if !self.normal { return true; }
+        if !self.normal {
+            return true;
+        }
         let refs = self.list_references(right, env);
         let plain = self.plain_string(right, env);
         if refs.ids.is_empty() {
-            if !self.tick(left, "definition") { return true; }
+            if !self.tick(left, "definition") {
+                return true;
+            }
             env.lists.borrow_mut().bindings.remove(&name);
             env.lists.borrow_mut().uncertain.remove(&name);
         } else {
-            env.lists.borrow_mut().bindings.insert(name.clone(), refs.ids);
+            env.lists
+                .borrow_mut()
+                .bindings
+                .insert(name.clone(), refs.ids);
             if refs.scalar {
                 env.lists.borrow_mut().uncertain.insert(name.clone());
             } else {
                 env.lists.borrow_mut().uncertain.remove(&name);
             }
         }
-        env.values.insert(name.clone(), self.extend(flow, left, "definition"));
+        env.values
+            .insert(name.clone(), self.extend(flow, left, "definition"));
         env.defined.insert(name.clone());
-        if plain { env.plain_strings.insert(name); } else { env.plain_strings.remove(&name); }
+        if plain {
+            env.plain_strings.insert(name);
+        } else {
+            env.plain_strings.remove(&name);
+        }
         true
     }
 
@@ -294,13 +348,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     ) -> Option<BTreeMap<String, BTreeSet<usize>>> {
         let value = node.child_by_field_name("value")?;
         self.expression(value, env);
-        if !self.normal { return Some(BTreeMap::new()); }
+        if !self.normal {
+            return Some(BTreeMap::new());
+        }
         let references = self.list_references(value, env);
         let ids = references.ids;
         if ids.is_empty() {
             return None;
         }
-        if references.scalar { self.cutoff("list-binding-type-unchecked"); }
+        if references.scalar {
+            self.cutoff("list-binding-type-unchecked");
+        }
         if node
             .children_by_field_name("subscript", &mut node.walk())
             .count()
@@ -348,7 +406,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     for slot in slots {
                         if let Some(item) = list.items.get(slot) {
                             match &mut value {
-                                Some(value) => { value.join(item); }
+                                Some(value) => {
+                                    value.join(item);
+                                }
                                 None => value = Some(item.clone()),
                             }
                         }
@@ -373,7 +433,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         value.flow = self.extend(value.flow, left, "list-write");
         let Some(selected) = self.indexed_list(left, env) else {
             self.cutoff("list-write-target-unchecked");
-            self.effect_limit(left, "shared-write", "The assignment target is not an established local list.");
+            self.effect_limit(
+                left,
+                "shared-write",
+                "The assignment target is not an established local list.",
+            );
             return true;
         };
         let strong = selected.len() == 1 && selected.values().all(|slots| slots.len() == 1);
@@ -401,17 +465,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let object = function.child_by_field_name("object")?;
         let object_kind = calls::unparenthesized(object)?.kind();
-        if matches!(object_kind, "identifier" | "attribute") && self.list_references(object, env).ids.is_empty() {
+        if matches!(object_kind, "identifier" | "attribute")
+            && self.list_references(object, env).ids.is_empty()
+        {
             return None;
         }
         self.expression(object, env);
-        if !self.normal { return Some(Flow::new()); }
+        if !self.normal {
+            return Some(Flow::new());
+        }
         let references = self.list_references(object, env);
         let ids = references.ids;
         if ids.is_empty() {
             return None;
         }
-        if references.scalar { self.cutoff("list-binding-type-unchecked"); }
+        if references.scalar {
+            self.cutoff("list-binding-type-unchecked");
+        }
         let method = self
             .text(function.child_by_field_name("attribute")?)
             .to_owned();
@@ -464,7 +534,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     if method == "pop" {
                         for item in &list.items {
                             match &mut result {
-                                Some(value) => { value.join(item); }
+                                Some(value) => {
+                                    value.join(item);
+                                }
                                 None => result = Some(item.clone()),
                             }
                         }
@@ -536,15 +608,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     self.cutoff("list-mutation-target-unchecked");
                 }
                 list.minimum += addition.len();
-                list.items.extend(
-                    addition
-                        .iter()
-                        .cloned()
-                        .map(|mut value| {
-                            value.flow = self.extend(value.flow, node, "list-write");
-                            value
-                        }),
-                );
+                list.items.extend(addition.iter().cloned().map(|mut value| {
+                    value.flow = self.extend(value.flow, node, "list-write");
+                    value
+                }));
             }
         }
         Some(Flow::new())
@@ -611,7 +678,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             {
                 let parameter = source[parameter.node.byte_range()].to_owned();
                 heap.bindings.insert(parameter.clone(), refs.ids.clone());
-                if refs.scalar { heap.uncertain.insert(parameter); }
+                if refs.scalar {
+                    heap.uncertain.insert(parameter);
+                }
             }
         }
         let saved = (
@@ -620,43 +689,74 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             std::mem::take(&mut self.returned_lists),
             std::mem::take(&mut self.return_references),
         );
-        self.list_sites.push(format!("{}:{}", self.file.display(), call.start_byte()));
+        self.list_sites
+            .push(format!("{}:{}", self.file.display(), call.start_byte()));
         (self.file, self.source) = (file, source);
         let result = self.invoke_with_lists(name, function, arguments, heap);
         self.list_sites.pop();
         let references = self.return_references.clone();
         env.lists.borrow_mut().objects = self.returned_lists.objects.clone();
-        (self.file, self.source, self.returned_lists, self.return_references) = saved;
+        (
+            self.file,
+            self.source,
+            self.returned_lists,
+            self.return_references,
+        ) = saved;
         self.record_list_references(call, env, references);
         Some(self.extend(result, call, "list-helper-result"))
     }
 
     fn list_factory(&mut self, name: &str) -> bool {
-        if let Some(value) = self.list_factories.get(name) { return *value; }
+        if let Some(value) = self.list_factories.get(name) {
+            return *value;
+        }
         let mut pending = vec![name.to_owned()];
         let mut visited = BTreeSet::new();
         let mut found = false;
         while let Some(name) = pending.pop() {
-            if !visited.insert(name.clone()) { continue; }
-            let Some(function) = self.functions.get(&name) else { continue; };
+            if !visited.insert(name.clone()) {
+                continue;
+            }
+            let Some(function) = self.functions.get(&name) else {
+                continue;
+            };
             let (file, source) = self.contexts[&name];
             let mut nodes: Vec<_> = function.child_by_field_name("body").into_iter().collect();
             while let Some(node) = nodes.pop() {
-                if node.kind() == "list" { found = true; break; }
-                if matches!(node.kind(), "function_definition" | "class_definition" | "lambda") { continue; }
+                if node.kind() == "list" {
+                    found = true;
+                    break;
+                }
+                if matches!(
+                    node.kind(),
+                    "function_definition" | "class_definition" | "lambda"
+                ) {
+                    continue;
+                }
                 if node.kind() == "call" {
                     if let Some(target) = node.child_by_field_name("function") {
-                        let text: String = source[target.byte_range()].chars().filter(|c| !c.is_whitespace()).collect();
+                        let text: String = source[target.byte_range()]
+                            .chars()
+                            .filter(|c| !c.is_whitespace())
+                            .collect();
                         let target = self.modules.map_or_else(
-                            || self.function_aliases.get(&text).map_or_else(|| text.clone(), |(target, _)| target.clone()),
+                            || {
+                                self.function_aliases
+                                    .get(&text)
+                                    .map_or_else(|| text.clone(), |(target, _)| target.clone())
+                            },
                             |modules| modules.resolve(file, &text),
                         );
-                        if self.functions.contains_key(&target) { pending.push(target); }
+                        if self.functions.contains_key(&target) {
+                            pending.push(target);
+                        }
                     }
                 }
                 nodes.extend(node.named_children(&mut node.walk()));
             }
-            if found { break; }
+            if found {
+                break;
+            }
         }
         self.list_factories.insert(name.to_owned(), found);
         found

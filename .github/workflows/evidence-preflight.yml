@@ -1,0 +1,31 @@
+name: Evidence preflight
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  freshness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Check preflight controls
+        run: python3 -B tools/test-evidence-preflight.py
+      - name: List every stale current report
+        run: python3 -B tools/evidence-preflight.py --output "$RUNNER_TEMP/evidence-preflight.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-preflight
+          path: ${{ runner.temp }}/evidence-preflight.json
+          if-no-files-found: warn

@@ -853,20 +853,28 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     };
                     if let Some(site) = &value.site {
                         for trace in flow.values_mut() {
-                            if !trace.occurrences.iter().any(|previous| previous.id == site.id) {
+                            if !trace
+                                .occurrences
+                                .iter()
+                                .any(|previous| previous.id == site.id)
+                            {
                                 trace.occurrences.push(site.clone());
                             }
                         }
                     }
                     merge(&mut result, flow);
                     match &mut return_references {
-                        Some(refs) => { refs.join(&value.references); }
+                        Some(refs) => {
+                            refs.join(&value.references);
+                        }
                         None => return_references = Some(value.references.clone()),
                     }
                     return_text = Some(return_text.is_none_or(|prior| prior) && value.plain_string);
                 } else {
                     match &mut return_references {
-                        Some(refs) => { refs.join(&lists::References::default()); }
+                        Some(refs) => {
+                            refs.join(&lists::References::default());
+                        }
                         None => return_references = Some(lists::References::default()),
                     }
                     return_text = Some(false);

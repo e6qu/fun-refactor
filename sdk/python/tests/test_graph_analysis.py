@@ -186,6 +186,40 @@ def test_saved_list_answers_invalidate_after_an_imported_helper_changes(tmp_path
     assert fresh.witnesses == clean.witnesses
 
 
+@pytest.mark.parametrize('module', ['helpers', 'relocated_helpers'])
+@pytest.mark.parametrize('nested', [False, True])
+def test_returned_imported_lists_keep_identity_and_invalidate_saved_answers(tmp_path, module, nested):
+    helper = tmp_path / (module + '.py')
+    wrapped = '[items]' if nested else 'items'
+    helper.write_text(f'def select(*, items):\n    items[0] = 0\n    return {wrapped}\n')
+    item = 'selected[0][0]' if nested else 'selected[0]'
+    source = (f'from {module} import select as choose\ndef entry():\n'
+              '    values = [read()]\n    selected = choose(items=values)\n'
+              f'    send({item})\n')
+    analyze(tmp_path, source)
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+
+    def query(selected):
+        handle = client.project('find', 'entry').definition_target().handle
+        return selected.analyze(client, handle, standard_library=('builtins',),
+                                rules=tmp_path / 'rules.json', context='html', steps=4096,
+                                depth=8, max_bytes=1048576, summaries=True, imports=True)
+
+    cold = query(cache)
+    assert cold.report.at('/complete') and not cold.witnesses
+    assert query(cache).reused
+    helper.write_text(f'def select(*, items):\n    return {wrapped}\n')
+    changed = query(cache)
+    assert not changed.reused
+    assert changed.report.at('/complete') and changed.witnesses
+    fresh = query(FlowCache(MemoryObjectStore()))
+    assert changed.witnesses == fresh.witnesses
+    assert any(point['path'] == module + '.py'
+               for witness in changed.report.at('/witnesses')
+               for point in witness['trace']['occurrences'])
+
+
 @pytest.mark.parametrize('index', ['0,', '0, 0'])
 def test_tuple_indices_are_not_mistaken_for_integer_indices(tmp_path, index):
     report = analyze(tmp_path, f'def entry():\n    values = [read()]\n    send(values[{index}])\n')
