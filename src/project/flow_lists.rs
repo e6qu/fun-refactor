@@ -66,7 +66,11 @@ fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
     for (origin, trace) in &mut current {
         if let Some(previous) = prior.get(origin) {
             for point in &previous.occurrences {
-                if !trace.occurrences.iter().any(|existing| existing.id == point.id) {
+                if !trace
+                    .occurrences
+                    .iter()
+                    .any(|existing| existing.id == point.id)
+                {
                     trace.occurrences.push(point.clone());
                 }
             }
@@ -365,15 +369,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         true
     }
 
-    fn indexed_list(
-        &mut self,
-        node: Node<'t>,
-        env: &Environment,
-    ) -> Option<IndexedList> {
+    fn indexed_list(&mut self, node: Node<'t>, env: &Environment) -> Option<IndexedList> {
         let value = node.child_by_field_name("value")?;
         let receiver = self.expression(value, env);
         if !self.normal {
-            return Some(IndexedList { slots: BTreeMap::new(), receiver });
+            return Some(IndexedList {
+                slots: BTreeMap::new(),
+                receiver,
+            });
         }
         let references = self.list_references(value, env);
         let ids = references.ids;
@@ -392,12 +395,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .any(|child| child.kind() == ",")
         {
             self.cutoff("list-index-unchecked");
-            return Some(IndexedList { slots: BTreeMap::new(), receiver });
+            return Some(IndexedList {
+                slots: BTreeMap::new(),
+                receiver,
+            });
         }
         let index = node.child_by_field_name("subscript")?;
         let Some(index_value) = integer_index(index, self.source) else {
             self.cutoff("list-index-unchecked");
-            return Some(IndexedList { slots: BTreeMap::new(), receiver });
+            return Some(IndexedList {
+                slots: BTreeMap::new(),
+                receiver,
+            });
         };
         self.expression(index, env);
         let mut selected = BTreeMap::new();
@@ -417,7 +426,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             selected.insert(id, slots);
         }
-        Some(IndexedList { slots: selected, receiver })
+        Some(IndexedList {
+            slots: selected,
+            receiver,
+        })
     }
 
     pub(super) fn list_item(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
