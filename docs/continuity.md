@@ -36,9 +36,11 @@ ARM macOS checking alone takes 589–605 MiB, before adding the client and contr
 The original native admission block remains. Do not raise limits or start live calls.
 Independent analysis work merged in [#637](https://github.com/e6qu/fun-refactor/pull/637), adding signed list indices,
 insert/pop/reverse and checked helper binding. Full CI and post-merge release checks passed.
-Returned list identities and nested aliases have independent runtime checks,
+[PR #639](https://github.com/e6qu/fun-refactor/pull/639) merged returned list identities and nested aliases with passing full CI,
+independent runtime checks,
 cross-file cache invalidation and 12 new paired contract examples. Run the
 [evidence preflight](evidence-refresh.md) before collecting reports and before full CI.
+Bounded slices, shallow copies, concatenation and deletion have passed their focused behavior checks.
 The full-product and live-comparison completion gates remain open.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.

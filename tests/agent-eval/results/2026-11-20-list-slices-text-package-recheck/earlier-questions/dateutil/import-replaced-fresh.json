@@ -1,0 +1,1618 @@
+{
+  "assignment_control": {
+    "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+    "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+    "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+    "implicit_exceptions": false,
+    "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+    "schema": "fr-scalar-assignment"
+  },
+  "assumptions": [
+    "Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.",
+    "branch feasibility unchecked",
+    "external rules are caller-supplied contracts.",
+    "Supported raises and known-string integer conversion failures follow builtin handlers and cleanup. Local caught-error names preserve origins. Other implicit exceptions, custom classes and resource effects remain unchecked.",
+    "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.",
+    "Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."
+  ],
+  "budget": {
+    "call_depth": 8,
+    "response_bytes": 1048576,
+    "steps": 4096,
+    "used": 24
+  },
+  "call_binding": {
+    "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+    "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+    "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+    "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+    "evaluation": "Evaluate explicit values once in source order before binding.",
+    "implicit_exceptions": false,
+    "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+    "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+    "schema": "fr-call-binding",
+    "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+  },
+  "claim": "possible-value-propagation",
+  "complete": true,
+  "completion": {
+    "may_raise": false,
+    "normal_return": true
+  },
+  "context": "html",
+  "context_basis": "frcb1:49cecce7e5dcc2294e818acd8a207a5b009178384818071f7b94f2a16059f49c",
+  "control_flow": {
+    "dateutil/easter/__init__.py::easter": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "entry",
+          "to": 2
+        }
+      ],
+      "entry": 3,
+      "exceptional_exit": 1,
+      "function": "dateutil/easter/__init__.py::easter",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+              "id": "fro1:43bdeecfee4e8d326e2aedddd09b08d4437722a43592259c5851f12cdd3fe177",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 38,
+                  "start": 30
+                }
+              },
+              "path": "dateutil/easter/__init__.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+              "id": "fro1:c5b37dc9d9cc8e1e51a4c32a2178056805f07b0ade45238fa01923eb3247a77d",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 38,
+                  "start": 0
+                }
+              },
+              "path": "dateutil/easter/__init__.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    },
+    "question.py::entry": {
+      "claim": "syntactic control flow; branch feasibility unchecked",
+      "edges": [
+        {
+          "from": 2,
+          "rule": "return",
+          "to": 0
+        },
+        {
+          "from": 3,
+          "rule": "entry",
+          "to": 2
+        }
+      ],
+      "entry": 3,
+      "exceptional_exit": 1,
+      "function": "question.py::entry",
+      "nodes": [
+        {
+          "id": 0,
+          "operation": "exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 1,
+          "operation": "exceptional-exit",
+          "origins": {
+            "reason": "synthetic function exit",
+            "status": "absent"
+          }
+        },
+        {
+          "id": 2,
+          "operation": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+              "id": "fro1:27856575e8869c8f7932d480441ae599b5140d8c5592f887b075bd7f0e0ef835",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 48,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 105,
+                  "start": 62
+                }
+              },
+              "path": "question.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        },
+        {
+          "id": 3,
+          "operation": "entry",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+              "id": "fro1:5ae5b38d9b8a5af64bc0476956e2e9dc377c7553c5558e232408e797a16692b5",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 48,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 3
+                  }
+                },
+                "span": {
+                  "end": 105,
+                  "start": 45
+                }
+              },
+              "path": "question.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "control-flow"
+            },
+            "status": "exact"
+          }
+        }
+      ],
+      "normal_exit": 0
+    }
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 22,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 2583,
+    "unsupported_files": 1
+  },
+  "cutoffs": [],
+  "effect_limits": [],
+  "events": [
+    {
+      "control_node": [
+        "question.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:c6ba2d1388812393e54ab494e1142a264117fbf2c0c8f60531bd1fe9ad421e52",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 45
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:6dc6dd8de90ebba174c936553fa1af1cd5db528fb01a70327972d223f38311c3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 62
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:2d04b6f6ebdd76980fe503d9f82a1eef15adf076ae39a585f63f767d7e0f3949",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 69
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:5dcc7ef585a6d77b5b8b3ac51807d34106e394ab6155f7bf3241663a4335d51f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 47,
+              "line": 4
+            },
+            "start": {
+              "col": 25,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 104,
+            "start": 82
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:d9513cf593ae1b2bb2fcb60231e1cf138ef825d2fa8a83002d2da421a298f9a5",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 4
+            },
+            "start": {
+              "col": 31,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 100,
+            "start": 88
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:a40946a8f38e0d100025a2a4ef46427b09bd47dd09d2e7e9035e29b4ce81d042",
+        "location": {
+          "range": {
+            "end": {
+              "col": 46,
+              "line": 4
+            },
+            "start": {
+              "col": 45,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 103,
+            "start": 102
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "dateutil/easter/__init__.py::easter",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+        "id": "fro1:0bdbfe1ef37a44ab137d60cfa87aeccaffd721a90274f794ebb63a1321cfbb40",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 2
+            },
+            "start": {
+              "col": 1,
+              "line": 1
+            }
+          },
+          "span": {
+            "end": 38,
+            "start": 0
+          }
+        },
+        "path": "dateutil/easter/__init__.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "dateutil/easter/__init__.py::easter",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+        "id": "fro1:efd924057aca33bee1ddc6c92cebb0caa4ccfd6142761ee884f89ab6dd2a72d9",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 2
+            },
+            "start": {
+              "col": 5,
+              "line": 2
+            }
+          },
+          "span": {
+            "end": 38,
+            "start": 30
+          }
+        },
+        "path": "dateutil/easter/__init__.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "dateutil/easter/__init__.py::easter",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+        "id": "fro1:bd474da5a1cefcb061ba15a1f12cdef941361a334101b1cf254e6ae394425dbb",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 2
+            },
+            "start": {
+              "col": 12,
+              "line": 2
+            }
+          },
+          "span": {
+            "end": 38,
+            "start": 37
+          }
+        },
+        "path": "dateutil/easter/__init__.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:c6ba2d1388812393e54ab494e1142a264117fbf2c0c8f60531bd1fe9ad421e52",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 45
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:6dc6dd8de90ebba174c936553fa1af1cd5db528fb01a70327972d223f38311c3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 62
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:2d04b6f6ebdd76980fe503d9f82a1eef15adf076ae39a585f63f767d7e0f3949",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 69
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:5dcc7ef585a6d77b5b8b3ac51807d34106e394ab6155f7bf3241663a4335d51f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 47,
+              "line": 4
+            },
+            "start": {
+              "col": 25,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 104,
+            "start": 82
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:d9513cf593ae1b2bb2fcb60231e1cf138ef825d2fa8a83002d2da421a298f9a5",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 4
+            },
+            "start": {
+              "col": 31,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 100,
+            "start": 88
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:a40946a8f38e0d100025a2a4ef46427b09bd47dd09d2e7e9035e29b4ce81d042",
+        "location": {
+          "range": {
+            "end": {
+              "col": 46,
+              "line": 4
+            },
+            "start": {
+              "col": 45,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 103,
+            "start": 102
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "dateutil/easter/__init__.py::easter",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+        "id": "fro1:0bdbfe1ef37a44ab137d60cfa87aeccaffd721a90274f794ebb63a1321cfbb40",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 2
+            },
+            "start": {
+              "col": 1,
+              "line": 1
+            }
+          },
+          "span": {
+            "end": 38,
+            "start": 0
+          }
+        },
+        "path": "dateutil/easter/__init__.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "dateutil/easter/__init__.py::easter",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+        "id": "fro1:efd924057aca33bee1ddc6c92cebb0caa4ccfd6142761ee884f89ab6dd2a72d9",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 2
+            },
+            "start": {
+              "col": 5,
+              "line": 2
+            }
+          },
+          "span": {
+            "end": 38,
+            "start": 30
+          }
+        },
+        "path": "dateutil/easter/__init__.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "dateutil/easter/__init__.py::easter",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:22",
+        "id": "fro1:bd474da5a1cefcb061ba15a1f12cdef941361a334101b1cf254e6ae394425dbb",
+        "location": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 2
+            },
+            "start": {
+              "col": 12,
+              "line": 2
+            }
+          },
+          "span": {
+            "end": 38,
+            "start": 37
+          }
+        },
+        "path": "dateutil/easter/__init__.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        3
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:c6ba2d1388812393e54ab494e1142a264117fbf2c0c8f60531bd1fe9ad421e52",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 3
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 45
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "control",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:6dc6dd8de90ebba174c936553fa1af1cd5db528fb01a70327972d223f38311c3",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 5,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 62
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "control"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:2d04b6f6ebdd76980fe503d9f82a1eef15adf076ae39a585f63f767d7e0f3949",
+        "location": {
+          "range": {
+            "end": {
+              "col": 48,
+              "line": 4
+            },
+            "start": {
+              "col": 12,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 105,
+            "start": 69
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:5dcc7ef585a6d77b5b8b3ac51807d34106e394ab6155f7bf3241663a4335d51f",
+        "location": {
+          "range": {
+            "end": {
+              "col": 47,
+              "line": 4
+            },
+            "start": {
+              "col": 25,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 104,
+            "start": 82
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:d9513cf593ae1b2bb2fcb60231e1cf138ef825d2fa8a83002d2da421a298f9a5",
+        "location": {
+          "range": {
+            "end": {
+              "col": 43,
+              "line": 4
+            },
+            "start": {
+              "col": 31,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 100,
+            "start": 88
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    },
+    {
+      "control_node": [
+        "question.py::entry",
+        2
+      ],
+      "kind": "use",
+      "occurrence": {
+        "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+        "id": "fro1:a40946a8f38e0d100025a2a4ef46427b09bd47dd09d2e7e9035e29b4ce81d042",
+        "location": {
+          "range": {
+            "end": {
+              "col": 46,
+              "line": 4
+            },
+            "start": {
+              "col": 45,
+              "line": 4
+            }
+          },
+          "span": {
+            "end": 103,
+            "start": 102
+          }
+        },
+        "path": "question.py",
+        "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+        "role": "use"
+      }
+    }
+  ],
+  "exceptional_returns": {},
+  "execution": {
+    "analysis_steps": 24,
+    "kind": "analyzed",
+    "reason": "no-retained-result"
+  },
+  "expression_control": {
+    "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+    "comparisons": "ordered operands; each comparison result may be true or false.",
+    "effects": "join normal, sink and explicit-raise alternatives.",
+    "evaluation": "left-to-right; each operand once per expression transfer.",
+    "path_feasibility": false,
+    "schema": "fr-expression-control",
+    "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+    "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+  },
+  "function_summaries": {
+    "claim": "may-value derivations in the declared model; neither feasible paths nor runtime termination.",
+    "context": "symbolic explicit parameters; bind each call independently and fill omitted immutable scalar defaults.",
+    "converged": true,
+    "effects": "Scalar returns, sinks and modeled raises. Known list arguments use bounded context-specific helper evaluation.",
+    "enabled": true,
+    "function_limit": 64,
+    "functions": {
+      "dateutil/easter/__init__.py::easter": {
+        "callees": [],
+        "evaluations": 2,
+        "exceptional_returns": {},
+        "may_raise": false,
+        "normal_return": true,
+        "parameters": [
+          "argument:dateutil/easter/__init__.py::easter:0",
+          "argument:dateutil/easter/__init__.py::easter:1"
+        ],
+        "returns": {},
+        "signature": [
+          {
+            "default": null,
+            "kind": "positional-or-keyword",
+            "name": "year",
+            "site": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:23",
+              "id": "fro1:0403f529103d37d28f9b96cf866d8068ec36897d2cf3f9d1d0ec8ebe9b4ba923",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 16,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 15,
+                  "start": 11
+                }
+              },
+              "path": "dateutil/easter/__init__.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "summary-parameter"
+            }
+          },
+          {
+            "default": null,
+            "kind": "positional-or-keyword",
+            "name": "method",
+            "site": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:24",
+              "id": "fro1:e200b2c640d387e0f472c8daf503ff60d51239ad55206d184402a0a95c13ac6f",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 24,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 18,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 23,
+                  "start": 17
+                }
+              },
+              "path": "dateutil/easter/__init__.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "summary-parameter"
+            }
+          }
+        ],
+        "sinks": {}
+      },
+      "question.py::entry": {
+        "callees": [
+          "dateutil/easter/__init__.py::easter"
+        ],
+        "evaluations": 3,
+        "exceptional_returns": {},
+        "may_raise": false,
+        "normal_return": true,
+        "parameters": [],
+        "returns": {},
+        "signature": [],
+        "sinks": {
+          "fro1:d9a8eacb36d2d29a00fa40795e6e262f2efcec84e38bdbf0200de02df0324b04": {
+            "flow": {},
+            "sink": "record_value",
+            "site": {
+              "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+              "id": "fro1:d9a8eacb36d2d29a00fa40795e6e262f2efcec84e38bdbf0200de02df0324b04",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 48,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 105,
+                  "start": 69
+                }
+              },
+              "path": "question.py",
+              "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+              "role": "sink"
+            }
+          }
+        }
+      }
+    },
+    "mutation_authority": false,
+    "recursion": "monotone least fixed point over finite origin and effect sets.",
+    "rounds": 3,
+    "schema": "fr-function-summaries"
+  },
+  "handle_prefix": "frp1:526bfab9d44c8479f796b6fb94c929f9:",
+  "initialization": {
+    "by_file": {},
+    "omitted": 0,
+    "sites": []
+  },
+  "input_digest": "e303c257794fc856ffee3d8533601fc1e6d5d1e6529fcd874b5e465e3f862755",
+  "inputs": {
+    "analyzer": "849bb1f25556ac6895a16ad0025294840165123bf353ab61db81d38d81fdcc68",
+    "assignment_control": {
+      "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
+      "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+      "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
+      "implicit_exceptions": false,
+      "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
+      "schema": "fr-scalar-assignment"
+    },
+    "budget": {
+      "bytes": 1048576,
+      "depth": 8,
+      "steps": 4096
+    },
+    "call_binding": {
+      "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+      "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+      "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
+      "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+      "evaluation": "Evaluate explicit values once in source order before binding.",
+      "implicit_exceptions": false,
+      "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
+      "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+      "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+      "schema": "fr-call-binding",
+      "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules."
+    },
+    "completion_control": {
+      "block_limit": 512,
+      "classes": [
+        "ValueError",
+        "TypeError",
+        "Exception",
+        "BaseException"
+      ],
+      "except": "Ordered builtin handlers, optional local error binding, and deletion after the handler.",
+      "finally": "Capture values before cleanup; cleanup may replace exits; nest separately.",
+      "handler_nodes": 128,
+      "implicit_exceptions": false,
+      "integer_conversion": "Base-ten conversion of known strings includes a possible ValueError; other implicit exceptions remain unchecked.",
+      "local_call_raises": true,
+      "reraise": "Lexically active known error.",
+      "schema": "fr-scalar-completion"
+    },
+    "configuration": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "context": "html",
+    "dependency_scope": "static module closure, import candidates including missing paths, configuration, rules and analyzer.",
+    "expression_control": {
+      "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+      "comparisons": "ordered operands; each comparison result may be true or false.",
+      "effects": "join normal, sink and explicit-raise alternatives.",
+      "evaluation": "left-to-right; each operand once per expression transfer.",
+      "path_feasibility": false,
+      "schema": "fr-expression-control",
+      "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+      "unknowns": "retain both alternatives; no variable or call-result truth specialization."
+    },
+    "modules": {
+      "complete": true,
+      "cutoffs": [],
+      "entry": {
+        "admitted": true,
+        "candidates": {
+          "question": {
+            "status": "missing"
+          },
+          "question.py": {
+            "digest": "15385c0606c592cdcc559befa3fafac2d9919d773e3616865e5af1b9aa54291c",
+            "status": "source"
+          },
+          "question.pyi": {
+            "status": "missing"
+          },
+          "question/__init__.py": {
+            "status": "missing"
+          },
+          "question/__init__.pyi": {
+            "status": "missing"
+          }
+        },
+        "module": "question",
+        "namespaces": [],
+        "opaque_candidates": [],
+        "packages": [],
+        "target": "question.py"
+      },
+      "files": {
+        "dateutil/__init__.py": "b9eadfaefb36467cb46aa2e4b6e4ac70c8b91eb09bbed0721fbba1270bb4fd68",
+        "dateutil/easter/__init__.py": "b4e68b92c2db2ec5e3e6f14dd4baee9cb9c0e5b7801a166d8404ff4ef57709a5",
+        "question.py": "15385c0606c592cdcc559befa3fafac2d9919d773e3616865e5af1b9aa54291c"
+      },
+      "function_aliases": [],
+      "limits": {
+        "binding_chain": 16,
+        "imports": 128,
+        "module_components": 16,
+        "modules": 16,
+        "names_per_import": 128,
+        "source_bytes": 262144
+      },
+      "lookups": [
+        {
+          "admitted": true,
+          "alias": "relay",
+          "binding_chain": [
+            {
+              "name": "easter",
+              "path": "dateutil/easter/__init__.py"
+            }
+          ],
+          "candidates": {
+            "dateutil": {
+              "status": "directory"
+            },
+            "dateutil.py": {
+              "status": "missing"
+            },
+            "dateutil.pyi": {
+              "status": "missing"
+            },
+            "dateutil/__init__.py": {
+              "digest": "b9eadfaefb36467cb46aa2e4b6e4ac70c8b91eb09bbed0721fbba1270bb4fd68",
+              "status": "source"
+            },
+            "dateutil/__init__.pyi": {
+              "status": "missing"
+            },
+            "dateutil/easter": {
+              "status": "directory"
+            },
+            "dateutil/easter.py": {
+              "status": "missing"
+            },
+            "dateutil/easter.pyi": {
+              "status": "missing"
+            },
+            "dateutil/easter/__init__.py": {
+              "digest": "b4e68b92c2db2ec5e3e6f14dd4baee9cb9c0e5b7801a166d8404ff4ef57709a5",
+              "status": "source"
+            },
+            "dateutil/easter/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "exports": null,
+          "future": false,
+          "importer": "question.py",
+          "member": "easter",
+          "members": [],
+          "module": "dateutil.easter",
+          "names": [
+            [
+              "relay",
+              "easter"
+            ]
+          ],
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [
+            "dateutil/__init__.py"
+          ],
+          "prefix": "relay",
+          "resolution": "function",
+          "submodule": null,
+          "target": "dateutil/easter/__init__.py",
+          "terminal_module": null
+        }
+      ],
+      "metadata_imports": [
+        {
+          "handler": {
+            "end": 137,
+            "start": 114
+          },
+          "importer": "dateutil/__init__.py",
+          "lookup": {
+            "admitted": false,
+            "candidates": {
+              "dateutil": {
+                "status": "directory"
+              },
+              "dateutil.py": {
+                "status": "missing"
+              },
+              "dateutil.pyi": {
+                "status": "missing"
+              },
+              "dateutil/__init__.py": {
+                "digest": "b9eadfaefb36467cb46aa2e4b6e4ac70c8b91eb09bbed0721fbba1270bb4fd68",
+                "status": "source"
+              },
+              "dateutil/__init__.pyi": {
+                "status": "missing"
+              },
+              "dateutil/_version": {
+                "status": "missing"
+              },
+              "dateutil/_version.py": {
+                "status": "missing"
+              },
+              "dateutil/_version.pyi": {
+                "status": "missing"
+              },
+              "dateutil/_version/__init__.py": {
+                "status": "missing"
+              },
+              "dateutil/_version/__init__.pyi": {
+                "status": "missing"
+              }
+            },
+            "module": "dateutil._version",
+            "namespaces": [],
+            "opaque_candidates": [],
+            "packages": [
+              "dateutil/__init__.py"
+            ],
+            "target": null
+          },
+          "selected": true,
+          "span": {
+            "end": 137,
+            "start": 36
+          }
+        }
+      ],
+      "namespaces": [],
+      "policy": "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Supported future directives need absent local __future__ candidates. Imported non-entry modules may omit one exact main guard without other __name__ uses or alternatives. Dynamic imports, merged namespaces and search paths stay unchecked.",
+      "schema": "fr-flow-modules",
+      "standard_imports": [
+        {
+          "admitted": false,
+          "alias": "sys",
+          "candidates": {
+            "sys": {
+              "status": "missing"
+            },
+            "sys.py": {
+              "status": "missing"
+            },
+            "sys.pyi": {
+              "status": "missing"
+            },
+            "sys/__init__.py": {
+              "status": "missing"
+            },
+            "sys/__init__.pyi": {
+              "status": "missing"
+            }
+          },
+          "importer": "dateutil/__init__.py",
+          "member": null,
+          "module": "sys",
+          "namespaces": [],
+          "opaque_candidates": [],
+          "packages": [],
+          "prefix": "sys",
+          "target": null
+        }
+      ],
+      "standard_library": {
+        "boundary": "Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching or overloaded protocols. Known-string base-ten integer conversion has a possible ValueError path; other implicit exceptions remain unchecked.",
+        "calls": "Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
+        "imports": "Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.",
+        "modules": {
+          "builtins": [
+            "abs",
+            "int",
+            "float",
+            "str",
+            "bool",
+            "round",
+            "min",
+            "max",
+            "ValueError",
+            "TypeError",
+            "Exception",
+            "BaseException"
+          ],
+          "datetime": [
+            "date",
+            "datetime",
+            "time",
+            "timedelta",
+            "timezone",
+            "tzinfo",
+            "MINYEAR",
+            "MAXYEAR",
+            "UTC"
+          ],
+          "sys": [
+            "version_info",
+            "version",
+            "platform",
+            "maxsize",
+            "implementation",
+            "modules"
+          ]
+        },
+        "namespace_digest": "d566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7",
+        "runtime": "CPython 3.14.8",
+        "schema": "fr-python-standard-library",
+        "string_methods": {
+          "arguments": "Positional text arguments only; stripping also accepts None, and replacement counts require literal integers.",
+          "boundary": "Unknown receivers, expanded arguments and unsupported signatures remain incomplete. These calls do not establish runtime exception safety.",
+          "evaluation": "Receiver once, then arguments left-to-right; preserve all possible origins without mutating the receiver.",
+          "methods": [
+            [
+              "lower",
+              0,
+              0
+            ],
+            [
+              "upper",
+              0,
+              0
+            ],
+            [
+              "casefold",
+              0,
+              0
+            ],
+            [
+              "capitalize",
+              0,
+              0
+            ],
+            [
+              "swapcase",
+              0,
+              0
+            ],
+            [
+              "title",
+              0,
+              0
+            ],
+            [
+              "strip",
+              0,
+              1
+            ],
+            [
+              "lstrip",
+              0,
+              1
+            ],
+            [
+              "rstrip",
+              0,
+              1
+            ],
+            [
+              "removeprefix",
+              1,
+              1
+            ],
+            [
+              "removesuffix",
+              1,
+              1
+            ],
+            [
+              "replace",
+              2,
+              3
+            ]
+          ],
+          "receiver": "Plain str from literals, checked str conversions, local bindings and normal helper summaries; annotations do not establish runtime types.",
+          "receiver_nodes": 128
+        }
+      },
+      "standard_shadowing": [],
+      "value_aliases": [],
+      "value_bindings": []
+    },
+    "rule_file": "rules.json",
+    "rules": "d97fd5a879ecad56845158dd93e551c5ded209e1c357f0dae766054e5e663659",
+    "selection": {
+      "name": "entry",
+      "span": {
+        "end": 105,
+        "start": 45
+      }
+    },
+    "source": {
+      "digest": "15385c0606c592cdcc559befa3fafac2d9919d773e3616865e5af1b9aa54291c",
+      "path": "question.py"
+    },
+    "summary_mode": true
+  },
+  "origins": {
+    "package-question:emit_value:fro1:0ae6a85b1a9890f2ef023261035ca09784a579a8b2bb5fb5de9b1786859d3499": {
+      "enclosing": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+      "id": "fro1:0ae6a85b1a9890f2ef023261035ca09784a579a8b2bb5fb5de9b1786859d3499",
+      "location": {
+        "range": {
+          "end": {
+            "col": 43,
+            "line": 4
+          },
+          "start": {
+            "col": 31,
+            "line": 4
+          }
+        },
+        "span": {
+          "end": 100,
+          "start": 88
+        }
+      },
+      "path": "question.py",
+      "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+      "role": "source"
+    }
+  },
+  "returns": {},
+  "revision": "526bfab9d44c8479f796b6fb94c929f9452e9603984394a0ea8048803b65b31f",
+  "rules_digest": "d97fd5a879ecad56845158dd93e551c5ded209e1c357f0dae766054e5e663659",
+  "runtime_effects": {
+    "complete_means": "The value model finished. Shared mutation covers bounded local lists and helpers with checked argument binding. Arbitrary objects and runtime exception safety remain unchecked.",
+    "exception_safety_established": false,
+    "shared_mutable_values_supported": true
+  },
+  "schema": "fr-dataflow-1",
+  "scope": "selected function and static workspace-local module/package closure.",
+  "semantics": "python-scalar-summaries",
+  "summaries": [
+    {
+      "block_visits": 2,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "question.py::entry",
+      "inputs": [],
+      "return_origins": []
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "dateutil/easter/__init__.py::easter",
+      "inputs": [
+        [
+          "argument:dateutil/easter/__init__.py::easter:0"
+        ],
+        [
+          "argument:dateutil/easter/__init__.py::easter:1"
+        ]
+      ],
+      "return_origins": []
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "question.py::entry",
+      "inputs": [],
+      "return_origins": []
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "dateutil/easter/__init__.py::easter",
+      "inputs": [
+        [
+          "argument:dateutil/easter/__init__.py::easter:0"
+        ],
+        [
+          "argument:dateutil/easter/__init__.py::easter:1"
+        ]
+      ],
+      "return_origins": []
+    },
+    {
+      "block_visits": 3,
+      "claim": "one symbolic summary evaluation; global convergence reported separately",
+      "converged": true,
+      "function": "question.py::entry",
+      "inputs": [],
+      "return_origins": []
+    }
+  ],
+  "target": "frp1:526bfab9d44c8479f796b6fb94c929f9:8f6",
+  "witnesses": []
+}

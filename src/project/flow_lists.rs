@@ -164,11 +164,11 @@ fn children(node: Node<'_>) -> Vec<Node<'_>> {
         .collect()
 }
 
-fn integer_index(node: Node<'_>, source: &str) -> Option<i64> {
+fn integer_value(node: Node<'_>, source: &str) -> Option<i128> {
     let node = calls::unparenthesized(node)?;
     if node.kind() == "unary_operator" {
         let operator = node.child_by_field_name("operator")?;
-        let value = integer_index(node.child_by_field_name("argument")?, source)?;
+        let value = integer_value(node.child_by_field_name("argument")?, source)?;
         return match &source[operator.byte_range()] {
             "+" => Some(value),
             "-" => value.checked_neg(),
@@ -190,7 +190,11 @@ fn integer_index(node: Node<'_>, source: &str) -> Option<i64> {
     } else {
         (text.as_str(), 10)
     };
-    i64::from_str_radix(digits, radix).ok()
+    i128::from_str_radix(digits, radix).ok()
+}
+
+fn integer_index(node: Node<'_>, source: &str) -> Option<i64> {
+    integer_value(node, source)?.try_into().ok()
 }
 
 fn list_slot(index: i64, length: usize) -> Option<usize> {
@@ -200,6 +204,61 @@ fn list_slot(index: i64, length: usize) -> Option<usize> {
         index
     };
     usize::try_from(slot).ok().filter(|slot| *slot < length)
+}
+
+struct Slice {
+    start: Option<i64>,
+    stop: Option<i64>,
+    step: i64,
+}
+
+impl Slice {
+    fn positions(&self, length: usize) -> Vec<usize> {
+        let length = length as i128;
+        let step = i128::from(self.step);
+        let lower = if step > 0 { 0 } else { -1 };
+        let upper = if step > 0 { length } else { length - 1 };
+        let bound = |value: i64| {
+            let value = i128::from(value);
+            (if value < 0 { length + value } else { value }).clamp(lower, upper)
+        };
+        let mut cursor = self
+            .start
+            .map_or(if step > 0 { 0 } else { length - 1 }, bound);
+        let stop = self.stop.map_or(if step > 0 { length } else { -1 }, bound);
+        let mut positions = Vec::new();
+        while if step > 0 {
+            cursor < stop
+        } else {
+            cursor > stop
+        } {
+            positions.push(cursor as usize);
+            cursor += step;
+        }
+        positions
+    }
+
+    fn insertion(&self, length: usize) -> usize {
+        let length = length as i128;
+        self.start.map_or(0, |start| {
+            let start = i128::from(start);
+            (if start < 0 { length + start } else { start }).clamp(0, length) as usize
+        })
+    }
+}
+
+fn slice_node(node: Node<'_>) -> Option<Node<'_>> {
+    let mut indices = node
+        .children_by_field_name("subscript", &mut node.walk())
+        .collect::<Vec<_>>();
+    if indices.len() != 1
+        || node
+            .children(&mut node.walk())
+            .any(|child| child.kind() == ",")
+    {
+        return None;
+    }
+    indices.pop().filter(|index| index.kind() == "slice")
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
@@ -255,11 +314,21 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             values.push(self.list_element(item, flow, env));
         }
+        self.allocate_list(node, values, env)
+    }
+
+    fn allocate_list(&mut self, node: Node<'t>, values: Vec<Element>, env: &Environment) -> Flow {
+        if values.len() > ITEMS {
+            self.cutoff("list-item-budget");
+            return Flow::new();
+        }
         let id = format!(
-            "{}:{}:{}",
+            "{}:{}:{}:{}:{}",
             self.list_sites.join("/"),
             self.file.display(),
-            node.start_byte()
+            node.start_byte(),
+            node.end_byte(),
+            node.kind()
         );
         if env.lists.borrow().objects.contains_key(&id) {
             self.cutoff("repeated-list-allocation");
@@ -280,6 +349,210 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let flow = env.lists.borrow().contents(&ids);
         self.record_list_references(node, env, References { ids, scalar: false });
         self.extend(flow, node, "list-allocation")
+    }
+
+    fn exact_list(&mut self, refs: &References, env: &Environment) -> Option<List> {
+        if refs.scalar || refs.ids.len() != 1 {
+            self.cutoff("list-sequence-target-unchecked");
+            return None;
+        }
+        let list = env.lists.borrow().objects.get(refs.ids.first()?).cloned();
+        if list
+            .as_ref()
+            .is_none_or(|list| list.minimum != list.items.len())
+        {
+            self.cutoff("list-sequence-length-unchecked");
+            return None;
+        }
+        list
+    }
+
+    fn slice_spec(&mut self, node: Node<'t>, env: &Environment) -> Option<Slice> {
+        let mut fields = [None; 3];
+        let mut index = 0;
+        let mut valid = true;
+        for child in node.children(&mut node.walk()) {
+            if child.kind() == ":" {
+                index += 1;
+            } else if child.is_named() && !child.is_extra() {
+                self.expression(child, env);
+                if !self.normal {
+                    return None;
+                }
+                if child.kind() != "none" {
+                    let value = integer_index(child, self.source);
+                    valid &= value.is_some();
+                    if let Some(field) = fields.get_mut(index) {
+                        *field = value;
+                    } else {
+                        valid = false;
+                    }
+                }
+            }
+        }
+        if !valid || !(1..=2).contains(&index) {
+            self.cutoff("list-slice-bounds-unchecked");
+            return None;
+        }
+        let step = fields[2].unwrap_or(1);
+        if step == 0 {
+            self.cutoff("list-slice-step-zero");
+            return None;
+        }
+        Some(Slice {
+            start: fields[0],
+            stop: fields[1],
+            step,
+        })
+    }
+
+    fn slice_target(
+        &mut self,
+        node: Node<'t>,
+        slice: Node<'t>,
+        env: &Environment,
+    ) -> Option<(String, List, Slice, Flow)> {
+        let receiver = node.child_by_field_name("value")?;
+        let flow = self.expression(receiver, env);
+        if !self.normal {
+            return None;
+        }
+        let refs = self.list_references(receiver, env);
+        let slice = self.slice_spec(slice, env)?;
+        let list = self.exact_list(&refs, env)?;
+        Some((refs.ids.first()?.clone(), list, slice, flow))
+    }
+
+    fn list_slice(&mut self, node: Node<'t>, slice: Node<'t>, env: &Environment) -> Flow {
+        let Some((_, list, slice, receiver)) = self.slice_target(node, slice, env) else {
+            return Flow::new();
+        };
+        let items = slice
+            .positions(list.items.len())
+            .into_iter()
+            .map(|index| list.items[index].clone())
+            .collect();
+        let flow = self.allocate_list(node, items, env);
+        through_alias(flow, &receiver)
+    }
+
+    fn write_slice(
+        &mut self,
+        node: Node<'t>,
+        slice: Node<'t>,
+        replacement: &References,
+        env: &Environment,
+    ) {
+        let Some((id, mut list, slice, _)) = self.slice_target(node, slice, env) else {
+            return;
+        };
+        let Some(replacement) = self.exact_list(replacement, env) else {
+            return;
+        };
+        let positions = slice.positions(list.items.len());
+        let items = replacement.items;
+        if slice.step != 1 && positions.len() != items.len() {
+            self.cutoff("list-slice-length-mismatch");
+            return;
+        }
+        if list.items.len() - positions.len() + items.len() > ITEMS {
+            self.cutoff("list-item-budget");
+            return;
+        }
+        if slice.step == 1 {
+            let start = slice.insertion(list.items.len());
+            list.items.splice(start..start + positions.len(), items);
+        } else {
+            for (position, item) in positions.into_iter().zip(items) {
+                list.items[position] = item;
+            }
+        }
+        list.minimum = list.items.len();
+        env.lists.borrow_mut().objects.insert(id, list);
+    }
+
+    pub(super) fn list_delete(&mut self, node: Node<'t>, env: &Environment) {
+        for target in children(node) {
+            if matches!(target.kind(), "expression_list" | "tuple") {
+                self.list_delete(target, env);
+            } else if target.kind() == "subscript" {
+                if let Some(slice) = slice_node(target) {
+                    if let Some((id, mut list, slice, _)) = self.slice_target(target, slice, env) {
+                        let positions: BTreeSet<_> =
+                            slice.positions(list.items.len()).into_iter().collect();
+                        list.items = list
+                            .items
+                            .into_iter()
+                            .enumerate()
+                            .filter_map(|(index, item)| {
+                                (!positions.contains(&index)).then_some(item)
+                            })
+                            .collect();
+                        list.minimum = list.items.len();
+                        env.lists.borrow_mut().objects.insert(id, list);
+                    }
+                } else if let Some(indexed) = self.indexed_list(target, env) {
+                    if indexed.slots.len() != 1
+                        || indexed.slots.values().any(|slots| slots.len() != 1)
+                    {
+                        self.cutoff("list-mutation-target-unchecked");
+                        continue;
+                    }
+                    let mut heap = env.lists.borrow_mut();
+                    for (id, positions) in indexed.slots {
+                        let Some(list) = heap.objects.get_mut(&id) else {
+                            continue;
+                        };
+                        if list.minimum != list.items.len() {
+                            self.cutoff("list-sequence-length-unchecked");
+                            continue;
+                        }
+                        list.items.remove(*positions.first().unwrap());
+                        list.minimum -= 1;
+                    }
+                } else {
+                    self.cutoff("list-delete-target-unchecked");
+                }
+            } else {
+                self.cutoff("list-delete-target-unchecked");
+            }
+            if !self.normal {
+                return;
+            }
+        }
+    }
+
+    pub(super) fn list_binary(&mut self, node: Node<'t>, env: &Environment, flow: Flow) -> Flow {
+        if !self.normal {
+            return flow;
+        }
+        let Some(left) = node.child_by_field_name("left") else {
+            return flow;
+        };
+        let Some(right) = node.child_by_field_name("right") else {
+            return flow;
+        };
+        let left = self.list_references(left, env);
+        let right = self.list_references(right, env);
+        if left.ids.is_empty() && right.ids.is_empty() {
+            return flow;
+        }
+        if !node
+            .child_by_field_name("operator")
+            .is_some_and(|operator| self.text(operator) == "+")
+        {
+            self.cutoff("list-operator-unchecked");
+            return flow;
+        }
+        let Some(mut left) = self.exact_list(&left, env) else {
+            return flow;
+        };
+        let Some(right) = self.exact_list(&right, env) else {
+            return flow;
+        };
+        left.items.extend(right.items);
+        let result = self.allocate_list(node, left.items, env);
+        through_alias(result, &flow)
     }
 
     pub(super) fn list_value(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
@@ -433,6 +706,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     pub(super) fn list_item(&mut self, node: Node<'t>, env: &Environment) -> Option<Flow> {
+        if let Some(slice) = slice_node(node) {
+            return Some(self.list_slice(node, slice, env));
+        }
         let selected = self.indexed_list(node, env)?;
         let mut value = None::<Element>;
         {
@@ -467,6 +743,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return true;
         }
         let mut value = self.list_element(right, flow, env);
+        if let Some(slice) = slice_node(left) {
+            self.write_slice(left, slice, &value.references, env);
+            return true;
+        }
         value.flow = self.extend(value.flow, left, "list-write");
         let Some(indexed) = self.indexed_list(left, env) else {
             self.cutoff("list-write-target-unchecked");
@@ -508,7 +788,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         {
             return None;
         }
-        self.expression(object, env);
+        let receiver = self.expression(object, env);
         if !self.normal {
             return Some(Flow::new());
         }
@@ -526,7 +806,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let arguments = children(node.child_by_field_name("arguments")?);
         let (minimum, maximum) = match method.as_str() {
             "append" | "extend" => (1, 1),
-            "clear" | "reverse" => (0, 0),
+            "clear" | "reverse" | "copy" => (0, 0),
             "insert" => (2, 2),
             "pop" => (0, 1),
             _ => {
@@ -552,6 +832,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if !self.normal {
                 return Some(Flow::new());
             }
+        }
+        if method == "copy" {
+            let refs = References {
+                ids,
+                scalar: references.scalar,
+            };
+            let Some(list) = self.exact_list(&refs, env) else {
+                return Some(Flow::new());
+            };
+            let flow = self.allocate_list(node, list.items, env);
+            return Some(through_alias(flow, &receiver));
         }
         if matches!(method.as_str(), "pop" | "insert" | "reverse") {
             let index = if method == "reverse" || arguments.is_empty() {

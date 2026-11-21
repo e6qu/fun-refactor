@@ -1,0 +1,10 @@
+{
+  "schema": "fr-change-scope-task-1",
+  "baseline": "fb98e7183a598dcd2e1c2df789491ec8c0808be4",
+  "goal": "Discover consumers and declared check candidates before a coordinated change, resume after drift, and deliver independently checked outcomes.",
+  "subset": "Indexed declaration/reference relationships; built-in test candidates; explicit exact-file check associations. No runtime dispatch or behavioral coverage proof.",
+  "cases": ["transitive and cyclic consumers", "same-line Unicode references", "test candidates", "unresolved and weak references", "depth/node/reference/output limits", "unmapped and missing paths", "added consumers", "changed check declarations and mappings", "fresh-process resumption", "reviewed multi-file delivery and independent patch replay"],
+  "budgets": {"targets": 16, "depth": 16, "nodes": 256, "references": 4096, "report_bytes": 1048576, "workers": 1},
+  "oracle": "Independent fixture AST coordinates, expected consumer edges, and executable public behavior; retained deterministic results with no live-agent claim.",
+  "direct_edit_boundary": "New-file scaffolding, enum/struct/attribute wiring, declaration reordering, Lean definitions and prose use direct edits. Existing Rust/Python function bodies and free-function insertion use reviewed native author batches on the actual repository; retained dogfood artifacts identify the operations."
+}

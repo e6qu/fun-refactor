@@ -72,7 +72,7 @@ def bindings():
                  'sdk/python/tests/test_finally_flow.py', 'sdk/python/src/fr_ir/flow_completion.py',
                  'tests/agent-eval/python-finally/cases.json', 'docs/check-python-cleanup.md',
                  'sdk/python/tests/test_exception_handlers.py', 'tests/agent-eval/python-handlers/cases.json',
-                 'sdk/python/tests/test_graph_analysis.py',
+                 'sdk/python/tests/test_graph_analysis.py', 'sdk/python/tests/test_list_sequences.py',
                  'sdk/python/tests/test_standard_library.py',
                  'tests/agent-eval/python-handlers/selection.json', 'docs/catch-python-errors.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
