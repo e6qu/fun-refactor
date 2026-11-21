@@ -138,3 +138,69 @@ def test_sdk_rejects_invented_unpacking_contract(tmp_path):
     report['inputs']['assignment_control'] = copy.deepcopy(report['assignment_control'])
     with pytest.raises(FrRuntimeError):
         FunctionSummaries.from_report(FrReport(report, ()))
+
+
+@pytest.mark.parametrize('call,expected', [
+    ('relay(*0, marker=change(values))', ['0']),
+    ('relay(*0, *(), marker=change(values))', ['Customer']),
+])
+def test_noniterable_expansion_keeps_python_error_order(tmp_path, call, expected):
+    source = program(f'values = [read()]\ntry:\n    {call}\nexcept TypeError:\n    send(values[0])',
+        'def change(items):\n    items[0] = 0\n    return 0\n'
+        'def relay(first=0, *, marker=0):\n    return first\n')
+    assert execute(source, 'Customer') == expected
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is ('Customer' in expected)
+
+
+@pytest.mark.parametrize('count,complete', [(64, True), (65, False)])
+def test_expanded_item_and_argument_limits_are_unchanged(tmp_path, count, complete):
+    values = ', '.join('0' for _ in range(count))
+    parameters = ', '.join(f'arg{index}' for index in range(count))
+    source = program(f'values = [{values}]\nsend(relay(*values))',
+                     f'def relay({parameters}):\n    return arg0\n')
+    assert execute(source, 'Customer') == ['0']
+    report = analyze(tmp_path, source)
+    assert report['complete'] is complete, report['cutoffs']
+
+
+@pytest.mark.parametrize('module', ['helper', 'renamed_helper'])
+def test_imported_unpacking_edits_invalidate_cached_answers(tmp_path, module):
+    import json
+    import subprocess
+    import sys
+    from fr_ir.runtime import FrClient
+    from fr_ir.context import MemoryObjectStore
+    from fr_ir.flow import FlowCache
+    from test_graph_analysis import ROOT
+
+    helper = tmp_path / (module + '.py')
+    helper.write_text('def relay(items):\n    first, second = items\n    return first\n')
+    source = program('values = [read(), 0]\nsend(relay(values))', f'from {module} import relay\n')
+    analyze(tmp_path, source)
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+
+    def query(selected):
+        handle = client.project('find', 'entry').definition_target().handle
+        return selected.analyze(client, handle, standard_library=('builtins',),
+                                rules=tmp_path / 'rules.json', context='html', steps=4096,
+                                depth=8, max_bytes=1048576, summaries=True, imports=True)
+
+    def runtime():
+        driver = ('import sys,json\n' + f'sys.path.insert(0, {str(tmp_path)!r})\n'
+                  'sent=[]\ndef read(): return "Customer"\ndef send(value): sent.append(value)\n'
+                  + source + '\nentry()\nprint(json.dumps(sent))\n')
+        return json.loads(subprocess.check_output([sys.executable, '-I', '-B', '-c', driver], text=True, timeout=10))
+
+    assert runtime() == ['Customer']
+    cold = query(cache)
+    assert cold.report.at('/complete') and cold.witnesses
+    assert query(cache).reused
+    helper.write_text('def relay(items):\n    first, *rest = items\n    return rest[0]\n')
+    assert runtime() == [0]
+    changed = query(cache)
+    assert not changed.reused and changed.report.at('/complete') and not changed.witnesses
+    fresh = query(FlowCache(MemoryObjectStore()))
+    assert changed.report.to_data() == fresh.report.to_data()

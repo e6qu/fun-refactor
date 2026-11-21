@@ -85,7 +85,7 @@ It tracks aliases of local lists, signed constant indices and checked positional
 Negative indices follow each possible list length after a branch. Lists with one known identity and length support
 `insert`, `pop` and `reverse`; `pop` carries the removed item’s flow into its result.
 Helpers preserve positional-only and keyword-only rules and checked scalar defaults.
-Calls with missing, duplicate or invalid arguments remain incomplete.
+Expanded calls to fixed parameter lists raise `TypeError` for missing, duplicate or invalid arguments. Other invalid calls remain incomplete.
 Known helpers can return a list or allocate a new one. Nested lists retain the identity of each contained list;
 mutating an inner list reaches its aliases, while replacing an outer slot leaves old aliases intact.
 Cleanup can mutate a returned list; rebinding the helper's local name does not replace the pending return.
@@ -102,8 +102,40 @@ run left to right. Mismatched extended slices raise `ValueError` before replacin
 Unknown bounds, arbitrary replacement iterables and
 ambiguous identities or lengths remain incomplete. The same 64-object and 64-item limits apply.
 Unknown indices, mixed list/scalar receivers, repeated allocation at one
-call path, unpacking and recursive list helpers leave the answer incomplete.
+call path and recursive list helpers leave the answer incomplete.
 A helper's mutation must affect every alias of the same list. Rebinding an alias must leave the original list intact.
+
+## Unpack lists and tuples
+
+With summary analysis, a known list or tuple can supply flat, nested and starred local targets:
+
+```python
+def entry():
+    inner = [read_input()]
+    values = (0, inner, 0)
+    first, *rest, last = values
+    rest[0][0] = 0
+    send(inner[0])
+```
+
+`rest` is a new list, but its item still refers to `inner`. This example therefore sends zero.
+A scalar captured by unpacking keeps its value when the original list slot changes.
+The right side is evaluated once, then targets are written from left to right.
+A length mismatch raises `ValueError`; a known noniterable literal raises `TypeError`.
+A failed nested pattern preserves earlier target writes. Handlers and `finally` see those writes.
+
+`[*items, extra]`, `(*items, extra)` and `helper(*items)` expand bounded lists and tuples.
+Helper calls keep positional-only and keyword-only rules, defaults and shared list identities.
+Python evaluates positional expressions before keywords. A sole `*items` is expanded after
+keyword evaluation; with other positional arguments or expansions, it is expanded earlier.
+This matters when a keyword expression mutates `items`.
+
+The existing limits remain: 64 objects, 64 items per sequence, 64 expanded arguments and
+64 target writes, with pattern nesting up to 16. Ambiguous lengths, arbitrary iterators,
+dictionary expansion, used variadic parameters and tuple mutation remain incomplete.
+Module setup accepts nested literal patterns and literal expansion within its existing
+128-node limit; starred module targets and evaluated setup remain unchecked.
+[Runtime and cache tests](../sdk/python/tests/test_sequence_unpacking.py) check these distinctions.
 
 ## Follow a failed list operation
 
