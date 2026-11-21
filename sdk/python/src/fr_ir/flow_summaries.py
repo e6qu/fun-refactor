@@ -110,7 +110,7 @@ class ExpressionControl:
 _CALL_BINDING = {
     "schema": "fr-call-binding",
     "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
-    "evaluation": "Evaluate positional values and expansions before keywords, once each.",
+    "evaluation": "Evaluate positional expressions before keywords, once each; expand a sole *value after keywords.",
     "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
     "invalid": "Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
     "boundary": "No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",

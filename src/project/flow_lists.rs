@@ -92,6 +92,12 @@ fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
 }
 
 impl Lists {
+    pub fn forget(&mut self, name: &str) {
+        self.bindings.remove(name);
+        self.uncertain.remove(name);
+        self.facts.remove(name);
+    }
+
     pub fn join(&mut self, other: &Self) -> bool {
         let mut changed = false;
         let before = self.facts.len();
@@ -1120,7 +1126,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let (file, source) = self.contexts[&name];
             let mut nodes: Vec<_> = function.child_by_field_name("body").into_iter().collect();
             while let Some(node) = nodes.pop() {
-                if matches!(node.kind(), "list" | "tuple" | "expression_list") {
+                if matches!(node.kind(), "list" | "tuple" | "expression_list")
+                    && !std::iter::successors(node.parent(), |node| node.parent())
+                        .take_while(|node| node.kind() != "block")
+                        .find(|node| node.kind() == "assignment")
+                        .is_some_and(assignments::literal_transfer) {
                     found = true;
                     break;
                 }

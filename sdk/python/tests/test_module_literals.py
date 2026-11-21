@@ -130,7 +130,8 @@ def test_unused_distinct_scalar_bindings_do_not_poison_initialization(tmp_path, 
                                     "events": [["source", 17], ["sink", 17]] if reaches else [["sink", 0]]}
 
 
-@pytest.mark.parametrize("binding", ["metadata, other = 0, 1", "[metadata, other] = [0, 1]"])
+@pytest.mark.parametrize("binding", ["metadata, other = 0, 1", "[metadata, other] = [0, 1]",
+    "metadata, (other,) = 0, (1,)", "metadata, other = [*(0, 1)]"])
 @pytest.mark.parametrize("imports", [False, True])
 @pytest.mark.parametrize("forwards", [False, True])
 def test_unused_flat_literal_assignments_preserve_helper_flow(tmp_path, binding, imports, forwards):

@@ -116,6 +116,19 @@ fn bindings<'t>(
     Some(())
 }
 
+pub(super) fn literal_transfer(mut node: Node<'_>) -> bool {
+    let mut targets = Vec::new();
+    while node.kind() == "assignment" {
+        if targets.len() >= 64 || node.child_by_field_name("type").is_some() { return false; }
+        let (Some(left), Some(right)) = (node.child_by_field_name("left"), node.child_by_field_name("right")) else { return false; };
+        targets.push(left);
+        node = right;
+    }
+    let Some(value) = shape(node, 0, &mut 64, &mut Vec::new()) else { return false; };
+    let mut writes = Vec::new();
+    targets.into_iter().all(|target| bindings(target, &value, 0, &mut writes).is_some())
+}
+
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     pub(super) fn scalar_assignment(&mut self, node: Node<'t>, state: &mut Environment) {
         let mut targets = Vec::new();

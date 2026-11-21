@@ -846,7 +846,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     state.values.remove(&alias.0);
                     state.defined.remove(&alias.0);
                     state.plain_strings.remove(&alias.0);
-                    state.lists.borrow_mut().bindings.remove(&alias.0);
+                    state.lists.borrow_mut().forget(&alias.0);
                     state.exception_aliases.remove(&alias);
                 }
             }
@@ -1026,7 +1026,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 );
                                 outgoing.defined.insert(name.clone());
                                 outgoing.plain_strings.remove(&name);
-                                outgoing.lists.borrow_mut().bindings.remove(&name);
+                                outgoing.lists.borrow_mut().forget(&name);
                                 outgoing.exception_aliases.insert((
                                     name,
                                     clause.start_byte(),
@@ -1147,7 +1147,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             .and_then(assignments::target_names)
                         {
                             for name in names {
-                                state.lists.borrow_mut().bindings.remove(self.text(name));
+                                state.lists.borrow_mut().forget(self.text(name));
                             }
                         }
                     }

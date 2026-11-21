@@ -1,10 +1,9 @@
 """Compare sequence binding, argument expansion and errors with Python execution."""
 import copy
-import json
 
 import pytest
 
-from fr_ir import FrReport, FrRuntimeError
+from fr_ir.runtime import FrReport, FrRuntimeError
 from fr_ir.flow_summaries import FunctionSummaries
 from test_graph_analysis import analyze, execute
 from test_list_sequences import program
@@ -133,9 +132,9 @@ def test_unsupported_iterables_and_tuple_writes_remain_incomplete(tmp_path, body
 
 def test_sdk_rejects_invented_unpacking_contract(tmp_path):
     report = analyze(tmp_path, program('values = [read(), 0]\nfirst, second = values\nsend(first)'))
-    assert FunctionSummaries.from_report(FrReport(report)).complete
+    assert FunctionSummaries.from_report(FrReport(report, ())).complete
     report = copy.deepcopy(report)
     report['assignment_control']['binding'] = 'arbitrary iterators'
     report['inputs']['assignment_control'] = copy.deepcopy(report['assignment_control'])
     with pytest.raises(FrRuntimeError):
-        FunctionSummaries.from_report(FrReport(report))
+        FunctionSummaries.from_report(FrReport(report, ()))
