@@ -440,7 +440,6 @@ def test_conditional_mutation_preserves_the_unexecuted_alternative(tmp_path, sel
     ('values = [[read()]]\nvalues[0] = 0\nsend(values[0][0])', 'unsupported-expression:subscript'),
     ('values = [[read()]]\nif read():\n    values[0] = 0\nvalues[0].clear()', 'list-binding-type-unchecked'),
     ('values = [[read()]]\nvalues[0][read()] = 0', 'list-index-unchecked'),
-    ('values = [*[read()]]\nsend(values[0])', 'list-unpacking-unchecked'),
     ('values = []\nwhile read():\n    values.append([read()])', 'repeated-list-allocation'),
 ])
 def test_nested_list_boundaries_remain_visible(tmp_path, body, cutoff):
@@ -464,3 +463,11 @@ def test_nested_allocation_keeps_the_existing_object_budget(tmp_path):
     report = analyze(tmp_path, source)
     assert not report['complete']
     assert 'list-object-budget' in report['cutoffs']
+
+
+def test_literal_list_expansion_preserves_the_source(tmp_path):
+    source = 'def entry():\n    values = [*[read()]]\n    send(values[0])\n'
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']

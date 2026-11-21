@@ -19,17 +19,19 @@ class ArtifactIdentity(unittest.TestCase):
             artifact.command(['gh', 'api', 'repos/example/project/actions/runs/123'])
         self.assertEqual(run.call_count, 1)
 
-    def run_verification(self, *, changed, conclusions, build_kind, event='workflow_dispatch', environment=None):
+    def run_verification(self, *, changed, conclusions, build_kind, event='workflow_dispatch', environment=None,
+                         earlier_conclusions=()):
         def command(argv):
             if argv[0] == 'gh':
                 if '/jobs?' in argv[-1]:
-                    self.assertIn('filter=all', argv[-1])
+                    # Model GitHub's job history: only filter=all includes superseded executions.
+                    visible = [*earlier_conclusions, *conclusions] if 'filter=all' in argv[-1] else conclusions
                     self.assertIn('--paginate', argv)
                     self.assertIn('--slurp', argv)
                     return json.dumps([{'jobs': [{'name': 'Require every proof control', 'conclusion': 'success'}]},
                                        {'jobs': [{'name': {'numeric-models': 'Check early returns and numeric proof models',
                                                                 'algorithms': 'Reject incomplete proofs of the fixed GCD implementation'}[build_kind], 'conclusion': value}
-                                                 for value in conclusions]}])
+                                                 for value in visible]}])
                 return json.dumps({'head_sha': 'a' * 40, 'event': event, 'head_repository': {'full_name': 'example/project'}})
             if 'fetch' in argv:
                 return ''
@@ -74,7 +76,22 @@ class ArtifactIdentity(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'must pass'):
             self.run_verification(changed=False, conclusions=['failure'], build_kind='numeric-models')
 
-    def test_multiple_builder_attempts_cannot_select_an_older_success(self):
+    def test_successful_rerun_is_not_rejected_for_a_cancelled_previous_build(self):
+        for build_kind in ('numeric-models', 'algorithms'):
+            with self.subTest(build_kind=build_kind):
+                result = self.run_verification(changed=False, conclusions=['success'], build_kind=build_kind,
+                                               earlier_conclusions=['cancelled'])
+                self.assertTrue(result['passed'])
+
+    def test_latest_unsuccessful_build_cannot_reuse_an_earlier_success(self):
+        for build_kind in ('numeric-models', 'algorithms'):
+            for conclusion in ('failure', 'cancelled', None):
+                with self.subTest(build_kind=build_kind, conclusion=conclusion):
+                    with self.assertRaisesRegex(ValueError, 'must pass'):
+                        self.run_verification(changed=False, conclusions=[conclusion], build_kind=build_kind,
+                                              earlier_conclusions=['success'])
+
+    def test_ambiguous_current_builders_cannot_select_a_success(self):
         with self.assertRaisesRegex(ValueError, 'must pass'):
             self.run_verification(changed=False, conclusions=['success', 'failure'], build_kind='numeric-models')
 

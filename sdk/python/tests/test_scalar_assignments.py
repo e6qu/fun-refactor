@@ -95,9 +95,7 @@ def test_explicit_raise_stops_rhs_effects_and_target_writes(tmp_path, position):
 
 
 @pytest.mark.parametrize("body", [
-    "a, b = source()", "a, b = [source()]", "a, = [source(), 0]",
-    "a, *rest = source(), 0", "a, b = (*source(), 0)",
-    "a = b = [source(), 0]", "a, b = source(), [0]",
+    "a, b = source()", "a, b = (*source(), 0)",
     "holder.item, b = source(), 0", "holder[0], b = source(), 0",
     "a: int = source()", "a, b = (x for x in source())",
 ])
@@ -106,6 +104,21 @@ def test_non_scalar_or_implicit_unpacking_contracts_refuse(tmp_path, body):
     result = analyze(client, rules, "entry")
     assert not result.report.at("/complete")
     assert result.report.at("/cutoffs")
+
+
+@pytest.mark.parametrize("body, raised", [
+    ("a, b = [source()]", "ValueError"),
+    ("a, = [source(), 0]", "ValueError"),
+    ("a, *rest = source(), 0", None),
+    ("a = b = [source(), 0]", None),
+    ("a, b = source(), [0]", None),
+])
+def test_bounded_sequence_assignments_complete(tmp_path, body, raised):
+    client, rules, source = install(tmp_path, body + "\nsink(0)")
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert observe(source)[1] == raised
+    assert result.report.at("/completion/may_raise") is (raised is not None)
 
 
 @pytest.mark.parametrize("body", [

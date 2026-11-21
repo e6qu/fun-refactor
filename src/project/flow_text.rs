@@ -253,8 +253,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("string-receiver-unchecked");
             return Some(value);
         }
-        let (values, _) = self.call_arguments(node, env);
-        for argument in values {
+        let arguments = self.call_arguments(node, env);
+        for argument in arguments.values {
             merge(&mut value, argument);
         }
         if self.solver.enabled && !self.normal {
