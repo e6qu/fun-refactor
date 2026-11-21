@@ -1,0 +1,25 @@
+{
+  "schema": "fr-proof-allocator-protocol-1",
+  "question": "Does immediate purging in the pinned allocator reduce complete package-check RSS without changing the protected proof or checking command?",
+  "qualification_run": "44542024683",
+  "lean_version": "4.28.0",
+  "conditions": {
+    "baseline": {},
+    "immediate-purge": {"MIMALLOC_PURGE_DELAY": "0"}
+  },
+  "first_pair": ["baseline", "immediate-purge"],
+  "second_pair": ["immediate-purge", "baseline"],
+  "repeat_only_after_both_first_cases_finish": true,
+  "negative_controls": ["unfinished", "wrong-proof"],
+  "limits": {
+    "wall_seconds": 60,
+    "rss_bytes": 805306368,
+    "cpu_limit_seconds": 25,
+    "disk_bytes": 67108864,
+    "transcript_bytes": 131072
+  },
+  "minimum_rss_reduction_fraction": 0.1,
+  "decision": "Consider adoption on a platform only if every positive and negative control passes and the larger candidate RSS is at least 10% below the smaller baseline RSS. Retain wall time and CPU costs. No result grants native admission.",
+  "admitted": false,
+  "live_model_calls": 0
+}
