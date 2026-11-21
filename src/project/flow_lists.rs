@@ -57,7 +57,7 @@ impl Element {
 pub(super) struct Lists {
     pub bindings: BTreeMap<String, BTreeSet<String>>,
     uncertain: BTreeSet<String>,
-    objects: BTreeMap<String, List>,
+    pub(super) objects: BTreeMap<String, List>,
     expressions: BTreeMap<(PathBuf, usize), References>,
     facts: BTreeMap<String, Facts>,
     expression_facts: BTreeMap<(PathBuf, usize), Facts>,
@@ -68,6 +68,8 @@ pub(super) struct List {
     pub items: Vec<Element>,
     pub minimum: usize,
     pub tuple: bool,
+    pub keys: Option<Vec<mappings::Key>>,
+    pub uncertain_shape: bool,
 }
 
 struct IndexedList {
@@ -75,7 +77,7 @@ struct IndexedList {
     receiver: Flow,
 }
 
-fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
+pub(super) fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
     // Keep alias routes only for origins still in the object after mutation.
     for (origin, trace) in &mut current {
         if let Some(previous) = prior.get(origin) {
@@ -127,6 +129,10 @@ impl Lists {
                     changed = true;
                 }
                 Some(target) => {
+                    let uncertain = target.uncertain_shape || list.uncertain_shape
+                        || target.keys != list.keys || target.tuple != list.tuple;
+                    changed |= uncertain != target.uncertain_shape;
+                    target.uncertain_shape = uncertain;
                     let minimum = target.minimum.min(list.minimum);
                     changed |= minimum != target.minimum;
                     target.minimum = minimum;
@@ -186,13 +192,13 @@ impl Lists {
     }
 }
 
-fn children(node: Node<'_>) -> Vec<Node<'_>> {
+pub(super) fn children(node: Node<'_>) -> Vec<Node<'_>> {
     node.named_children(&mut node.walk())
         .filter(|n| n.kind() != "comment")
         .collect()
 }
 
-fn integer_value(node: Node<'_>, source: &str) -> Option<i128> {
+pub(super) fn integer_value(node: Node<'_>, source: &str) -> Option<i128> {
     let node = calls::unparenthesized(node)?;
     if node.kind() == "unary_operator" {
         let operator = node.child_by_field_name("operator")?;
@@ -390,7 +396,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.allocate_sequence(node, values, env, false)
     }
 
-    fn allocate_sequence(
+    pub(super) fn allocate_sequence(
         &mut self,
         node: Node<'t>,
         values: Vec<Element>,
@@ -423,6 +429,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 minimum: values.len(),
                 items: values,
                 tuple,
+                keys: None,
+                uncertain_shape: false,
             },
         );
         let ids = BTreeSet::from([id]);
@@ -439,7 +447,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let list = env.lists.borrow().objects.get(refs.ids.first()?).cloned();
         if list
             .as_ref()
-            .is_none_or(|list| list.minimum != list.items.len())
+            .is_none_or(|list| list.minimum != list.items.len() || list.keys.is_some() || list.uncertain_shape)
         {
             self.cutoff("list-sequence-length-unchecked");
             return None;
@@ -579,7 +587,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         list.minimum = list.items.len();
                         env.lists.borrow_mut().objects.insert(id, list);
                     }
-                } else if let Some(indexed) = self.indexed_list(target, env) {
+                } else if let Some(indexed) = self.indexed_list(target, env, false) {
                     if !self.normal {
                         return;
                     }
@@ -602,7 +610,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             self.cutoff("list-sequence-length-unchecked");
                             continue;
                         }
-                        list.items.remove(*positions.first().unwrap());
+                        let slot = *positions.first().unwrap();
+                        list.items.remove(slot);
+                        if let Some(keys) = &mut list.keys { keys.remove(slot); }
                         list.minimum -= 1;
                     }
                 } else {
@@ -747,7 +757,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
 
-    fn indexed_list(&mut self, node: Node<'t>, env: &Environment) -> Option<IndexedList> {
+    fn indexed_list(&mut self, node: Node<'t>, env: &Environment, inserting: bool) -> Option<IndexedList> {
         let value = node.child_by_field_name("value")?;
         let receiver = self.expression(value, env);
         if !self.normal {
@@ -785,6 +795,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 slots: BTreeMap::new(),
                 receiver,
             });
+        }
+        if ids.iter().any(|id| env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_some())) {
+            let refs = References { ids, scalar: references.scalar };
+            let selected = self.mapping_slot(node, index, &refs, env, inserting);
+            return Some(IndexedList { slots: selected, receiver });
         }
         let Some(index_value) = integer_index(index, self.source) else {
             self.cutoff("list-index-unchecked");
@@ -828,7 +843,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if let Some(slice) = slice_node(node) {
             return Some(self.list_slice(node, slice, env));
         }
-        let selected = self.indexed_list(node, env)?;
+        let selected = self.indexed_list(node, env, false)?;
         if !self.normal {
             return Some(Flow::new());
         }
@@ -874,7 +889,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return true;
         }
         value.flow = self.extend(value.flow, left, "list-write");
-        let Some(indexed) = self.indexed_list(left, env) else {
+        let Some(indexed) = self.indexed_list(left, env, true) else {
             self.cutoff("list-write-target-unchecked");
             self.effect_limit(
                 left,
@@ -932,6 +947,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if references.scalar {
             self.cutoff("list-binding-type-unchecked");
+        }
+        if ids.iter().any(|id| env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_some())) {
+            return Some(self.mapping_method(node, &References { ids, scalar: references.scalar }, receiver, env));
         }
         if ids.iter().any(|id| {
             env.lists
@@ -1110,7 +1128,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .iter()
             .map(|value| value.references.clone())
             .collect();
-        if refs.iter().all(|value| value.ids.is_empty()) && !self.list_factory(name) {
+        let (file, source) = self.contexts[name];
+        let variadic = self.function_parameters(function, file, source).is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic()));
+        if refs.iter().all(|value| value.ids.is_empty()) && !variadic && !self.list_factory(name) {
             return None;
         }
         if self.active.iter().any(|active| active == name) || self.active.len() >= self.depth {
@@ -1135,19 +1155,25 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         heap.expressions.clear();
         heap.expression_facts.clear();
         heap.facts.clear();
-        for (parameter, slot) in parameters.into_iter().zip(slots) {
-            if let Some(value) = slot.and_then(|slot| evaluated.elements.get(slot)) {
-                heap.facts
-                    .insert(source[parameter.node.byte_range()].to_owned(), value.facts);
+        for (parameter, slots) in parameters.into_iter().zip(slots) {
+            let parameter_name = source[parameter.node.byte_range()].to_owned();
+            if parameter.kind.variadic() {
+                if heap.objects.len() >= ITEMS { self.cutoff("list-object-budget"); return Some(Flow::new()); }
+                let id = format!("{}:{}:{}:packed:{}", self.list_sites.join("/"), self.file.display(), call.start_byte(), parameter_name);
+                if heap.objects.contains_key(&id) { self.cutoff("repeated-list-allocation"); return Some(Flow::new()); }
+                let items: Vec<_> = slots.iter().map(|slot| evaluated.elements[*slot].clone()).collect();
+                let keys = (parameter.kind == calls::Kind::VarKeywords).then(|| slots.iter().map(|slot| mappings::Key::Text(names[*slot].clone().unwrap())).collect());
+                heap.objects.insert(id.clone(), List { minimum: items.len(), items, tuple: parameter.kind == calls::Kind::VarArgs, keys, uncertain_shape: false });
+                heap.bindings.insert(parameter_name, BTreeSet::from([id]));
+                continue;
             }
-            if let Some(refs) = slot
-                .and_then(|slot| refs.get(slot))
-                .filter(|refs| !refs.ids.is_empty())
-            {
-                let parameter = source[parameter.node.byte_range()].to_owned();
-                heap.bindings.insert(parameter.clone(), refs.ids.clone());
-                if refs.scalar {
-                    heap.uncertain.insert(parameter);
+            if let Some(slot) = slots.first().copied() {
+                let value = &evaluated.elements[slot];
+                heap.facts.insert(parameter_name.clone(), value.facts);
+                let refs = &value.references;
+                if !refs.ids.is_empty() {
+                    heap.bindings.insert(parameter_name.clone(), refs.ids.clone());
+                    if refs.scalar { heap.uncertain.insert(parameter_name); }
                 }
             }
         }
@@ -1230,7 +1256,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 left.kind() == "string" && calls::literal_default(left, source)
                             })
                     });
-                if matches!(node.kind(), "list" | "tuple" | "expression_list")
+                if matches!(node.kind(), "list" | "tuple" | "expression_list" | "dictionary")
                     && !format_arguments
                     && !exception_types
                     && !std::iter::successors(node.parent(), |node| node.parent())

@@ -20,7 +20,7 @@ pub(super) fn join(into: &mut Raised, from: Raised) -> bool {
 fn known(kind: &str) -> bool {
     matches!(
         kind,
-        "IndexError" | "LookupError" | "ValueError" | "TypeError" | "Exception" | "BaseException"
+        "IndexError" | "KeyError" | "LookupError" | "ValueError" | "TypeError" | "Exception" | "BaseException"
     )
 }
 
@@ -39,7 +39,7 @@ pub(in crate::project) fn valid(value: &Value) -> bool {
 
 fn matches(kind: &str, handler: &str) -> bool {
     kind == handler
-        || kind == "IndexError" && handler == "LookupError"
+        || matches!(kind, "IndexError" | "KeyError") && handler == "LookupError"
         || handler == "BaseException"
         || handler == "Exception" && kind != "BaseException"
 }

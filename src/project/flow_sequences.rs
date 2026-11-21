@@ -147,24 +147,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let Some(parameters) = self.function_parameters(function, file, source) else {
             return false;
         };
-        if function
-            .child_by_field_name("parameters")
-            .is_some_and(|node| {
-                children(node).iter().any(|node| {
-                    matches!(
-                        node.kind(),
-                        "list_splat_pattern" | "dictionary_splat_pattern"
-                    )
-                })
-            })
-        {
-            return false;
-        }
         let valid = calls::argument_slots(&parameters, source, names).is_some_and(|slots| {
             slots
                 .iter()
                 .zip(&parameters)
-                .all(|(slot, parameter)| slot.is_some() || parameter.default.is_some())
+                .all(|(slot, parameter)| !slot.is_empty() || parameter.default.is_some() || parameter.kind.variadic())
         });
         if !valid {
             self.sequence_error(call, env, "TypeError");

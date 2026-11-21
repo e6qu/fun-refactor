@@ -263,7 +263,7 @@ pub(super) fn parameters(
         .filter(|node| !node.kind().contains("comment"))
         .collect();
     for parameter in &parameters {
-        if matches!(
+        if !(language == Language::Python && !matches!(change, Change::Add { .. })) && (matches!(
             parameter.kind(),
             "list_splat_pattern"
                 | "dictionary_splat_pattern"
@@ -282,7 +282,7 @@ pub(super) fn parameters(
                     node.kind(),
                     "rest_pattern" | "list_splat_pattern" | "dictionary_splat_pattern"
                 )
-            })
+            }))
         {
             return Err(refuse("signature change cannot preserve variadic, grouped or keyword-only parameter bindings; use explicit positional parameters"));
         }
