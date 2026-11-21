@@ -334,7 +334,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     pub(super) fn element_flow(&self, value: &Element, env: &Environment) -> Flow {
-        let mut flow = if value.references.scalar { value.flow.clone() } else { Flow::new() };
+        let mut flow = if value.references.scalar {
+            value.flow.clone()
+        } else {
+            Flow::new()
+        };
         let contents = env.lists.borrow().contents(&value.references.ids);
         merge(&mut flow, through_alias(contents, &value.flow));
         flow
@@ -1201,14 +1205,34 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             while let Some(node) = nodes.pop() {
                 let parent = std::iter::successors(node.parent(), |node| node.parent())
                     .find(|node| node.kind() != "parenthesized_expression");
+                let exception_types = node.kind() == "tuple"
+                    && parent.is_some_and(|parent| {
+                        parent.kind() == "except_clause"
+                            || parent.kind() == "as_pattern"
+                                && parent
+                                    .parent()
+                                    .is_some_and(|clause| clause.kind() == "except_clause")
+                    });
                 let format_arguments = node.kind() == "tuple"
-                    && self.modules.is_some_and(|modules| modules.standard_enabled("builtins"))
-                    && parent.is_some_and(|parent| parent.kind() == "binary_operator"
-                        && parent.child_by_field_name("operator").is_some_and(|operator| &source[operator.byte_range()] == "%")
-                        && parent.child_by_field_name("right").and_then(calls::unparenthesized) == Some(node)
-                        && parent.child_by_field_name("left").is_some_and(|left| left.kind() == "string" && calls::literal_default(left, source)));
+                    && self
+                        .modules
+                        .is_some_and(|modules| modules.standard_enabled("builtins"))
+                    && parent.is_some_and(|parent| {
+                        parent.kind() == "binary_operator"
+                            && parent
+                                .child_by_field_name("operator")
+                                .is_some_and(|operator| &source[operator.byte_range()] == "%")
+                            && parent
+                                .child_by_field_name("right")
+                                .and_then(calls::unparenthesized)
+                                == Some(node)
+                            && parent.child_by_field_name("left").is_some_and(|left| {
+                                left.kind() == "string" && calls::literal_default(left, source)
+                            })
+                    });
                 if matches!(node.kind(), "list" | "tuple" | "expression_list")
                     && !format_arguments
+                    && !exception_types
                     && !std::iter::successors(node.parent(), |node| node.parent())
                         .take_while(|node| {
                             matches!(

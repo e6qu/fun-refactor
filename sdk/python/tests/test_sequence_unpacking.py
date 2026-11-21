@@ -215,3 +215,23 @@ def test_lists_inside_scalar_call_assignments_keep_returned_identity(tmp_path):
     report = analyze(tmp_path, source)
     assert report['complete'], report['cutoffs']
     assert report['witnesses']
+
+
+def test_exception_type_tuples_preserve_scalar_recursion(tmp_path):
+    source = program('send(relay(read(), False))',
+        'def relay(value, flag):\n    try:\n        if flag:\n            return value\n'
+        '        return relay(value, True)\n    except (TypeError, ValueError):\n        return 0\n')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
+
+
+@pytest.mark.parametrize('number,expected', [('bad', ['Customer']), ('123', ['0'])])
+def test_unpacking_keeps_the_possible_rhs_error_before_partial_writes(tmp_path, number, expected):
+    source = program(f'first = read()\ntry:\n    first, (second,) = [0, [int({number!r}), 0]]\n'
+                     'except ValueError:\n    send(first)')
+    assert execute(source, 'Customer') == expected
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
