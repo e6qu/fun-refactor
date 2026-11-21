@@ -1128,7 +1128,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             while let Some(node) = nodes.pop() {
                 if matches!(node.kind(), "list" | "tuple" | "expression_list")
                     && !std::iter::successors(node.parent(), |node| node.parent())
-                        .take_while(|node| node.kind() != "block")
+                        .take_while(|node| matches!(node.kind(), "assignment" | "tuple" | "list" | "expression_list" | "parenthesized_expression"))
                         .find(|node| node.kind() == "assignment")
                         .is_some_and(assignments::literal_transfer) {
                     found = true;

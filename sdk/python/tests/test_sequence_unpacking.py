@@ -206,3 +206,12 @@ def test_imported_unpacking_edits_invalidate_cached_answers(tmp_path, module):
     assert changed.witnesses == fresh.witnesses
     for pointer in ('/input_digest', '/completion', '/cutoffs', '/events'):
         assert changed.report.at(pointer) == fresh.report.at(pointer)
+
+
+def test_lists_inside_scalar_call_assignments_keep_returned_identity(tmp_path):
+    source = program('values = make(read())\nfirst, = values\nvalues[0] = 0\nsend(first)',
+        'def relay(items):\n    return items\ndef make(value):\n    result = relay([value])\n    return result\n')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert report['witnesses']
