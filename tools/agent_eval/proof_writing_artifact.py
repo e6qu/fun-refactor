@@ -21,7 +21,9 @@ def verify(run, binary, build_kind):
     repository = os.environ['GITHUB_REPOSITORY']
     metadata = json.loads(command(['gh', 'api', f'repos/{repository}/actions/runs/{run}']))
     require(metadata['head_repository']['full_name'] == repository, 'reuse a build from this repository')
-    pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', f'repos/{repository}/actions/runs/{run}/jobs?filter=all&per_page=100']))
+    # Earlier cancelled attempts must not duplicate the current builder; an older
+    # success must not qualify a failed latest execution either.
+    pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', f'repos/{repository}/actions/runs/{run}/jobs?filter=latest&per_page=100']))
     jobs = [job for page in pages for job in page['jobs']]
     builders_by_kind = {'numeric-models': 'Check early returns and numeric proof models',
                         'algorithms': 'Reject incomplete proofs of the fixed GCD implementation'}
