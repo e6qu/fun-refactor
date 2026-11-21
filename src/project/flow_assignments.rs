@@ -42,7 +42,8 @@ pub(super) fn target_names(node: Node<'_>) -> Option<Vec<Node<'_>>> {
         *budget -= 1;
         match node.kind() {
             "identifier" => names.push(node),
-            "pattern_list" | "tuple_pattern" | "list_pattern" | "list_splat_pattern" | "list_splat" => {
+            "pattern_list" | "tuple_pattern" | "list_pattern" | "list_splat_pattern"
+            | "list_splat" => {
                 for child in children(node) {
                     collect(child, depth + 1, budget, names)?;
                 }
@@ -119,14 +120,25 @@ fn bindings<'t>(
 pub(super) fn literal_transfer(mut node: Node<'_>) -> bool {
     let mut targets = Vec::new();
     while node.kind() == "assignment" {
-        if targets.len() >= 64 || node.child_by_field_name("type").is_some() { return false; }
-        let (Some(left), Some(right)) = (node.child_by_field_name("left"), node.child_by_field_name("right")) else { return false; };
+        if targets.len() >= 64 || node.child_by_field_name("type").is_some() {
+            return false;
+        }
+        let (Some(left), Some(right)) = (
+            node.child_by_field_name("left"),
+            node.child_by_field_name("right"),
+        ) else {
+            return false;
+        };
         targets.push(left);
         node = right;
     }
-    let Some(value) = shape(node, 0, &mut 64, &mut Vec::new()) else { return false; };
+    let Some(value) = shape(node, 0, &mut 64, &mut Vec::new()) else {
+        return false;
+    };
     let mut writes = Vec::new();
-    targets.into_iter().all(|target| bindings(target, &value, 0, &mut writes).is_some())
+    targets
+        .into_iter()
+        .all(|target| bindings(target, &value, 0, &mut writes).is_some())
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
@@ -163,7 +175,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut values = Vec::new();
         for leaf in leaves {
             let flow = self.expression(leaf, state);
-            if !self.normal { return; }
+            if !self.normal {
+                return;
+            }
             values.push(self.list_element(leaf, flow, state));
         }
         for (target, index) in writes {

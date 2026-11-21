@@ -540,7 +540,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         for argument in arguments {
             merge(&mut joined, argument.clone());
         }
-        if !evaluated.checked { return joined; }
+        if !evaluated.checked {
+            return joined;
+        }
         let base = name.split('.').next().unwrap();
         let resolved = self.modules.map_or_else(
             || {
@@ -644,12 +646,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
-        if evaluated.expanded && self.expanded_binding_error(function, &resolved, argument_names, node, env) {
+        if evaluated.expanded
+            && self.expanded_binding_error(function, &resolved, argument_names, node, env)
+        {
             return Flow::new();
         }
-        if let Some(value) =
-            self.list_call(&resolved, function, &evaluated, node, env)
-        {
+        if let Some(value) = self.list_call(&resolved, function, &evaluated, node, env) {
             return value;
         }
         if self.solver.enabled {

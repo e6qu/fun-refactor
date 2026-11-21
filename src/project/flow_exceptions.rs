@@ -76,12 +76,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     pub(super) fn sequence_error(&mut self, node: Node<'t>, env: &Environment, kind: &str) {
-        if !self.solver.enabled { self.cutoff("sequence-exception-control-unchecked"); }
+        if !self.solver.enabled {
+            self.cutoff("sequence-exception-control-unchecked");
+        }
         self.may_raise = true;
         self.normal = false;
         self.exceptional_returns.entry(kind.into()).or_default();
         self.capture_raised_lists(env.lists.borrow().clone());
-        self.events.push(json!({"kind":"sequence-error", "exception":kind,
+        self.events
+            .push(json!({"kind":"sequence-error", "exception":kind,
             "certain":true, "occurrence":self.occurrence(node, "sequence-error"),
             "control_node":self.current_block}));
     }
