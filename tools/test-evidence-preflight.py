@@ -85,6 +85,21 @@ class Freshness(unittest.TestCase):
             self.assertEqual(row['state'], 'current')
         self.assertEqual(len(digests), 2)
 
+    def test_storage_reports_bind_exact_python_release_bytes(self):
+        name = 'sdk/python/src/fr_ir/_version.py'
+        path = self.save(name, 'VERSION = "1.0.0"  # x-release-please-version\n')
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+        selected = []
+        for schema in ('fr-saved-work-cost', 'fr-saved-answer-improvement'):
+            report = schema + '.json'
+            self.save(report, json.dumps({'schema': schema, 'source_bindings': {name: fingerprint}}))
+            selected.append({'path': report, 'selected_by': [schema]})
+            self.assertEqual(self.inspect(selected[-1])['state'], 'current')
+        path.write_text('VERSION = "1.0.1"  # x-release-please-version\n')
+        for row in selected:
+            self.assertEqual(self.inspect(row)['state'], 'stale')
+            self.assertEqual(self.inspect(row)['changed_sources'], [name])
+
     def test_digest_tampering_and_missing_reports_are_errors(self):
         selected = self.report()
         self.save('result.json', '{}')
