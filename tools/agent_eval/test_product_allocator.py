@@ -161,6 +161,40 @@ class AllocatorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'unexpected or oversized'):
                 allocator.audit(archive)
 
+    def test_original_upload_prefix_preserves_records_and_rejects_mixed_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / 'records'
+            records.mkdir()
+            expected = self.fixture(records)
+            for prefix in ('', 'proof-allocator/'):
+                archive = root / 'records.zip'
+                with zipfile.ZipFile(archive, 'w') as output:
+                    for path in records.rglob('*'):
+                        if path.is_file():
+                            output.write(path, prefix + path.relative_to(records).as_posix())
+                self.assertEqual(allocator.audit(archive), expected)
+            with zipfile.ZipFile(archive, 'a') as output:
+                output.writestr('summary.json', '{}')
+            with self.assertRaisesRegex(ValueError, 'unexpected or oversized'):
+                allocator.audit(archive)
+
+    def test_retained_hosted_results_match_original_artifacts_and_run(self):
+        data = allocator.PROTOCOL.parent / '2026-11-21'
+        for name in ('linux', 'macos'):
+            with self.subTest(platform=name):
+                archive = data / (name + '.zip')
+                provenance = json.loads((data / (name + '-provenance.json')).read_text())
+                self.assertEqual(allocator.memory.tasks.common.digest(archive), provenance['artifact_sha256'])
+                original = allocator.audit(archive)
+                self.assertEqual(original, json.loads((data / (name + '.json')).read_text()))
+                self.assertEqual(original['run'], provenance['run'])
+                self.assertEqual(original['source_commit'], provenance['head_sha'])
+                self.assertEqual(provenance['workflow'], '.github/workflows/product-memory.yml')
+                self.assertEqual(provenance['workflow_conclusion'], 'success')
+                self.assertFalse(original['admitted'])
+                self.assertEqual(original['live_model_calls'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

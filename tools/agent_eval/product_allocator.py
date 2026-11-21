@@ -138,12 +138,14 @@ def audit(directory):
         allowed |= {f'probe-{condition}.{stream}' for condition in CONDITIONS for stream in ('stdout', 'stderr')}
         with zipfile.ZipFile(directory) as archive, tempfile.TemporaryDirectory() as temporary:
             members = archive.infolist()
+            # The first hosted upload retained its enclosing output directory.
+            prefix = 'proof-allocator/' if 'proof-allocator/summary.json' in archive.namelist() else ''
             require(len(members) == len({member.filename for member in members}) and
-                    all(member.filename in allowed for member in members) and
+                    all(member.filename in {prefix + name for name in allowed} for member in members) and
                     sum(member.file_size for member in members) <= 8 * 1024**2,
                     'unexpected or oversized allocator archive')
             archive.extractall(temporary)
-            return audit(Path(temporary))
+            return audit(Path(temporary) / prefix)
     result = json.loads((directory / 'summary.json').read_text())
     require(result['schema'] == 'fr-product-proof-allocator-1' and result['status'] == 'complete' and result['admitted'] is False and
             result['live_model_calls'] == 0 and result['protocol'] == protocol and

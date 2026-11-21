@@ -127,9 +127,9 @@ jobs:
             --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json" \
             --lean-root "$RUNNER_TEMP/lean-memory-tool" --output "$output"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && inputs.experiment == 'allocator'
         with:
-          name: ${{ inputs.experiment == 'allocator' && 'proof-allocator' || 'proof-memory' }}-${{ matrix.platform }}
+          name: proof-allocator-${{ matrix.platform }}
           path: |
             ${{ runner.temp }}/proof-allocator/summary.json
             ${{ runner.temp }}/proof-allocator/probe-*.stdout
@@ -139,6 +139,13 @@ jobs:
             ${{ runner.temp }}/proof-allocator/*/profile.jsonl
             ${{ runner.temp }}/proof-allocator/*/stdout
             ${{ runner.temp }}/proof-allocator/*/stderr
+          if-no-files-found: warn
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && inputs.experiment == 'imports'
+        with:
+          name: proof-memory-${{ matrix.platform }}
+          path: |
             ${{ runner.temp }}/proof-memory/summary.json
             ${{ runner.temp }}/proof-memory/*/resources.json
             ${{ runner.temp }}/proof-memory/*/profile.json

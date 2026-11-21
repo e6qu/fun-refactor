@@ -83,10 +83,13 @@ On the workstation, run this command through the required local guard. The audit
 checks every case, resource verdict, process sample and output hash. It refuses
 changed limits, missing cases, retried stops and any claim of native admission.
 
-## Next experiment
+## Allocator result
 
 The [allocator comparison](allocator-comparison.md) freezes one possible reduction:
 immediate purging of unused allocator pages. It checks the same complete package
 with baseline and candidate environments, retains every resource refusal, and
-requires unfinished and incorrect proofs to fail. Results are pending. The original
-records above and the native admission block remain unchanged.
+requires unfinished and incorrect proofs to fail. The [completed comparison](2026-11-21/README.md)
+did not demonstrate a usable reduction: ARM macOS measured 599–606 MiB baseline
+and 605–617 MiB with immediate purging; Linux's candidate stopped at 775 MiB.
+Do not adopt the setting or retry native admission. The original records above,
+resource limits and 0/96 live-attempt count remain unchanged.
