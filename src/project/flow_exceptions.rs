@@ -66,8 +66,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         self.may_raise = true;
         self.normal &= !certain;
-        // Builtin list errors describe the failed operation, not the stored
-        // element values. Do not attach the list's contents to the error text.
+        // Builtin list error text does not contain the stored elements.
         self.exceptional_returns.entry(kind.into()).or_default();
         self.capture_raised_lists(env.lists.borrow().clone());
         self.events

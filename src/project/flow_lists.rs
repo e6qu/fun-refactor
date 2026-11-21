@@ -61,8 +61,7 @@ struct IndexedList {
 }
 
 fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
-    // Keep the alias route only for origins still present in the object. An old
-    // binding snapshot must never restore values removed by a later mutation.
+    // Keep alias routes only for origins still in the object after mutation.
     for (origin, trace) in &mut current {
         if let Some(previous) = prior.get(origin) {
             for point in &previous.occurrences {
