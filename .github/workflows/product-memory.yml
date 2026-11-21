@@ -1,12 +1,21 @@
 name: Product proof memory
 on:
   workflow_dispatch:
+    inputs:
+      experiment:
+        description: Choose the frozen checker-only experiment
+        type: choice
+        default: imports
+        options: [imports, allocator]
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/product-memory.yml'
       - 'tools/agent_eval/product_memory.py'
       - 'tools/agent_eval/test_product_memory.py'
+      - 'tools/agent_eval/product_allocator.py'
+      - 'tools/agent_eval/test_product_allocator.py'
+      - 'tests/agent-eval/product-validation/memory/allocator-protocol.json'
 permissions:
   contents: read
   actions: read
@@ -35,11 +44,11 @@ jobs:
         env:
           PYTHONPATH: tools
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python3 -B -m unittest agent_eval.test_product_memory
+        run: python3 -B -m unittest agent_eval.test_product_memory agent_eval.test_product_allocator
   measure:
     if: github.event_name == 'workflow_dispatch'
     needs: audit
-    name: Proof checker memory (${{ matrix.runner }})
+    name: Proof checker memory (${{ inputs.experiment }}, ${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     strategy:
@@ -104,13 +113,36 @@ jobs:
           mkdir "$RUNNER_TEMP/lean-memory-tool"
           zstd -dc "$RUNNER_TEMP/$archive" | tar -xf - -C "$RUNNER_TEMP/lean-memory-tool" --strip-components=1
           rm "$RUNNER_TEMP/$archive"
-      - name: Measure the unchanged proof and separate import controls
-        run: >-
-          python3 -B -m agent_eval.product_memory measure
-          --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json"
-          --lean-root "$RUNNER_TEMP/lean-memory-tool" --output "$RUNNER_TEMP/proof-memory"
+      - name: Measure the selected frozen experiment
+        env:
+          EXPERIMENT: ${{ inputs.experiment }}
+        run: |
+          set -euo pipefail
+          case "$EXPERIMENT" in
+            imports) module=agent_eval.product_memory; output="$RUNNER_TEMP/proof-memory" ;;
+            allocator) module=agent_eval.product_allocator; output="$RUNNER_TEMP/proof-allocator" ;;
+            *) echo 'Unknown proof memory experiment'; exit 1 ;;
+          esac
+          python3 -B -m "$module" measure \
+            --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json" \
+            --lean-root "$RUNNER_TEMP/lean-memory-tool" --output "$output"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && inputs.experiment == 'allocator'
+        with:
+          name: proof-allocator-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/proof-allocator/summary.json
+            ${{ runner.temp }}/proof-allocator/probe-*.stdout
+            ${{ runner.temp }}/proof-allocator/probe-*.stderr
+            ${{ runner.temp }}/proof-allocator/*/resources.json
+            ${{ runner.temp }}/proof-allocator/*/profile.json
+            ${{ runner.temp }}/proof-allocator/*/profile.jsonl
+            ${{ runner.temp }}/proof-allocator/*/stdout
+            ${{ runner.temp }}/proof-allocator/*/stderr
+          if-no-files-found: warn
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && inputs.experiment == 'imports'
         with:
           name: proof-memory-${{ matrix.platform }}
           path: |

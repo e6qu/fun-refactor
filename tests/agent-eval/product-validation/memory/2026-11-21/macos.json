@@ -1,0 +1,538 @@
+{
+  "schema": "fr-product-proof-allocator-1",
+  "status": "complete",
+  "run": "44855003021",
+  "source_commit": "0e0e8dded32f36696894c151193923d335557864",
+  "qualification_run": "44542024683",
+  "qualification_commit": "31e9d44d3cda81d39a41f5f9bfa03b97daff4de8",
+  "platform": "Darwin",
+  "machine": "arm64",
+  "protocol": {
+    "schema": "fr-proof-allocator-protocol-1",
+    "question": "Does immediate purging in the pinned allocator reduce complete package-check RSS without changing the protected proof or checking command?",
+    "qualification_run": "44542024683",
+    "lean_version": "4.28.0",
+    "conditions": {
+      "baseline": {},
+      "immediate-purge": {
+        "MIMALLOC_PURGE_DELAY": "0"
+      }
+    },
+    "first_pair": [
+      "baseline",
+      "immediate-purge"
+    ],
+    "second_pair": [
+      "immediate-purge",
+      "baseline"
+    ],
+    "repeat_only_after_both_first_cases_finish": true,
+    "negative_controls": [
+      "unfinished",
+      "wrong-proof"
+    ],
+    "limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    },
+    "minimum_rss_reduction_fraction": 0.1,
+    "decision": "Consider adoption on a platform only if every positive and negative control passes and the larger candidate RSS is at least 10% below the smaller baseline RSS. Retain wall time and CPU costs. No result grants native admission.",
+    "admitted": false,
+    "live_model_calls": 0
+  },
+  "protocol_sha256": "a9c9b4059ceb5f9f0688aca5f99d40c4ed9a863e741158537a4ba44a0254ba1b",
+  "tool_sha256": {
+    "lean": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+    "lake": "0e56506385ec20d56bffd7c031c4d48573ab5fdb74e5246ec8c45a220bebc68b",
+    "leanc": "66ed34023fa49555ccc8ea3d256904e08cb893bb394bbcc71fa72278d584acfc"
+  },
+  "lake_path": "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+  "seed_sha256": "3043d8f7732a271e39a37d00778e572fe6f26b4fae7bc6b8f55f52b840780ff4",
+  "reference_patch_sha256": "8e814c735e44602be7c9dbf09c2f3c150200506e9c39297ad9616195d73c6978",
+  "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+  "probes": {
+    "baseline": {
+      "stdout_sha256": "f5bb5cdae1d4c482f4c81e730e632aa8c72c0c4c33c646a6846acb5d81862a81",
+      "stderr_sha256": "bd302bf577e4a63f01199414af880e9e0b5c3463261c91325c6f93e993dce48d"
+    },
+    "immediate-purge": {
+      "stdout_sha256": "f5bb5cdae1d4c482f4c81e730e632aa8c72c0c4c33c646a6846acb5d81862a81",
+      "stderr_sha256": "d2f1b7d6dda859ef7f4b6dfafed7b39f63962c582ea20a27fbc41f66646eaaef"
+    }
+  },
+  "cases": [
+    {
+      "condition": "baseline",
+      "case": "reference",
+      "repetition": 0,
+      "command": [
+        "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "environment": {},
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 6.757421416,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 628178944,
+        "sampled_cpu_seconds": 1.5699999999999998,
+        "sampled_disk_growth_bytes": 132482,
+        "transcript_bytes": 108
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 52,
+        "trace_sha256": "56bfbe3ddb2a51a0268f8a396df9690926de9d76aac9bc0b89045796a0eb9b38",
+        "peak": {
+          "rss_bytes": 628178944,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 6.146459250000021,
+            "group": 2090,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.07,
+                "executable": "lake",
+                "pid": 2090,
+                "rss_bytes": 59604992
+              },
+              {
+                "cpu_seconds": 1.2,
+                "executable": "lean",
+                "pid": 2093,
+                "rss_bytes": 568573952
+              }
+            ],
+            "started_seconds": 6.123184167000005
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 628178944
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "fb40a2218b558fa2b9b567be88767782f17b4ea50ee6e5ba8137d09b89e584a4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "f01413c05d1c86260d8cd335c6b7224152068f3c84a2e367db511a0dac3905d5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "condition": "immediate-purge",
+      "case": "reference",
+      "repetition": 0,
+      "command": [
+        "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "environment": {
+        "MIMALLOC_PURGE_DELAY": "0"
+      },
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 1.197518666999997,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 647086080,
+        "sampled_cpu_seconds": 0.9700000000000001,
+        "sampled_disk_growth_bytes": 116755,
+        "transcript_bytes": 109
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 10,
+        "trace_sha256": "89f504c9de5f7efefa1ec273d8aa8dd629cab3adafdec272b8bb24753d361dc9",
+        "peak": {
+          "rss_bytes": 647086080,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.6324673329999939,
+            "group": 2246,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.04,
+                "executable": "lake",
+                "pid": 2246,
+                "rss_bytes": 59768832
+              },
+              {
+                "cpu_seconds": 0.56,
+                "executable": "(lean)",
+                "pid": 2248,
+                "rss_bytes": 587317248
+              }
+            ],
+            "started_seconds": 0.6010343330000012
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 647086080
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "fb40a2218b558fa2b9b567be88767782f17b4ea50ee6e5ba8137d09b89e584a4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "79a722ee58fb0857804d332cfb7be50a1527fdab3fe947f9919e2608c0d19699",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "condition": "immediate-purge",
+      "case": "reference",
+      "repetition": 1,
+      "command": [
+        "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "environment": {
+        "MIMALLOC_PURGE_DELAY": "0"
+      },
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 1.3677122499999825,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 634093568,
+        "sampled_cpu_seconds": 0.9299999999999999,
+        "sampled_disk_growth_bytes": 117126,
+        "transcript_bytes": 109
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 11,
+        "trace_sha256": "10e33270704730759a82eeceb3da0a5d2b2a113d51308e4c5ad2cd1804edf384",
+        "peak": {
+          "rss_bytes": 634093568,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.566502541999995,
+            "group": 2267,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.07,
+                "executable": "lake",
+                "pid": 2267,
+                "rss_bytes": 59850752
+              },
+              {
+                "cpu_seconds": 0.44,
+                "executable": "lean",
+                "pid": 2269,
+                "rss_bytes": 574242816
+              }
+            ],
+            "started_seconds": 0.5288663329999963
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 634093568
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "fb40a2218b558fa2b9b567be88767782f17b4ea50ee6e5ba8137d09b89e584a4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "f036a1bb95c83d8cf7f69f0d80120652b66f1f181ca9524e6c74ee75f15220a6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "condition": "baseline",
+      "case": "reference",
+      "repetition": 1,
+      "command": [
+        "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "environment": {},
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 1.2774264170000151,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 635076608,
+        "sampled_cpu_seconds": 0.79,
+        "sampled_disk_growth_bytes": 116865,
+        "transcript_bytes": 109
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 11,
+        "trace_sha256": "cd5d7f0d31896fbd158a24050fe32a8277f60a92a3ca3d8b47fb946b4abe27c6",
+        "peak": {
+          "rss_bytes": 635076608,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.644325791,
+            "group": 2293,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.05,
+                "executable": "lake",
+                "pid": 2293,
+                "rss_bytes": 59768832
+              },
+              {
+                "cpu_seconds": 0.48,
+                "executable": "lean",
+                "pid": 2296,
+                "rss_bytes": 575307776
+              }
+            ],
+            "started_seconds": 0.6052930830000207
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 635076608
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "fb40a2218b558fa2b9b567be88767782f17b4ea50ee6e5ba8137d09b89e584a4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "9576a68bbcca0f11bb81634f7a652fc76bc6b65fd7a05162d353ba308ae37cbd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "condition": "immediate-purge",
+      "case": "unfinished",
+      "repetition": 0,
+      "command": [
+        "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "environment": {
+        "MIMALLOC_PURGE_DELAY": "0"
+      },
+      "resources": {
+        "exit_code": 1,
+        "process_exit_code": 1,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 1.5521390410000038,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 641794048,
+        "sampled_cpu_seconds": 0.98,
+        "sampled_disk_growth_bytes": 75569,
+        "transcript_bytes": 1002
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 12,
+        "trace_sha256": "548350df46147d3b3d26f3868c813310ccf4aa6b42c8094977d5f45329f242ac",
+        "peak": {
+          "rss_bytes": 641794048,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.9181065829999966,
+            "group": 2317,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.05,
+                "executable": "lake",
+                "pid": 2317,
+                "rss_bytes": 59883520
+              },
+              {
+                "cpu_seconds": 0.58,
+                "executable": "(lean)",
+                "pid": 2319,
+                "rss_bytes": 581910528
+              }
+            ],
+            "started_seconds": 0.8760823329999994
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 641794048
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "7e983ffef5336395a706db1bb90d2dc33878adf432b7441cd4a57e18104468e4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "0353817bd9415e583989422b31de989b763c5bbf2c0b570722c5663910d69aeb",
+      "stderr_sha256": "c4a27db198c4d8632369ee6102944ef46e83c20d685f7c17a6aaff9cfcfc710f"
+    },
+    {
+      "condition": "immediate-purge",
+      "case": "wrong-proof",
+      "repetition": 0,
+      "command": [
+        "/Users/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "environment": {
+        "MIMALLOC_PURGE_DELAY": "0"
+      },
+      "resources": {
+        "exit_code": 1,
+        "process_exit_code": 1,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.5181992920000198,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 570900480,
+        "sampled_cpu_seconds": 0.29,
+        "sampled_disk_growth_bytes": 3095,
+        "transcript_bytes": 1205
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 5,
+        "trace_sha256": "1db35ad6e3d6d3d612f43971035656a2ea9a67ebeb6187c93bedf91885d23374",
+        "peak": {
+          "rss_bytes": 570900480,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "darwin-ps-time"
+            },
+            "finished_seconds": 0.3157767499999977,
+            "group": 2454,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.05,
+                "executable": "lake",
+                "pid": 2454,
+                "rss_bytes": 59604992
+              },
+              {
+                "cpu_seconds": 0.24,
+                "executable": "lean",
+                "pid": 2456,
+                "rss_bytes": 511295488
+              }
+            ],
+            "started_seconds": 0.2701752499999941
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 570900480
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "ffe76266edec763822bdd58c58c0ce38694320595100c59b9ca1086d8c8e1b7a",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "19263423b13d853c461153397bd5ba272d80b5daed985a58e805b386a4db7689",
+      "stderr_sha256": "c4a27db198c4d8632369ee6102944ef46e83c20d685f7c17a6aaff9cfcfc710f"
+    }
+  ],
+  "admitted": false,
+  "live_model_calls": 0,
+  "scope": "Fresh complete package checks with identical source and pinned tools. No native client; no OS cache reset. Immediate purging is the only measured environment change.",
+  "decision": {
+    "outcome": "discard",
+    "admitted": false,
+    "minimum_baseline_rss_bytes": 628178944,
+    "maximum_candidate_rss_bytes": 647086080,
+    "conservative_rss_reduction_fraction": -0.030098328160454768,
+    "reason": "Checker-only comparison; complete native admission remains required."
+  },
+  "unstarted": []
+}

@@ -77,8 +77,13 @@ Independent feature work landed in [#637](https://github.com/e6qu/fun-refactor/p
 insert/pop/reverse, checked helper binding and refreshed analysis evidence. Full CI and post-merge release checks passed.
 [PR #639](https://github.com/e6qu/fun-refactor/pull/639) merged returned list identities and nested aliases,
 covering checked helper calls, cleanup and cache invalidation. Its full CI passed.
-Bounded slicing, shallow copies, concatenation and deletion now have independent runtime checks.
-Independent Python examples check each new rule.
+[PR #641](https://github.com/e6qu/fun-refactor/pull/641) merged bounded slicing, shallow copies,
+concatenation and deletion, with independent runtime checks, 113 passing PR checks and complete deep validation.
+The [allocator comparison](tests/agent-eval/product-validation/memory/2026-11-21/README.md)
+preserved the proof, imports, package check and limits but found no usable reduction.
+ARM macOS missed the frozen 10% threshold; Linux's candidate exceeded the memory ceiling.
+Do not adopt the setting or retry native admission on this evidence. Further work needs a
+different measured reduction, then all 24 complete native rehearsals. Live calls remain blocked.
 A [report freshness preflight](docs/evidence-refresh.md) identifies affected current reports before expensive CI gates.
 The workstation is again below its 64 GiB floor; execution and evidence collection remain on GitHub.
 PR 6's [package qualification](docs/product-qualification.md) landed in [#629](https://github.com/e6qu/fun-refactor/pull/629).
