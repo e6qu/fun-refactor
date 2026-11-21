@@ -48,10 +48,14 @@ It merged after 112 passing checks. Immediate purging did not provide a usable r
 and Linux's candidate exceeded the memory ceiling. Keep the setting out of product defaults.
 The original proof, imports, package command, memory metric and limits remain fixed.
 Further native work needs a different measured correction and all 24 complete rehearsals.
-The next analysis increment follows known list bounds and slice errors through helpers,
-handlers and cleanup. It preserves mutations before failure and separates normal from
-exceptional list states. Independent Python checks cover source changes and cached answers;
-18 paired contract examples expand the corpus to 545 programs and 1,090 cases.
+[PR #645](https://github.com/e6qu/fun-refactor/pull/645) merged known list errors, preserving
+mutations before failure through handlers, helpers and cleanup.
+The current increment adds bounded list/tuple unpacking, nested and starred targets,
+sequence expansion and fixed-slot calls. Keep evaluation order, partial writes,
+shared identities and imported-helper cache invalidation covered by independent Python checks.
+It adds 20 paired examples and closes nested literal module binding and literal expansion:
+565 programs, 1,130 cases, 362 incomplete cases and 18 refusals.
+Hosted behavior checks, evidence refresh and full CI are required before marking it ready.
 The full-product and live-comparison completion gates remain open.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.

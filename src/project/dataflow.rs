@@ -56,6 +56,9 @@ mod text_values;
 #[path = "flow_lists.rs"]
 mod lists;
 
+#[path = "flow_sequences.rs"]
+mod sequences;
+
 pub(super) fn expression_contract() -> Value {
     expressions::contract()
 }
@@ -331,6 +334,7 @@ struct Analyzer<'a, 'p, 't> {
     summaries: Vec<Value>,
     exceptional_returns: Raised,
     raised_lists: Option<lists::Lists>,
+    raised_assignment: Option<Environment>,
     current_block: Option<(String, usize)>,
     origins: BTreeMap<String, Occurrence>,
     solver: summaries::Solver,
@@ -414,7 +418,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if let Some(value) = self.list_value(node, env) {
             return value;
         }
-        if node.kind() == "list" {
+        if matches!(node.kind(), "list" | "tuple" | "expression_list") {
             return self.list_literal(node, env);
         }
         if node.kind() == "subscript" {
@@ -527,13 +531,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
-        let (arguments, argument_names) = self.call_arguments(node, env);
+        let evaluated = self.call_arguments(node, env);
+        let arguments = &evaluated.values;
+        let argument_names = &evaluated.names;
         let mut joined = Flow::new();
         if self.solver.enabled && !self.normal {
             return Flow::new();
         }
-        for argument in &arguments {
+        for argument in arguments {
             merge(&mut joined, argument.clone());
+        }
+        if !evaluated.checked {
+            return joined;
         }
         let base = name.split('.').next().unwrap();
         let resolved = self.modules.map_or_else(
@@ -638,14 +647,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
-        if let Some(value) =
-            self.list_call(&resolved, function, &arguments, &argument_names, node, env)
+        if evaluated.expanded
+            && self.expanded_binding_error(function, &resolved, argument_names, node, env)
         {
+            return Flow::new();
+        }
+        if let Some(value) = self.list_call(&resolved, function, &evaluated, node, env) {
             return value;
         }
         if self.solver.enabled {
             let Some(arguments) =
-                self.bind_arguments(&resolved, function, arguments, &argument_names)
+                self.bind_arguments(&resolved, function, arguments.clone(), argument_names)
             else {
                 return Flow::new();
             };
@@ -659,7 +671,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("call-depth-budget");
             return joined;
         }
-        let result = self.invoke(&name, function, arguments);
+        let result = self.invoke(&name, function, arguments.clone());
         if self.returned_raised_lists.is_some() {
             self.capture_raised_lists(env.lists.borrow().clone());
         }
@@ -794,6 +806,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut result = Flow::new();
         let parent_exceptions = std::mem::take(&mut self.exceptional_returns);
         let parent_raised_lists = self.raised_lists.take();
+        let parent_raised_assignment = self.raised_assignment.take();
         let parent_may_raise = self.may_raise;
         let mut exceptions = Raised::new();
         let mut may_raise = false;
@@ -837,7 +850,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     state.values.remove(&alias.0);
                     state.defined.remove(&alias.0);
                     state.plain_strings.remove(&alias.0);
-                    state.lists.borrow_mut().bindings.remove(&alias.0);
+                    state.lists.borrow_mut().forget(&alias.0);
                     state.exception_aliases.remove(&alias);
                 }
             }
@@ -846,6 +859,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.may_raise = false;
             self.exceptional_returns.clear();
             self.raised_lists = None;
+            self.raised_assignment = None;
             if block.operation == Operation::Exit {
                 match &mut returned_lists {
                     Some(heap) => {
@@ -983,7 +997,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             let mut successors = Vec::new();
             if self.may_raise {
-                let mut raised_state = before;
+                let mut raised_state = self.raised_assignment.take().unwrap_or(before);
                 *raised_state.lists.borrow_mut() = self
                     .raised_lists
                     .take()
@@ -1017,7 +1031,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 );
                                 outgoing.defined.insert(name.clone());
                                 outgoing.plain_strings.remove(&name);
-                                outgoing.lists.borrow_mut().bindings.remove(&name);
+                                outgoing.lists.borrow_mut().forget(&name);
                                 outgoing.exception_aliases.insert((
                                     name,
                                     clause.start_byte(),
@@ -1064,6 +1078,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.current_block = parent_block;
         self.exceptional_returns = parent_exceptions;
         self.raised_lists = parent_raised_lists;
+        self.raised_assignment = parent_raised_assignment;
         exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise = parent_may_raise || may_raise;
         self.normal_return = normal_return;
@@ -1103,6 +1118,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     if expression.kind() == "assignment" && self.solver.enabled {
                         self.scalar_assignment(expression, state);
+                        continue;
                     } else if expression.kind() == "assignment" {
                         let (Some(left), Some(right)) = (
                             expression.child_by_field_name("left"),
@@ -1137,7 +1153,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             .and_then(assignments::target_names)
                         {
                             for name in names {
-                                state.lists.borrow_mut().bindings.remove(self.text(name));
+                                state.lists.borrow_mut().forget(self.text(name));
                             }
                         }
                     }
@@ -2095,6 +2111,7 @@ impl Project<'_> {
             summaries: Vec::new(),
             exceptional_returns: Raised::new(),
             raised_lists: None,
+            raised_assignment: None,
             current_block: None,
             origins: BTreeMap::new(),
             solver: summaries::Solver::new(options.summaries),

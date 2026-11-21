@@ -102,32 +102,81 @@ pub(super) fn parallel_assignment<'t>(
     {
         return None;
     }
-    let names: Vec<_> = left
-        .named_children(&mut left.walk())
-        .filter(|node| node.kind() != "comment")
-        .collect();
-    let values: Vec<_> = right
-        .named_children(&mut right.walk())
-        .filter(|node| node.kind() != "comment")
-        .collect();
-    let mut seen = BTreeSet::new();
-    if names.is_empty()
-        || names.len() != values.len()
-        || !names.iter().all(|name| {
-            let text = &source[name.byte_range()];
-            name.kind() == "identifier"
-                && text.is_ascii()
-                && !(text.starts_with("__") && text.ends_with("__"))
-                && seen.insert(text)
-        })
-    {
+    fn pair<'t>(
+        left: Node<'t>,
+        right: Node<'t>,
+        source: &str,
+        depth: usize,
+        seen: &mut BTreeSet<String>,
+        pairs: &mut Vec<(Node<'t>, Node<'t>)>,
+    ) -> Option<()> {
+        if depth > 16 {
+            return None;
+        }
+        let right = unparenthesized(right)?;
+        if left.kind() == "identifier" {
+            let name = &source[left.byte_range()];
+            if !name.is_ascii()
+                || name.starts_with("__") && name.ends_with("__")
+                || !seen.insert(name.to_owned())
+            {
+                return None;
+            }
+            pairs.push((left, right));
+            return Some(());
+        }
+        if !matches!(
+            left.kind(),
+            "pattern_list" | "tuple_pattern" | "list_pattern"
+        ) {
+            return None;
+        }
+        let names: Vec<_> = left
+            .named_children(&mut left.walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if left.kind() == "tuple_pattern"
+            && names.len() == 1
+            && !left
+                .children(&mut left.walk())
+                .any(|node| node.kind() == ",")
+        {
+            return pair(names[0], right, source, depth + 1, seen, pairs);
+        }
+        let values = literal_sequence(right, 0)?;
+        if names.len() != values.len() {
+            return None;
+        }
+        for (name, value) in names.into_iter().zip(values) {
+            pair(name, value, source, depth + 1, seen, pairs)?;
+        }
+        Some(())
+    }
+    let mut pairs = Vec::new();
+    pair(left, right, source, 0, &mut BTreeSet::new(), &mut pairs)?;
+    (!pairs.is_empty()).then_some(pairs)
+}
+
+fn literal_sequence(node: Node<'_>, depth: usize) -> Option<Vec<Node<'_>>> {
+    let node = unparenthesized(node)?;
+    if depth > 16 || !matches!(node.kind(), "tuple" | "list" | "expression_list") {
         return None;
     }
-    names
-        .into_iter()
-        .zip(values)
-        .map(|(name, value)| Some((name, unparenthesized(value)?)))
-        .collect()
+    let mut values = Vec::new();
+    for child in node
+        .named_children(&mut node.walk())
+        .filter(|node| node.kind() != "comment")
+    {
+        if child.kind() == "list_splat" {
+            values.extend(literal_sequence(child.named_child(0)?, depth + 1)?);
+        } else {
+            values.push(child);
+        }
+        if values.len() > 128 {
+            return None;
+        }
+    }
+    Some(values)
 }
 
 fn scalar_assignment<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
@@ -301,16 +350,13 @@ pub(super) fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> 
                 .collect();
             children.len() == 1 && collection_value(children[0], source, hashable)
         }
-        "tuple" | "expression_list" => node
-            .named_children(&mut node.walk())
-            .filter(|child| child.kind() != "comment")
-            .all(|child| collection_value(child, source, hashable)),
-        "list" => {
-            !hashable
-                && node
-                    .named_children(&mut node.walk())
-                    .filter(|child| child.kind() != "comment")
-                    .all(|child| collection_value(child, source, false))
+        "tuple" | "expression_list" | "list" => {
+            (!hashable || node.kind() != "list")
+                && literal_sequence(node, 0).is_some_and(|values| {
+                    values
+                        .into_iter()
+                        .all(|value| collection_value(value, source, hashable))
+                })
         }
         "set" => {
             !hashable
@@ -1161,10 +1207,10 @@ fn variadic_parameter<'s>(
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
         "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
-        "evaluation":"Evaluate explicit values once in source order before binding.",
+        "evaluation":"Evaluate positional expressions before keywords, once each; expand a sole *value after keywords.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
-        "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-        "boundary":"No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+        "invalid":"Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
+        "boundary":"No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",
         "definitions":"Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
         "initialization":"Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
@@ -1199,6 +1245,14 @@ pub(super) fn argument_slots(
         }
     }
     Some(slots)
+}
+
+pub(super) struct Arguments {
+    pub values: Vec<Flow>,
+    pub names: Vec<Option<String>>,
+    pub elements: Vec<lists::Element>,
+    pub expanded: bool,
+    pub checked: bool,
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
@@ -1236,50 +1290,119 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
 
-    pub(super) fn call_arguments(
-        &mut self,
-        node: Node<'t>,
-        env: &Environment,
-    ) -> (Vec<Flow>, Vec<Option<String>>) {
-        let mut values = Vec::new();
-        let mut names = Vec::new();
-        let mut keywords = false;
-        if let Some(list) = node.child_by_field_name("arguments") {
-            for arg in list.named_children(&mut list.walk()) {
-                if arg.kind() == "comment" {
-                    continue;
-                }
-                if self.solver.enabled && !self.normal {
+    pub(super) fn call_arguments(&mut self, node: Node<'t>, env: &Environment) -> Arguments {
+        let mut result = Arguments {
+            values: Vec::new(),
+            names: Vec::new(),
+            elements: Vec::new(),
+            expanded: false,
+            checked: true,
+        };
+        let Some(list) = node.child_by_field_name("arguments") else {
+            return result;
+        };
+        let mut arguments: Vec<_> = list
+            .named_children(&mut list.walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        arguments
+            .sort_by_key(|node| matches!(node.kind(), "keyword_argument" | "dictionary_splat"));
+        let defer_expansion = arguments
+            .iter()
+            .filter(|node| !matches!(node.kind(), "keyword_argument" | "dictionary_splat"))
+            .count()
+            == 1
+            && arguments
+                .first()
+                .is_some_and(|node| node.kind() == "list_splat");
+        let mut deferred = None;
+        for argument in arguments {
+            if self.solver.enabled && !self.normal {
+                break;
+            }
+            if argument.kind() == "dictionary_splat"
+                || argument.kind() == "list_splat" && !self.solver.enabled
+            {
+                self.cutoff("argument-unpacking-unchecked");
+                result.checked = false;
+                break;
+            }
+            let (value, name) = if argument.kind() == "keyword_argument" && self.solver.enabled {
+                let (Some(name), Some(value)) = (
+                    argument.child_by_field_name("name"),
+                    argument.child_by_field_name("value"),
+                ) else {
+                    self.cutoff("malformed-keyword-argument");
+                    result.checked = false;
                     break;
-                }
-                let (value, name) = if self.solver.enabled && arg.kind() == "keyword_argument" {
-                    let (Some(name), Some(value)) = (
-                        arg.child_by_field_name("name"),
-                        arg.child_by_field_name("value"),
-                    ) else {
-                        self.cutoff("malformed-keyword-argument");
-                        break;
-                    };
-                    if !self.text(name).is_ascii() {
-                        self.cutoff("non-ascii-keyword-binding-unchecked");
-                    }
-                    keywords = true;
-                    (value, Some(self.text(name).to_owned()))
-                } else {
-                    if matches!(arg.kind(), "list_splat" | "dictionary_splat") {
-                        self.cutoff("argument-unpacking-unchecked");
-                        break;
-                    }
-                    if keywords {
-                        self.cutoff("positional-after-keyword");
-                    }
-                    (arg, None)
                 };
-                values.push(self.expression(value, env));
-                names.push(name);
+                if !self.text(name).is_ascii() {
+                    self.cutoff("non-ascii-keyword-binding-unchecked");
+                }
+                (value, Some(self.text(name).to_owned()))
+            } else if argument.kind() == "list_splat" {
+                result.expanded = true;
+                let Some(value) = argument.named_child(0) else {
+                    result.checked = false;
+                    break;
+                };
+                (value, None)
+            } else {
+                (argument, None)
+            };
+            let flow = self.expression(value, env);
+            if !self.normal {
+                break;
+            }
+            let element = self.list_element(value, flow, env);
+            if argument.kind() == "list_splat" && defer_expansion {
+                deferred = Some((argument, element));
+            } else if argument.kind() == "list_splat" {
+                let Some(values) = self.sequence_items(argument, &element, env) else {
+                    if self.normal {
+                        self.cutoff("argument-unpacking-unchecked");
+                    }
+                    result.checked = false;
+                    break;
+                };
+                result.names.extend(std::iter::repeat_n(None, values.len()));
+                result.elements.extend(values);
+            } else {
+                result.names.push(name);
+                result.elements.push(element);
+            }
+            if result.elements.len() > 64 {
+                self.cutoff("argument-expansion-budget");
+                result.checked = false;
+                break;
             }
         }
-        (values, names)
+        if self.normal && result.checked {
+            if let Some((argument, element)) = deferred {
+                if let Some(mut values) = self.sequence_items(argument, &element, env) {
+                    let mut names = vec![None; values.len()];
+                    names.append(&mut result.names);
+                    values.append(&mut result.elements);
+                    result.names = names;
+                    result.elements = values;
+                    if result.elements.len() > 64 {
+                        self.cutoff("argument-expansion-budget");
+                        result.checked = false;
+                    }
+                } else {
+                    if self.normal {
+                        self.cutoff("argument-unpacking-unchecked");
+                    }
+                    result.checked = false;
+                }
+            }
+        }
+        result.values = result
+            .elements
+            .iter()
+            .map(|value| self.element_flow(value, env))
+            .collect();
+        result
     }
 
     pub(super) fn bind_arguments(

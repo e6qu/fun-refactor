@@ -110,10 +110,10 @@ class ExpressionControl:
 _CALL_BINDING = {
     "schema": "fr-call-binding",
     "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
-    "evaluation": "Evaluate explicit values once in source order before binding.",
+    "evaluation": "Evaluate positional expressions before keywords, once each; expand a sole *value after keywords.",
     "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
-    "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-    "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+    "invalid": "Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
+    "boundary": "No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",
     "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
     "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
     "implicit_exceptions": False,
@@ -145,10 +145,10 @@ class CallBinding:
 
 _ASSIGNMENT_CONTROL = {
     "schema": "fr-scalar-assignment",
-    "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
-    "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
-    "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
-    "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+    "evaluation": "Evaluate the RHS once before writing targets.",
+    "binding": "Unpack bounded lists/tuples into local names, nested and starred targets; retain aliases.",
+    "limits": "64 values, objects, targets and chained writes; nesting depth 16.",
+    "boundary": "Known length/noniterable errors follow handlers. Arbitrary iterables, attributes and annotations stay unchecked.",
     "implicit_exceptions": False,
 }
 

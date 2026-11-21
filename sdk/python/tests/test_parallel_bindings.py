@@ -1,4 +1,4 @@
-"""Read flat module assignment values before binding their destination names."""
+"""Read module assignment values before binding their destination names."""
 import copy
 import hashlib
 import json
@@ -50,6 +50,8 @@ def install(tmp_path, statement='public, discarded = relay, stop', route='local'
     'public, discarded = relay, stop', '(public, discarded) = (relay, stop)',
     '[public, discarded] = [relay, stop]', 'public, discarded = [relay, stop]',
     '(public,) = (relay,)', 'public, discarded = stop, relay',
+    'public, (discarded,) = relay, (stop,)',
+    'public, discarded = (*(relay,), stop)',
 ])
 def test_parallel_function_aliases_preserve_the_selected_function(tmp_path, route, statement):
     client, rules = install(tmp_path, statement, route)
@@ -109,7 +111,6 @@ def test_builtin_values_are_read_before_new_names_shadow_them(tmp_path):
     ('public, other = (relay,)', 'ValueError'),
     ('public, = (relay, stop)', 'ValueError'),
     ('public, public = relay, stop', None),
-    ('public, (other,) = relay, (stop,)', None),
     ('public, *other = relay, stop', None),
     ('public, other = (item for item in [relay, stop])', None),
     ('public, other = relay(0), stop', None),

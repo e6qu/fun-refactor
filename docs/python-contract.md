@@ -302,7 +302,7 @@ Replace `<HANDLE>`, including its brackets, with the full reference returned by 
 The trace can finish and show the input reaching `send` through `relay`.
 Swap `relay, discard` to `discard, relay`: the new `forwarded` returns zero, so the complete trace has no input connection.
 
-Flat tuple and list patterns can hold literal values, earlier checked functions and unshadowed built-in references.
+Tuple and list patterns, including nested patterns, can hold literal values, earlier checked functions and unshadowed built-in references. Literal sequence expansion is also accepted.
 Each destination must be a new ASCII name, such as `forwarded`; accented names such as `données` remain unchecked here.
 The whole assignment must fit the existing 128-node syntax limit.
 A syntax node is one parsed element, such as a name or literal; surrounding structure and comments count too.
@@ -310,7 +310,7 @@ This limit counts syntax elements rather than lines.
 Function aliases can be imported or reexported. Literal bindings retain their distinct source positions.
 Function and checked value aliases share the existing 128 alias slots per analysis, even when several are assigned together.
 Stored built-in references remain limited to unused setup and defaults; importing or calling those aliases is not added here.
-Nested patterns, starred targets, repeated destinations, rebinding, evaluated calls and arbitrary iterables remain unchecked.
+Starred module targets, repeated destinations, rebinding, evaluated calls and arbitrary iterables remain unchecked.
 For example, `forwarded, stopped = (relay,)` has too few values: Python raises `ValueError` and the analysis stays incomplete.
 With no earlier `first`, `first, second = relay, first` raises `NameError` before writing either name.
 Reading ordinary global values inside a function still needs more support.
@@ -926,16 +926,16 @@ UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limit
 | Area | Contract | Explicit limit |
 | --- | --- | --- |
 | Operands | Evaluate scalar operands in source order; join their origins. Ignore comments. | Arithmetic values are not interpreted. `x - x` retains the origins of `x`. |
-| Assignments | Evaluate RHS leaves once before writes. Match literal tuple/list shapes; write targets left to right. Track local list aliases and signed fixed-index writes. | No starred targets, arbitrary iterables or general object/attribute writes. See the [list limits](analysis-coverage.md#trace-a-shared-list). |
+| Assignments | Evaluate RHS values once, then write bounded list/tuple targets left to right, including nested and starred patterns. Preserve shared identities and completed writes on failure. | No arbitrary iterables or general object/attribute writes. Up to 64 target writes and nesting depth 16. See the [list limits](analysis-coverage.md#trace-a-shared-list). |
 | Expression selectors | `and`, `or`, `not` and conditional expressions preserve evaluation order. Boolean and None literals can select a path. | Variables, numeric values and call results have unknown truth. |
 | Comparisons | Transfer operands left to right; later operands may be skipped. | Comparison results remain unknown. Overloaded protocols are outside the model. |
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
-| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, unchecked evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
+| Calls | Evaluate positional expressions before keywords; expand bounded lists/tuples into fixed parameter slots. A sole `*value` expands after keywords; other positional expansions occur before them. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, dictionary expansion, unpostponed annotations, type parameters, unchecked evaluated defaults or coroutine/generator execution. Expanded fixed-slot binding errors raise `TypeError`; other invalid bindings remain incomplete. |
 | Defaults | Omitted checked scalars have no source origins; explicit arguments replace checked scalar or object defaults. | Consuming object defaults and unchecked definition-time effects remain unfinished. |
 | Returns | Direct helper summaries substitute parameter origins. Capture return and modeled error values before cleanup; `finally` can replace the pending exit. | General implicit exceptions, custom error classes and explicit causes remain outside the contract. |
 | Cleanup | Run a `finally` section after normal flow, return, explicit raise, break or continue. Keep pending values separate in nested sections. A local helper's explicit raise also enters cleanup. | Cleanup copies count toward the existing 512-block limit. |
 | Error handlers | Match builtin `IndexError`, `LookupError`, `ValueError`, `TypeError`, `Exception` and `BaseException` in order. Preserve origins across helpers and local caught-error names. Handle tuples, bare handlers, `else` and known reraises. Delete caught-error names on exit. | Base-ten conversion of known strings models a possible `ValueError`. Known list bounds and slice failures use the list state at failure. Other implicit exceptions, custom classes and exception groups remain unchecked. Handler expressions have a 128-node syntax limit. |
-| Shared lists | Preserve local, returned and nested identities, signed fixed-index reads/writes, append, extend, clear, insert, pop, reverse, copy, slices, concatenation, deletion and checked helper calls. Known bounds failures raise `IndexError`; zero slice steps and extended-slice length mismatches raise `ValueError`. Cleanup and handlers retain earlier mutations. | Up to 64 lists and 64 items each. Unknown indices, mixed list/scalar receivers, unpacking, repeated allocation at one call path and recursive list helpers remain incomplete. Insert, pop, reverse and sequence operations require one fixed-length list; slice bounds must be signed integer constants or omitted/None. Exception paths require summaries. |
+| Shared lists | Preserve local, returned and nested identities, signed fixed-index reads/writes, append, extend, clear, insert, pop, reverse, copy, slices, concatenation, deletion and checked helper calls. Known bounds failures raise `IndexError`; zero slice steps and extended-slice length mismatches raise `ValueError`. Cleanup and handlers retain earlier mutations. | Up to 64 list/tuple objects and 64 items each. Unknown indices, mixed list/scalar receivers, repeated allocation at one call path and recursive list helpers remain incomplete. Insert, pop, reverse and sequence operations require one fixed-length list; slice bounds must be signed integer constants or omitted/None. Exception paths require summaries. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
 | Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Check cyclic imports in execution order. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations, special attribute writes, unavailable cycle members and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
@@ -1038,6 +1038,7 @@ from exceptions after calling the entry function. External source and sink hooks
 | Recursion | Direct and mutual return, constant return, independent callers, keyword substitution, explicit raise, no normal return and step exhaustion. |
 | Imports | Absolute, relative, dotted, aliased and continued imports; regular, namespace and mixed trees; re-exports, child fallback and module alias chains. Each has positive and negative helper bodies. |
 | Cross-file evidence | Keyword binding, defaults, equal helper names in different files, explicit raise, inert scalar bindings, initialization effects, cycles and missing modules. |
+| Sequence unpacking | Flat, nested and starred local targets; list/tuple expansion; fixed-slot calls; partial writes and evaluation order on failures. |
 | List sequences | Slices, shallow copies, concatenation, slice replacement and deletion; scalar snapshots, shared inner lists and ordered side effects. |
 | List identities | Returned aliases and fresh factories, nested shared writes, replacing outer slots, pop, cycles, cleanup mutation versus rebinding, imported helpers and literal conditional selection. |
 | Refusals | Entry syntax errors, local and imported rule conflicts, competing entry stubs, and invalid step, depth and byte budgets. Runtime definition failures and entry exceptions stay separate. |
@@ -1047,14 +1048,12 @@ from exceptions after calling the entry function. External source and sink hooks
 Hosted collection and tests that reject altered records validate the full inventory, including deliberate
 CLI refusals and emitted incomplete reports. B.contract requires every independently reviewed
 assertion in the active report. The earlier 252-case report remains historical evidence.
-The current corpus has 366 incomplete cases. PR #621 made the caught-error binding and
-local list-allocation examples complete, including each example's renamed/moved variant.
-Those four changes explain the reduction from 370; no example or refusal was removed.
-Returned and nested list identities added 12 authored examples, list sequences added 20,
-and list errors add 18. The reviewed corpus now has 545 examples and 1,090 original/renamed
-cases. The 366 incomplete cases and 18 refusals stay unchanged; none of the existing
-corpus expectations was reclassified. The [list-error guide](analysis-coverage.md#follow-a-failed-list-operation)
-explains the new behavior and its limits.
+The reviewed corpus has 565 authored examples and 1,130 original/renamed cases.
+Sequence unpacking adds 20 examples and closes two existing gaps: nested literal
+module bindings and literal sequence expansion. Both original and renamed forms
+now complete, reducing incomplete cases from 366 to 362. The 18 refusals remain;
+no existing example was removed. The [sequence guide](analysis-coverage.md#unpack-lists-and-tuples)
+explains the supported behavior and remaining limits.
 `tools/python-contract-qualification.py` audits the retained report, requires all catalog assertions
 to match, and checks that every declared rule has paired original and renamed/moved examples.
 It reports counts for complete, incomplete and refused cases separately and never rewrites acceptance criteria.

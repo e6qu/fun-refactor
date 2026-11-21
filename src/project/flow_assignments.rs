@@ -2,15 +2,16 @@ use super::*;
 
 enum Shape {
     Scalar(usize),
+    Expansion,
     Sequence(Vec<Shape>),
 }
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-scalar-assignment",
-        "evaluation":"evaluate all scalar RHS leaves left-to-right once before any target write.",
-        "binding":"match literal tuple/list shapes; write local names and chained targets left-to-right.",
-        "limits":"64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
-        "boundary":"no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
+        "evaluation":"Evaluate the RHS once before writing targets.",
+        "binding":"Unpack bounded lists/tuples into local names, nested and starred targets; retain aliases.",
+        "limits":"64 values, objects, targets and chained writes; nesting depth 16.",
+        "boundary":"Known length/noniterable errors follow handlers. Arbitrary iterables, attributes and annotations stay unchecked.",
         "implicit_exceptions":false})
 }
 
@@ -41,7 +42,8 @@ pub(super) fn target_names(node: Node<'_>) -> Option<Vec<Node<'_>>> {
         *budget -= 1;
         match node.kind() {
             "identifier" => names.push(node),
-            "pattern_list" | "tuple_pattern" | "list_pattern" => {
+            "pattern_list" | "tuple_pattern" | "list_pattern" | "list_splat_pattern"
+            | "list_splat" => {
                 for child in children(node) {
                     collect(child, depth + 1, budget, names)?;
                 }
@@ -71,6 +73,7 @@ fn shape<'t>(
             (items.len() == 1).then_some(())?;
             shape(items[0], depth + 1, budget, leaves)
         }
+        "list_splat" => Some(Shape::Expansion),
         "tuple" | "list" | "expression_list" => {
             let mut items = Vec::new();
             for child in children(node) {
@@ -114,6 +117,30 @@ fn bindings<'t>(
     Some(())
 }
 
+pub(super) fn literal_transfer(mut node: Node<'_>) -> bool {
+    let mut targets = Vec::new();
+    while node.kind() == "assignment" {
+        if targets.len() >= 64 || node.child_by_field_name("type").is_some() {
+            return false;
+        }
+        let (Some(left), Some(right)) = (
+            node.child_by_field_name("left"),
+            node.child_by_field_name("right"),
+        ) else {
+            return false;
+        };
+        targets.push(left);
+        node = right;
+    }
+    let Some(value) = shape(node, 0, &mut 64, &mut Vec::new()) else {
+        return false;
+    };
+    let mut writes = Vec::new();
+    targets
+        .into_iter()
+        .all(|target| bindings(target, &value, 0, &mut writes).is_some())
+}
+
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     pub(super) fn scalar_assignment(&mut self, node: Node<'t>, state: &mut Environment) {
         let mut targets = Vec::new();
@@ -139,42 +166,22 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return;
         };
         let mut writes = Vec::new();
-        for target in targets {
-            if bindings(target, &shape, 0, &mut writes).is_none() {
-                self.cutoff("unsupported-assignment-shape");
+        for target in &targets {
+            if bindings(*target, &shape, 0, &mut writes).is_none() {
+                self.unpacked_assignment(&targets, right, state);
                 return;
             }
         }
         let mut values = Vec::new();
-        let mut plain_strings = Vec::new();
         for leaf in leaves {
-            if self.list_value(leaf, state).is_some() {
-                self.cutoff("list-destructuring-identity-unchecked");
-            }
-            values.push(self.expression(leaf, state));
-            if !self.list_references(leaf, state).ids.is_empty() {
-                self.cutoff("list-destructuring-identity-unchecked");
-            }
-            plain_strings.push(self.plain_string(leaf, state));
+            let flow = self.expression(leaf, state);
             if !self.normal {
                 return;
             }
+            values.push(self.list_element(leaf, flow, state));
         }
         for (target, index) in writes {
-            if !self.tick(target, "definition") {
-                return;
-            }
-            let name = self.text(target).to_owned();
-            state.values.insert(
-                name.clone(),
-                self.extend(values[index].clone(), target, "definition"),
-            );
-            state.defined.insert(name.clone());
-            if plain_strings[index] {
-                state.plain_strings.insert(name);
-            } else {
-                state.plain_strings.remove(&name);
-            }
+            self.bind_element(target, &values[index], state);
         }
     }
 }
