@@ -435,7 +435,7 @@ def audit(value):
 def save(value, path):
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+        path.write_text(json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n')
 
 
 @contextmanager
