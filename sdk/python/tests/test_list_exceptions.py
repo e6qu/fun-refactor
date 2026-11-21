@@ -241,20 +241,21 @@ def test_shadowed_index_error_is_not_treated_as_a_builtin_handler(tmp_path):
 
 @pytest.mark.parametrize('kind', ['IndexError', 'LookupError'])
 def test_sdk_accepts_declared_error_classes_and_rejects_invented_ones(tmp_path, kind):
+    from fr_ir.flow_completion import CompletionControl
     from fr_ir.flow_summaries import FunctionSummaries
     from fr_ir.runtime import FrReport, FrRuntimeError
 
     source = program(f'raise {kind}("failed")')
     report = analyze(tmp_path, source)
-    summaries = FunctionSummaries.from_report(FrReport(report))
+    summaries = FunctionSummaries.from_report(FrReport(report, ()))
     assert summaries.complete
-    assert summaries.for_function('entry').may_raise
-    assert kind in summaries.control.exception_classes
+    assert summaries.for_function('subject.py::entry').may_raise
+    assert kind in CompletionControl.from_report(FrReport(report, ())).exception_classes
     for function in report['function_summaries']['functions'].values():
         if kind in function['exceptional_returns']:
             function['exceptional_returns']['InventedError'] = function['exceptional_returns'].pop(kind)
     with pytest.raises(FrRuntimeError, match='exception class'):
-        FunctionSummaries.from_report(FrReport(report))
+        FunctionSummaries.from_report(FrReport(report, ()))
 
 
 @pytest.mark.parametrize('module', ['helpers', 'moved_helpers'])
