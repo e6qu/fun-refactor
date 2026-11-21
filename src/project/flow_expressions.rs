@@ -98,7 +98,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     let right_references = self.list_references(children[1], env);
                     let right_normal = self.normal;
                     if truth == Truth::Unknown {
-                        env.lists.borrow_mut().join(&before);
+                        if right_normal {
+                            env.lists.borrow_mut().join(&before);
+                        } else {
+                            *env.lists.borrow_mut() = before;
+                        }
                         references = left_references;
                         self.normal = true;
                         let mut result = left;
@@ -139,13 +143,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     *env.lists.borrow_mut() = before.clone();
                     self.normal = true;
                     let (value, alternative) = self.expression_value(children[index], env);
-                    match &mut joined_heap {
-                        Some(heap) => {
-                            heap.join(&env.lists.borrow());
-                        }
-                        None => joined_heap = Some(env.lists.borrow().clone()),
-                    }
                     if self.normal {
+                        match &mut joined_heap {
+                            Some(heap) => { heap.join(&env.lists.borrow()); }
+                            None => joined_heap = Some(env.lists.borrow().clone()),
+                        }
                         merge(&mut result, value);
                         let selected = self.list_references(children[index], env);
                         if normal {
@@ -178,7 +180,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         let prior_comparison_can_finish_false = index >= 2;
                         self.normal = prior_comparison_can_finish_false;
                         if let Some(heap) = skipped {
-                            env.lists.borrow_mut().join(&heap);
+                            *env.lists.borrow_mut() = heap;
                         }
                         return (
                             if self.normal { result } else { Flow::new() },

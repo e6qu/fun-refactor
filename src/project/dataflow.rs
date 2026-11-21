@@ -330,6 +330,7 @@ struct Analyzer<'a, 'p, 't> {
     graphs: BTreeMap<String, Value>,
     summaries: Vec<Value>,
     exceptional_returns: Raised,
+    raised_lists: Option<lists::Lists>,
     current_block: Option<(String, usize)>,
     origins: BTreeMap<String, Occurrence>,
     solver: summaries::Solver,
@@ -339,6 +340,7 @@ struct Analyzer<'a, 'p, 't> {
     may_raise: bool,
     sink_flows: BTreeMap<String, summaries::SinkFlow>,
     returned_lists: lists::Lists,
+    returned_raised_lists: Option<lists::Lists>,
     return_references: lists::References,
     list_sites: Vec<String>,
     list_factories: BTreeMap<String, bool>,
@@ -610,6 +612,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 let exception = matches!(
                     standard.as_str(),
                     "builtins.ValueError"
+                        | "builtins.IndexError"
+                        | "builtins.LookupError"
                         | "builtins.TypeError"
                         | "builtins.Exception"
                         | "builtins.BaseException"
@@ -645,7 +649,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             else {
                 return Flow::new();
             };
-            return self.summary_call(&resolved, function, arguments, node);
+            return self.summary_call(&resolved, function, arguments, node, env);
         }
         if self.active.contains(&name) {
             self.cutoff(format!("recursion:{name}"));
@@ -656,6 +660,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return joined;
         }
         let result = self.invoke(&name, function, arguments);
+        if self.returned_raised_lists.is_some() {
+            self.capture_raised_lists(env.lists.borrow().clone());
+        }
         self.extend(result, node, "call-result")
     }
     fn invoke(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>) -> Flow {
@@ -669,6 +676,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         arguments: Vec<Flow>,
         lists: lists::Lists,
     ) -> Flow {
+        self.returned_raised_lists = None;
         if function.child_by_field_name("return_type").is_some()
             && !self.annotations_postponed(self.file)
         {
@@ -785,11 +793,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut visits = 0;
         let mut result = Flow::new();
         let parent_exceptions = std::mem::take(&mut self.exceptional_returns);
+        let parent_raised_lists = self.raised_lists.take();
         let parent_may_raise = self.may_raise;
         let mut exceptions = Raised::new();
         let mut may_raise = false;
         let mut normal_return = false;
         let mut returned_lists = None::<lists::Lists>;
+        let mut returned_raised_lists = None::<lists::Lists>;
         let mut return_references = None::<lists::References>;
         let mut return_text = None;
         let parent_block = self.current_block.clone();
@@ -835,10 +845,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.normal = true;
             self.may_raise = false;
             self.exceptional_returns.clear();
-            if matches!(
-                block.operation,
-                Operation::Exit | Operation::ExceptionalExit
-            ) {
+            self.raised_lists = None;
+            if block.operation == Operation::Exit {
                 match &mut returned_lists {
                     Some(heap) => {
                         heap.join(&state.lists.borrow());
@@ -889,6 +897,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             if block.operation == Operation::ExceptionalExit {
                 may_raise = true;
+                match &mut returned_raised_lists {
+                    Some(heap) => { heap.join(&state.lists.borrow()); }
+                    None => returned_raised_lists = Some(state.lists.borrow().clone()),
+                }
                 if let Some(value) = state.pending_raises.get(&0) {
                     exceptions::join(&mut exceptions, value.clone());
                 }
@@ -970,7 +982,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let mut successors = Vec::new();
             if self.may_raise {
                 let mut raised_state = before;
-                raised_state.lists.borrow_mut().join(&state.lists.borrow());
+                *raised_state.lists.borrow_mut() = self.raised_lists.take()
+                    .unwrap_or_else(|| state.lists.borrow().clone());
                 raised_state.pending_raises.insert(
                     block.raised.slot,
                     std::mem::take(&mut self.exceptional_returns),
@@ -1046,12 +1059,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.local_bindings.pop();
         self.current_block = parent_block;
         self.exceptional_returns = parent_exceptions;
+        self.raised_lists = parent_raised_lists;
         exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise = parent_may_raise || may_raise;
         self.normal_return = normal_return;
         self.return_text = return_text;
         self.normal = normal_return;
         self.returned_lists = returned_lists.unwrap_or_default();
+        self.returned_raised_lists = returned_raised_lists;
         self.return_references = return_references.unwrap_or_default();
         self.summaries.push(json!({"function":name,"inputs":inputs,"return_origins":result.keys().collect::<Vec<_>>(),
             "block_visits":visits,"converged":queue.is_empty(),"claim":if self.solver.enabled {"one symbolic summary evaluation; global convergence reported separately"} else {"context-specific evaluation; recursive summaries unsupported"}}));
@@ -2075,6 +2090,7 @@ impl Project<'_> {
             graphs: BTreeMap::new(),
             summaries: Vec::new(),
             exceptional_returns: Raised::new(),
+            raised_lists: None,
             current_block: None,
             origins: BTreeMap::new(),
             solver: summaries::Solver::new(options.summaries),
@@ -2084,6 +2100,7 @@ impl Project<'_> {
             may_raise: false,
             sink_flows: BTreeMap::new(),
             returned_lists: lists::Lists::default(),
+            returned_raised_lists: None,
             return_references: lists::References::default(),
             list_sites: Vec::new(),
             list_factories: BTreeMap::new(),

@@ -126,6 +126,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         function: Node<'t>,
         arguments: Vec<Flow>,
         call: Node<'t>,
+        env: &Environment,
     ) -> Flow {
         let valid = self
             .function_parameters(function, self.contexts[name].0, self.contexts[name].1)
@@ -165,6 +166,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .collect();
         exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise |= summary.may_raise;
+        if summary.may_raise {
+            self.capture_raised_lists(env.lists.borrow().clone());
+        }
         self.normal = summary.normal_return;
         let result = substitute(&summary.returns, &summary.parameters, &arguments);
         self.extend(result, call, "call-result")

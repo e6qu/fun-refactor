@@ -20,6 +20,8 @@ pub(super) fn members(module: &str) -> Option<&'static [&'static str]> {
             "min",
             "max",
             "ValueError",
+            "IndexError",
+            "LookupError",
             "TypeError",
             "Exception",
             "BaseException",
@@ -159,7 +161,7 @@ pub(super) fn arity(name: &str) -> Option<(usize, usize)> {
         "round" => (1, 2),
         "min" | "max" => (2, 128),
         "datetime.date" => (3, 3),
-        "ValueError" | "TypeError" | "Exception" | "BaseException" => (0, 1),
+        "IndexError" | "LookupError" | "ValueError" | "TypeError" | "Exception" | "BaseException" => (0, 1),
         _ => return None,
     })
 }

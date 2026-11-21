@@ -149,7 +149,6 @@ def test_helper_mutation_reaches_every_alias(tmp_path, clear, witness):
 
 
 @pytest.mark.parametrize('body, cutoff', [
-    ('values = []\nsend(values[0])', 'list-index-may-raise'),
     ('values = [read()]\nsend(values[read()])', 'list-index-unchecked'),
     ('values = [read()]\nif read():\n    values = 0\nvalues.clear()', 'list-binding-type-unchecked'),
 ])
@@ -342,16 +341,12 @@ def test_invalid_list_helper_bindings_remain_incomplete(tmp_path, parameters, ca
 
 
 @pytest.mark.parametrize('body, cutoff', [
-    ('values = []\nvalues.pop()', 'list-index-may-raise'),
-    ('values = [read()]\nsend(values[-2])', 'list-index-may-raise'),
-    ('values = [read()]\nvalues.pop(-2)', 'list-index-may-raise'),
     ('values = [read()]\nvalues.pop(read())', 'list-index-unchecked'),
     ('values = [read()]\nvalues.insert(read(), 0)', 'list-index-unchecked'),
     ('values = [read()]\nvalues.reverse(0)', 'list-method-arguments'),
     ('values = [read()]\nvalues.pop(index=0)', 'list-method-arguments'),
     ('values = [read()]\nif read():\n    values.append(0)\nvalues.pop()', 'list-mutation-target-unchecked'),
     ('values = [read()]\nif read():\n    values.append(0)\nvalues.reverse()', 'list-mutation-target-unchecked'),
-    ('values = [read()]\nif read():\n    values.append(0)\nsend(values[-2])', 'list-index-may-raise'),
 ])
 def test_list_extensions_preserve_uncertainty(tmp_path, body, cutoff):
     source = 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines())
@@ -442,7 +437,6 @@ def test_conditional_mutation_preserves_the_unexecuted_alternative(tmp_path, sel
 
 
 @pytest.mark.parametrize('body, cutoff', [
-    ('values = [[read()]]\nsend(values[0][2])', 'list-index-may-raise'),
     ('values = [[read()]]\nvalues[0] = 0\nsend(values[0][0])', 'unsupported-expression:subscript'),
     ('values = [[read()]]\nif read():\n    values[0] = 0\nvalues[0].clear()', 'list-binding-type-unchecked'),
     ('values = [[read()]]\nvalues[0][read()] = 0', 'list-index-unchecked'),

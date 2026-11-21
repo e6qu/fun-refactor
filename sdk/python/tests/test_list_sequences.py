@@ -99,18 +99,13 @@ def test_returned_copy_keeps_scalar_contents_before_cleanup(tmp_path, copy):
 
 
 @pytest.mark.parametrize('body, cutoff', [
-    ('values = [read()]\nsend(values[::0])', 'list-slice-step-zero'),
-    ('values = [read()]\nvalues[::0] = []', 'list-slice-step-zero'),
-    ('values = [read()]\ndel values[::0]', 'list-slice-step-zero'),
     ('values = [read()]\nsend(values[read():])', 'list-slice-bounds-unchecked'),
-    ('values = [read()]\nvalues[::2] = []', 'list-slice-length-mismatch'),
     ('values = [read()]\nvalues[:] = read()', 'list-sequence-target-unchecked'),
     ('values = [read()]\nif read():\n    values.append(0)\nsend(values[:])', 'list-sequence-length-unchecked'),
     ('values = [read()]\nalias = values if read() else [0]\nsend(alias.copy())', 'list-sequence-target-unchecked'),
     ('values = [read()]\nsend(values + 0)', 'list-sequence-target-unchecked'),
     ('values = [read()]\nsend(values * 2)', 'list-operator-unchecked'),
     ('values = [read()]\nvalues.copy(0)', 'list-method-arguments'),
-    ('values = [read()]\ndel values[99]', 'list-index-may-raise'),
     ('values = [read()]\nwhile read():\n    alias = values[:]', 'repeated-list-allocation'),
 ])
 def test_unchecked_sequences_keep_their_boundaries(tmp_path, body, cutoff):
