@@ -82,3 +82,11 @@ PYTHONPATH=tools python3 -B -m agent_eval.product_memory audit tests/agent-eval/
 On the workstation, run this command through the required local guard. The audit
 checks every case, resource verdict, process sample and output hash. It refuses
 changed limits, missing cases, retried stops and any claim of native admission.
+
+## Next experiment
+
+The [allocator comparison](allocator-comparison.md) freezes one possible reduction:
+immediate purging of unused allocator pages. It checks the same complete package
+with baseline and candidate environments, retains every resource refusal, and
+requires unfinished and incorrect proofs to fail. Results are pending. The original
+records above and the native admission block remain unchanged.

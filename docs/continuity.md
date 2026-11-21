@@ -40,7 +40,12 @@ insert/pop/reverse and checked helper binding. Full CI and post-merge release ch
 independent runtime checks,
 cross-file cache invalidation and 12 new paired contract examples. Run the
 [evidence preflight](evidence-refresh.md) before collecting reports and before full CI.
-Bounded slices, shallow copies, concatenation and deletion have passed their focused behavior checks.
+[PR #641](https://github.com/e6qu/fun-refactor/pull/641) merged bounded slices, shallow copies,
+concatenation and deletion with 113 passing PR checks and complete deep validation.
+The next PR tests whether immediate allocator purging reduces proof-check memory under the
+[frozen comparison](../tests/agent-eval/product-validation/memory/allocator-comparison.md).
+The original proof, imports, package command, memory metric and limits stay fixed. Results are pending.
+A checker-only improvement cannot grant admission; all 24 complete native rehearsals remain required.
 The full-product and live-comparison completion gates remain open.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.
