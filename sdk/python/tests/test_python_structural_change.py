@@ -109,3 +109,50 @@ def test_rename_policy_is_explicit_and_signature_policy_is_not_accepted():
         RefactorRequest('rename', 'price', None)
     with pytest.raises(IrError):
         RefactorRequest('remove-parameter', 0, 'update')
+
+
+@pytest.mark.parametrize('parameters,call,index', [
+    ('value, /, *, unused=0', 'charge(3, unused=0)', 1),
+    ('unused, /, value', 'charge(0, 3)', 0),
+    ('value, *unused', 'charge(3, 0)', 1),
+    ('value, **unused', 'charge(3, extra=0)', 1),
+    ('unused, value', 'charge(*[0, 3])', 0),
+    ('value, *, unused=0', 'charge(3, **{"unused": 0})', 1),
+])
+def test_python_signature_delivery_preserves_import_aliases_and_replays(tmp_path, parameters, call, index):
+    root, client = fixture(tmp_path, f'# keep this explanation\ndef price({parameters}):\n    return value * 2\n')
+    (root / 'caller.py').write_text(f'from helper import price as charge\ndef total():\n    return {call}\n')
+    before = {name: (root / name).read_bytes() for name in ('helper.py', 'caller.py')}
+    handle = client.project('find', 'price', '--in', 'helper.py').definition_target().handle
+    scope = ChangeScope.inspect(client, [handle])
+    assert scope.ready, scope.report.to_data()
+    request = RefactorRequest.remove_parameter(index)
+    task = scope.bind(TaskChange([], [request.target('signature', handle)],
+        {'files-changed': 2, 'paths-changed': ['caller.py', 'helper.py']}, ['behavior'],
+        TaskDelivery(patch='artifacts/signature.patch'), acceptance_checks=['behavior']))
+    review = client.review(task)
+    assert all((root / name).read_bytes() == text for name, text in before.items())
+    result = client.execute(review)
+    assert result.passed, result.to_data()
+    assert (root / 'helper.py').read_text().startswith('# keep this explanation\n')
+    assert 'from helper import price as charge' in (root / 'caller.py').read_text()
+    patch = root / 'artifacts/signature.patch'
+    subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=root, check=True)
+    assert all((root / name).read_bytes() == text for name, text in before.items())
+    subprocess.run(['git', 'apply', str(patch)], cwd=root, check=True)
+    subprocess.run([sys.executable, '-I', '-B', '-c',
+        "import sys;sys.path.insert(0,'.');import caller;assert caller.total()==6"], cwd=root, check=True)
+
+
+def test_python_signature_refusal_does_not_write_either_file(tmp_path):
+    root, client = fixture(tmp_path, 'def price(value, *, unused=0):\n    return value * 2\n')
+    (root / 'caller.py').write_text('from helper import price as charge\ndef effect():\n    print("effect")\n    return 0\ndef total():\n    return charge(3, unused=effect())\n')
+    before = {name: (root / name).read_bytes() for name in ('helper.py', 'caller.py')}
+    handle = client.project('find', 'price', '--in', 'helper.py').definition_target().handle
+    scope = ChangeScope.inspect(client, [handle])
+    task = scope.bind(TaskChange([], [RefactorRequest.remove_parameter(1).target('signature', handle)],
+        {'files-changed': 2, 'paths-changed': ['caller.py', 'helper.py']}, ['behavior'],
+        TaskDelivery(patch='artifacts/signature.patch'), acceptance_checks=['behavior']))
+    with pytest.raises(FrRuntimeError, match='evaluation|literal|effects'):
+        client.review(task)
+    assert all((root / name).read_bytes() == text for name, text in before.items())

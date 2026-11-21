@@ -12,8 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
-mod safety;
 mod python;
+mod safety;
 
 /// What to do to a parameter list.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -336,10 +336,16 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
         match parameter_list(declaration) {
             Some(params) => {
-                let python = if m.language == Language::Python && !matches!(change, Change::Add { .. }) {
-                    Some(python::Signature::parse(params, &source, m.kind)?)
-                } else { None };
-                let param_spans = python.as_ref().map_or_else(|| without_receiver(m.language, m.kind, &source, list_items(params)), |signature| signature.spans());
+                let python =
+                    if m.language == Language::Python && !matches!(change, Change::Add { .. }) {
+                        Some(python::Signature::parse(params, &source, m.kind)?)
+                    } else {
+                        None
+                    };
+                let param_spans = python.as_ref().map_or_else(
+                    || without_receiver(m.language, m.kind, &source, list_items(params)),
+                    |signature| signature.spans(),
+                );
                 safety::parameters(params, &source, m.language, &param_spans, &change)?;
                 still_read(index, m, &param_spans, &change)?;
                 already_declared(&source, &param_spans, &change, m.language)?;
@@ -357,26 +363,39 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     }
                 }
                 if let Some(signature) = python {
-                    if python_signature.as_ref().is_some_and(|prior| !prior.compatible(&signature)) {
+                    if python_signature
+                        .as_ref()
+                        .is_some_and(|prior| !prior.compatible(&signature))
+                    {
                         return Err(Refusal::Declined { detail: "this method family needs matching parameter names, kinds and defaults".into() }.into());
                     }
-                    signature.declaration(&mut edits, &Site { file: &m.file, source: &source, language: m.language, parsed: &parsed }, params, &change)?;
+                    signature.declaration(
+                        &mut edits,
+                        &Site {
+                            file: &m.file,
+                            source: &source,
+                            language: m.language,
+                            parsed: &parsed,
+                        },
+                        params,
+                        &change,
+                    )?;
                     python_signature = Some(signature);
                 } else {
-                apply_change(
-                    &mut edits,
-                    &Site {
-                        file: &m.file,
-                        source: &source,
-                        language: m.language,
-                        parsed: &parsed,
-                    },
-                    params.start_byte(),
-                    &param_spans,
-                    &change,
-                    true,
-                    None,
-                )?;
+                    apply_change(
+                        &mut edits,
+                        &Site {
+                            file: &m.file,
+                            source: &source,
+                            language: m.language,
+                            parsed: &parsed,
+                        },
+                        params.start_byte(),
+                        &param_spans,
+                        &change,
+                        true,
+                        None,
+                    )?;
                 }
                 let removed = removed_parameter_name(&source, &param_spans, &change, m.language);
                 if m.language == Language::Python && removing.is_some() && removing != removed {
@@ -479,7 +498,17 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             .into());
         }
         if let Some(signature) = &python_signature {
-            signature.call(&mut edits, &Site { file: &reference.file, source: &call_source, language: reference.language, parsed: &call_parsed }, call, &change)?;
+            signature.call(
+                &mut edits,
+                &Site {
+                    file: &reference.file,
+                    source: &call_source,
+                    language: reference.language,
+                    parsed: &call_parsed,
+                },
+                call,
+                &change,
+            )?;
             call_sites += 1;
             continue;
         }
@@ -609,7 +638,17 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 return Err(out_of_reach("that call does not parse cleanly"));
             }
             if let Some(signature) = &python_signature {
-                signature.call(&mut edits, &Site { file: &reference.file, source: &call_source, language: reference.language, parsed: &call_parsed }, call, &change)?;
+                signature.call(
+                    &mut edits,
+                    &Site {
+                        file: &reference.file,
+                        source: &call_source,
+                        language: reference.language,
+                        parsed: &call_parsed,
+                    },
+                    call,
+                    &change,
+                )?;
                 call_sites += 1;
                 notes.push(format!("dispatch site at {where_} changed with the family"));
                 continue;

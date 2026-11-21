@@ -48,11 +48,10 @@ def test_unused_variadic_declarations_preserve_fixed_argument_selection(tmp_path
     ("left, **tail", "choose(0, extra=sink(source()))"),
     ("left, *tail, **options", "choose(0, tail=sink(source()))"),
 ])
-def test_extra_variadic_arguments_preserve_effects_and_remain_incomplete(tmp_path, parameters, call):
+def test_extra_variadic_arguments_preserve_effects(tmp_path, parameters, call):
     client, rules = install(tmp_path, parameters, call)
     result = analyze(client, rules, "entry")
-    assert not result.report.at("/complete")
-    assert "invalid-call-binding:choose" in result.report.at("/cutoffs")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert result.witnesses
     runtime = observe(tmp_path)
     assert runtime["raised"] is None and runtime["result"] == 0
@@ -68,7 +67,7 @@ def test_using_a_variadic_binding_invalidates_a_cached_fixed_summary(tmp_path):
     path = tmp_path / "subject.py"
     path.write_text(path.read_text().replace("return left", "tail = 0; return left"))
     changed = analyze(client, rules, "entry", cache)
-    assert not changed.reused and not changed.report.at("/complete")
+    assert not changed.reused and changed.report.at("/complete")
     assert evidence(changed) == evidence(analyze(client, rules, "entry"))
 
 

@@ -129,8 +129,10 @@ impl Lists {
                     changed = true;
                 }
                 Some(target) => {
-                    let uncertain = target.uncertain_shape || list.uncertain_shape
-                        || target.keys != list.keys || target.tuple != list.tuple;
+                    let uncertain = target.uncertain_shape
+                        || list.uncertain_shape
+                        || target.keys != list.keys
+                        || target.tuple != list.tuple;
                     changed |= uncertain != target.uncertain_shape;
                     target.uncertain_shape = uncertain;
                     let minimum = target.minimum.min(list.minimum);
@@ -445,10 +447,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return None;
         }
         let list = env.lists.borrow().objects.get(refs.ids.first()?).cloned();
-        if list
-            .as_ref()
-            .is_none_or(|list| list.minimum != list.items.len() || list.keys.is_some() || list.uncertain_shape)
-        {
+        if list.as_ref().is_none_or(|list| {
+            list.minimum != list.items.len() || list.keys.is_some() || list.uncertain_shape
+        }) {
             self.cutoff("list-sequence-length-unchecked");
             return None;
         }
@@ -612,7 +613,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         }
                         let slot = *positions.first().unwrap();
                         list.items.remove(slot);
-                        if let Some(keys) = &mut list.keys { keys.remove(slot); }
+                        if let Some(keys) = &mut list.keys {
+                            keys.remove(slot);
+                        }
                         list.minimum -= 1;
                     }
                 } else {
@@ -757,7 +760,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
 
-    fn indexed_list(&mut self, node: Node<'t>, env: &Environment, inserting: bool) -> Option<IndexedList> {
+    fn indexed_list(
+        &mut self,
+        node: Node<'t>,
+        env: &Environment,
+        inserting: bool,
+    ) -> Option<IndexedList> {
         let value = node.child_by_field_name("value")?;
         let receiver = self.expression(value, env);
         if !self.normal {
@@ -796,10 +804,22 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 receiver,
             });
         }
-        if ids.iter().any(|id| env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_some())) {
-            let refs = References { ids, scalar: references.scalar };
+        if ids.iter().any(|id| {
+            env.lists
+                .borrow()
+                .objects
+                .get(id)
+                .is_some_and(|value| value.keys.is_some())
+        }) {
+            let refs = References {
+                ids,
+                scalar: references.scalar,
+            };
             let selected = self.mapping_slot(node, index, &refs, env, inserting);
-            return Some(IndexedList { slots: selected, receiver });
+            return Some(IndexedList {
+                slots: selected,
+                receiver,
+            });
         }
         let Some(index_value) = integer_index(index, self.source) else {
             self.cutoff("list-index-unchecked");
@@ -948,8 +968,22 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if references.scalar {
             self.cutoff("list-binding-type-unchecked");
         }
-        if ids.iter().any(|id| env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_some())) {
-            return Some(self.mapping_method(node, &References { ids, scalar: references.scalar }, receiver, env));
+        if ids.iter().any(|id| {
+            env.lists
+                .borrow()
+                .objects
+                .get(id)
+                .is_some_and(|value| value.keys.is_some())
+        }) {
+            return Some(self.mapping_method(
+                node,
+                &References {
+                    ids,
+                    scalar: references.scalar,
+                },
+                receiver,
+                env,
+            ));
         }
         if ids.iter().any(|id| {
             env.lists
@@ -1129,7 +1163,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .map(|value| value.references.clone())
             .collect();
         let (file, source) = self.contexts[name];
-        let variadic = self.function_parameters(function, file, source).is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic()));
+        let variadic = self
+            .function_parameters(function, file, source)
+            .is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic()));
         if refs.iter().all(|value| value.ids.is_empty()) && !variadic && !self.list_factory(name) {
             return None;
         }
@@ -1158,12 +1194,41 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         for (parameter, slots) in parameters.into_iter().zip(slots) {
             let parameter_name = source[parameter.node.byte_range()].to_owned();
             if parameter.kind.variadic() {
-                if heap.objects.len() >= ITEMS { self.cutoff("list-object-budget"); return Some(Flow::new()); }
-                let id = format!("{}:{}:{}:packed:{}", self.list_sites.join("/"), self.file.display(), call.start_byte(), parameter_name);
-                if heap.objects.contains_key(&id) { self.cutoff("repeated-list-allocation"); return Some(Flow::new()); }
-                let items: Vec<_> = slots.iter().map(|slot| evaluated.elements[*slot].clone()).collect();
-                let keys = (parameter.kind == calls::Kind::VarKeywords).then(|| slots.iter().map(|slot| mappings::Key::Text(names[*slot].clone().unwrap())).collect());
-                heap.objects.insert(id.clone(), List { minimum: items.len(), items, tuple: parameter.kind == calls::Kind::VarArgs, keys, uncertain_shape: false });
+                if heap.objects.len() >= ITEMS {
+                    self.cutoff("list-object-budget");
+                    return Some(Flow::new());
+                }
+                let id = format!(
+                    "{}:{}:{}:packed:{}",
+                    self.list_sites.join("/"),
+                    self.file.display(),
+                    call.start_byte(),
+                    parameter_name
+                );
+                if heap.objects.contains_key(&id) {
+                    self.cutoff("repeated-list-allocation");
+                    return Some(Flow::new());
+                }
+                let items: Vec<_> = slots
+                    .iter()
+                    .map(|slot| evaluated.elements[*slot].clone())
+                    .collect();
+                let keys = (parameter.kind == calls::Kind::VarKeywords).then(|| {
+                    slots
+                        .iter()
+                        .map(|slot| mappings::Key::Text(names[*slot].clone().unwrap()))
+                        .collect()
+                });
+                heap.objects.insert(
+                    id.clone(),
+                    List {
+                        minimum: items.len(),
+                        items,
+                        tuple: parameter.kind == calls::Kind::VarArgs,
+                        keys,
+                        uncertain_shape: false,
+                    },
+                );
                 heap.bindings.insert(parameter_name, BTreeSet::from([id]));
                 continue;
             }
@@ -1172,8 +1237,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 heap.facts.insert(parameter_name.clone(), value.facts);
                 let refs = &value.references;
                 if !refs.ids.is_empty() {
-                    heap.bindings.insert(parameter_name.clone(), refs.ids.clone());
-                    if refs.scalar { heap.uncertain.insert(parameter_name); }
+                    heap.bindings
+                        .insert(parameter_name.clone(), refs.ids.clone());
+                    if refs.scalar {
+                        heap.uncertain.insert(parameter_name);
+                    }
                 }
             }
         }
@@ -1256,8 +1324,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 left.kind() == "string" && calls::literal_default(left, source)
                             })
                     });
-                if matches!(node.kind(), "list" | "tuple" | "expression_list" | "dictionary")
-                    && !format_arguments
+                if matches!(
+                    node.kind(),
+                    "list" | "tuple" | "expression_list" | "dictionary"
+                ) && !format_arguments
                     && !exception_types
                     && !std::iter::successors(node.parent(), |node| node.parent())
                         .take_while(|node| {

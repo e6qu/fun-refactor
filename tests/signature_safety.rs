@@ -183,7 +183,6 @@ fn removed_defaults_and_annotations_cannot_hide_effects() {
     }
 }
 
-
 #[test]
 fn rust_macro_calls_use_the_same_evaluation_rule() {
     for argument in ["record()", "{ record(); 0 }"] {
@@ -604,16 +603,30 @@ fn python_parameter_kinds_and_literal_expansions_preserve_execution() {
         ("*, unused=0", "return 1", "adjust(unused=0)", 0),
         ("a, *unused", "return a", "adjust(1, 0, 0)", 1),
         ("a, **unused", "return a", "adjust(1, extra=0)", 1),
-        ("a, *unused, flag=0", "return a + flag", "adjust(1, 0, flag=2)", 1),
+        (
+            "a, *unused, flag=0",
+            "return a + flag",
+            "adjust(1, 0, flag=2)",
+            1,
+        ),
         ("unused, a", "return a", "adjust(*(0, 1))", 0),
         ("a, unused", "return a", "adjust(*[1, 0])", 1),
-        ("a, *, unused=0", "return a", "adjust(1, **{'unused': 0})", 1),
+        (
+            "a, *, unused=0",
+            "return a",
+            "adjust(1, **{'unused': 0})",
+            1,
+        ),
     ] {
         let source = format!("def adjust({parameters}):\n    {body}\nprint({call})\n");
-        let (dir,index) = workspace("subject.py", &source);
+        let (dir, index) = workspace("subject.py", &source);
         let plan = changed(&index, Change::Remove(at)).unwrap();
         let after = apply(dir.path(), "subject.py", &plan.edits);
-        assert_eq!(output("python3", &source), output("python3", &after), "{after}");
+        assert_eq!(
+            output("python3", &source),
+            output("python3", &after),
+            "{after}"
+        );
     }
 }
 
@@ -628,24 +641,33 @@ fn python_kind_aware_moves_keep_bindings_and_keyword_evaluation_order() {
         ("a, b, *tail", "adjust(*(1, 2, 3))", 0, 1),
     ] {
         let source = format!("def mark(x):\n    print(x)\n    return x\ndef adjust({parameters}):\n    return a * 10 + b\nprint({call})\n");
-        let (dir,index) = workspace("subject.py", &source);
-        let plan = changed(&index, Change::Move { from,to }).unwrap();
+        let (dir, index) = workspace("subject.py", &source);
+        let plan = changed(&index, Change::Move { from, to }).unwrap();
         let after = apply(dir.path(), "subject.py", &plan.edits);
-        assert_eq!(output("python3", &source), output("python3", &after), "{after}");
+        assert_eq!(
+            output("python3", &source),
+            output("python3", &after),
+            "{after}"
+        );
     }
 }
 
 #[test]
 fn python_expanded_removal_keeps_comments_and_refuses_effects() {
-    let source = "def adjust(unused, /, a):\n    return a\nprint(adjust(*(0, # keep this comment\n1)))\n";
-    let (dir,index) = workspace("subject.py", source);
+    let source =
+        "def adjust(unused, /, a):\n    return a\nprint(adjust(*(0, # keep this comment\n1)))\n";
+    let (dir, index) = workspace("subject.py", source);
     let plan = changed(&index, Change::Remove(0)).unwrap();
     let after = apply(dir.path(), "subject.py", &plan.edits);
     assert!(after.contains("# keep this comment"));
     assert_eq!(output("python3", source), output("python3", &after));
-    for call in ["adjust(*[mark(), 1])", "adjust(**{'unused': mark(), 'a': 1})", "adjust(*values)"] {
+    for call in [
+        "adjust(*[mark(), 1])",
+        "adjust(**{'unused': mark(), 'a': 1})",
+        "adjust(*values)",
+    ] {
         let source = format!("def mark():\n    print('effect')\n    return 0\ndef adjust(unused, a):\n    return a\nvalues = [0, 1]\n{call}\n");
-        let (_dir,index) = workspace("subject.py", &source);
+        let (_dir, index) = workspace("subject.py", &source);
         assert!(changed(&index, Change::Remove(0)).is_err());
     }
 }

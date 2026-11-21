@@ -31,7 +31,7 @@ class SummaryParameter:
 
     @property
     def required(self) -> bool:
-        return self.default is None
+        return self.default is None and self.kind not in {"variadic-positional", "variadic-keyword"}
 
     @classmethod
     def from_data(cls, value: Any) -> SummaryParameter:
@@ -39,7 +39,7 @@ class SummaryParameter:
                 or not isinstance(value["name"], str) or not value["name"].isascii()
                 or not value["name"].isidentifier()
                 or not isinstance(value["kind"], str)
-                or value["kind"] not in {"positional-only", "positional-or-keyword", "keyword-only"}):
+                or value["kind"] not in {"positional-only", "positional-or-keyword", "keyword-only", "variadic-positional", "variadic-keyword"}):
             raise FrRuntimeError("malformed summary parameter")
         site = Occurrence.from_data(value["site"])
         default = None if value["default"] is None else Occurrence.from_data(value["default"])
@@ -109,16 +109,16 @@ class ExpressionControl:
 
 _CALL_BINDING = {
     "schema": "fr-call-binding",
-    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+    "parameters": "ASCII fixed slots, *args and **kwargs; checked defaults permit replacements.",
     "evaluation": "Evaluate positional expressions before keywords, once each; expand a sole *value after keywords.",
     "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
-    "invalid": "Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
-    "boundary": "No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",
+    "invalid": "Expanded and variadic binding errors raise TypeError; other invalid calls stay incomplete.",
+    "boundary": "No object-default reads, custom mappings, arbitrary iterators, unchecked definitions, async/generators or rule keywords.",
     "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
     "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
     "implicit_exceptions": False,
     "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
-    "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
+    "variadics": "Pack bounded extra positions into a tuple and extra keywords into a fresh dictionary; preserve nested aliases.",
 }
 
 
@@ -261,16 +261,21 @@ class FunctionSummaries:
                 signature = tuple(SummaryParameter.from_data(raw) for raw in raw_signature)
                 seen = set()
                 rank, optional = 0, False
+                variadics = set()
                 for parameter in signature:
-                    current = {"positional-only": 0, "positional-or-keyword": 1, "keyword-only": 2}[parameter.kind]
+                    current = {"positional-only": 0, "positional-or-keyword": 1, "variadic-positional": 2, "keyword-only": 3, "variadic-keyword": 4}[parameter.kind]
                     if (parameter.name in seen or current < rank or parameter.site.revision != revision
                             or current < 2 and optional and parameter.required):
                         raise FrRuntimeError("inconsistent summary signature")
+                    if parameter.kind.startswith("variadic-"):
+                        if parameter.kind in variadics or parameter.default is not None:
+                            raise FrRuntimeError("inconsistent variadic signature")
+                        variadics.add(parameter.kind)
                     seen.add(parameter.name)
                     rank = current
                     optional |= not parameter.required
                 raised = item["exceptional_returns"]
-                if not isinstance(raised, dict) or set(raised) - {"unknown", "IndexError", "LookupError", "ValueError", "TypeError", "Exception", "BaseException"}:
+                if not isinstance(raised, dict) or set(raised) - {"unknown", "IndexError", "KeyError", "LookupError", "ValueError", "TypeError", "Exception", "BaseException"}:
                     raise FrRuntimeError("unsupported summary exception class")
                 functions.append(FunctionSummary(name, tuple(parameters), traces(item["returns"]),
                                                  tuple(RaisedException(kind, traces(flow)) for kind, flow in raised.items()), tuple(sinks),

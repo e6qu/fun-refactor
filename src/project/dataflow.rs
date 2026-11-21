@@ -623,7 +623,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if let Some(standard) = self.standard_call_name(function, env) {
             if standard == "builtins.dict" {
-                let Some((keys, values)) = self.mapping_arguments(node, &evaluated, env) else { return Flow::new(); };
+                let Some((keys, values)) = self.mapping_arguments(node, &evaluated, env) else {
+                    return Flow::new();
+                };
                 return self.allocate_mapping(node, keys, values, env);
             }
             if let Some((minimum, maximum)) = standard_library::arity(&standard) {
@@ -657,7 +659,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
-        if (evaluated.expanded || self.function_parameters(function, self.contexts[&resolved].0, self.contexts[&resolved].1).is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic())))
+        if (evaluated.expanded
+            || self
+                .function_parameters(
+                    function,
+                    self.contexts[&resolved].0,
+                    self.contexts[&resolved].1,
+                )
+                .is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic())))
             && self.expanded_binding_error(function, &resolved, argument_names, node, env)
         {
             return Flow::new();

@@ -20,7 +20,13 @@ pub(super) fn join(into: &mut Raised, from: Raised) -> bool {
 fn known(kind: &str) -> bool {
     matches!(
         kind,
-        "IndexError" | "KeyError" | "LookupError" | "ValueError" | "TypeError" | "Exception" | "BaseException"
+        "IndexError"
+            | "KeyError"
+            | "LookupError"
+            | "ValueError"
+            | "TypeError"
+            | "Exception"
+            | "BaseException"
     )
 }
 

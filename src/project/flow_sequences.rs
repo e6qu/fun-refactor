@@ -148,10 +148,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return false;
         };
         let valid = calls::argument_slots(&parameters, source, names).is_some_and(|slots| {
-            slots
-                .iter()
-                .zip(&parameters)
-                .all(|(slot, parameter)| !slot.is_empty() || parameter.default.is_some() || parameter.kind.variadic())
+            slots.iter().zip(&parameters).all(|(slot, parameter)| {
+                !slot.is_empty() || parameter.default.is_some() || parameter.kind.variadic()
+            })
         });
         if !valid {
             self.sequence_error(call, env, "TypeError");

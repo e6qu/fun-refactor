@@ -1,16 +1,34 @@
 use super::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Kind { Positional, Either, Keyword, Args, Kwargs }
+enum Kind {
+    Positional,
+    Either,
+    Keyword,
+    Args,
+    Kwargs,
+}
 
 #[derive(Clone)]
-struct Parameter { name: String, kind: Kind, span: Span, defaulted: bool }
+struct Parameter {
+    name: String,
+    kind: Kind,
+    span: Span,
+    defaulted: bool,
+}
 
 #[derive(Clone)]
-pub(super) struct Signature { parameters: Vec<Parameter>, raw: Vec<Span>, receiver: bool }
+pub(super) struct Signature {
+    parameters: Vec<Parameter>,
+    raw: Vec<Span>,
+    receiver: bool,
+}
 
 fn refuse(message: &str) -> anyhow::Error {
-    Refusal::Declined { detail: message.into() }.into()
+    Refusal::Declined {
+        detail: message.into(),
+    }
+    .into()
 }
 
 impl Signature {
@@ -19,94 +37,206 @@ impl Signature {
         let mut parameters: Vec<Parameter> = Vec::new();
         let mut keyword = false;
         for span in &raw {
-            let node = list.named_children(&mut list.walk()).find(|n| Span::from(*n) == *span).unwrap();
+            let node = list
+                .named_children(&mut list.walk())
+                .find(|n| Span::from(*n) == *span)
+                .unwrap();
             match node.kind() {
-                "positional_separator" => { for p in &mut parameters { p.kind = Kind::Positional; } continue; }
-                "keyword_separator" => { keyword = true; continue; }
-                _ => ()
+                "positional_separator" => {
+                    for p in &mut parameters {
+                        p.kind = Kind::Positional;
+                    }
+                    continue;
+                }
+                "keyword_separator" => {
+                    keyword = true;
+                    continue;
+                }
+                _ => (),
             }
             let text = span.text(source).trim();
-            let kind = if text.starts_with("**") { Kind::Kwargs }
-                else if text.starts_with('*') { keyword = true; Kind::Args }
-                else if keyword { Kind::Keyword } else { Kind::Either };
-            let name = parameter_name(text, Language::Python).ok_or_else(|| refuse("parameter binding is not established"))?;
-            if !name.is_ascii() || !name.chars().enumerate().all(|(i,c)| c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit()) {
-                return Err(refuse("signature changes require checked ASCII parameter bindings"));
+            let kind = if text.starts_with("**") {
+                Kind::Kwargs
+            } else if text.starts_with('*') {
+                keyword = true;
+                Kind::Args
+            } else if keyword {
+                Kind::Keyword
+            } else {
+                Kind::Either
+            };
+            let name = parameter_name(text, Language::Python)
+                .ok_or_else(|| refuse("parameter binding is not established"))?;
+            if !name.is_ascii()
+                || !name.chars().enumerate().all(|(i, c)| {
+                    c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit()
+                })
+            {
+                return Err(refuse(
+                    "signature changes require checked ASCII parameter bindings",
+                ));
             }
-            parameters.push(Parameter { name, kind, span: *span, defaulted: node.child_by_field_name("value").is_some() });
+            parameters.push(Parameter {
+                name,
+                kind,
+                span: *span,
+                defaulted: node.child_by_field_name("value").is_some(),
+            });
         }
-        let receiver = kind == SymbolKind::Method && parameters.first().is_some_and(|p| matches!(p.name.as_str(), "self" | "cls"));
-        if receiver { parameters.remove(0); }
-        if parameters.len() > 64 { return Err(refuse("signature binding exceeds 64 parameters")); }
-        Ok(Self { parameters, raw, receiver })
+        let receiver = kind == SymbolKind::Method
+            && parameters
+                .first()
+                .is_some_and(|p| matches!(p.name.as_str(), "self" | "cls"));
+        if receiver {
+            parameters.remove(0);
+        }
+        if parameters.len() > 64 {
+            return Err(refuse("signature binding exceeds 64 parameters"));
+        }
+        Ok(Self {
+            parameters,
+            raw,
+            receiver,
+        })
     }
 
-    pub(super) fn spans(&self) -> Vec<Span> { self.parameters.iter().map(|p| p.span).collect() }
+    pub(super) fn spans(&self) -> Vec<Span> {
+        self.parameters.iter().map(|p| p.span).collect()
+    }
 
     pub(super) fn compatible(&self, other: &Self) -> bool {
-        self.receiver == other.receiver && self.parameters.len() == other.parameters.len()
-            && self.parameters.iter().zip(&other.parameters).all(|(a,b)| a.name == b.name && a.kind == b.kind && a.defaulted == b.defaulted)
+        self.receiver == other.receiver
+            && self.parameters.len() == other.parameters.len()
+            && self
+                .parameters
+                .iter()
+                .zip(&other.parameters)
+                .all(|(a, b)| a.name == b.name && a.kind == b.kind && a.defaulted == b.defaulted)
     }
 
-    pub(super) fn declaration(&self, edits: &mut EditSet, site: &Site<'_>, list: Node<'_>, change: &Change) -> Result<()> {
+    pub(super) fn declaration(
+        &self,
+        edits: &mut EditSet,
+        site: &Site<'_>,
+        list: Node<'_>,
+        change: &Change,
+    ) -> Result<()> {
         match change {
             Change::Remove(at) => {
-                let parameter = self.parameters.get(*at).ok_or_else(|| refuse("parameter position is outside the signature"))?;
-                if self.raw.len() == self.parameters.len() && !matches!(parameter.kind, Kind::Args | Kind::Kwargs) {
-                    return apply_change(edits, site, list.start_byte(), &self.spans(), change, true, None);
+                let parameter = self
+                    .parameters
+                    .get(*at)
+                    .ok_or_else(|| refuse("parameter position is outside the signature"))?;
+                if self.raw.len() == self.parameters.len()
+                    && !matches!(parameter.kind, Kind::Args | Kind::Kwargs)
+                {
+                    return apply_change(
+                        edits,
+                        site,
+                        list.start_byte(),
+                        &self.spans(),
+                        change,
+                        true,
+                        None,
+                    );
                 }
                 let mut remove = BTreeSet::from([parameter.span]);
-                let remaining: Vec<_> = self.parameters.iter().enumerate().filter_map(|(i,p)| (i != *at).then_some(p)).collect();
+                let remaining: Vec<_> = self
+                    .parameters
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, p)| (i != *at).then_some(p))
+                    .collect();
                 for span in &self.raw {
                     let text = span.text(site.source).trim();
-                    if text == "/" && !self.receiver && !remaining.iter().any(|p| p.kind == Kind::Positional)
-                        || text == "*" && !remaining.iter().any(|p| p.kind == Kind::Keyword) { remove.insert(*span); }
+                    if text == "/"
+                        && !self.receiver
+                        && !remaining.iter().any(|p| p.kind == Kind::Positional)
+                        || text == "*" && !remaining.iter().any(|p| p.kind == Kind::Keyword)
+                    {
+                        remove.insert(*span);
+                    }
                 }
-                if parameter.kind == Kind::Args && remaining.iter().any(|p| p.kind == Kind::Keyword) {
+                if parameter.kind == Kind::Args && remaining.iter().any(|p| p.kind == Kind::Keyword)
+                {
                     remove.remove(&parameter.span);
-                    edits.add(site.file.to_path_buf(), Edit::new(parameter.span, "*", "retain keyword-only separator"));
+                    edits.add(
+                        site.file.to_path_buf(),
+                        Edit::new(parameter.span, "*", "retain keyword-only separator"),
+                    );
                 }
                 remove_items(edits, site, list, &remove);
             }
             Change::Move { from, to } => {
-                let (Some(first), Some(last)) = (self.parameters.get(*from), self.parameters.get(*to)) else { return Err(refuse("parameter position is outside the signature")); };
-                if from == to { return Ok(()); }
-                if first.kind != last.kind || matches!(first.kind, Kind::Args | Kind::Kwargs)
-                    || self.parameters[*from.min(to)..=*from.max(to)].iter().any(|p| p.kind != first.kind) {
+                let (Some(first), Some(last)) =
+                    (self.parameters.get(*from), self.parameters.get(*to))
+                else {
+                    return Err(refuse("parameter position is outside the signature"));
+                };
+                if from == to {
+                    return Ok(());
+                }
+                if first.kind != last.kind
+                    || matches!(first.kind, Kind::Args | Kind::Kwargs)
+                    || self.parameters[*from.min(to)..=*from.max(to)]
+                        .iter()
+                        .any(|p| p.kind != first.kind)
+                {
                     return Err(refuse("a move must preserve positional-only, keyword-only and variadic parameter bindings"));
                 }
                 let mut ordered = self.parameters.clone();
-                let moved = ordered.remove(*from); ordered.insert(*to, moved);
+                let moved = ordered.remove(*from);
+                ordered.insert(*to, moved);
                 let mut defaulted = false;
                 for p in &ordered {
-                    if !matches!(p.kind, Kind::Positional | Kind::Either) { continue; }
-                    if defaulted && !p.defaulted { return Err(refuse("moving this parameter would put a required parameter after a default")); }
+                    if !matches!(p.kind, Kind::Positional | Kind::Either) {
+                        continue;
+                    }
+                    if defaulted && !p.defaulted {
+                        return Err(refuse(
+                            "moving this parameter would put a required parameter after a default",
+                        ));
+                    }
                     defaulted |= p.defaulted;
                 }
                 move_items(edits, site.file, site.source, &self.spans(), *from, *to);
             }
-            Change::Add { .. } => return Err(refuse("adding parameters needs an explicit binding-kind choice")),
+            Change::Add { .. } => {
+                return Err(refuse(
+                    "adding parameters needs an explicit binding-kind choice",
+                ))
+            }
         }
         Ok(())
     }
 
-    pub(super) fn call(&self, edits: &mut EditSet, site: &Site<'_>, call: Node<'_>, change: &Change) -> Result<()> {
+    pub(super) fn call(
+        &self,
+        edits: &mut EditSet,
+        site: &Site<'_>,
+        call: Node<'_>,
+        change: &Change,
+    ) -> Result<()> {
         let list = argument_list(call).ok_or_else(|| refuse("call arguments are not available"))?;
         let mut supplied = Vec::new();
         arguments(list, site.source, &mut supplied, 0)?;
-        let positions: Vec<_> = self.parameters.iter().enumerate().filter_map(|(i,p)| matches!(p.kind, Kind::Positional | Kind::Either).then_some(i)).collect();
+        let positions: Vec<_> = self
+            .parameters
+            .iter()
+            .enumerate()
+            .filter_map(|(i, p)| matches!(p.kind, Kind::Positional | Kind::Either).then_some(i))
+            .collect();
         let varargs = self.parameters.iter().position(|p| p.kind == Kind::Args);
         let kwargs = self.parameters.iter().position(|p| p.kind == Kind::Kwargs);
         let mut slots = vec![Vec::new(); self.parameters.len()];
         let mut positional = 0;
         let mut seen = BTreeSet::new();
-        // Python evaluates positional expansions before named arguments, regardless of their written order.
         let mut order: Vec<_> = (0..supplied.len()).collect();
         order.sort_by_key(|i| supplied[*i].name.is_some());
         for i in order {
             let arg = &supplied[i];
             let slot = if let Some(name) = &arg.name {
-                if !seen.insert(name) { return Err(refuse("duplicate keyword bindings cannot be rewritten")); }
+                if !seen.insert(name) { return Err(refuse("cannot rewrite duplicate keyword bindings")); }
                 self.parameters.iter().position(|p| matches!(p.kind, Kind::Either | Kind::Keyword) && &p.name == name).or(kwargs)
             } else {
                 let at = positions.get(positional).copied().or(varargs); positional += 1; at
@@ -146,8 +276,6 @@ impl Signature {
                     if self.parameters[*from].kind == Kind::Positional || (low..=high).any(|i| slots[i].is_empty()) {
                         return Err(refuse("this call omits a parameter in the moved range; its default binding needs an explicit migration"));
                     }
-                    // Preserve evaluation order by naming the original values instead of moving expressions.
-                    // All following positional values must also become keywords; variadic tails cannot do so.
                     for (slot, values) in slots.iter().enumerate() {
                         if slot < low { continue; }
                         for i in values {

@@ -1141,12 +1141,20 @@ fn parameter_contract<'t>(
             }
             "list_splat_pattern" if !star => {
                 let name = variadic_parameter(node, source, &mut names)?;
-                result.push(Parameter { node: name, kind: Kind::VarArgs, default: None });
+                result.push(Parameter {
+                    node: name,
+                    kind: Kind::VarArgs,
+                    default: None,
+                });
                 star = true;
             }
             "dictionary_splat_pattern" if !variadic_keywords => {
                 let name = variadic_parameter(node, source, &mut names)?;
-                result.push(Parameter { node: name, kind: Kind::VarKeywords, default: None });
+                result.push(Parameter {
+                    node: name,
+                    kind: Kind::VarKeywords,
+                    default: None,
+                });
                 variadic_keywords = true;
             }
             _ => return None,
@@ -1178,36 +1186,52 @@ fn postponed_annotation(node: Node<'_>) -> bool {
     pending.is_empty()
 }
 
-fn variadic_parameter<'s, 't>(node: Node<'t>, source: &'s str, names: &mut BTreeSet<&'s str>) -> Option<Node<'t>> {
+fn variadic_parameter<'s, 't>(
+    node: Node<'t>,
+    source: &'s str,
+    names: &mut BTreeSet<&'s str>,
+) -> Option<Node<'t>> {
     let mut cursor = node.walk();
     let mut children = node.named_children(&mut cursor);
     let name = children.next()?;
-    if name.kind() != "identifier" || children.next().is_some() { return None; }
+    if name.kind() != "identifier" || children.next().is_some() {
+        return None;
+    }
     let text = &source[name.byte_range()];
     (text.is_ascii() && names.insert(text)).then_some(name)
 }
 
 impl Kind {
-    pub(super) fn variadic(self) -> bool { matches!(self, Self::VarArgs | Self::VarKeywords) }
+    pub(super) fn variadic(self) -> bool {
+        matches!(self, Self::VarArgs | Self::VarKeywords)
+    }
 }
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
-        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+        "parameters":"ASCII fixed slots, *args and **kwargs; checked defaults permit replacements.",
         "evaluation":"Evaluate positional expressions before keywords, once each; expand a sole *value after keywords.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
-        "invalid":"Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
-        "boundary":"No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",
+        "invalid":"Expanded and variadic binding errors raise TypeError; other invalid calls stay incomplete.",
+        "boundary":"No object-default reads, custom mappings, arbitrary iterators, unchecked definitions, async/generators or rule keywords.",
         "definitions":"Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
         "initialization":"Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
-        "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
+        "variadics":"Pack bounded extra positions into a tuple and extra keywords into a fresh dictionary; preserve nested aliases.",
         "defaults":"Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
         "implicit_exceptions":false})
 }
 
-pub(super) fn argument_slots(parameters: &[Parameter<'_>], source: &str, names: &[Option<String>]) -> Option<Vec<Vec<usize>>> {
+pub(super) fn argument_slots(
+    parameters: &[Parameter<'_>],
+    source: &str,
+    names: &[Option<String>],
+) -> Option<Vec<Vec<usize>>> {
     let mut slots = vec![Vec::new(); parameters.len()];
-    let positional: Vec<_> = parameters.iter().enumerate().filter_map(|(i, p)| matches!(p.kind, Kind::PositionalOnly | Kind::Either).then_some(i)).collect();
+    let positional: Vec<_> = parameters
+        .iter()
+        .enumerate()
+        .filter_map(|(i, p)| matches!(p.kind, Kind::PositionalOnly | Kind::Either).then_some(i))
+        .collect();
     let varargs = parameters.iter().position(|p| p.kind == Kind::VarArgs);
     let kwargs = parameters.iter().position(|p| p.kind == Kind::VarKeywords);
     let mut position = 0;
@@ -1216,15 +1240,27 @@ pub(super) fn argument_slots(parameters: &[Parameter<'_>], source: &str, names: 
     for (argument, keyword) in names.iter().enumerate() {
         let slot = if let Some(keyword) = keyword {
             keywords = true;
-            if !seen.insert(keyword) { return None; }
-            parameters.iter().position(|p| matches!(p.kind, Kind::Either | Kind::KeywordOnly) && &source[p.node.byte_range()] == keyword).or(kwargs)?
+            if !seen.insert(keyword) {
+                return None;
+            }
+            parameters
+                .iter()
+                .position(|p| {
+                    matches!(p.kind, Kind::Either | Kind::KeywordOnly)
+                        && &source[p.node.byte_range()] == keyword
+                })
+                .or(kwargs)?
         } else {
-            if keywords { return None; }
+            if keywords {
+                return None;
+            }
             let slot = positional.get(position).copied().or(varargs)?;
             position += 1;
             slot
         };
-        if !parameters[slot].kind.variadic() && !slots[slot].is_empty() { return None; }
+        if !parameters[slot].kind.variadic() && !slots[slot].is_empty() {
+            return None;
+        }
         slots[slot].push(argument);
     }
     Some(slots)
@@ -1304,7 +1340,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut invalid_keyword = false;
         for argument in arguments {
             if argument.kind() == "dictionary_splat" && duplicate_keywords {
-                self.sequence_error(argument, env, "TypeError"); result.checked = false; break;
+                self.sequence_error(argument, env, "TypeError");
+                result.checked = false;
+                break;
             }
             if self.solver.enabled && !self.normal {
                 break;
@@ -1344,15 +1382,34 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             let element = self.list_element(value, flow, env);
             if argument.kind() == "dictionary_splat" {
-                if element.facts.noniterable { self.sequence_error(argument, env, "TypeError"); result.checked = false; break; }
-                let Some((_, mapping)) = self.exact_mapping(&element.references, env) else { result.checked = false; break; };
-                for (key, value) in mapping.keys.unwrap().into_iter().zip(mapping.items) {
-                    if seen_keywords.contains(&key) { self.sequence_error(argument, env, "TypeError"); result.checked = false; break; }
-                    seen_keywords.push(key.clone());
-                    let name = if let mappings::Key::Text(name) = key { name } else { invalid_keyword = true; String::new() };
-                    result.names.push(Some(name)); result.elements.push(value);
+                if element.facts.noniterable {
+                    self.sequence_error(argument, env, "TypeError");
+                    result.checked = false;
+                    break;
                 }
-                if !self.normal { break; }
+                let Some((_, mapping)) = self.exact_mapping(&element.references, env) else {
+                    result.checked = false;
+                    break;
+                };
+                for (key, value) in mapping.keys.unwrap().into_iter().zip(mapping.items) {
+                    if seen_keywords.contains(&key) {
+                        self.sequence_error(argument, env, "TypeError");
+                        result.checked = false;
+                        break;
+                    }
+                    seen_keywords.push(key.clone());
+                    let name = if let mappings::Key::Text(name) = key {
+                        name
+                    } else {
+                        invalid_keyword = true;
+                        String::new()
+                    };
+                    result.names.push(Some(name));
+                    result.elements.push(value);
+                }
+                if !self.normal {
+                    break;
+                }
             } else if argument.kind() == "list_splat" && defer_expansion {
                 deferred = Some((argument, element));
             } else if argument.kind() == "list_splat" {
@@ -1401,7 +1458,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
         }
         if self.normal && result.checked && (duplicate_keywords || invalid_keyword) {
-            self.sequence_error(node, env, "TypeError"); result.checked = false;
+            self.sequence_error(node, env, "TypeError");
+            result.checked = false;
         }
         result.values = result
             .elements
@@ -1429,12 +1487,20 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("invalid-call-binding:{name}"));
             return None;
         };
-        let mut slots: Vec<_> = indices.into_iter().zip(&parameters).map(|(indices, parameter)| {
-            if indices.is_empty() && !parameter.kind.variadic() { return None; }
-            let mut flow = Flow::new();
-            for index in indices { merge(&mut flow, values[index].clone()); }
-            Some(flow)
-        }).collect();
+        let mut slots: Vec<_> = indices
+            .into_iter()
+            .zip(&parameters)
+            .map(|(indices, parameter)| {
+                if indices.is_empty() && !parameter.kind.variadic() {
+                    return None;
+                }
+                let mut flow = Flow::new();
+                for index in indices {
+                    merge(&mut flow, values[index].clone());
+                }
+                Some(flow)
+            })
+            .collect();
         for (slot, parameter) in slots.iter_mut().zip(&parameters) {
             if slot.is_none() {
                 if let Some(default) = parameter.default {

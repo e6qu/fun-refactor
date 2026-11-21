@@ -309,8 +309,8 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         }
         request => {
             ensure!(
-                symbol.language == Language::Rust,
-                "signature changes require a Rust free function."
+                matches!(symbol.language, Language::Rust | Language::Python),
+                "signature changes require a Rust or Python free function."
             );
             let (change, detail) = match request {
                 Request::RemoveParameter { index } => {
@@ -332,7 +332,7 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
                 }
                 Request::Rename { .. } => unreachable!(),
             };
-            validate_scalar_calls(project, symbol, &change)?;
+            if symbol.language == Language::Rust { validate_scalar_calls(project, symbol, &change)?; }
             let plan = crate::refactor::signature::change(project.index, symbol.id, change)?;
             ensure!(
                 plan.notes.is_empty(),
@@ -367,6 +367,6 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         report: json!({"operation": "refactor", "handle": handle,
         "detail": detail, "edits": ranges, "changed": true, "behavior_checked": false,
         "preservation": "bytes outside planned edits; source behavior requires independent checks.",
-        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar and checked Python signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
     })
 }
