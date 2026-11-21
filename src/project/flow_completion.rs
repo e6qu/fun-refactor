@@ -3,7 +3,7 @@ use super::*;
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-scalar-completion",
         "finally":"Capture values before cleanup; nested cleanup may replace exits.",
-        "except":"Ordered builtin handlers; local error names are deleted on exit.",
+        "except":"Ordered builtin handlers; delete local error names on exit.",
         "classes":["IndexError","LookupError","ValueError","TypeError","Exception","BaseException"],
         "reraise":"Lexically active known error.",
         "handler_nodes":128,
