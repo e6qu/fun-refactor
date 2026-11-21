@@ -8,70 +8,55 @@ Complete each milestone in one PR, including its checks, required attempts and t
 
 ## Starting point
 
-The [proposed six-PR sequence](../PLAN.md#proposed-pr-sequence) covers the full product:
-code and call graphs, analysis, refactoring, transformations, proofs, recovery and public interfaces.
-The smaller-agent milestones validate this scope; they do not replace it.
+[PR #647](https://github.com/e6qu/fun-refactor/pull/647) adds bounded list/tuple unpacking,
+nested and starred targets, sequence expansion and fixed-slot calls. Independent Python
+checks cover evaluation order, partial writes, shared identities and imported-helper
+cache invalidation. Twenty new paired examples and two closed corpus gaps bring the
+qualification to 565 programs and 1,130 cases, with 362 incomplete cases and 18 refusals.
+Hosted focused checks passed 37 Rust and 1,236 Python tests; full Python qualification
+passed 2,368 SDK tests and qualified the corpus. Platform qualification and Lean checks
+also passed. Current evidence has been refreshed and independently audited. Final PR CI
+must pass before marking it ready.
 
-The seventh page-count study delivered four accepted proofs within its separate 300-second limit.
-PR #619 added product-order facts to `fr proof start`.
-Its effect on live proof delivery remains unmeasured.
-The [plan's evidence section](../PLAN.md#evidence-behind-the-sequence) links the retained studies.
+The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
+code and call graphs, analysis, refactoring, transformations, proofs, recovery and public
+interfaces. Its coverage guides track what is implemented and checked:
 
-PR 1 landed in [#621](https://github.com/e6qu/fun-refactor/pull/621). Its [coverage guide](analysis-coverage.md) links features to checks.
-The hosted behavior checks, evidence refresh and full CI passed before merge.
-PR 2 landed in [#623](https://github.com/e6qu/fun-refactor/pull/623) with passing hosted checks and refreshed evidence.
-Its [coverage guide](refactoring-coverage.md) tracks the operation families and signature binding repairs.
-PR 3 merged in [#624](https://github.com/e6qu/fun-refactor/pull/624).
-Its [coverage guide](proof-coverage.md) tracks proof authoring, bounded Rust connections and the remaining M3 gate.
-PR 4 merged in [#625](https://github.com/e6qu/fun-refactor/pull/625).
-The [interface guide](interface-coverage.md) covers reviewed browser edits, recovery, graph reports and native handoffs.
-PR 5's harness merged in [#628](https://github.com/e6qu/fun-refactor/pull/628) with passing full CI.
-The live comparison remains open at 0 of 96 attempts. Earlier disk cleanup restored the required free space;
-the workstation is now below its 64 GiB floor again, so checks and collections run on GitHub.
-Six Codex non-proof admission checks passed; the proof check exceeded the unchanged 768 MiB
-memory ceiling, stopping the sequence with 17 checks unstarted. Preserve the failure and investigate
-proof memory on hosted runners before fresh admission. The [memory diagnostic](../tests/agent-eval/product-validation/memory/README.md)
-retains both platform results and their audits, including the final Linux memory refusal.
-ARM macOS checking alone takes 589–605 MiB, before adding the client and controllers.
-The original native admission block remains. Do not raise limits or start live calls.
-Independent analysis work merged in [#637](https://github.com/e6qu/fun-refactor/pull/637), adding signed list indices,
-insert/pop/reverse and checked helper binding. Full CI and post-merge release checks passed.
-[PR #639](https://github.com/e6qu/fun-refactor/pull/639) merged returned list identities and nested aliases with passing full CI,
-independent runtime checks,
-cross-file cache invalidation and 12 new paired contract examples. Run the
-[evidence preflight](evidence-refresh.md) before collecting reports and before full CI.
-[PR #641](https://github.com/e6qu/fun-refactor/pull/641) merged bounded slices, shallow copies,
-concatenation and deletion with 113 passing PR checks and complete deep validation.
-[PR #643](https://github.com/e6qu/fun-refactor/pull/643) retains the
-[allocator comparison](../tests/agent-eval/product-validation/memory/2026-11-21/README.md).
-It merged after 112 passing checks. Immediate purging did not provide a usable reduction: ARM macOS missed the 10% threshold,
-and Linux's candidate exceeded the memory ceiling. Keep the setting out of product defaults.
-The original proof, imports, package command, memory metric and limits remain fixed.
-Further native work needs a different measured correction and all 24 complete rehearsals.
-[PR #645](https://github.com/e6qu/fun-refactor/pull/645) merged known list errors, preserving
-mutations before failure through handlers, helpers and cleanup.
-The current increment adds bounded list/tuple unpacking, nested and starred targets,
-sequence expansion and fixed-slot calls. Keep evaluation order, partial writes,
-shared identities and imported-helper cache invalidation covered by independent Python checks.
-It adds 20 paired examples and closes nested literal module binding and literal expansion:
-565 programs, 1,130 cases, 362 incomplete cases and 18 refusals.
-Hosted behavior checks, evidence refresh and full CI are required before marking it ready.
-The full-product and live-comparison completion gates remain open.
-Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
-Validation projects stay unopened until the implementation and initial-round decision are frozen.
-PR 6's [package qualification](product-qualification.md) merged in [#629](https://github.com/e6qu/fun-refactor/pull/629).
-Full CI and all six package jobs passed. Complete-bundle verification merged in
-[#631](https://github.com/e6qu/fun-refactor/pull/631) with 109 successful checks. It checks the download set,
-receipt digests, consumer outcomes and source/checker revisions before publishing.
-The Python contract qualification now requires the acceptance catalog to match the independently audited corpus;
-new support must retain original and renamed/moved cases and receive an explicit acceptance-count review.
-Keep those artifact results separate from the unfinished comparison and M3 timing gate.
-A missing promised feature stays open; marking it unsupported cannot satisfy the completion gate.
-Follow PLAN.md for the remaining work packages rather than maintaining a separate backlog here.
+- [Analysis and graphs](analysis-coverage.md), including the list and sequence increments.
+- [Refactoring](refactoring-coverage.md), including signature binding and coordinated edits.
+- [Proof authoring](proof-coverage.md), including bounded Rust implementation connections.
+- [Interfaces and recovery](interface-coverage.md), including browser review and native handoffs.
+- [Package qualification](product-qualification.md), including source-bound complete-bundle verification.
 
-The original 150-second failures and later 300-second successes remain separate records.
-Do not silently change an acceptance limit or rerun the full proof comparison to seek success.
-A new protocol must declare its question, controls, limits and decision before calls.
+A missing promised feature stays open; marking it unsupported cannot complete the product.
+Follow PLAN.md for remaining work rather than maintaining a second backlog here.
+Run the [evidence preflight](evidence-refresh.md) before collecting reports and before full CI.
+
+## Remaining comparison gates
+
+M3's original 150-second gate remains open. The seventh page-count study delivered four
+accepted proofs within a separate 300-second limit; those results do not close the original
+gate. PR #619 added product-order facts to `fr proof start`, but its live effect remains
+unmeasured. The [plan's evidence section](../PLAN.md#evidence-behind-the-sequence) links the studies.
+Do not change acceptance limits or rerun a full comparison to seek success.
+
+PR 5's [comparison protocol](../tests/agent-eval/product-validation/README.md) authorizes
+at most 96 attempts. None has run. Validation projects stay unopened until the implementation
+and initial-round decision are frozen. Native admission remains blocked:
+
+- Six Codex non-proof checks passed. The proof check exceeded the unchanged 768 MiB memory
+  ceiling, stopping the sequence with 17 checks unstarted.
+- The [memory diagnostic](../tests/agent-eval/product-validation/memory/README.md) found
+  ARM macOS checking alone uses 589–605 MiB, before the client and controllers. Linux
+  checking nearly fills the ceiling without a client.
+- The [allocator comparison](../tests/agent-eval/product-validation/memory/2026-11-21/README.md)
+  found no usable reduction. ARM macOS missed the frozen 10% threshold; Linux's candidate
+  exceeded the ceiling. Keep the setting out of product defaults.
+
+Further native work needs a different measured correction, followed by all 24 complete
+rehearsals under the original proof, imports, package command, memory metric and limits.
+Do not start live calls or raise those limits. The workstation is again below its 64 GiB
+free-space floor, so execution and evidence collection remain on GitHub.
 
 ## Interface decisions
 

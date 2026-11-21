@@ -93,12 +93,13 @@ It binds the download set, consumer receipts and source/checker revisions before
 The Python contract qualification checks original and renamed/moved examples against reviewed acceptance counts.
 [PR #645](https://github.com/e6qu/fun-refactor/pull/645) merged list bounds and slice errors
 through handlers, helpers and cleanup, preserving mutations before failure.
-The next increment covers bounded list/tuple unpacking, nested and starred targets,
+[PR #647](https://github.com/e6qu/fun-refactor/pull/647) covers bounded list/tuple unpacking, nested and starred targets,
 sequence expansion and fixed-slot helper calls, including partial writes and error ordering.
 It closes the existing nested-module-binding and literal-expansion corpus gaps.
-The reviewed target is 565 examples and 1,130 cases: 362 incomplete cases and 18 refusals.
-Independent runtime checks, imported-helper cache checks, refreshed evidence and full hosted CI
-must pass before this increment is ready. Broader language coverage needs separate evidence.
+Python qualification passed 565 examples and 1,130 cases, retaining 362 incomplete cases
+and 18 refusals. The 2,368-test SDK suite, focused behavior checks, package qualification
+and Lean checks passed. Current evidence has been refreshed and independently audited.
+Final hosted CI is required before marking the PR ready. Broader language coverage needs separate evidence.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |
