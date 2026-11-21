@@ -12,6 +12,8 @@ The JSON artifact preserves the complete list even when the job fails.
 Use the existing **Refresh refinement evidence** groups to collect the affected families on GitHub.
 Keep the complete scalar family together when its common inputs change. Retain successful collections
 through their existing retention jobs, then refresh project replay and session-cost records as required.
+For the current SDK storage comparison, run **Find and reduce saved answer costs** with `phase=measure`.
+Publish the successful run with `phase=publish` and its `collection_run` ID.
 Run publishing jobs sequentially so branch updates do not race. Run preflight again before full CI.
 
 CI requires this preflight before native tests, static checks and current project/session/package replays.
