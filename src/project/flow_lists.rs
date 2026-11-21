@@ -165,6 +165,7 @@ impl Lists {
 
     pub fn contents(&self, ids: &BTreeSet<String>) -> Flow {
         let mut result = Flow::new();
+        let mut routes = Flow::new();
         let mut visited = BTreeSet::new();
         let mut pending: Vec<_> = ids.iter().collect();
         while let Some(id) = pending.pop() {
@@ -173,12 +174,15 @@ impl Lists {
             }
             if let Some(list) = self.objects.get(id) {
                 for item in &list.items {
-                    merge(&mut result, item.flow.clone());
+                    if item.references.scalar {
+                        merge(&mut result, item.flow.clone());
+                    }
+                    merge(&mut routes, item.flow.clone());
                     pending.extend(item.references.ids.iter());
                 }
             }
         }
-        result
+        through_alias(result, &routes)
     }
 }
 
@@ -323,18 +327,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 noniterable: matches!(bare.kind(), "integer" | "float" | "true" | "false" | "none"),
             });
         Element {
-            flow: if references.scalar { flow } else { Flow::new() },
+            flow,
             references,
             facts,
         }
     }
 
     pub(super) fn element_flow(&self, value: &Element, env: &Environment) -> Flow {
-        let mut flow = value.flow.clone();
-        merge(
-            &mut flow,
-            env.lists.borrow().contents(&value.references.ids),
-        );
+        let mut flow = if value.references.scalar { value.flow.clone() } else { Flow::new() };
+        let contents = env.lists.borrow().contents(&value.references.ids);
+        merge(&mut flow, through_alias(contents, &value.flow));
         flow
     }
 
@@ -1197,7 +1199,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let (file, source) = self.contexts[&name];
             let mut nodes: Vec<_> = function.child_by_field_name("body").into_iter().collect();
             while let Some(node) = nodes.pop() {
+                let parent = std::iter::successors(node.parent(), |node| node.parent())
+                    .find(|node| node.kind() != "parenthesized_expression");
+                let format_arguments = node.kind() == "tuple"
+                    && self.modules.is_some_and(|modules| modules.standard_enabled("builtins"))
+                    && parent.is_some_and(|parent| parent.kind() == "binary_operator"
+                        && parent.child_by_field_name("operator").is_some_and(|operator| &source[operator.byte_range()] == "%")
+                        && parent.child_by_field_name("right").and_then(calls::unparenthesized) == Some(node)
+                        && parent.child_by_field_name("left").is_some_and(|left| left.kind() == "string" && calls::literal_default(left, source)));
                 if matches!(node.kind(), "list" | "tuple" | "expression_list")
+                    && !format_arguments
                     && !std::iter::successors(node.parent(), |node| node.parent())
                         .take_while(|node| {
                             matches!(

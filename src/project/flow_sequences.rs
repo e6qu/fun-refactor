@@ -45,10 +45,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return;
         }
         let value = self.list_element(right, flow, state);
+        let prior_error = self.may_raise.then(|| state.clone());
         let mut budget = 128;
         for target in targets {
             self.unpack_target(*target, &value, state, 0, &mut budget);
             if !self.normal {
+                let mut raised = state.clone();
+                if let Some(before) = &prior_error {
+                    join_environment(&mut raised, before);
+                }
+                self.raised_assignment = Some(raised);
                 break;
             }
         }

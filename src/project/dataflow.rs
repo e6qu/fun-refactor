@@ -334,6 +334,7 @@ struct Analyzer<'a, 'p, 't> {
     summaries: Vec<Value>,
     exceptional_returns: Raised,
     raised_lists: Option<lists::Lists>,
+    raised_assignment: Option<Environment>,
     current_block: Option<(String, usize)>,
     origins: BTreeMap<String, Occurrence>,
     solver: summaries::Solver,
@@ -805,6 +806,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut result = Flow::new();
         let parent_exceptions = std::mem::take(&mut self.exceptional_returns);
         let parent_raised_lists = self.raised_lists.take();
+        let parent_raised_assignment = self.raised_assignment.take();
         let parent_may_raise = self.may_raise;
         let mut exceptions = Raised::new();
         let mut may_raise = false;
@@ -857,6 +859,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.may_raise = false;
             self.exceptional_returns.clear();
             self.raised_lists = None;
+            self.raised_assignment = None;
             if block.operation == Operation::Exit {
                 match &mut returned_lists {
                     Some(heap) => {
@@ -994,7 +997,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             let mut successors = Vec::new();
             if self.may_raise {
-                let mut raised_state = before;
+                let mut raised_state = self.raised_assignment.take().unwrap_or(before);
                 *raised_state.lists.borrow_mut() = self
                     .raised_lists
                     .take()
@@ -1075,6 +1078,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.current_block = parent_block;
         self.exceptional_returns = parent_exceptions;
         self.raised_lists = parent_raised_lists;
+        self.raised_assignment = parent_raised_assignment;
         exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise = parent_may_raise || may_raise;
         self.normal_return = normal_return;
@@ -2107,6 +2111,7 @@ impl Project<'_> {
             summaries: Vec::new(),
             exceptional_returns: Raised::new(),
             raised_lists: None,
+            raised_assignment: None,
             current_block: None,
             origins: BTreeMap::new(),
             solver: summaries::Solver::new(options.summaries),
