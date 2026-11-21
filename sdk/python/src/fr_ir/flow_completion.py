@@ -1,4 +1,4 @@
-"""The explicit scalar exits understood by the checker, including finally cleanup."""
+"""The bounded exits and error paths understood by the checker."""
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,13 +9,14 @@ _CONTRACT: dict[str, Any] = {
     'schema': 'fr-scalar-completion',
     'finally': 'Capture values before cleanup; cleanup may replace exits; nest separately.',
     'except': 'Ordered builtin handlers, optional local error binding, and deletion after the handler.',
-    'classes': ['ValueError', 'TypeError', 'Exception', 'BaseException'],
+    'classes': ['IndexError', 'LookupError', 'ValueError', 'TypeError', 'Exception', 'BaseException'],
     'reraise': 'Lexically active known error.',
     'handler_nodes': 128,
     'local_call_raises': True,
     'block_limit': 512,
     'implicit_exceptions': False,
-    'integer_conversion': 'Base-ten conversion of known strings includes a possible ValueError; other implicit exceptions remain unchecked.',
+    'integer_conversion': 'Base-ten conversion of known strings includes a possible ValueError.',
+    'list_errors': 'Known integer bounds raise IndexError; zero slice steps and mismatched extended slices raise ValueError. Exception paths retain list state at failure; other implicit exceptions remain unchecked.',
 }
 
 
