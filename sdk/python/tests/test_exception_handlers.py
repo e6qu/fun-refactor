@@ -65,7 +65,7 @@ def test_error_handlers_match_independent_python_outcomes(tmp_path, case, rename
     assert bool(result.witnesses) is case['witness']
     if case['normal'] is not None:
         assert data['completion'] == {'normal_return': case['normal'], 'may_raise': case['may_raise']}
-    assert result.completion_control.exception_classes == ('ValueError', 'TypeError', 'Exception', 'BaseException')
+    assert result.completion_control.exception_classes == ('IndexError', 'LookupError', 'ValueError', 'TypeError', 'Exception', 'BaseException')
     assert result.completion_control.block_limit == 512
     assert result.completion_control.handler_nodes == 128
     assert not result.runtime_effects.exception_safety_established
