@@ -34,6 +34,9 @@ jobs:
     name: Build repository command audits
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # Optimize the repository scans while keeping test-profile assertions.
+      CARGO_PROFILE_TEST_OPT_LEVEL: "2"
     steps:
       - uses: actions/checkout@v7
       - run: rustup toolchain install stable --profile minimal
