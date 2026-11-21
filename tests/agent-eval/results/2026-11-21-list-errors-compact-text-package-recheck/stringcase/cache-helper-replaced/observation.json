@@ -1,0 +1,38 @@
+{
+  "command": [
+    "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+    "-I",
+    "-B",
+    "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+    "--worker",
+    "/home/runner/work/_temp/current-text-package/stringcase/cache-helper-replaced/request.json"
+  ],
+  "elapsed_seconds": 0.5029379629999937,
+  "exit_code": 0,
+  "launch_error": null,
+  "limits": {
+    "cpu_seconds": 10,
+    "disk_bytes": 16777216,
+    "rss_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "wall_seconds": 20
+  },
+  "monitor_error": null,
+  "process_exit_code": 0,
+  "result": {
+    "complete": true,
+    "manifest": "df1d02b2c519b42c90869b4e5fd277a3059cbc7bee0a430f0a7aa99147a56cfc",
+    "previous_manifest": "a13a2d53e843b1619e5dc5345ca7229cca3b349e89b860a94f3395055be1ad91",
+    "reaches": false,
+    "reused": false,
+    "stage": "helper-replaced"
+  },
+  "sampled_aggregate_rss_bytes": 79396864,
+  "sampled_cpu_seconds": 0.32,
+  "sampled_disk_growth_bytes": 170739,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "a42219787bb7511ef999ad74f618abf8fee64885298aa57b14bb811f8b7bc5e8",
+  "stop_reason": null,
+  "timed_out": false,
+  "transcript_bytes": 251
+}
