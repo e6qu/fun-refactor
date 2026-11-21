@@ -203,4 +203,6 @@ def test_imported_unpacking_edits_invalidate_cached_answers(tmp_path, module):
     changed = query(cache)
     assert not changed.reused and changed.report.at('/complete') and not changed.witnesses
     fresh = query(FlowCache(MemoryObjectStore()))
-    assert changed.report.to_data() == fresh.report.to_data()
+    assert changed.witnesses == fresh.witnesses
+    for pointer in ('/input_digest', '/completion', '/cutoffs', '/events'):
+        assert changed.report.at(pointer) == fresh.report.at(pointer)

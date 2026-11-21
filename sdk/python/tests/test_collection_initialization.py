@@ -9,6 +9,7 @@ from test_flow_summaries import analyze, evidence, workspace
 
 
 COLLECTIONS = [
+    "[*(0, 1)]", "(*(),)", "{(*[0, 1],): 2}",
     "[]", "{}", "()", "(0,)", "0, 1", "((([])))",
     "(-1, +2.5, 2j, r'raw')", "{0, 1, False}",
     "{(1, 'café'), (None, -2.5)}", "{0: [], 'x': {}, None: (True,)}",
@@ -46,8 +47,8 @@ def test_unused_literal_collections_preserve_helper_behavior(tmp_path, literal, 
 @pytest.mark.parametrize("literal", [
     "[source()]", "{'x': source()}", "{source(): 0}", "{source()}",
     "[(0, [source()])]", "[missing]", "[(lambda: source())()]", "[1 + 2]",
-    "[x for x in []]", "[source() for x in []]", "[*(0, 1)]", "{**{0: 1}}",
-    "(*(),)", "{*(0, 1)}", "[f'constant']", "[f'{source()}']",
+    "[x for x in []]", "[source() for x in []]", "[*source()]", "{**{0: 1}}",
+    "(*0,)", "{*(0, 1)}", "[f'constant']", "[f'{source()}']",
     "{[]: 0}", "{([0],): 0}", "{{0}: 1}", "{[]}", "{([],)}",
 ])
 @pytest.mark.parametrize("imports", [False, True])

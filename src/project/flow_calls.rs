@@ -1279,7 +1279,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if argument.kind() == "list_splat" && defer_expansion {
                 deferred = Some((argument, element));
             } else if argument.kind() == "list_splat" {
-                let Some(values) = self.sequence_items(argument, &element, env) else { result.checked = false; break; };
+                let Some(values) = self.sequence_items(argument, &element, env) else {
+                    if self.normal { self.cutoff("argument-unpacking-unchecked"); }
+                    result.checked = false; break;
+                };
                 result.names.extend(std::iter::repeat_n(None, values.len()));
                 result.elements.extend(values);
             } else {
@@ -1301,7 +1304,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     if result.elements.len() > 64 {
                         self.cutoff("argument-expansion-budget"); result.checked = false;
                     }
-                } else { result.checked = false; }
+                } else {
+                    if self.normal { self.cutoff("argument-unpacking-unchecked"); }
+                    result.checked = false;
+                }
             }
         }
         result.values = result.elements.iter().map(|value| self.element_flow(value, env)).collect();
