@@ -28,16 +28,26 @@ impl References {
 }
 
 #[derive(Clone, Default)]
-struct Element {
-    flow: Flow,
-    references: References,
+pub(super) struct Element {
+    pub flow: Flow,
+    pub references: References,
+    pub facts: Facts,
+}
+
+#[derive(Clone, Copy, Default, PartialEq)]
+pub(super) struct Facts {
+    pub plain_string: bool,
+    pub noniterable: bool,
 }
 
 impl Element {
     fn join(&mut self, other: &Self) -> bool {
         let before = self.flow.len();
         merge(&mut self.flow, other.flow.clone());
-        self.references.join(&other.references) | (before != self.flow.len())
+        let facts = self.facts;
+        self.facts.plain_string &= other.facts.plain_string;
+        self.facts.noniterable &= other.facts.noniterable;
+        self.references.join(&other.references) | (before != self.flow.len()) | (facts != self.facts)
     }
 }
 
@@ -47,12 +57,15 @@ pub(super) struct Lists {
     uncertain: BTreeSet<String>,
     objects: BTreeMap<String, List>,
     expressions: BTreeMap<(PathBuf, usize), References>,
+    facts: BTreeMap<String, Facts>,
+    expression_facts: BTreeMap<(PathBuf, usize), Facts>,
 }
 
 #[derive(Clone)]
-struct List {
-    items: Vec<Element>,
-    minimum: usize,
+pub(super) struct List {
+    pub items: Vec<Element>,
+    pub minimum: usize,
+    pub tuple: bool,
 }
 
 struct IndexedList {
@@ -81,6 +94,9 @@ fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
 impl Lists {
     pub fn join(&mut self, other: &Self) -> bool {
         let mut changed = false;
+        let before = self.facts.len();
+        self.facts.retain(|name, facts| other.facts.get(name) == Some(facts));
+        changed |= self.facts.len() != before;
         let before = self.uncertain.len();
         for name in self.bindings.keys().chain(other.bindings.keys()) {
             if self.bindings.contains_key(name) != other.bindings.contains_key(name) {
@@ -272,6 +288,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         refs: References,
     ) {
         let key = (self.file.to_owned(), node.start_byte());
+        env.lists.borrow_mut().expression_facts.remove(&key);
         if refs.ids.is_empty() {
             env.lists.borrow_mut().expressions.remove(&key);
         } else {
@@ -279,15 +296,25 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
 
-    fn list_element(&self, node: Node<'t>, flow: Flow, env: &Environment) -> Element {
+    pub(super) fn list_element(&self, node: Node<'t>, flow: Flow, env: &Environment) -> Element {
         let references = self.list_references(node, env);
+        let bare = calls::unparenthesized(node).unwrap_or(node);
+        let heap = env.lists.borrow();
+        let facts = heap.expression_facts.get(&(self.file.to_owned(), node.start_byte()))
+            .copied().or_else(|| (bare.kind() == "identifier")
+                .then(|| heap.facts.get(self.text(bare)).copied()).flatten())
+            .unwrap_or(Facts {
+                plain_string: self.plain_string(node, env),
+                noniterable: matches!(bare.kind(), "integer" | "float" | "true" | "false" | "none"),
+            });
         Element {
             flow: if references.scalar { flow } else { Flow::new() },
             references,
+            facts,
         }
     }
 
-    fn element_flow(&self, value: &Element, env: &Environment) -> Flow {
+    pub(super) fn element_flow(&self, value: &Element, env: &Environment) -> Flow {
         let mut flow = value.flow.clone();
         merge(
             &mut flow,
@@ -297,26 +324,38 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     pub(super) fn list_literal(&mut self, node: Node<'t>, env: &Environment) -> Flow {
-        let items = children(node);
-        if items.len() > ITEMS || env.lists.borrow().objects.len() >= ITEMS {
-            self.cutoff("list-object-budget");
-            return Flow::new();
-        }
         let mut values = Vec::new();
-        for item in items {
+        for item in children(node) {
             if item.kind() == "list_splat" {
-                self.cutoff("list-unpacking-unchecked");
+                let Some(argument) = item.named_child(0) else {
+                    self.cutoff("sequence-expansion-unchecked");
+                    return Flow::new();
+                };
+                let flow = self.expression(argument, env);
+                if !self.normal { return Flow::new(); }
+                let value = self.list_element(argument, flow, env);
+                let Some(items) = self.sequence_items(item, &value, env) else {
+                    return Flow::new();
+                };
+                values.extend(items);
+            } else {
+                let flow = self.expression(item, env);
+                if !self.normal { return Flow::new(); }
+                values.push(self.list_element(item, flow, env));
             }
-            let flow = self.expression(item, env);
-            if !self.normal {
+            if values.len() > ITEMS {
+                self.cutoff("list-item-budget");
                 return Flow::new();
             }
-            values.push(self.list_element(item, flow, env));
         }
-        self.allocate_list(node, values, env)
+        self.allocate_sequence(node, values, env, matches!(node.kind(), "tuple" | "expression_list"))
     }
 
-    fn allocate_list(&mut self, node: Node<'t>, values: Vec<Element>, env: &Environment) -> Flow {
+    pub(super) fn allocate_list(&mut self, node: Node<'t>, values: Vec<Element>, env: &Environment) -> Flow {
+        self.allocate_sequence(node, values, env, false)
+    }
+
+    fn allocate_sequence(&mut self, node: Node<'t>, values: Vec<Element>, env: &Environment, tuple: bool) -> Flow {
         if values.len() > ITEMS {
             self.cutoff("list-item-budget");
             return Flow::new();
@@ -342,6 +381,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             List {
                 minimum: values.len(),
                 items: values,
+                tuple,
             },
         );
         let ids = BTreeSet::from([id]);
@@ -350,7 +390,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.extend(flow, node, "list-allocation")
     }
 
-    fn exact_list(&mut self, refs: &References, env: &Environment) -> Option<List> {
+    pub(super) fn exact_list(&mut self, refs: &References, env: &Environment) -> Option<List> {
         if refs.scalar || refs.ids.len() != 1 {
             self.cutoff("list-sequence-target-unchecked");
             return None;
@@ -431,7 +471,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .into_iter()
             .map(|index| list.items[index].clone())
             .collect();
-        let flow = self.allocate_list(node, items, env);
+        let flow = self.allocate_sequence(node, items, env, list.tuple);
         through_alias(flow, &receiver)
     }
 
@@ -445,6 +485,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let Some((id, mut list, slice, _)) = self.slice_target(node, slice, env) else {
             return;
         };
+        if list.tuple { self.cutoff("tuple-mutation-unchecked"); return; }
         let Some(replacement) = self.exact_list(replacement, env) else {
             return;
         };
@@ -477,6 +518,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             } else if target.kind() == "subscript" {
                 if let Some(slice) = slice_node(target) {
                     if let Some((id, mut list, slice, _)) = self.slice_target(target, slice, env) {
+                        if list.tuple { self.cutoff("tuple-mutation-unchecked"); return; }
                         let positions: BTreeSet<_> =
                             slice.positions(list.items.len()).into_iter().collect();
                         list.items = list
@@ -505,6 +547,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         let Some(list) = heap.objects.get_mut(&id) else {
                             continue;
                         };
+                        if list.tuple { self.cutoff("tuple-mutation-unchecked"); continue; }
                         if list.minimum != list.items.len() {
                             self.cutoff("list-sequence-length-unchecked");
                             continue;
@@ -552,8 +595,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let Some(right) = self.exact_list(&right, env) else {
             return flow;
         };
+        if left.tuple != right.tuple {
+            self.cutoff("mixed-sequence-concatenation-unchecked");
+            return flow;
+        }
         left.items.extend(right.items);
-        let result = self.allocate_list(node, left.items, env);
+        let result = self.allocate_sequence(node, left.items, env, left.tuple);
         through_alias(result, &flow)
     }
 
@@ -606,42 +653,35 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let Some(right) = calls::unparenthesized(right) else {
             return false;
         };
-        if matches!(right.kind(), "assignment" | "tuple" | "expression_list") {
+        if right.kind() == "assignment" {
             return false;
         }
-        let name = self.text(left).to_owned();
         let flow = self.expression(right, env);
-        if !self.normal {
-            return true;
-        }
-        let refs = self.list_references(right, env);
-        let plain = self.plain_string(right, env);
-        if refs.ids.is_empty() {
-            if !self.tick(left, "definition") {
-                return true;
-            }
-            env.lists.borrow_mut().bindings.remove(&name);
-            env.lists.borrow_mut().uncertain.remove(&name);
-        } else {
-            env.lists
-                .borrow_mut()
-                .bindings
-                .insert(name.clone(), refs.ids);
-            if refs.scalar {
-                env.lists.borrow_mut().uncertain.insert(name.clone());
-            } else {
-                env.lists.borrow_mut().uncertain.remove(&name);
-            }
-        }
-        env.values
-            .insert(name.clone(), self.extend(flow, left, "definition"));
-        env.defined.insert(name.clone());
-        if plain {
-            env.plain_strings.insert(name);
-        } else {
-            env.plain_strings.remove(&name);
+        if self.normal {
+            let value = self.list_element(right, flow, env);
+            self.bind_element(left, &value, env);
         }
         true
+    }
+
+    pub(super) fn bind_element(&mut self, target: Node<'t>, value: &Element, env: &mut Environment) {
+        if !self.tick(target, "definition") { return; }
+        let name = self.text(target).to_owned();
+        let flow = self.extend(self.element_flow(value, env), target, "definition");
+        let mut heap = env.lists.borrow_mut();
+        if value.references.ids.is_empty() {
+            heap.bindings.remove(&name);
+        } else {
+            heap.bindings.insert(name.clone(), value.references.ids.clone());
+        }
+        if value.references.scalar && !value.references.ids.is_empty() {
+            heap.uncertain.insert(name.clone());
+        } else { heap.uncertain.remove(&name); }
+        heap.facts.insert(name.clone(), value.facts);
+        env.values.insert(name.clone(), flow);
+        env.defined.insert(name.clone());
+        if value.facts.plain_string { env.plain_strings.insert(name); }
+        else { env.plain_strings.remove(&name); }
     }
 
     fn indexed_list(&mut self, node: Node<'t>, env: &Environment) -> Option<IndexedList> {
@@ -749,6 +789,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let value = value.unwrap_or_default();
         self.record_list_references(node, env, value.references.clone());
+        env.lists.borrow_mut().expression_facts.insert((self.file.to_owned(), node.start_byte()), value.facts);
         let flow = through_alias(self.element_flow(&value, env), &selected.receiver);
         Some(self.extend(flow, node, "list-item"))
     }
@@ -784,6 +825,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut heap = env.lists.borrow_mut();
         for (id, slots) in selected {
             if let Some(list) = heap.objects.get_mut(&id) {
+                if list.tuple { self.cutoff("tuple-mutation-unchecked"); continue; }
                 for slot in slots {
                     if let Some(item) = list.items.get_mut(slot) {
                         if strong {
@@ -821,6 +863,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if references.scalar {
             self.cutoff("list-binding-type-unchecked");
+        }
+        if ids.iter().any(|id| env.lists.borrow().objects.get(id).is_some_and(|value| value.tuple)) {
+            self.cutoff("tuple-method-unchecked");
+            return Some(Flow::new());
         }
         let method = self
             .text(function.child_by_field_name("attribute")?)
@@ -928,6 +974,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             let result = result.unwrap_or_default();
             self.record_list_references(node, env, result.references.clone());
+            env.lists.borrow_mut().expression_facts.insert((self.file.to_owned(), node.start_byte()), result.facts);
             return Some(self.extend(self.element_flow(&result, env), node, "list-method-result"));
         }
         let addition = if method == "extend" {
@@ -974,25 +1021,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         &mut self,
         name: &str,
         function: Node<'t>,
-        arguments: &[Flow],
-        names: &[Option<String>],
+        evaluated: &calls::Arguments,
         call: Node<'t>,
         env: &Environment,
     ) -> Option<Flow> {
-        let values = children(call.child_by_field_name("arguments")?);
-        let refs: Vec<_> = values
-            .iter()
-            .map(|value| {
-                let value = if value.kind() == "keyword_argument" {
-                    value.child_by_field_name("value")
-                } else {
-                    Some(*value)
-                };
-                value
-                    .map(|value| self.list_references(value, env))
-                    .unwrap_or_default()
-            })
-            .collect();
+        let arguments = &evaluated.values;
+        let names = &evaluated.names;
+        let refs: Vec<_> = evaluated.elements.iter().map(|value| value.references.clone()).collect();
         if refs.iter().all(|value| value.ids.is_empty()) && !self.list_factory(name) {
             return None;
         }
@@ -1005,14 +1040,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("list-call-signature-unchecked");
             return Some(Flow::new());
         };
-        if arguments.len() != values.len()
-            || values
-                .iter()
-                .any(|n| matches!(n.kind(), "list_splat" | "dictionary_splat"))
-        {
-            self.cutoff("list-call-signature-unchecked");
-            return Some(Flow::new());
-        }
         let Some(slots) = calls::argument_slots(&parameters, source, names) else {
             self.cutoff("list-call-signature-unchecked");
             return Some(Flow::new());
@@ -1024,7 +1051,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         heap.bindings.clear();
         heap.uncertain.clear();
         heap.expressions.clear();
+        heap.expression_facts.clear();
+        heap.facts.clear();
         for (parameter, slot) in parameters.into_iter().zip(slots) {
+            if let Some(value) = slot.and_then(|slot| evaluated.elements.get(slot)) {
+                heap.facts.insert(source[parameter.node.byte_range()].to_owned(), value.facts);
+            }
             if let Some(refs) = slot
                 .and_then(|slot| refs.get(slot))
                 .filter(|refs| !refs.ids.is_empty())
@@ -1088,7 +1120,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let (file, source) = self.contexts[&name];
             let mut nodes: Vec<_> = function.child_by_field_name("body").into_iter().collect();
             while let Some(node) = nodes.pop() {
-                if node.kind() == "list" {
+                if matches!(node.kind(), "list" | "tuple" | "expression_list") {
                     found = true;
                     break;
                 }

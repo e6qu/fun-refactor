@@ -56,6 +56,9 @@ mod text_values;
 #[path = "flow_lists.rs"]
 mod lists;
 
+#[path = "flow_sequences.rs"]
+mod sequences;
+
 pub(super) fn expression_contract() -> Value {
     expressions::contract()
 }
@@ -414,7 +417,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if let Some(value) = self.list_value(node, env) {
             return value;
         }
-        if node.kind() == "list" {
+        if matches!(node.kind(), "list" | "tuple" | "expression_list") {
             return self.list_literal(node, env);
         }
         if node.kind() == "subscript" {
@@ -527,14 +530,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
-        let (arguments, argument_names) = self.call_arguments(node, env);
+        let evaluated = self.call_arguments(node, env);
+        let arguments = &evaluated.values;
+        let argument_names = &evaluated.names;
         let mut joined = Flow::new();
         if self.solver.enabled && !self.normal {
             return Flow::new();
         }
-        for argument in &arguments {
+        for argument in arguments {
             merge(&mut joined, argument.clone());
         }
+        if !evaluated.checked { return joined; }
         let base = name.split('.').next().unwrap();
         let resolved = self.modules.map_or_else(
             || {
@@ -638,14 +644,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
+        if evaluated.expanded && self.expanded_binding_error(function, &resolved, argument_names, node, env) {
+            return Flow::new();
+        }
         if let Some(value) =
-            self.list_call(&resolved, function, &arguments, &argument_names, node, env)
+            self.list_call(&resolved, function, &evaluated, node, env)
         {
             return value;
         }
         if self.solver.enabled {
             let Some(arguments) =
-                self.bind_arguments(&resolved, function, arguments, &argument_names)
+                self.bind_arguments(&resolved, function, arguments.clone(), argument_names)
             else {
                 return Flow::new();
             };
@@ -659,7 +668,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("call-depth-budget");
             return joined;
         }
-        let result = self.invoke(&name, function, arguments);
+        let result = self.invoke(&name, function, arguments.clone());
         if self.returned_raised_lists.is_some() {
             self.capture_raised_lists(env.lists.borrow().clone());
         }
@@ -1103,6 +1112,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     if expression.kind() == "assignment" && self.solver.enabled {
                         self.scalar_assignment(expression, state);
+                        continue;
                     } else if expression.kind() == "assignment" {
                         let (Some(left), Some(right)) = (
                             expression.child_by_field_name("left"),

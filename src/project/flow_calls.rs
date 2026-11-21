@@ -1161,10 +1161,10 @@ fn variadic_parameter<'s>(
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
         "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
-        "evaluation":"Evaluate explicit values once in source order before binding.",
+        "evaluation":"Evaluate positional values and expansions before keywords, once each.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
-        "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-        "boundary":"No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+        "invalid":"Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
+        "boundary":"No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",
         "definitions":"Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
         "initialization":"Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
@@ -1199,6 +1199,14 @@ pub(super) fn argument_slots(
         }
     }
     Some(slots)
+}
+
+pub(super) struct Arguments {
+    pub values: Vec<Flow>,
+    pub names: Vec<Option<String>>,
+    pub elements: Vec<lists::Element>,
+    pub expanded: bool,
+    pub checked: bool,
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
@@ -1236,50 +1244,46 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
 
-    pub(super) fn call_arguments(
-        &mut self,
-        node: Node<'t>,
-        env: &Environment,
-    ) -> (Vec<Flow>, Vec<Option<String>>) {
-        let mut values = Vec::new();
-        let mut names = Vec::new();
-        let mut keywords = false;
-        if let Some(list) = node.child_by_field_name("arguments") {
-            for arg in list.named_children(&mut list.walk()) {
-                if arg.kind() == "comment" {
-                    continue;
-                }
-                if self.solver.enabled && !self.normal {
-                    break;
-                }
-                let (value, name) = if self.solver.enabled && arg.kind() == "keyword_argument" {
-                    let (Some(name), Some(value)) = (
-                        arg.child_by_field_name("name"),
-                        arg.child_by_field_name("value"),
-                    ) else {
-                        self.cutoff("malformed-keyword-argument");
-                        break;
-                    };
-                    if !self.text(name).is_ascii() {
-                        self.cutoff("non-ascii-keyword-binding-unchecked");
-                    }
-                    keywords = true;
-                    (value, Some(self.text(name).to_owned()))
-                } else {
-                    if matches!(arg.kind(), "list_splat" | "dictionary_splat") {
-                        self.cutoff("argument-unpacking-unchecked");
-                        break;
-                    }
-                    if keywords {
-                        self.cutoff("positional-after-keyword");
-                    }
-                    (arg, None)
+    pub(super) fn call_arguments(&mut self, node: Node<'t>, env: &Environment) -> Arguments {
+        let mut result = Arguments { values: Vec::new(), names: Vec::new(), elements: Vec::new(), expanded: false, checked: true };
+        let Some(list) = node.child_by_field_name("arguments") else { return result; };
+        let mut arguments: Vec<_> = list.named_children(&mut list.walk()).filter(|node| node.kind() != "comment").collect();
+        arguments.sort_by_key(|node| matches!(node.kind(), "keyword_argument" | "dictionary_splat"));
+        for argument in arguments {
+            if self.solver.enabled && !self.normal { break; }
+            if argument.kind() == "dictionary_splat" || argument.kind() == "list_splat" && !self.solver.enabled {
+                self.cutoff("argument-unpacking-unchecked");
+                result.checked = false;
+                break;
+            }
+            let (value, name) = if argument.kind() == "keyword_argument" && self.solver.enabled {
+                let (Some(name), Some(value)) = (argument.child_by_field_name("name"), argument.child_by_field_name("value")) else {
+                    self.cutoff("malformed-keyword-argument"); result.checked = false; break;
                 };
-                values.push(self.expression(value, env));
-                names.push(name);
+                if !self.text(name).is_ascii() { self.cutoff("non-ascii-keyword-binding-unchecked"); }
+                (value, Some(self.text(name).to_owned()))
+            } else if argument.kind() == "list_splat" {
+                result.expanded = true;
+                let Some(value) = argument.named_child(0) else { result.checked = false; break; };
+                (value, None)
+            } else { (argument, None) };
+            let flow = self.expression(value, env);
+            if !self.normal { break; }
+            let element = self.list_element(value, flow, env);
+            if argument.kind() == "list_splat" {
+                let Some(values) = self.sequence_items(argument, &element, env) else { result.checked = false; break; };
+                result.names.extend(std::iter::repeat_n(None, values.len()));
+                result.elements.extend(values);
+            } else {
+                result.names.push(name);
+                result.elements.push(element);
+            }
+            if result.elements.len() > 64 {
+                self.cutoff("argument-expansion-budget"); result.checked = false; break;
             }
         }
-        (values, names)
+        result.values = result.elements.iter().map(|value| self.element_flow(value, env)).collect();
+        result
     }
 
     pub(super) fn bind_arguments(
