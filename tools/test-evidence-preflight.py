@@ -113,7 +113,19 @@ class Freshness(unittest.TestCase):
 
     def test_historical_catalog_records_are_not_current_selectors(self):
         self.assertTrue({'repository-flow', 'project-changes', 'rust-live-cohort',
-                         'saved-work-cost', 'current-answer-storage-cost'}.isdisjoint(preflight.CURRENT_CATALOG))
+                         'saved-work-cost'}.isdisjoint(preflight.CURRENT_CATALOG))
+
+    def test_current_storage_comparison_detects_changed_sdk_inputs(self):
+        self.assertIn('current-answer-storage-cost', preflight.CURRENT_CATALOG)
+        name = 'sdk/python/src/fr_ir/flow_completion.py'
+        self.save(name, 'CLASSES = ("ValueError",)\n')
+        selected = self.report(extra=(name,))
+        selected['selected_by'] = ['current-answer-storage-cost']
+        self.assertEqual(self.inspect(selected)['state'], 'current')
+        self.save(name, 'CLASSES = ("IndexError", "ValueError")\n')
+        row = self.inspect(selected)
+        self.assertEqual(row['state'], 'stale')
+        self.assertEqual(row['changed_sources'], [name])
 
     def test_report_reads_have_a_size_limit(self):
         path = self.root / 'oversized.json'

@@ -7,16 +7,16 @@ from .runtime import FrReport, FrRuntimeError
 
 _CONTRACT: dict[str, Any] = {
     'schema': 'fr-scalar-completion',
-    'finally': 'Capture values before cleanup; cleanup may replace exits; nest separately.',
-    'except': 'Ordered builtin handlers, optional local error binding, and deletion after the handler.',
+    'finally': 'Capture values before cleanup; nested cleanup may replace exits.',
+    'except': 'Ordered builtin handlers; local error names are deleted on exit.',
     'classes': ['IndexError', 'LookupError', 'ValueError', 'TypeError', 'Exception', 'BaseException'],
     'reraise': 'Lexically active known error.',
     'handler_nodes': 128,
     'local_call_raises': True,
     'block_limit': 512,
     'implicit_exceptions': False,
-    'integer_conversion': 'Base-ten conversion of known strings includes a possible ValueError.',
-    'list_errors': 'Known integer bounds raise IndexError; zero slice steps and mismatched extended slices raise ValueError. Exception paths retain list state at failure; other implicit exceptions remain unchecked.',
+    'integer_conversion': 'Known-string base-ten conversion may raise ValueError.',
+    'list_errors': 'Known bounds: IndexError; zero step or extended-slice length mismatch: ValueError. Retain earlier mutations.',
 }
 
 
