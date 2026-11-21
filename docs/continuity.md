@@ -44,10 +44,14 @@ cross-file cache invalidation and 12 new paired contract examples. Run the
 concatenation and deletion with 113 passing PR checks and complete deep validation.
 [PR #643](https://github.com/e6qu/fun-refactor/pull/643) retains the
 [allocator comparison](../tests/agent-eval/product-validation/memory/2026-11-21/README.md).
-Immediate purging did not provide a usable reduction: ARM macOS missed the 10% threshold,
+It merged after 112 passing checks. Immediate purging did not provide a usable reduction: ARM macOS missed the 10% threshold,
 and Linux's candidate exceeded the memory ceiling. Keep the setting out of product defaults.
 The original proof, imports, package command, memory metric and limits remain fixed.
 Further native work needs a different measured correction and all 24 complete rehearsals.
+The next analysis increment follows known list bounds and slice errors through helpers,
+handlers and cleanup. It preserves mutations before failure and separates normal from
+exceptional list states. Independent Python checks cover source changes and cached answers;
+18 paired contract examples expand the corpus to 545 programs and 1,090 cases.
 The full-product and live-comparison completion gates remain open.
 Its [protocol](../tests/agent-eval/product-validation/README.md) owns the new comparison and the 96-attempt ceiling.
 Validation projects stay unopened until the implementation and initial-round decision are frozen.

@@ -2,14 +2,15 @@ use super::*;
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-scalar-completion",
-        "finally":"Capture values before cleanup; cleanup may replace exits; nest separately.",
-        "except":"Ordered builtin handlers, optional local error binding, and deletion after the handler.",
-        "classes":["ValueError","TypeError","Exception","BaseException"],
+        "finally":"Capture values before cleanup; nested cleanup may replace exits.",
+        "except":"Ordered builtin handlers; delete local error names on exit.",
+        "classes":["IndexError","LookupError","ValueError","TypeError","Exception","BaseException"],
         "reraise":"Lexically active known error.",
         "handler_nodes":128,
         "local_call_raises":true,
         "block_limit":512,"implicit_exceptions":false,
-        "integer_conversion":"Base-ten conversion of known strings includes a possible ValueError; other implicit exceptions remain unchecked."})
+        "integer_conversion":"Known-string base-ten conversion may raise ValueError.",
+        "list_errors":"Known bounds: IndexError; zero step or extended-slice length mismatch: ValueError. Retain earlier mutations."})
 }
 
 pub(super) fn join_pending(into: &mut Environment, from: &Environment) -> bool {

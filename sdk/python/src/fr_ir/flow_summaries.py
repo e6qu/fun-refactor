@@ -270,7 +270,7 @@ class FunctionSummaries:
                     rank = current
                     optional |= not parameter.required
                 raised = item["exceptional_returns"]
-                if not isinstance(raised, dict) or set(raised) - {"unknown", "ValueError", "TypeError", "Exception", "BaseException"}:
+                if not isinstance(raised, dict) or set(raised) - {"unknown", "IndexError", "LookupError", "ValueError", "TypeError", "Exception", "BaseException"}:
                     raise FrRuntimeError("unsupported summary exception class")
                 functions.append(FunctionSummary(name, tuple(parameters), traces(item["returns"]),
                                                  tuple(RaisedException(kind, traces(flow)) for kind, flow in raised.items()), tuple(sinks),

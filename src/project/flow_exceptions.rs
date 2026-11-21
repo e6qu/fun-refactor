@@ -20,7 +20,7 @@ pub(super) fn join(into: &mut Raised, from: Raised) -> bool {
 fn known(kind: &str) -> bool {
     matches!(
         kind,
-        "ValueError" | "TypeError" | "Exception" | "BaseException"
+        "IndexError" | "LookupError" | "ValueError" | "TypeError" | "Exception" | "BaseException"
     )
 }
 
@@ -39,11 +39,42 @@ pub(in crate::project) fn valid(value: &Value) -> bool {
 
 fn matches(kind: &str, handler: &str) -> bool {
     kind == handler
+        || kind == "IndexError" && handler == "LookupError"
         || handler == "BaseException"
         || handler == "Exception" && kind != "BaseException"
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
+    pub(super) fn capture_raised_lists(&mut self, heap: lists::Lists) {
+        match &mut self.raised_lists {
+            Some(prior) => {
+                prior.join(&heap);
+            }
+            None => self.raised_lists = Some(heap),
+        }
+    }
+
+    pub(super) fn list_error(
+        &mut self,
+        node: Node<'t>,
+        env: &Environment,
+        kind: &str,
+        certain: bool,
+    ) {
+        if !self.solver.enabled {
+            self.cutoff("list-exception-control-unchecked");
+        }
+        self.may_raise = true;
+        self.normal &= !certain;
+        // Builtin list error text does not contain the stored elements.
+        self.exceptional_returns.entry(kind.into()).or_default();
+        self.capture_raised_lists(env.lists.borrow().clone());
+        self.events
+            .push(json!({"kind":"list-error", "exception":kind,
+            "certain":certain, "occurrence":self.occurrence(node, "list-error"),
+            "control_node":self.current_block}));
+    }
+
     pub(super) fn exception_alias(&self, clause: Node<'t>) -> Option<Node<'t>> {
         let alias = clause.child_by_field_name("alias").or_else(|| {
             clause
@@ -219,6 +250,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return;
         }
         self.may_raise = true;
+        self.capture_raised_lists(env.lists.borrow().clone());
         let raised = self.extend(flow.clone(), node, "integer-conversion-error");
         merge(
             self.exceptional_returns

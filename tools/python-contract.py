@@ -73,6 +73,7 @@ def bindings():
                  'tests/agent-eval/python-finally/cases.json', 'docs/check-python-cleanup.md',
                  'sdk/python/tests/test_exception_handlers.py', 'tests/agent-eval/python-handlers/cases.json',
                  'sdk/python/tests/test_graph_analysis.py', 'sdk/python/tests/test_list_sequences.py',
+                 'sdk/python/tests/test_list_exceptions.py',
                  'sdk/python/tests/test_standard_library.py',
                  'tests/agent-eval/python-handlers/selection.json', 'docs/catch-python-errors.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
@@ -226,7 +227,7 @@ def audit_case(row, case):
     assumptions = [
         'Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
-        'Supported raises and known-string integer conversion failures follow builtin handlers and cleanup. Local caught-error names preserve origins. Other implicit exceptions, custom classes and resource effects remain unchecked.',
+        'Error paths follow inputs.completion_control; caught-error names preserve origins. Other implicit errors, custom classes and resource effects remain unchecked.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
     if case['standard_library']:
         assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check.')
@@ -434,7 +435,7 @@ def audit(value):
 def save(value, path):
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+        path.write_text(json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n')
 
 
 @contextmanager

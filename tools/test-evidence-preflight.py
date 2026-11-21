@@ -85,6 +85,21 @@ class Freshness(unittest.TestCase):
             self.assertEqual(row['state'], 'current')
         self.assertEqual(len(digests), 2)
 
+    def test_storage_reports_bind_exact_python_release_bytes(self):
+        name = 'sdk/python/src/fr_ir/_version.py'
+        path = self.save(name, 'VERSION = "1.0.0"  # x-release-please-version\n')
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+        selected = []
+        for schema in ('fr-saved-work-cost', 'fr-saved-answer-improvement'):
+            report = schema + '.json'
+            self.save(report, json.dumps({'schema': schema, 'source_bindings': {name: fingerprint}}))
+            selected.append({'path': report, 'selected_by': [schema]})
+            self.assertEqual(self.inspect(selected[-1])['state'], 'current')
+        path.write_text('VERSION = "1.0.1"  # x-release-please-version\n')
+        for row in selected:
+            self.assertEqual(self.inspect(row)['state'], 'stale')
+            self.assertEqual(self.inspect(row)['changed_sources'], [name])
+
     def test_digest_tampering_and_missing_reports_are_errors(self):
         selected = self.report()
         self.save('result.json', '{}')
@@ -113,7 +128,19 @@ class Freshness(unittest.TestCase):
 
     def test_historical_catalog_records_are_not_current_selectors(self):
         self.assertTrue({'repository-flow', 'project-changes', 'rust-live-cohort',
-                         'saved-work-cost', 'current-answer-storage-cost'}.isdisjoint(preflight.CURRENT_CATALOG))
+                         'saved-work-cost'}.isdisjoint(preflight.CURRENT_CATALOG))
+
+    def test_current_storage_comparison_detects_changed_sdk_inputs(self):
+        self.assertIn('current-answer-storage-cost', preflight.CURRENT_CATALOG)
+        name = 'sdk/python/src/fr_ir/flow_completion.py'
+        self.save(name, 'CLASSES = ("ValueError",)\n')
+        selected = self.report(extra=(name,))
+        selected['selected_by'] = ['current-answer-storage-cost']
+        self.assertEqual(self.inspect(selected)['state'], 'current')
+        self.save(name, 'CLASSES = ("IndexError", "ValueError")\n')
+        row = self.inspect(selected)
+        self.assertEqual(row['state'], 'stale')
+        self.assertEqual(row['changed_sources'], [name])
 
     def test_report_reads_have_a_size_limit(self):
         path = self.root / 'oversized.json'

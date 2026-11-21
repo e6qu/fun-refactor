@@ -25,7 +25,7 @@ spec.loader.exec_module(roadmap)
 CURRENT_CATALOG = (
     'host-recovery', 'structural', 'model-relations', 'python-contract',
     'original-package-questions', 'current-project-changes', 'current-saved-work-cost',
-    'checked-translation', 'python-effects', 'python-text-flow',
+    'checked-translation', 'python-effects', 'python-text-flow', 'current-answer-storage-cost',
 )
 PYTHON_SELECTORS = (
     'compiler-profile', 'python-contract', 'workflow-route-context',

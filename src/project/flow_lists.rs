@@ -61,8 +61,7 @@ struct IndexedList {
 }
 
 fn through_alias(mut current: Flow, prior: &Flow) -> Flow {
-    // Keep the alias route only for origins still present in the object. An old
-    // binding snapshot must never restore values removed by a later mutation.
+    // Keep alias routes only for origins still in the object after mutation.
     for (origin, trace) in &mut current {
         if let Some(previous) = prior.get(origin) {
             for point in &previous.occurrences {
@@ -395,10 +394,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return None;
         }
         let step = fields[2].unwrap_or(1);
-        if step == 0 {
-            self.cutoff("list-slice-step-zero");
-            return None;
-        }
         Some(Slice {
             start: fields[0],
             stop: fields[1],
@@ -420,6 +415,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let refs = self.list_references(receiver, env);
         let slice = self.slice_spec(slice, env)?;
         let list = self.exact_list(&refs, env)?;
+        if slice.step == 0 {
+            self.list_error(node, env, "ValueError", true);
+            return None;
+        }
         Some((refs.ids.first()?.clone(), list, slice, flow))
     }
 
@@ -452,7 +451,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let positions = slice.positions(list.items.len());
         let items = replacement.items;
         if slice.step != 1 && positions.len() != items.len() {
-            self.cutoff("list-slice-length-mismatch");
+            self.list_error(node, env, "ValueError", true);
             return;
         }
         if list.items.len() - positions.len() + items.len() > ITEMS {
@@ -492,6 +491,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         env.lists.borrow_mut().objects.insert(id, list);
                     }
                 } else if let Some(indexed) = self.indexed_list(target, env) {
+                    if !self.normal {
+                        return;
+                    }
                     if indexed.slots.len() != 1
                         || indexed.slots.values().any(|slots| slots.len() != 1)
                     {
@@ -674,6 +676,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             });
         }
         let index = node.child_by_field_name("subscript")?;
+        self.expression(index, env);
+        if !self.normal {
+            return Some(IndexedList {
+                slots: BTreeMap::new(),
+                receiver,
+            });
+        }
         let Some(index_value) = integer_index(index, self.source) else {
             self.cutoff("list-index-unchecked");
             return Some(IndexedList {
@@ -681,12 +690,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 receiver,
             });
         };
-        self.expression(index, env);
         let mut selected = BTreeMap::new();
+        let mut invalid = false;
+        let mut unknown = references.scalar;
         for id in ids {
             let heap = env.lists.borrow();
             let Some(list) = heap.objects.get(&id) else {
                 self.cutoff("list-index-may-raise");
+                unknown = true;
                 continue;
             };
             let mut slots = BTreeSet::new();
@@ -694,10 +705,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 if let Some(slot) = list_slot(index_value, length) {
                     slots.insert(slot);
                 } else {
-                    self.cutoff("list-index-may-raise");
+                    invalid = true;
                 }
             }
-            selected.insert(id, slots);
+            if !slots.is_empty() {
+                selected.insert(id, slots);
+            }
+        }
+        if invalid {
+            self.list_error(node, env, "IndexError", selected.is_empty() && !unknown);
         }
         Some(IndexedList {
             slots: selected,
@@ -710,6 +726,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return Some(self.list_slice(node, slice, env));
         }
         let selected = self.indexed_list(node, env)?;
+        if !self.normal {
+            return Some(Flow::new());
+        }
         let mut value = None::<Element>;
         {
             let heap = env.lists.borrow();
@@ -758,6 +777,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return true;
         };
         let selected = indexed.slots;
+        if !self.normal {
+            return true;
+        }
         let strong = selected.len() == 1 && selected.values().all(|slots| slots.len() == 1);
         let mut heap = env.lists.borrow_mut();
         for (id, slots) in selected {
@@ -878,7 +900,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             result = Some(list.items.remove(slot));
                             list.minimum -= 1;
                         } else {
-                            self.cutoff("list-index-may-raise");
+                            drop(heap);
+                            self.list_error(node, env, "IndexError", !references.scalar);
+                            return Some(Flow::new());
                         }
                     }
                     "insert" => {
@@ -1017,6 +1041,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.source,
             std::mem::take(&mut self.returned_lists),
             std::mem::take(&mut self.return_references),
+            self.returned_raised_lists.take(),
         );
         self.list_sites
             .push(format!("{}:{}", self.file.display(), call.start_byte()));
@@ -1024,12 +1049,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let result = self.invoke_with_lists(name, function, arguments, heap);
         self.list_sites.pop();
         let references = self.return_references.clone();
-        env.lists.borrow_mut().objects = self.returned_lists.objects.clone();
+        if let Some(raised) = self.returned_raised_lists.clone() {
+            let mut heap = env.lists.borrow().clone();
+            heap.objects = raised.objects;
+            self.capture_raised_lists(heap.clone());
+            if !self.normal {
+                env.lists.borrow_mut().objects = heap.objects;
+            }
+        }
+        if self.normal {
+            env.lists.borrow_mut().objects = self.returned_lists.objects.clone();
+        }
         (
             self.file,
             self.source,
             self.returned_lists,
             self.return_references,
+            self.returned_raised_lists,
         ) = saved;
         self.record_list_references(call, env, references);
         Some(self.extend(result, call, "list-helper-result"))
