@@ -12,35 +12,15 @@
   ],
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-17-distinct-answers-44097550181",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-11-21-distinct-answers-44914887277",
       "changed_sources": [
-        "kernels/FrKernels/PureKernel.lean",
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/flow_completion.py",
-        "sdk/python/src/fr_ir/flow_standard_library.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "src/analysis/types.rs",
-        "src/cli.rs",
-        "src/index.rs",
-        "src/project/dataflow.rs",
-        "src/project/flow_assignments.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_completion.rs",
-        "src/project/flow_exceptions.rs",
-        "src/project/flow_expressions.rs",
-        "src/project/flow_lists.rs",
-        "src/project/flow_standard_library.rs",
-        "src/project/flow_summaries.rs",
-        "src/project/structural_change.rs",
-        "src/refactor/signature.rs",
-        "src/spec.rs",
-        "src/wasm.rs"
+        "sdk/python/src/fr_ir/_version.py"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-11-17-distinct-answers-44097550181/result.json",
+      "path": "tests/agent-eval/results/2026-11-21-distinct-answers-44914887277/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
