@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location('retained_answers', Path(__file__).with_name('retain-saved-answer-comparison.py'))
 retained = importlib.util.module_from_spec(spec)
@@ -40,6 +41,50 @@ class CurrentSelection(unittest.TestCase):
                     retained.previous_record(root, catalog)
             with self.assertRaises(ValueError):
                 retained.previous_record(root, {'evidence': []})
+
+
+class HistoricalProfile(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.source = self.root / retained.BEFORE_PUBLICATION
+        self.source.mkdir(parents=True)
+        for name in ('publication.json', 'profile-before.zip', 'profile-before.json'):
+            self.source.joinpath(name).write_bytes((retained.ROOT / retained.BEFORE_PUBLICATION / name).read_bytes())
+        self.publication = self.root / 'new-publication'
+        self.publication.mkdir()
+        patcher = mock.patch.object(retained, 'ROOT', self.root)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_expired_artifact_uses_the_authenticated_retained_bytes(self):
+        with mock.patch.object(retained, 'authenticate') as authenticate, \
+                mock.patch.object(retained.cost, 'artifact_bytes', side_effect=AssertionError('expired artifact')):
+            record = retained.retain_before_profile(self.publication)
+        authenticate.assert_called_once_with(retained.BEFORE_RUN, retained.BEFORE_SOURCE)
+        self.assertEqual(record['retained_from']['sha256'], retained.BEFORE_PUBLICATION_SHA256)
+        for name in ('profile-before.zip', 'profile-before.json'):
+            self.assertEqual((self.publication / name).read_bytes(), (self.source / name).read_bytes())
+
+    def test_changed_publication_archive_or_profile_fails_before_writing(self):
+        for name, message in (('publication.json', 'retained baseline publication changed'),
+                              ('profile-before.zip', 'retained profile archive changed'),
+                              ('profile-before.json', 'retained profile changed')):
+            with self.subTest(name=name), mock.patch.object(retained, 'authenticate'):
+                path = self.source / name
+                original = path.read_bytes()
+                path.write_bytes(original + b' ')
+                with self.assertRaisesRegex(ValueError, message):
+                    retained.retain_before_profile(self.publication)
+                self.assertEqual(list(self.publication.iterdir()), [])
+                path.write_bytes(original)
+
+    def test_failed_original_run_authentication_prevents_publication(self):
+        with mock.patch.object(retained, 'authenticate', side_effect=ValueError('original run failed')):
+            with self.assertRaisesRegex(ValueError, 'original run failed'):
+                retained.retain_before_profile(self.publication)
+        self.assertEqual(list(self.publication.iterdir()), [])
 
 
 if __name__ == '__main__':

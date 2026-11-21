@@ -15,6 +15,8 @@ spec.loader.exec_module(comparison)
 cost = comparison.cost
 BEFORE_RUN = 39612376706
 BEFORE_SOURCE = '3e4649c2286b801cf2ab0f9cd65d51a8cfd0c3f8'
+BEFORE_PUBLICATION = 'tests/agent-eval/distinct-answer-hashing-lifetime'
+BEFORE_PUBLICATION_SHA256 = 'dbb9dd2260932aea06b489673068125eb1afec26ad3e41e55a9bca83d14ec392'
 
 
 def authenticate(run_id, expected_head):
@@ -32,16 +34,43 @@ def retain_profile(run_id, expected_head, name, publication):
     rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
     artifact, = [row for row in rows if row['name'] == 'saved-answer-profile']
     data = cost.artifact_bytes(artifact)
+    profile = read_profile(data)
+    (publication / (name + '.zip')).write_bytes(data)
+    (publication / (name + '.json')).write_bytes(profile)
+    return {'run': run, 'jobs': jobs, 'artifact': artifact,
+            'profile_sha256': hashlib.sha256(profile).hexdigest()}
+
+
+def read_profile(data):
+    cost.require(len(data) <= 1048576, 'diagnostic archive exceeds its limit')
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         entry, = archive.infolist()
         cost.require(entry.filename == 'saved-answer-profile.json' and entry.file_size <= 1048576,
                      'unexpected diagnostic profile')
         profile = archive.read(entry)
         cost.require(set(json.loads(profile)) == {'glob', 'boltons', 'jmespath'}, 'missing profiled answers')
-    (publication / (name + '.zip')).write_bytes(data)
-    (publication / (name + '.json')).write_bytes(profile)
-    return {'run': run, 'jobs': jobs, 'artifact': artifact,
-            'profile_sha256': hashlib.sha256(profile).hexdigest()}
+    return profile
+
+
+def retain_before_profile(publication):
+    source = ROOT / BEFORE_PUBLICATION
+    receipt = source / 'publication.json'
+    cost.require(cost.file_digest(receipt) == BEFORE_PUBLICATION_SHA256,
+                 'retained baseline publication changed')
+    before = json.loads(receipt.read_text())['before']
+    authenticate(BEFORE_RUN, BEFORE_SOURCE)
+    cost.require(before['run']['id'] == BEFORE_RUN and before['run']['head_sha'] == BEFORE_SOURCE,
+                 'retained profile source changed')
+    data = (source / 'profile-before.zip').read_bytes()
+    cost.require('sha256:' + hashlib.sha256(data).hexdigest() == before['artifact']['digest'],
+                 'retained profile archive changed')
+    profile = read_profile(data)
+    cost.require(hashlib.sha256(profile).hexdigest() == before['profile_sha256']
+                 and profile == (source / 'profile-before.json').read_bytes(), 'retained profile changed')
+    (publication / 'profile-before.zip').write_bytes(data)
+    (publication / 'profile-before.json').write_bytes(profile)
+    return {**before, 'retained_from': {'path': BEFORE_PUBLICATION + '/publication.json',
+                                      'sha256': BEFORE_PUBLICATION_SHA256}}
 
 
 def markdown(report, publication):
@@ -205,7 +234,7 @@ def main():
     run, jobs = authenticate(pointer['run_id'], report['source_commit'])
     names = {job['name'] for job in jobs if job['conclusion'] == 'success'}
     cost.require({'compare', 'profile', 'Original saved answer comparison'} <= names, 'incomplete comparison gate')
-    before = retain_profile(BEFORE_RUN, BEFORE_SOURCE, 'profile-before', publication)
+    before = retain_before_profile(publication)
     after = retain_profile(pointer['run_id'], report['source_commit'], 'profile-after', publication)
     subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', BEFORE_SOURCE], check=True)
     subprocess.run(['git', 'diff', '--exit-code', comparison.BASELINE,
