@@ -91,7 +91,10 @@ Full CI and all four native platforms, WASM and SDK consumers passed.
 Complete-bundle verification landed in [#631](https://github.com/e6qu/fun-refactor/pull/631) with 109 successful checks.
 It binds the download set, consumer receipts and source/checker revisions before publication.
 The Python contract qualification checks original and renamed/moved examples against reviewed acceptance counts.
-The current corpus has 527 examples and 1,054 cases, including 20 new paired list-sequence examples.
+The list-error increment follows known bounds and slice failures through handlers, helpers and cleanup,
+preserving mutations before failure and separating successful from exceptional list states.
+Its runtime checks and 18 paired examples cover aliases, error ordering and imported-helper cache invalidation.
+The current corpus has 545 examples and 1,090 cases.
 The 366 incomplete cases and 18 refusals remain unchanged. Broader language coverage still needs separate evidence.
 PR 5 and the original M3 timing gate remain open.
 

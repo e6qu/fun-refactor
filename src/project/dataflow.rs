@@ -898,7 +898,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if block.operation == Operation::ExceptionalExit {
                 may_raise = true;
                 match &mut returned_raised_lists {
-                    Some(heap) => { heap.join(&state.lists.borrow()); }
+                    Some(heap) => {
+                        heap.join(&state.lists.borrow());
+                    }
                     None => returned_raised_lists = Some(state.lists.borrow().clone()),
                 }
                 if let Some(value) = state.pending_raises.get(&0) {
@@ -982,7 +984,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let mut successors = Vec::new();
             if self.may_raise {
                 let mut raised_state = before;
-                *raised_state.lists.borrow_mut() = self.raised_lists.take()
+                *raised_state.lists.borrow_mut() = self
+                    .raised_lists
+                    .take()
                     .unwrap_or_else(|| state.lists.borrow().clone());
                 raised_state.pending_raises.insert(
                     block.raised.slot,
@@ -2169,7 +2173,7 @@ impl Project<'_> {
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
             "runtime_effects":effect_contract(),
             "assumptions": ["Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.", "branch feasibility unchecked",
-                "external rules are caller-supplied contracts.", "Supported raises and known-string integer conversion failures follow builtin handlers and cleanup. Local caught-error names preserve origins. Other implicit exceptions, custom classes and resource effects remain unchecked.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
+                "external rules are caller-supplied contracts.", "Supported raises, known list bounds and slice failures, and known-string integer conversion failures follow builtin handlers and cleanup. List mutations before failure remain visible. Local caught-error names preserve origins. Other implicit exceptions, custom classes and resource effects remain unchecked.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,
             "execution":{"kind":"analyzed","analysis_steps":allowance-analyzer.remaining,

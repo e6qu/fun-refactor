@@ -197,6 +197,48 @@ def test_nested_shared_list_failure_preserves_inner_alias_mutation(tmp_path):
     assert not report['witnesses']
 
 
+@pytest.mark.parametrize('operation', ['values[relay(values)]', 'values[relay(values)] = 0',
+                                      'del values[relay(values)]', 'values.pop(relay(values))',
+                                      'values[relay(values):]', 'values[::relay(values)] = []'])
+def test_failure_while_evaluating_the_index_stops_the_outer_operation(tmp_path, operation):
+    prelude = 'def relay(items):\n    items[0] = 0\n    items.pop(9)\n'
+    source = program(f'values = [read()]\ntry:\n    {operation}\n'
+                     'except IndexError:\n    send(values[0])', prelude)
+    assert execute(source, 'Customer') == ['0']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert not report['witnesses']
+
+
+def test_failed_replacement_does_not_evaluate_the_assignment_target(tmp_path):
+    prelude = ('def relay(items):\n    items[0] = 0\n    items.pop(9)\n'
+               'def target(items, value):\n    items[0] = value\n    return items\n')
+    source = program('values = [read()]\ntry:\n    target(values, read())[0] = relay(values)\n'
+                     'except IndexError:\n    send(values[0])', prelude)
+    assert execute(source, 'Customer') == ['0']
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert not report['witnesses']
+
+
+def test_nonmatching_handler_leaves_index_error_uncaught(tmp_path):
+    source = program('values = []\ntry:\n    values.pop()\nexcept ValueError:\n    send(read())')
+    with pytest.raises(subprocess.CalledProcessError) as failure:
+        execute(source, 'Customer')
+    assert 'IndexError' in failure.value.stderr
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert not report['witnesses'] and report['completion']['may_raise']
+
+
+def test_shadowed_index_error_is_not_treated_as_a_builtin_handler(tmp_path):
+    source = program('IndexError = read()\nvalues = []\ntry:\n    values.pop()\n'
+                     'except IndexError:\n    send(read())')
+    report = analyze(tmp_path, source)
+    assert not report['complete']
+    assert 'exception-handler-type-unchecked' in report['cutoffs']
+
+
 @pytest.mark.parametrize('module', ['helpers', 'moved_helpers'])
 def test_imported_error_mutations_invalidate_saved_answers(tmp_path, module):
     from fr_ir.runtime import FrClient

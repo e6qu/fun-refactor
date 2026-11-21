@@ -47,12 +47,20 @@ fn matches(kind: &str, handler: &str) -> bool {
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     pub(super) fn capture_raised_lists(&mut self, heap: lists::Lists) {
         match &mut self.raised_lists {
-            Some(prior) => { prior.join(&heap); }
+            Some(prior) => {
+                prior.join(&heap);
+            }
             None => self.raised_lists = Some(heap),
         }
     }
 
-    pub(super) fn list_error(&mut self, node: Node<'t>, env: &Environment, kind: &str, certain: bool) {
+    pub(super) fn list_error(
+        &mut self,
+        node: Node<'t>,
+        env: &Environment,
+        kind: &str,
+        certain: bool,
+    ) {
         if !self.solver.enabled {
             self.cutoff("list-exception-control-unchecked");
         }
@@ -62,7 +70,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         // element values. Do not attach the list's contents to the error text.
         self.exceptional_returns.entry(kind.into()).or_default();
         self.capture_raised_lists(env.lists.borrow().clone());
-        self.events.push(json!({"kind":"list-error", "exception":kind,
+        self.events
+            .push(json!({"kind":"list-error", "exception":kind,
             "certain":certain, "occurrence":self.occurrence(node, "list-error"),
             "control_node":self.current_block}));
     }

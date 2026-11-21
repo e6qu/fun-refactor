@@ -677,6 +677,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             });
         }
         let index = node.child_by_field_name("subscript")?;
+        self.expression(index, env);
+        if !self.normal {
+            return Some(IndexedList {
+                slots: BTreeMap::new(),
+                receiver,
+            });
+        }
         let Some(index_value) = integer_index(index, self.source) else {
             self.cutoff("list-index-unchecked");
             return Some(IndexedList {
@@ -684,7 +691,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 receiver,
             });
         };
-        self.expression(index, env);
         let mut selected = BTreeMap::new();
         let mut invalid = false;
         let mut unknown = references.scalar;

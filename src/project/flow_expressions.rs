@@ -145,7 +145,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     let (value, alternative) = self.expression_value(children[index], env);
                     if self.normal {
                         match &mut joined_heap {
-                            Some(heap) => { heap.join(&env.lists.borrow()); }
+                            Some(heap) => {
+                                heap.join(&env.lists.borrow());
+                            }
                             None => joined_heap = Some(env.lists.borrow().clone()),
                         }
                         merge(&mut result, value);
