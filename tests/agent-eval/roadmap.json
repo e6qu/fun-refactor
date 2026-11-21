@@ -78,12 +78,12 @@
       "sha256": "9e81b27af4919378ef1a801c3df893efa8ea18382c84c1698ff1161f6f89c085"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-21-list-errors-compact-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-21-sequences-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-21-list-errors-compact-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-21-sequences-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "d701e518be2f31d988b5bad7fccbf3ca2aff9d92b42c9e85a777cc4e123ac60e"
+      "sha256": "be340bded9d487ca96cbb23bddae10200baebdfbf00d248c7e97ee7e3fb0599a"
     },
     {
       "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-11-19-shared-lists-model-comparisons",
