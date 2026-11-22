@@ -104,9 +104,10 @@ PR #647 merged with passing CI; post-merge release and deep validation passed. B
 dictionary flow and variadic calls. It includes coordinated imported callers, evaluation-order
 checks, shared collection identities, errors and cleanup, checked delivery and replay.
 Focused refactoring and graph checks passed, including 1,322 Python graph/flow tests.
+Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
 plus all 2,455 SDK tests. It retains 352 incomplete cases and 18 refusals.
-Current evidence refresh and final PR gates are still in progress.
+Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |
