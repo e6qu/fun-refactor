@@ -31,9 +31,7 @@ fn refuse(message: &str) -> anyhow::Error {
     .into()
 }
 
-// The index compares source spellings; Python binds identifiers after NFKC
-// normalization. Check every indexed Python file, since normalization can hide
-// callers from the target's reference list. String data and comments are not names.
+// Normalization can hide callers from the index's spelling-based lookup.
 pub(super) fn checked_identifier_spellings(index: &Index) -> Result<()> {
     let mut parsers = Parsers::new();
     for (path, info) in index.files() {
@@ -51,7 +49,7 @@ pub(super) fn checked_identifier_spellings(index: &Index) -> Result<()> {
                 && !unicode_normalization::is_nfkc(&source[node.byte_range()])
             {
                 return Err(refuse(&format!(
-                    "Python identifier normalization is not checked at {}; use normalized identifier spellings before changing a signature",
+                    "Python identifier normalization prevents a checked signature change at {}; use normalized identifier spellings first",
                     location(path, node.start_byte())
                 )));
             }

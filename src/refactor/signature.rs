@@ -323,8 +323,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
     let mut edits = EditSet::new();
     let mut notes = Vec::new();
-    // The name of the parameter a removal takes away, read off the declaration
-    // and used at every call site that names its arguments.
+    // Match the removed parameter to named arguments at every caller.
     let mut removing: Option<String> = None;
     let mut python_signature: Option<python::Signature> = None;
     for member in &members {
