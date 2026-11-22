@@ -33,7 +33,7 @@ fn refuse(message: &str) -> anyhow::Error {
 
 // Normalization can hide callers from the index's spelling-based lookup.
 pub(super) fn checked_identifier_spellings(index: &Index) -> Result<()> {
-    let mut parsers = Parsers::new();
+    let parsers = Parsers::new();
     for (path, info) in index.files() {
         if info.language != Language::Python {
             continue;
@@ -115,9 +115,10 @@ impl Signature {
             };
             let name = parameter_name(text, Language::Python)
                 .ok_or_else(|| refuse("parameter binding is not established"))?;
-            if !descendants(node).into_iter().any(|child| {
-                child.kind() == "identifier" && source[child.byte_range()] == name
-            }) {
+            if !descendants(node)
+                .into_iter()
+                .any(|child| child.kind() == "identifier" && source[child.byte_range()] == name)
+            {
                 return Err(refuse("parameter binding is not established"));
             }
             parameters.push(Parameter {

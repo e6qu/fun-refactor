@@ -721,16 +721,40 @@ fn python_receiver_field_writes_do_not_block_bound_method_moves() {
 #[test]
 fn python_normalized_unicode_parameters_preserve_execution() {
     for (parameters, body, call, change) in [
-        ("café, unused", "return café", "adjust(café=4, unused=0)", Change::Remove(1)),
-        ("café, crème", "return café - crème", "adjust(café=4, crème=1)", Change::Move { from: 0, to: 1 }),
-        ("café, crème", "return café - crème", "adjust(4, 1)", Change::Move { from: 0, to: 1 }),
-        ("unused", "return {'K': 4}['K']", "adjust(0)", Change::Remove(0)),
+        (
+            "café, unused",
+            "return café",
+            "adjust(café=4, unused=0)",
+            Change::Remove(1),
+        ),
+        (
+            "café, crème",
+            "return café - crème",
+            "adjust(café=4, crème=1)",
+            Change::Move { from: 0, to: 1 },
+        ),
+        (
+            "café, crème",
+            "return café - crème",
+            "adjust(4, 1)",
+            Change::Move { from: 0, to: 1 },
+        ),
+        (
+            "unused",
+            "return {'K': 4}['K']",
+            "adjust(0)",
+            Change::Remove(0),
+        ),
     ] {
         let source = format!("# K is string data below, not an identifier\ndef adjust({parameters}):\n    {body}\nprint({call})\n");
         let (dir, index) = workspace("subject.py", &source);
         let plan = changed(&index, change).unwrap();
         let after = apply(dir.path(), "subject.py", &plan.edits);
-        assert_eq!(output("python3", &source), output("python3", &after), "{after}");
+        assert_eq!(
+            output("python3", &source),
+            output("python3", &after),
+            "{after}"
+        );
     }
 }
 
@@ -744,7 +768,10 @@ fn python_normalized_keyword_and_body_aliases_refuse_without_writes() {
         let (dir, index) = workspace("subject.py", source);
         let error = changed(&index, Change::Remove(0)).unwrap_err().to_string();
         assert!(error.contains("identifier normalization"), "{error}");
-        assert_eq!(fs::read_to_string(dir.path().join("subject.py")).unwrap(), source);
+        assert_eq!(
+            fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+            source
+        );
     }
 }
 
@@ -757,8 +784,16 @@ fn python_normalization_cannot_hide_callers_in_another_file() {
     fs::write(dir.path().join("run.py"), caller).unwrap();
     let index = Index::build(dir.path(), &ScanOptions::default()).unwrap();
     let id = index.find_symbols("K", None)[0].id;
-    let error = signature::change(&index, id, Change::Remove(0)).unwrap_err().to_string();
+    let error = signature::change(&index, id, Change::Remove(0))
+        .unwrap_err()
+        .to_string();
     assert!(error.contains("identifier normalization"), "{error}");
-    assert_eq!(fs::read_to_string(dir.path().join("subject.py")).unwrap(), definition);
-    assert_eq!(fs::read_to_string(dir.path().join("run.py")).unwrap(), caller);
+    assert_eq!(
+        fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+        definition
+    );
+    assert_eq!(
+        fs::read_to_string(dir.path().join("run.py")).unwrap(),
+        caller
+    );
 }
