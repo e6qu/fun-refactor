@@ -176,7 +176,7 @@ export const CATALOG = [
     files: [
       { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n" },
     ],
-    output: "Error: moving parameter 0 to position 2 would put a parameter with a default before one without, which python does not allow. Give the other parameter a default first, or remove this one's.",
+    output: "Error: moving this parameter would put a default before one without a default",
   },
   {
     id: "extract-variable-everywhere",
