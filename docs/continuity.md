@@ -14,7 +14,7 @@ Python signature refactoring, dictionary flow and variadic calls, with imported 
 independent runtime checks, safe refusal, checked delivery and replay. Focused refactoring
 and graph checks passed. Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs, 1,170 paired cases
-and all 2,455 SDK tests, retaining 352 incomplete cases and 18 refusals.
+and 2,455 selected SDK checks, retaining 352 incomplete cases and 18 refusals.
 Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including

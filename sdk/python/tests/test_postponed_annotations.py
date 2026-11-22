@@ -207,12 +207,21 @@ def test_symlink_candidates_cannot_authorize_a_standard_future_directive(tmp_pat
     assert next(item for item in lookup.candidates if item.path == "__future__.py").status == "symlink"
 
 
-def test_referenced_typed_variadics_still_exceed_the_fixed_slot_model(tmp_path):
-    client, rules = install(tmp_path, FUTURE + "def relay(value: Missing, *unused: Missing):\n    return unused\n")
+@pytest.mark.parametrize("signature,body,arguments,expected,reaches", [
+    ("*values: Missing", "return values[0]", "source()", 17, True),
+    ("value: Missing, *values: Missing", "return values", "source()", [], False),
+    ("**options: Missing", "return options['selected']", "selected=source()", 17, True),
+    ("value: Missing, **options: Missing", "return options", "source()", {}, False),
+])
+def test_referenced_typed_variadics_preserve_python_flow(
+        tmp_path, signature, body, arguments, expected, reaches):
+    client, rules = install(tmp_path, FUTURE + "def relay(" + signature + "):\n    " + body + "\n", arguments)
     result = analyze(client, rules, "entry", imports=True)
-    assert not result.report.at("/complete")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert bool(result.witnesses) is reaches
     assert not result.initialization.sites
-    assert "unsupported-parameter-contract:helpers.py::relay" in result.report.at("/cutoffs")
+    assert observe(tmp_path) == {"result": expected, "raised": None,
+                                "events": [["source", 17], ["sink", expected]]}
 
 
 def test_future_feature_binding_cannot_be_declared_an_external_source(tmp_path):
