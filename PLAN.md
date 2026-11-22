@@ -99,7 +99,11 @@ It closes the existing nested-module-binding and literal-expansion corpus gaps.
 Python qualification passed 565 examples and 1,130 cases, retaining 362 incomplete cases
 and 18 refusals. The 2,368-test SDK suite, focused behavior checks, package qualification
 and Lean checks passed. Current evidence has been refreshed and independently audited.
-Final hosted CI is required before marking the PR ready. Broader language coverage needs separate evidence.
+PR #647 merged with passing CI; post-merge release and deep validation passed. Broader language coverage needs separate evidence.
+[PR #649](https://github.com/e6qu/fun-refactor/pull/649) combines Python signature refactoring,
+dictionary flow and variadic calls. It includes coordinated imported callers, evaluation-order
+checks, shared collection identities, errors and cleanup, checked delivery and replay.
+Hosted validation and current evidence refresh are in progress; the PR remains a draft.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |

@@ -95,3 +95,88 @@ def test_keyword_merge_errors_preserve_evaluation_order(tmp_path, call):
 def test_unknown_mapping_protocols_remain_incomplete(tmp_path, body):
     report = analyze(tmp_path, program(body))
     assert not report['complete'] and report['cutoffs']
+
+
+@pytest.mark.parametrize('helper', [
+    'def relay(value):\n    return dict(token=value)\n',
+    'def relay(value):\n    table = {"token": value}\n    try:\n        return table\n    finally:\n        table["token"] = 0\n',
+])
+def test_returned_mapping_factory_and_cleanup(tmp_path, helper):
+    source = program('table = relay(read())\nsend(table["token"])', helper)
+    expected = execute(source, 'Customer')
+    report = analyze(tmp_path, source)
+    assert report['complete'], report['cutoffs']
+    assert bool(report['witnesses']) is ('Customer' in expected)
+
+
+@pytest.mark.parametrize('method', ['get', 'pop', 'setdefault'])
+def test_mapping_results_preserve_noniterable_facts(tmp_path, method):
+    source = program(f'table = {{"token": 0}}\ntry:\n    first, = table.{method}("token")\nexcept TypeError:\n    send(read())')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'] and report['witnesses'], report['cutoffs']
+
+
+@pytest.mark.parametrize('count,complete', [(64, True), (65, False)])
+@pytest.mark.parametrize('form', ['literal', 'constructor', 'variadic'])
+def test_mapping_and_variadic_item_limits(tmp_path, count, complete, form):
+    pairs = [f'"k{i}": 0' for i in range(count - 1)] + ['"token": read()']
+    expression = '{' + ', '.join(pairs) + '}'
+    helper = ''
+    if form == 'constructor':
+        expression = 'dict(' + ', '.join(f'k{i}=0' for i in range(count - 1)) + ', token=read())'
+    elif form == 'variadic':
+        expression = 'relay(**' + expression + ')'
+        helper = 'def relay(**options):\n    return options\n'
+    source = program(f'table = {expression}\nsend(table["token"])', helper)
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'] is complete, report['cutoffs']
+    if complete:
+        assert report['witnesses']
+    else:
+        assert report['cutoffs']
+
+
+@pytest.mark.parametrize("module", ["helpers", "moved_helpers"])
+def test_imported_variadic_mapping_edits_invalidate_cached_answers(tmp_path, module):
+    import json
+    import subprocess
+    import sys
+    from fr_ir.runtime import FrClient
+    from fr_ir.context import MemoryObjectStore
+    from fr_ir.flow import FlowCache
+    from test_graph_analysis import ROOT
+
+    helper = tmp_path / (module + '.py')
+    helper.write_text('def relay(**options):\n    return options["token"]\n')
+    source = program('send(relay(token=read()))', f'from {module} import relay\n')
+    analyze(tmp_path, source)
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+
+    def query(selected):
+        handle = client.project('find', 'entry').definition_target().handle
+        return selected.analyze(client, handle, standard_library=('builtins',),
+                                rules=tmp_path / 'rules.json', context='html', steps=4096,
+                                depth=8, max_bytes=1048576, summaries=True, imports=True)
+
+    def runtime():
+        driver = ('import sys,json\n' + f'sys.path.insert(0, {str(tmp_path)!r})\n'
+                  'sent=[]\ndef read(): return "Customer"\ndef send(value): sent.append(value)\n'
+                  + source + '\nentry()\nprint(json.dumps(sent))\n')
+        return json.loads(subprocess.check_output([sys.executable, '-I', '-B', '-c', driver], text=True, timeout=10))
+
+    assert runtime() == ['Customer']
+    cold = query(cache)
+    assert cold.report.at('/complete') and cold.witnesses
+    assert query(cache).reused
+    helper.write_text('def relay(**options):\n    options["token"] = 0\n    return options["token"]\n')
+    assert runtime() == [0]
+    changed = query(cache)
+    assert not changed.reused and changed.report.at('/complete') and not changed.witnesses
+    fresh = query(FlowCache(MemoryObjectStore()))
+    assert changed.witnesses == fresh.witnesses
+    for pointer in ('/input_digest', '/completion', '/cutoffs', '/events'):
+        assert changed.report.at(pointer) == fresh.report.at(pointer)
+

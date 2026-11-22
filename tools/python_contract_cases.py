@@ -510,13 +510,12 @@ EXAMPLES.extend([
     example('fixed-variadic-default', 'calls defaults returns', 'return sink(relay())', [ZERO], 0,
             prelude='def relay(left=0, *tail):\n    return left\n'),
     example('fixed-variadic-extra-effect', 'calls boundaries', 'return relay(0, sink(source()))', [S, T], 0,
-            witness=True, complete=False, cutoff='invalid-call-binding',
+            witness=True,
             prelude='def relay(left, *tail):\n    return left\n'),
     example('fixed-variadic-extra-keyword', 'calls boundaries', 'return relay(0, unknown=sink(source()))', [S, T], 0,
-            witness=True, complete=False, cutoff='invalid-call-binding',
+            witness=True,
             prelude='def relay(left, **tail):\n    return left\n'),
     example('fixed-variadic-referenced', 'calls boundaries', 'return relay(source())', [S], 17,
-            complete=False, cutoff='unsupported-parameter-contract',
             prelude='def relay(left, *tail):\n    tail = 0\n    return left\n'),
 ])
 
@@ -563,9 +562,9 @@ EXAMPLES.extend([
             [S, T], 17, prelude='def relay(left, K):\n    return left\n', complete=False,
             cutoff='non-ascii-keyword-binding-unchecked'),
     example('binding-varargs', 'calls boundaries', 'return relay(source())', [S], 0,
-            prelude='def relay(*value):\n    return 0\n', complete=False, cutoff='invalid-call-binding'),
+            prelude='def relay(*value):\n    return 0\n'),
     example('binding-kwargs', 'calls boundaries', 'return relay(value=source())', [S], 0,
-            prelude='def relay(**value):\n    return 0\n', complete=False, cutoff='invalid-call-binding'),
+            prelude='def relay(**value):\n    return 0\n'),
     example('binding-unpack', 'calls boundaries', 'return relay(*source())', [S], raised='TypeError',
             prelude='def relay(value):\n    return value\n', complete=False, cutoff='argument-unpacking-unchecked'),
     example('binding-unpack-keywords', 'calls boundaries', 'return relay(**source())', [S], raised='TypeError',
@@ -1483,6 +1482,37 @@ EXAMPLES.extend([
             prelude="table = {}\nlabels = {'state': 'ready'}\ndef register(inputs=labels, output=table):\n"
                     "    for key, item in inputs.items():\n        output[key] = item\n"
                     "labels['state'] = 'changed'\nregister()\n", complete=False, cutoff='module-effects-unchecked'),
+])
+
+
+EXAMPLES.extend([
+    example('mapping-read', 'assignments operands returns', 'table = {"token": source()}\nreturn sink(table["token"])', [S, T], 17, witness=True),
+    example('mapping-overwrite', 'assignments operands returns', 'table = {"token": source()}\nalias = table\nalias["token"] = 0\nreturn sink(table["token"])', [S, ZERO], 0),
+    example('mapping-snapshot', 'assignments operands returns', 'table = {"token": source()}\nsaved = table["token"]\ntable["token"] = 0\nreturn sink(saved)', [S, T], 17, witness=True),
+    example('mapping-inner-list', 'assignments operands returns', 'inner = [source()]\ntable = {"token": inner}\ntable["token"][0] = 0\nreturn sink(inner[0])', [S, ZERO], 0),
+    example('mapping-in-list', 'assignments operands returns', 'table = {"token": source()}\nouter = [table]\nouter[0]["token"] = 0\nreturn sink(table["token"])', [S, ZERO], 0),
+    example('mapping-copy', 'assignments calls returns', 'table = {"token": source()}\ncopy = table.copy()\ncopy["token"] = 0\nreturn sink(table["token"])', [S, T], 17, witness=True),
+    example('mapping-expanded-copy', 'assignments calls returns', 'table = {"token": [source()]}\ncopy = {**table}\ncopy["token"][0] = 0\nreturn sink(table["token"][0])', [S, ZERO], 0),
+    example('mapping-repeated-key', 'assignments operands returns', 'table = {"token": source(), "token": 0}\nreturn sink(table["token"])', [S, ZERO], 0),
+    example('mapping-bool-key', 'assignments operands returns', 'table = {1: source(), True: 0}\nreturn sink(table[1])', [S, ZERO], 0),
+    example('mapping-pop', 'assignments calls returns', 'table = {}\ntable["token"] = source()\nreturn sink(table.pop("token"))', [S, T], 17, witness=True),
+    example('mapping-update', 'assignments calls returns', 'table = {"token": source()}\ntable.update(token=0)\nreturn sink(table["token"])', [S, ZERO], 0),
+    example('mapping-setdefault', 'assignments calls returns', 'table = {}\ntable.setdefault("token", source())\nreturn sink(table["token"])', [S, T], 17, witness=True),
+    example('mapping-delete', 'assignments calls returns', 'table = {"token": source()}\ndel table["token"]\nreturn sink(table.get("token", 0))', [S, ZERO], 0),
+    example('mapping-error-cleanup', 'assignments handlers cleanup calls returns', 'table = {"token": source()}\ntry:\n    relay(table)\nexcept LookupError:\n    return sink(table["token"])', [S, ZERO], 0,
+            prelude='def relay(table):\n    try:\n        return table["missing"]\n    finally:\n        table["token"] = 0\n', files={}) | {'standard_library': ['builtins']},
+    example('variadic-positional-read', 'calls returns', 'return sink(relay(source(), 0))', [S, T], 17, witness=True,
+            prelude='def relay(*items):\n    return items[0]\n'),
+    example('variadic-keyword-read', 'calls returns', 'return sink(relay(token=source()))', [S, T], 17, witness=True,
+            prelude='def relay(**options):\n    return options["token"]\n'),
+    example('variadic-keyword-replace', 'assignments calls returns', 'return sink(relay(token=source()))', [S, ZERO], 0,
+            prelude='def relay(**options):\n    options["token"] = 0\n    return options["token"]\n'),
+    example('variadic-nested-alias', 'assignments calls returns', 'items = [source()]\nrelay(token=items)\nreturn sink(items[0])', [S, ZERO], 0,
+            prelude='def relay(**options):\n    options["token"][0] = 0\n'),
+    example('mapping-fixed-call', 'calls returns', 'return sink(relay(**{"token": source()}))', [S, T], 17, witness=True,
+            prelude='def relay(*, token):\n    return token\n'),
+    example('variadic-forwarding', 'calls imports locations returns', 'return sink(relay(token=source()))', [S, T], 17, witness=True,
+            prelude='from helper import relay\n', files={'helper.py': 'def relay(**options):\n    return target(**options)\ndef target(*, token):\n    return token\n'}),
 ])
 
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',

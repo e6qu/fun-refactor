@@ -332,7 +332,9 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
                 }
                 Request::Rename { .. } => unreachable!(),
             };
-            if symbol.language == Language::Rust { validate_scalar_calls(project, symbol, &change)?; }
+            if symbol.language == Language::Rust {
+                validate_scalar_calls(project, symbol, &change)?;
+            }
             let plan = crate::refactor::signature::change(project.index, symbol.id, change)?;
             ensure!(
                 plan.notes.is_empty(),

@@ -51,10 +51,11 @@ pub(super) fn key(node: Node<'_>, source: &str) -> Option<Key> {
                     'f' => '\x0c',
                     'v' => '\x0b',
                     '\n' => continue,
-                    'x' => char::from_u32(
-                        u32::from_str_radix(&chars.by_ref().take(2).collect::<String>(), 16)
-                            .ok()?,
-                    )?,
+                    'x' => {
+                        let digits: String = chars.by_ref().take(2).collect();
+                        if digits.len() != 2 { return None; }
+                        char::from_u32(u32::from_str_radix(&digits, 16).ok()?)?
+                    },
                     _ => return None,
                 });
             }
@@ -289,6 +290,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             value.minimum = value.items.len();
             env.lists.borrow_mut().objects.insert(id, value);
             self.record_list_references(node, env, result.references.clone());
+            env.lists.borrow_mut().expression_facts.insert(
+                (self.file.to_owned(), node.start_byte()), result.facts,
+            );
             return self.extend(
                 lists::through_alias(self.element_flow(&result, env), &receiver),
                 node,
@@ -331,6 +335,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     put(&mut keys, &mut values, key, value);
                 }
             }
+        }
+        if keys.len() > 64 {
+            self.cutoff("dictionary-item-budget");
+            return None;
         }
         Some((keys, values))
     }

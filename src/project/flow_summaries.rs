@@ -137,8 +137,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         self.solver.callees.insert(name.into());
         if !self.solver.table.contains_key(name) {
-            let parent = self.active.last().expect("summary evaluation has a caller");
-            let depth = self.solver.depths[parent] + 1;
+            let depth = self.active.iter().rev().enumerate().find_map(|(offset, name)| {
+                self.solver.depths.get(name).map(|depth| depth + offset + 1)
+            }).unwrap_or(self.active.len());
             if depth >= self.depth {
                 self.cutoff("call-depth-budget");
                 return Flow::new();

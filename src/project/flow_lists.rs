@@ -60,7 +60,7 @@ pub(super) struct Lists {
     pub(super) objects: BTreeMap<String, List>,
     expressions: BTreeMap<(PathBuf, usize), References>,
     facts: BTreeMap<String, Facts>,
-    expression_facts: BTreeMap<(PathBuf, usize), Facts>,
+    pub(super) expression_facts: BTreeMap<(PathBuf, usize), Facts>,
 }
 
 #[derive(Clone)]
@@ -838,6 +838,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 unknown = true;
                 continue;
             };
+            if list.uncertain_shape {
+                self.cutoff("collection-shape-unchecked");
+                unknown = true;
+                continue;
+            }
             let mut slots = BTreeSet::new();
             for length in list.minimum..=list.items.len() {
                 if let Some(slot) = list_slot(index_value, length) {
@@ -990,7 +995,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .borrow()
                 .objects
                 .get(id)
-                .is_some_and(|value| value.tuple)
+                .is_some_and(|value| value.tuple || value.uncertain_shape)
         }) {
             self.cutoff("tuple-method-unchecked");
             return Some(Flow::new());
@@ -1163,9 +1168,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .map(|value| value.references.clone())
             .collect();
         let (file, source) = self.contexts[name];
-        let variadic = self
-            .function_parameters(function, file, source)
-            .is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic()));
+        let variadic = self.function_parameters(function, file, source).is_some_and(|parameters| {
+            let names: BTreeSet<_> = parameters.iter().filter(|p| p.kind.variadic())
+                .map(|p| &source[p.node.byte_range()]).collect();
+            let mut pending: Vec<_> = function.child_by_field_name("body").into_iter().collect();
+            while let Some(node) = pending.pop() {
+                if node.kind() == "identifier" && names.contains(&source[node.byte_range()]) {
+                    return true;
+                }
+                pending.extend(node.named_children(&mut node.walk()));
+            }
+            false
+        });
         if refs.iter().all(|value| value.ids.is_empty()) && !variadic && !self.list_factory(name) {
             return None;
         }
@@ -1366,6 +1380,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             },
                             |modules| modules.resolve(file, &text),
                         );
+                        if target == "builtins.dict" {
+                            found = true;
+                            break;
+                        }
                         if self.functions.contains_key(&target) {
                             pending.push(target);
                         }

@@ -179,8 +179,6 @@ def test_invalid_binding_is_incomplete_after_argument_effects(tmp_path, paramete
 @pytest.mark.parametrize("parameters,call", [
     ("left=source()", "choose(left=source())"),
     ("left: int", "choose(left=source())"),
-    ("*left", "choose(source())"),
-    ("**left", "choose(left=source())"),
     ("left", "choose(*source())"),
     ("left", "choose(**source())"),
     ("left", "choose(left=source(), left=0)"),
@@ -395,3 +393,14 @@ def test_normalized_unicode_function_and_local_names_remain_supported(tmp_path, 
         summaries=summaries, steps=4096, max_bytes=1_048_576)
     assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert result.witnesses and observe(tmp_path)["result"] == 17
+
+
+@pytest.mark.parametrize("parameters,call", [("*left", "choose(source())"), ("**left", "choose(left=source())")])
+def test_returned_variadic_values_retain_origins(tmp_path, parameters, call):
+    client, rules = install(tmp_path, parameters, f"sink({call})")
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses
+    runtime = observe(tmp_path)
+    assert runtime["raised"] is None
+    assert runtime["result"] in ([17], {"left": 17})

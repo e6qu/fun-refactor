@@ -14,12 +14,13 @@ Paths start at the project root.
 | --- | --- | --- |
 | Replace a body | `replace-body` | New body; include Rust/TypeScript braces, omit the Python function's outer indentation |
 | Rename a function | `refactor` | `{"operation":"rename","name":"NEW_NAME","documentation":"preserve"}` |
-| Remove an unused Rust parameter | `refactor` | `{"operation":"remove-parameter","index":0}`; positions start at zero |
+| Remove an unused Rust or Python parameter | `refactor` | `{"operation":"remove-parameter","index":0}`; positions start at zero |
 | Add a Rust function | `insert-declaration` | Complete declaration and documentation comment |
 
 Rename supports Rust, Python and TypeScript functions outside classes or type implementation blocks.
 It updates resolved uses and preserves explicit import aliases.
 Parameter removal updates declared direct callers. The discarded argument must be a literal, such as `false`.
+Python removal checks positional-only, keyword-only and variadic bindings, including bounded literal expansions.
 Retained expressions keep their evaluation order. Refuse removal of an argument with effects, such as `record()`.
 External consumers remain unknown; read warnings and review every affected file.
 

@@ -2208,7 +2208,7 @@ impl Project<'_> {
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
             "runtime_effects":effect_contract(),
-            "assumptions": ["Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.", "branch feasibility unchecked",
+            "assumptions": ["Scalar values, bounded shared collections and standard built-ins; no monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "Error paths follow inputs.completion_control; caught-error names preserve origins. Other implicit errors, custom classes and resource effects remain unchecked.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,

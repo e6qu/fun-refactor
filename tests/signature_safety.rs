@@ -671,3 +671,11 @@ fn python_expanded_removal_keeps_comments_and_refuses_effects() {
         assert!(changed(&index, Change::Remove(0)).is_err());
     }
 }
+
+#[test]
+fn dynamic_local_inspection_refuses_signature_changes() {
+    let source = "def adjust(unused):\n    return locals()\nadjust(0)\n";
+    let (_dir, index) = workspace("a.py", source);
+    let error = changed(&index, Change::Remove(0)).unwrap_err().to_string();
+    assert!(error.contains("local inspection"), "{error}");
+}

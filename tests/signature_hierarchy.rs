@@ -185,15 +185,14 @@ fn refuses_to_add_a_positional_argument_after_a_python_keyword() {
 }
 
 #[test]
-fn refuses_to_move_a_parameter_across_a_python_keyword() {
+fn moving_across_a_python_keyword_preserves_named_binding() {
     let source = "def greet(name: str, punct: str) -> str:\n    return name + punct\n\n\nprint(greet(\"a\", punct=\"!\"))\n";
     let (tmp, index) = workspace(&[("defs.py", source)]);
-    let _ = &tmp;
     let id = method_at(&index, source, "def greet");
-    let err = signature::change(&index, id, signature::Change::Move { from: 0, to: 1 })
-        .unwrap_err()
-        .to_string();
-    assert!(err.contains("keyword argument"), "got: {err}");
+    let plan = signature::change(&index, id, signature::Change::Move { from: 0, to: 1 }).unwrap();
+    let out = applied(tmp.path(), "defs.py", &plan.edits);
+    assert!(out.contains("greet(punct: str, name: str)"), "{out}");
+    assert!(out.contains("greet(name=\"a\", punct=\"!\")"), "{out}");
 }
 
 #[test]
