@@ -679,3 +679,21 @@ fn dynamic_local_inspection_refuses_signature_changes() {
     let error = changed(&index, Change::Remove(0)).unwrap_err().to_string();
     assert!(error.contains("local inspection"), "{error}");
 }
+
+#[test]
+fn python_method_moves_preserve_explicit_receivers_or_refuse() {
+    for call in [
+        "Calculator.adjust(instance, 4, 1)",
+        "Other.adjust(instance, 4, 1)",
+        "instance.adjust(4, 1)",
+    ] {
+        let source = format!("class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\ninstance = Calculator()\nOther = Calculator\nprint({call})\n");
+        let (dir, index) = workspace("subject.py", &source);
+        assert_eq!(output("python3", &source), b"3\n");
+        if let Ok(plan) = changed(&index, Change::Move { from: 0, to: 1 }) {
+            let after = apply(dir.path(), "subject.py", &plan.edits);
+            assert_eq!(output("python3", &source), output("python3", &after));
+        }
+        assert_eq!(fs::read_to_string(dir.path().join("subject.py")).unwrap(), source);
+    }
+}
