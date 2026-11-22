@@ -33,12 +33,23 @@ fn refuse(message: &str) -> anyhow::Error {
 
 impl Signature {
     pub(super) fn parse(list: Node<'_>, source: &str, kind: SymbolKind) -> Result<Self> {
-        let mut pending: Vec<_> = list.parent().and_then(|node| node.child_by_field_name("body")).into_iter().collect();
+        let mut pending: Vec<_> = list
+            .parent()
+            .and_then(|node| node.child_by_field_name("body"))
+            .into_iter()
+            .collect();
         while let Some(node) = pending.pop() {
-            if node.kind() == "call" && node.child_by_field_name("function").is_some_and(|name| {
-                matches!(&source[name.byte_range()], "locals" | "vars" | "eval" | "exec")
-            }) {
-                return Err(refuse("dynamic local inspection prevents a checked signature change"));
+            if node.kind() == "call"
+                && node.child_by_field_name("function").is_some_and(|name| {
+                    matches!(
+                        &source[name.byte_range()],
+                        "locals" | "vars" | "eval" | "exec"
+                    )
+                })
+            {
+                return Err(refuse(
+                    "dynamic local inspection prevents a checked signature change",
+                ));
             }
             pending.extend(node.named_children(&mut node.walk()));
         }
@@ -180,7 +191,9 @@ impl Signature {
                 let (Some(first), Some(last)) =
                     (self.parameters.get(*from), self.parameters.get(*to))
                 else {
-                    return Err(refuse("parameter positions are not both present in the signature"));
+                    return Err(refuse(
+                        "parameter positions are not both present in the signature",
+                    ));
                 };
                 if from == to {
                     return Ok(());

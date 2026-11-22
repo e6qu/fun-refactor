@@ -404,3 +404,22 @@ def test_returned_variadic_values_retain_origins(tmp_path, parameters, call):
     runtime = observe(tmp_path)
     assert runtime["raised"] is None
     assert runtime["result"] in ([17], {"left": 17})
+
+
+@pytest.mark.parametrize('mutation', ['order', 'duplicate', 'default'])
+def test_sdk_rejects_inconsistent_variadic_signature_metadata(tmp_path, mutation):
+    client, rules = install(tmp_path, 'left, *tail, **options', 'sink(choose(source()))')
+    result = analyze(client, rules, 'entry')
+    signature = result.summaries.for_function('choose').signature
+    assert [p.kind for p in signature] == ['positional-or-keyword', 'variadic-positional', 'variadic-keyword']
+    assert [p.required for p in signature] == [True, False, False]
+    data = copy.deepcopy(result.report.to_data())
+    summary = data['function_summaries']['functions']['choose']
+    if mutation == 'order':
+        summary['signature'][0]['kind'] = 'keyword-only'
+    elif mutation == 'duplicate':
+        summary['signature'][2]['kind'] = 'variadic-positional'
+    else:
+        summary['signature'][1]['default'] = copy.deepcopy(summary['signature'][1]['site'])
+    with pytest.raises(FrRuntimeError):
+        FunctionSummaries.from_report(FrReport(data, ()))

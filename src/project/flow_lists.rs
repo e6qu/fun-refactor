@@ -1168,18 +1168,24 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .map(|value| value.references.clone())
             .collect();
         let (file, source) = self.contexts[name];
-        let variadic = self.function_parameters(function, file, source).is_some_and(|parameters| {
-            let names: BTreeSet<_> = parameters.iter().filter(|p| p.kind.variadic())
-                .map(|p| &source[p.node.byte_range()]).collect();
-            let mut pending: Vec<_> = function.child_by_field_name("body").into_iter().collect();
-            while let Some(node) = pending.pop() {
-                if node.kind() == "identifier" && names.contains(&source[node.byte_range()]) {
-                    return true;
+        let variadic = self
+            .function_parameters(function, file, source)
+            .is_some_and(|parameters| {
+                let names: BTreeSet<_> = parameters
+                    .iter()
+                    .filter(|p| p.kind.variadic())
+                    .map(|p| &source[p.node.byte_range()])
+                    .collect();
+                let mut pending: Vec<_> =
+                    function.child_by_field_name("body").into_iter().collect();
+                while let Some(node) = pending.pop() {
+                    if node.kind() == "identifier" && names.contains(&source[node.byte_range()]) {
+                        return true;
+                    }
+                    pending.extend(node.named_children(&mut node.walk()));
                 }
-                pending.extend(node.named_children(&mut node.walk()));
-            }
-            false
-        });
+                false
+            });
         if refs.iter().all(|value| value.ids.is_empty()) && !variadic && !self.list_factory(name) {
             return None;
         }

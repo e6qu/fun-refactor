@@ -118,6 +118,8 @@ def test_rename_policy_is_explicit_and_signature_policy_is_not_accepted():
     ('value, **unused', 'charge(3, extra=0)', 1),
     ('unused, value', 'charge(*[0, 3])', 0),
     ('value, *, unused=0', 'charge(3, **{"unused": 0})', 1),
+    ('value, unused, /', 'charge(3, 0)', (0, 1)),
+    ('value, unused', 'charge(3, unused=0)', (0, 1)),
 ])
 def test_python_signature_delivery_preserves_import_aliases_and_replays(tmp_path, parameters, call, index):
     root, client = fixture(tmp_path, f'# keep this explanation\ndef price({parameters}):\n    return value * 2\n')
@@ -126,7 +128,8 @@ def test_python_signature_delivery_preserves_import_aliases_and_replays(tmp_path
     handle = client.project('find', 'price', '--in', 'helper.py').definition_target().handle
     scope = ChangeScope.inspect(client, [handle])
     assert scope.ready, scope.report.to_data()
-    request = RefactorRequest.remove_parameter(index)
+    request = (RefactorRequest.move_parameter(*index) if isinstance(index, tuple)
+               else RefactorRequest.remove_parameter(index))
     task = scope.bind(TaskChange([], [request.target('signature', handle)],
         {'files-changed': 2, 'paths-changed': ['caller.py', 'helper.py']}, ['behavior'],
         TaskDelivery(patch='artifacts/signature.patch'), acceptance_checks=['behavior']))
@@ -155,4 +158,21 @@ def test_python_signature_refusal_does_not_write_either_file(tmp_path):
         TaskDelivery(patch='artifacts/signature.patch'), acceptance_checks=['behavior']))
     with pytest.raises(FrRuntimeError, match='evaluation|literal|effects'):
         client.review(task)
+    assert all((root / name).read_bytes() == text for name, text in before.items())
+
+
+def test_stale_python_signature_review_refuses_before_writing(tmp_path):
+    root, client = fixture(tmp_path, 'def price(value, *, unused=0):\n    return value * 2\n')
+    caller = root / 'caller.py'
+    caller.write_text('from helper import price as charge\ndef total():\n    return charge(3, unused=0)\n')
+    handle = client.project('find', 'price', '--in', 'helper.py').definition_target().handle
+    scope = ChangeScope.inspect(client, [handle])
+    task = scope.bind(TaskChange([], [RefactorRequest.remove_parameter(1).target('signature', handle)],
+        {'files-changed': 2, 'paths-changed': ['caller.py', 'helper.py']}, ['behavior'],
+        TaskDelivery(patch='artifacts/signature.patch'), acceptance_checks=['behavior']))
+    review = client.review(task)
+    caller.write_text(caller.read_text().replace('unused=0', 'unused=1'))
+    before = {name: (root / name).read_bytes() for name in ('helper.py', 'caller.py')}
+    with pytest.raises(FrRuntimeError, match='stale|changed|revision|match|fresh'):
+        client.execute(review)
     assert all((root / name).read_bytes() == text for name, text in before.items())

@@ -1050,12 +1050,12 @@ from exceptions after calling the entry function. External source and sink hooks
 Hosted collection and tests that reject altered records validate the full inventory, including deliberate
 CLI refusals and emitted incomplete reports. B.contract requires every independently reviewed
 assertion in the active report. The earlier 252-case report remains historical evidence.
-The reviewed corpus has 565 authored examples and 1,130 original/renamed cases.
-Sequence unpacking adds 20 examples and closes two existing gaps: nested literal
-module bindings and literal sequence expansion. Both original and renamed forms
-now complete, reducing incomplete cases from 366 to 362. The 18 refusals remain;
-no existing example was removed. The [sequence guide](analysis-coverage.md#unpack-lists-and-tuples)
-explains the supported behavior and remaining limits.
+The reviewed corpus targets 585 authored examples and 1,170 original/renamed cases.
+Dictionary flow and variadic calls add 20 examples and complete five existing examples
+in both forms. The expected totals are 352 incomplete cases and 18 refusals; every earlier
+example remains. Hosted qualification must confirm these counts before accepting a report.
+The [dictionary guide](analysis-coverage.md#trace-dictionaries-and-variadic-calls) explains
+the supported behavior and limits.
 `tools/python-contract-qualification.py` audits the retained report, requires all catalog assertions
 to match, and checks that every declared rule has paired original and renamed/moved examples.
 It reports counts for complete, incomplete and refused cases separately and never rewrites acceptance criteria.
