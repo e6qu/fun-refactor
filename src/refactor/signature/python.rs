@@ -104,8 +104,14 @@ impl Signature {
             });
         }
         let receiver = kind == SymbolKind::Method;
-        if receiver && !parameters.first().is_some_and(|p| matches!(p.kind, Kind::Positional | Kind::Either)) {
-            return Err(refuse("a method signature needs a fixed receiver parameter"));
+        if receiver
+            && !parameters
+                .first()
+                .is_some_and(|p| matches!(p.kind, Kind::Positional | Kind::Either))
+        {
+            return Err(refuse(
+                "a method signature needs a fixed receiver parameter",
+            ));
         }
         if receiver {
             parameters.remove(0);
@@ -246,18 +252,40 @@ impl Signature {
                 return Err(refuse("method receiver binding is not established; unbound class calls need an explicit migration"));
             }
             if let Some(name @ ("self" | "this")) = reference.receiver.as_deref() {
-                let mut pending: Vec<_> = std::iter::successors(call.parent(), |node| node.parent())
-                    .find(|node| node.kind() == "function_definition")
-                    .and_then(|node| node.child_by_field_name("body")).into_iter().collect();
+                let mut pending: Vec<_> =
+                    std::iter::successors(call.parent(), |node| node.parent())
+                        .find(|node| node.kind() == "function_definition")
+                        .and_then(|node| node.child_by_field_name("body"))
+                        .into_iter()
+                        .collect();
                 while let Some(node) = pending.pop() {
-                    if matches!(node.kind(), "assignment" | "augmented_assignment" | "named_expression" | "for_statement") {
-                        let mut targets: Vec<_> = node.child_by_field_name("left")
-                            .or_else(|| node.child_by_field_name("name")).into_iter().collect();
+                    if matches!(
+                        node.kind(),
+                        "assignment"
+                            | "augmented_assignment"
+                            | "named_expression"
+                            | "for_statement"
+                    ) {
+                        let mut targets: Vec<_> = node
+                            .child_by_field_name("left")
+                            .or_else(|| node.child_by_field_name("name"))
+                            .into_iter()
+                            .collect();
                         while let Some(target) = targets.pop() {
-                            if target.kind() == "identifier" && &site.source[target.byte_range()] == name {
+                            if target.kind() == "identifier"
+                                && &site.source[target.byte_range()] == name
+                            {
                                 return Err(refuse("reassigned method receivers need an explicit binding migration"));
                             }
-                            targets.extend(target.named_children(&mut target.walk()));
+                            if matches!(
+                                target.kind(),
+                                "pattern_list"
+                                    | "tuple_pattern"
+                                    | "list_pattern"
+                                    | "list_splat_pattern"
+                            ) {
+                                targets.extend(target.named_children(&mut target.walk()));
+                            }
                         }
                     }
                     pending.extend(node.named_children(&mut node.walk()));

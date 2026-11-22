@@ -687,7 +687,7 @@ fn python_method_moves_preserve_explicit_receivers_or_refuse() {
         "Other.adjust(instance, 4, 1)",
         "instance.adjust(4, 1)",
     ] {
-        let source = format!("class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\ninstance = Calculator()\nOther = Calculator\nprint({call})\n");
+        let source = format!("class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\ninstance: Calculator = Calculator()\nOther = Calculator\nprint({call})\n");
         let (dir, index) = workspace("subject.py", &source);
         assert_eq!(output("python3", &source), b"3\n");
         let plan = changed(&index, Change::Move { from: 0, to: 1 });
@@ -698,15 +698,30 @@ fn python_method_moves_preserve_explicit_receivers_or_refuse() {
             let after = apply(dir.path(), "subject.py", &plan.edits);
             assert_eq!(output("python3", &source), output("python3", &after));
         }
-        assert_eq!(fs::read_to_string(dir.path().join("subject.py")).unwrap(), source);
+        assert_eq!(
+            fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+            source
+        );
     }
 }
 
 #[test]
 fn reassigned_python_method_receivers_refuse() {
-    let source = "class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\n    def run(self):\n        self = Calculator\n        return self.adjust(instance, 4, 1)\ninstance = Calculator()\nprint(instance.run())\n";
+    let source = "class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\n    def run(self):\n        self = Calculator\n        return self.adjust(instance, 4, 1)\ninstance: Calculator = Calculator()\nprint(instance.run())\n";
     let (dir, index) = workspace("subject.py", source);
     assert_eq!(output("python3", source), b"3\n");
     assert!(changed(&index, Change::Move { from: 0, to: 1 }).is_err());
-    assert_eq!(fs::read_to_string(dir.path().join("subject.py")).unwrap(), source);
+    assert_eq!(
+        fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+        source
+    );
+}
+
+#[test]
+fn python_receiver_field_writes_do_not_block_bound_method_moves() {
+    let source = "class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\n    def run(self):\n        self.flag = 1\n        return self.adjust(4, 1)\ninstance: Calculator = Calculator()\nprint(instance.run())\n";
+    let (dir, index) = workspace("subject.py", source);
+    let plan = changed(&index, Change::Move { from: 0, to: 1 }).unwrap();
+    let after = apply(dir.path(), "subject.py", &plan.edits);
+    assert_eq!(output("python3", source), output("python3", &after));
 }
