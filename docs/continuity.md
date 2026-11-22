@@ -13,6 +13,7 @@ PR #647 merged with passing CI, release and deep validation.
 Python signature refactoring, dictionary flow and variadic calls, with imported callers,
 independent runtime checks, safe refusal, checked delivery and replay. Focused refactoring
 and graph checks passed. Signature regressions cover Unicode binding safety and method receivers.
+SDK regressions compare typed variadic flow with Python execution, including empty argument collections.
 Python qualification passed 585 programs, 1,170 paired cases
 and 2,455 selected SDK checks, retaining 352 incomplete cases and 18 refusals.
 Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
