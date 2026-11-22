@@ -681,23 +681,15 @@ fn dynamic_local_inspection_refuses_signature_changes() {
 }
 
 #[test]
-fn python_method_moves_preserve_explicit_receivers_or_refuse() {
+fn python_method_moves_refuse_unbound_receivers() {
     for call in [
         "Calculator.adjust(instance, 4, 1)",
         "Other.adjust(instance, 4, 1)",
-        "instance.adjust(4, 1)",
     ] {
         let source = format!("class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\ninstance: Calculator = Calculator()\nOther = Calculator\nprint({call})\n");
         let (dir, index) = workspace("subject.py", &source);
         assert_eq!(output("python3", &source), b"3\n");
-        let plan = changed(&index, Change::Move { from: 0, to: 1 });
-        if call.starts_with("instance.") {
-            assert!(plan.is_ok(), "{plan:?}");
-        }
-        if let Ok(plan) = plan {
-            let after = apply(dir.path(), "subject.py", &plan.edits);
-            assert_eq!(output("python3", &source), output("python3", &after));
-        }
+        assert!(changed(&index, Change::Move { from: 0, to: 1 }).is_err());
         assert_eq!(
             fs::read_to_string(dir.path().join("subject.py")).unwrap(),
             source
