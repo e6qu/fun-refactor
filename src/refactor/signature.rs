@@ -508,6 +508,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 },
                 call,
                 &change,
+                index,
+                reference,
             )?;
             call_sites += 1;
             continue;
@@ -648,6 +650,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     },
                     call,
                     &change,
+                    index,
+                    reference,
                 )?;
                 call_sites += 1;
                 notes.push(format!("dispatch site at {where_} changed with the family"));

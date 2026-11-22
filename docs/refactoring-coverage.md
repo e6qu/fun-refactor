@@ -56,6 +56,7 @@ all its supplied values are safe literals. Moves stay within one parameter kind.
 Mixed positional/keyword calls can gain explicit names to preserve evaluation order.
 Bounded literal `*[...]`, `*(...)` and `**{...}` arguments retain their containers and comments.
 Dynamic expansions, dynamic local inspection, unsafe defaults and unchecked decorators refuse.
+Method changes require a known bound receiver; unbound class calls and reassigned receivers refuse.
 
 The [structural-change guide](structural-changes.md) describes the narrower checked-authoring contract.
 It supports Rust and Python free functions and requires independent compiler or runtime checks.
