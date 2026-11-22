@@ -166,28 +166,28 @@
       "sha256": "eb3ac56410e5869d3fd598081db5bd363ca91685197aecef9b3b411ff721c5a6"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-22-mappings-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-22-mappings-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-11-22-bindings-checked-translation/result.json",
+      "sha256": "438d7faaf1205f830273fc55c579fe07eacf72bdfaaf38735021c135a82ad1e0",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "29b11998d3bde3a3970bc9dd3161ca74f3ede98d30d7ff748fad0cac6fcdd6dc"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-11-22-bindings-checked-translation"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-22-mappings-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-22-mappings-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-11-22-bindings-python-effects/result.json",
+      "sha256": "4c42cc75b8526c888bcc65aab5b3dac5508b8b588cb5e5c1e896160bf8c1de36",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They check local shared-list updates, source locations and model/runtime differences. General implicit errors and arbitrary shared objects remain outside this finite coverage.",
-      "sha256": "ad5be7e422f2b49a1921fb602ff74dff4956ec0f1362920183f8ff97c9f9744f"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-11-22-bindings-python-effects"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-22-mappings-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-22-mappings-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-11-22-bindings-python-text-flow/result.json",
+      "sha256": "5f196024c6487f81a625906646095dfcc747e1b237265b39995db15a328a9aff",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "60ea1e84008a827d874acd81453f4b784174c91669821cbc913a644bea6bda6b"
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-11-22-bindings-python-text-flow"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-11-22-mappings-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -415,29 +415,29 @@
       "next": "Keep builtin error handlers, bounded shared-list updates and exact unchecked-effect locations passing. Use independent runtime checks before extending these rules to other errors or shared objects.",
       "requires": [
         {
+          "evidence": "python-effects",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9,
-              "pointer": "/coverage/examples"
+              "pointer": "/coverage/examples",
+              "equals": 9
             },
             {
-              "equals": 18,
-              "pointer": "/coverage/renamed_and_moved_cases"
+              "pointer": "/coverage/renamed_and_moved_cases",
+              "equals": 18
             },
             {
-              "equals": 36,
-              "pointer": "/coverage/runtime_executions"
+              "pointer": "/coverage/runtime_executions",
+              "equals": 36
             },
             {
-              "equals": true,
-              "pointer": "/coverage/preserves_model_runtime_difference"
+              "pointer": "/coverage/preserves_model_runtime_difference",
+              "equals": true
             }
-          ],
-          "evidence": "python-effects"
+          ]
         }
       ],
       "title": "Handle exceptions and shared mutable values honestly"
@@ -613,29 +613,29 @@
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
       "requires": [
         {
+          "evidence": "checked-translation",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9030,
-              "pointer": "/coverage/exhaustive_pairs"
+              "pointer": "/coverage/exhaustive_pairs",
+              "equals": 9030
             },
             {
-              "equals": 11,
-              "pointer": "/coverage/boundary_pairs"
+              "pointer": "/coverage/boundary_pairs",
+              "equals": 11
             },
             {
-              "equals": 2,
-              "pointer": "/coverage/directions"
+              "pointer": "/coverage/directions",
+              "equals": 2
             },
             {
-              "equals": true,
-              "pointer": "/coverage/renamed_and_moved"
+              "pointer": "/coverage/renamed_and_moved",
+              "equals": true
             }
-          ],
-          "evidence": "checked-translation"
+          ]
         }
       ],
       "title": "Translate a function without changing its promised behavior"
