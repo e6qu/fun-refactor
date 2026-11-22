@@ -44,7 +44,7 @@ def contract(selection: tuple[str, ...]) -> dict[str, Any] | None:
             'evaluation': 'Receiver once, then arguments left-to-right; preserve all possible origins without mutating the receiver.',
             'boundary': 'Unknown receivers, expanded arguments and unsupported signatures remain incomplete. These calls do not establish runtime exception safety.',
         } if 'builtins' in selection else None,
-        'boundary': 'Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching or overloaded protocols. Known-string base-ten integer conversion has a possible ValueError path; other implicit exceptions remain unchecked.',
+        'boundary': 'Standard CPython library and builtins, scalars, bounded dictionaries and immutable dates; no replacement import hooks, monkey patching or overloaded protocols. Known-string base-ten integer conversion has a possible ValueError path; other implicit exceptions remain unchecked.',
     }
 
 

@@ -1,12 +1,9 @@
 # Prepare one complete change
 
-A body holds executable statements.
-A parameter declares an input; an argument supplies its value at a call.
 Use `project find NAME --in FILE --source` to select a declaration.
 Read each `rows` entry using the matching `columns` names.
 For insertion, the query's `root` selects the file.
 
-A fragment file holds new code or refactoring JSON.
 Save the table's JSON as `.fr/refactor` and set `"from":".fr/refactor"` in the manifest.
 Paths start at the project root.
 
@@ -29,7 +26,6 @@ Replace `increment`'s body with `{ value + 1 }` in `.fr/body`. Save this helper 
 /// Calls increment twice.
 pub fn increment_twice(value: u32) -> u32 { increment(increment(value)) }
 ```
-A manifest is a JSON file listing operations for one source revision.
 Save `.fr/author` with the returned declaration and file handles:
 ```json
 {"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":".fr/body"},{"op":"insert-declaration","handle":"<FILE_HANDLE>","from":".fr/helper"}]}

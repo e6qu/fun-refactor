@@ -216,7 +216,7 @@ impl Signature {
                     }
                     if defaulted && !p.defaulted {
                         return Err(refuse(
-                            "moving this parameter would put a required parameter after a default",
+                            "moving this parameter would put a default before one without a default",
                         ));
                     }
                     defaulted |= p.defaulted;

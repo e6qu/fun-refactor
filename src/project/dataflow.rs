@@ -2224,7 +2224,7 @@ impl Project<'_> {
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": allowance - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
         if !options.standard_library.is_empty() {
-            report["assumptions"].as_array_mut().unwrap().push(json!("Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."));
+            report["assumptions"].as_array_mut().unwrap().push(json!("Selected standard-library models assume standard CPython imports and operations on scalars, bounded dictionaries and immutable dates; standard-library implementation source is outside this check."));
         }
         let mut omitted = serde_json::Map::new();
         for field in [

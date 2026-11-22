@@ -1388,6 +1388,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     break;
                 }
                 let Some((_, mapping)) = self.exact_mapping(&element.references, env) else {
+                    self.cutoff("argument-unpacking-unchecked");
                     result.checked = false;
                     break;
                 };

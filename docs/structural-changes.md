@@ -98,7 +98,7 @@ Both routes use the same binding checks and refuse effectful removals or reorder
 Python changes use the same binding and evaluation checks as the signature command.
 Removal supports positional-only, keyword-only and unused variadic parameters. Movement
 stays within one parameter kind, preserving default ordering and each caller's binding.
-Known literal argument expansions are supported; dynamic expansions refuse. Retained
+The planner accepts known literal argument expansions; dynamic expansions refuse. Retained
 calls keep their evaluation order. Imported callers retain explicit aliases. Review,
 acceptance checks, exact reversal and patch replay cover the complete change.
 

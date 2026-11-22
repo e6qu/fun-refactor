@@ -29,7 +29,7 @@ profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
 SCHEMA = 'fr-python-contract-3'
 LIMITS = ('Finite scalar examples, not full Python correctness or path feasibility. '
-          'Unhandled implicit exceptions, mutation beyond bounded shared lists and dynamic dispatch remain outside this model. '
+          'Unhandled implicit exceptions, mutation beyond bounded shared collections and dynamic dispatch remain outside this model. '
           'Runtime observations cover only declared inputs. Retained output is not execution attestation. '
           'No live-agent, token-efficiency or repository-generalization claim.')
 
@@ -226,12 +226,12 @@ def audit_case(row, case):
             and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
     assumptions = [
-        'Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.',
+        'Scalar values, bounded shared collections and standard built-ins; no monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
         'Error paths follow inputs.completion_control; caught-error names preserve origins. Other implicit errors, custom classes and resource effects remain unchecked.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
     if case['standard_library']:
-        assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check.')
+        assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars, bounded dictionaries and immutable dates; standard-library implementation source is outside this check.')
     require(flow['assumptions'] == assumptions, 'analysis assumptions changed')
     require(flow['complete'] is case['expected_model']['complete'], 'completeness changed')
     require(bool(flow['witnesses']) is case['expected_model']['witness'], 'possible-flow answer changed')
