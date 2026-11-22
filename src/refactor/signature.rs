@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
+mod python;
 mod safety;
 
 /// What to do to a parameter list.
@@ -248,6 +249,10 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         .into());
     }
 
+    if sym.language == Language::Python {
+        python::checked_identifier_spellings(index)?;
+    }
+
     let family = crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol);
     let dispatched = !family.is_empty();
     let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };
@@ -318,9 +323,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
     let mut edits = EditSet::new();
     let mut notes = Vec::new();
-    // The name of the parameter a removal takes away, read off the declaration
-    // and used at every call site that names its arguments.
+    // Match the removed parameter to named arguments at every caller.
     let mut removing: Option<String> = None;
+    let mut python_signature: Option<python::Signature> = None;
     for member in &members {
         let Some(m) = index.symbol(*member) else {
             continue;
@@ -334,7 +339,16 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
         match parameter_list(declaration) {
             Some(params) => {
-                let param_spans = without_receiver(m.language, m.kind, &source, list_items(params));
+                let python =
+                    if m.language == Language::Python && !matches!(change, Change::Add { .. }) {
+                        Some(python::Signature::parse(params, &source, m.kind)?)
+                    } else {
+                        None
+                    };
+                let param_spans = python.as_ref().map_or_else(
+                    || without_receiver(m.language, m.kind, &source, list_items(params)),
+                    |signature| signature.spans(),
+                );
                 safety::parameters(params, &source, m.language, &param_spans, &change)?;
                 still_read(index, m, &param_spans, &change)?;
                 already_declared(&source, &param_spans, &change, m.language)?;
@@ -351,20 +365,41 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                         }
                     }
                 }
-                apply_change(
-                    &mut edits,
-                    &Site {
-                        file: &m.file,
-                        source: &source,
-                        language: m.language,
-                        parsed: &parsed,
-                    },
-                    params.start_byte(),
-                    &param_spans,
-                    &change,
-                    true,
-                    None,
-                )?;
+                if let Some(signature) = python {
+                    if python_signature
+                        .as_ref()
+                        .is_some_and(|prior| !prior.compatible(&signature))
+                    {
+                        return Err(Refusal::Declined { detail: "this method family needs matching parameter names, kinds and defaults".into() }.into());
+                    }
+                    signature.declaration(
+                        &mut edits,
+                        &Site {
+                            file: &m.file,
+                            source: &source,
+                            language: m.language,
+                            parsed: &parsed,
+                        },
+                        params,
+                        &change,
+                    )?;
+                    python_signature = Some(signature);
+                } else {
+                    apply_change(
+                        &mut edits,
+                        &Site {
+                            file: &m.file,
+                            source: &source,
+                            language: m.language,
+                            parsed: &parsed,
+                        },
+                        params.start_byte(),
+                        &param_spans,
+                        &change,
+                        true,
+                        None,
+                    )?;
+                }
                 let removed = removed_parameter_name(&source, &param_spans, &change, m.language);
                 if m.language == Language::Python && removing.is_some() && removing != removed {
                     return Err(Refusal::Declined {
@@ -464,6 +499,23 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 ),
             }
             .into());
+        }
+        if let Some(signature) = &python_signature {
+            signature.call(
+                &mut edits,
+                &Site {
+                    file: &reference.file,
+                    source: &call_source,
+                    language: reference.language,
+                    parsed: &call_parsed,
+                },
+                call,
+                &change,
+                index,
+                reference,
+            )?;
+            call_sites += 1;
+            continue;
         }
         if nonpositional_arguments_block_change(call, reference.language, &change) {
             return Err(Refusal::Declined {
@@ -589,6 +641,24 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             };
             if call.has_error() {
                 return Err(out_of_reach("that call does not parse cleanly"));
+            }
+            if let Some(signature) = &python_signature {
+                signature.call(
+                    &mut edits,
+                    &Site {
+                        file: &reference.file,
+                        source: &call_source,
+                        language: reference.language,
+                        parsed: &call_parsed,
+                    },
+                    call,
+                    &change,
+                    index,
+                    reference,
+                )?;
+                call_sites += 1;
+                notes.push(format!("dispatch site at {where_} changed with the family"));
+                continue;
             }
             if nonpositional_arguments_block_change(call, reference.language, &change) {
                 return Err(out_of_reach(

@@ -55,6 +55,8 @@ mod text_values;
 
 #[path = "flow_lists.rs"]
 mod lists;
+#[path = "flow_mappings.rs"]
+mod mappings;
 
 #[path = "flow_sequences.rs"]
 mod sequences;
@@ -418,6 +420,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if let Some(value) = self.list_value(node, env) {
             return value;
         }
+        if node.kind() == "dictionary" {
+            return self.mapping_literal(node, env);
+        }
         if matches!(node.kind(), "list" | "tuple" | "expression_list") {
             return self.list_literal(node, env);
         }
@@ -617,11 +622,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return self.extend(joined, node, "propagation-rule");
         }
         if let Some(standard) = self.standard_call_name(function, env) {
+            if standard == "builtins.dict" {
+                let Some((keys, values)) = self.mapping_arguments(node, &evaluated, env) else {
+                    return Flow::new();
+                };
+                return self.allocate_mapping(node, keys, values, env);
+            }
             if let Some((minimum, maximum)) = standard_library::arity(&standard) {
                 let exception = matches!(
                     standard.as_str(),
                     "builtins.ValueError"
                         | "builtins.IndexError"
+                        | "builtins.KeyError"
                         | "builtins.LookupError"
                         | "builtins.TypeError"
                         | "builtins.Exception"
@@ -647,7 +659,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
-        if evaluated.expanded
+        if (evaluated.expanded
+            || self
+                .function_parameters(
+                    function,
+                    self.contexts[&resolved].0,
+                    self.contexts[&resolved].1,
+                )
+                .is_some_and(|parameters| parameters.iter().any(|p| p.kind.variadic())))
             && self.expanded_binding_error(function, &resolved, argument_names, node, env)
         {
             return Flow::new();
@@ -2189,7 +2208,7 @@ impl Project<'_> {
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
             "runtime_effects":effect_contract(),
-            "assumptions": ["Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.", "branch feasibility unchecked",
+            "assumptions": ["Scalar values, bounded shared collections and standard built-ins; no monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "Error paths follow inputs.completion_control; caught-error names preserve origins. Other implicit errors, custom classes and resource effects remain unchecked.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,
@@ -2205,7 +2224,7 @@ impl Project<'_> {
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": allowance - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
         if !options.standard_library.is_empty() {
-            report["assumptions"].as_array_mut().unwrap().push(json!("Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."));
+            report["assumptions"].as_array_mut().unwrap().push(json!("Selected standard-library models assume standard CPython imports and operations on scalars, bounded dictionaries and immutable dates; standard-library implementation source is outside this check."));
         }
         let mut omitted = serde_json::Map::new();
         for field in [

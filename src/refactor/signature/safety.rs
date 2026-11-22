@@ -263,26 +263,27 @@ pub(super) fn parameters(
         .filter(|node| !node.kind().contains("comment"))
         .collect();
     for parameter in &parameters {
-        if matches!(
-            parameter.kind(),
-            "list_splat_pattern"
-                | "dictionary_splat_pattern"
-                | "keyword_separator"
-                | "positional_separator"
-                | "variadic_parameter"
-                | "variadic_parameter_declaration"
-                | "rest_pattern"
-                | "spread_parameter"
-        ) || parameter
-            .children_by_field_name("name", &mut parameter.walk())
-            .count()
-            > 1
-            || parameter.named_children(&mut parameter.walk()).any(|node| {
-                matches!(
-                    node.kind(),
-                    "rest_pattern" | "list_splat_pattern" | "dictionary_splat_pattern"
-                )
-            })
+        if !(language == Language::Python && !matches!(change, Change::Add { .. }))
+            && (matches!(
+                parameter.kind(),
+                "list_splat_pattern"
+                    | "dictionary_splat_pattern"
+                    | "keyword_separator"
+                    | "positional_separator"
+                    | "variadic_parameter"
+                    | "variadic_parameter_declaration"
+                    | "rest_pattern"
+                    | "spread_parameter"
+            ) || parameter
+                .children_by_field_name("name", &mut parameter.walk())
+                .count()
+                > 1
+                || parameter.named_children(&mut parameter.walk()).any(|node| {
+                    matches!(
+                        node.kind(),
+                        "rest_pattern" | "list_splat_pattern" | "dictionary_splat_pattern"
+                    )
+                }))
         {
             return Err(refuse("signature change cannot preserve variadic, grouped or keyword-only parameter bindings; use explicit positional parameters"));
         }

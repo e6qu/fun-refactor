@@ -18,7 +18,8 @@ For example, Python treats the Kelvin sign `K` as `K`; this tool leaves the un
 `café` already has the required spelling and can name a function or body variable here.
 These checks prevent two spellings from silently hiding the same binding.
 It supports positional-only parameters (slots that calls must supply by position) before `/`, positional-or-keyword parameters, and
-keyword-only parameters (slots that calls must supply by name) after a bare `*`. Calls can reach same-file helpers, recursive summaries,
+keyword-only parameters (slots that calls must supply by name) after `*` or `*args`,
+and extra positional or named arguments through `*args` and `**kwargs`. Calls can reach same-file helpers, recursive summaries,
 static package functions, re-exports (making an imported name available from another module) and module aliases.
 
 ```python
@@ -29,7 +30,8 @@ choose(source(), right=0)
 choose(0, right=source())
 ```
 
-Python evaluates explicit arguments in the order they appear in the call.
+Python evaluates positional arguments, including `*...`, before keyword groups.
+Explicit keywords and `**...` then follow Python's evaluation and merge order.
 In `choose(0, right=source())`, the input call still runs, but the returned `left` argument is zero.
 The analysis keeps that evaluation order and matches each value to its parameter.
 Comments and separators such as `/` add no input connection.
@@ -40,25 +42,31 @@ If an argument's helper raises an error, later arguments and the called helper d
 When the model cannot decide a Boolean condition, it keeps both possible paths.
 Arguments can have effects before Python rejects a call.
 For example, `choose(source())` runs `source()` before Python reports the missing `right` argument.
-Missing, excess, duplicate and unknown arguments produce an
-`invalid-call-binding` cutoff. Passing a positional-only parameter by keyword or a keyword-only
-parameter positionally also produces that cutoff. The report is incomplete; it does not model the
-implicit `TypeError` or establish absence of later behavior.
+For fixed-parameter calls without expansion, missing, excess, duplicate or unknown arguments
+produce an `invalid-call-binding` cutoff. The report remains incomplete.
+Expanded calls and calls to variadic helpers model binding failures as `TypeError`, preserving
+argument effects and allowing supported handlers and cleanup to run. A positional-only name
+can enter `**kwargs`; it does not bind the corresponding positional parameter.
 
 The call checker rejects repeated keyword names and invalid argument ordering before following argument expressions.
 It applies this check even in skipped branches and arguments that never return.
 Generator argument syntax stays outside this contract. These limited checks do not replace Python's compiler.
 
 Defaults that execute a call remain outside this call support.
-A function can declare unused extra-argument slots, such as `*items` and `**options`, while calls still fit its ordinary fixed parameters.
-Reading those slots, passing extra arguments, or unpacking values into a call with `*items` or `**options` remains unsupported.
+Known helpers can read and forward `*items` and `**options`. Each call creates a fresh tuple
+or dictionary for its extra arguments while preserving aliases to nested collections.
+A known list or tuple can supply `*...`; a known dictionary can supply `**...` with string keys.
+The analysis limits expanded calls and collection sizes to 64 items. Unknown shapes,
+arbitrary iterables and custom mappings remain incomplete. See the
+[collection and variadic examples](analysis-coverage.md) for mutation, copying and failure order.
 Annotations require the documented
 [future-annotation directive](python-contract.md#trace-a-helper-that-has-type-annotations).
 Other annotation evaluation remains unchecked. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to
 those rules report `keyword-rule-contract-unchecked`. A caller can use an admitted local wrapper
-with explicit parameters and a positional rule call. Dynamic dispatch, implicit exceptions (errors an operation can raise without an explicit `raise`) and
-changes to shared mutable objects remain outside scalar summary analysis.
+with explicit parameters and a positional rule call. Dynamic dispatch and unmodeled operations
+remain incomplete. Bounded lists, tuples and dictionaries support the shared-mutation and error
+rules described in the [analysis guide](analysis-coverage.md).
 
 The binding order follows the [Python call reference](https://docs.python.org/3/reference/expressions.html#calls).
 The finite runtime corpus compares independent CPython observations with origin propagation,
@@ -78,7 +86,8 @@ The required `CallBinding.definitions` field separates declaration safety from c
 Module functions with ASCII parameters and literal or earlier known value defaults defer their bodies,
 including referenced variadics. An uncalled declaration therefore does not introduce a module-effect
 cutoff solely because its body or call binding lies outside the scalar model. Calling that function
-still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
+still requires checked argument binding and body operations. A selected entry with an unknown
+variadic shape remains incomplete when its body needs that shape.
 The [named-default example](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks whether a value exists before the declaration.
 Calls can use [earlier scalar defaults](python-contract.md#call-a-helper-with-an-earlier-scalar-default), including [values imported from checked local files](python-contract.md#share-a-default-value-between-files).
 Giving a checked scalar another name, such as `LIMIT = BASE`, also preserves that default.

@@ -49,11 +49,21 @@ Shell positional reads are renumbered with their call sites, and quoted command 
 
 Python removal selects the supplied value by its actual binding, including mixed positional and keyword calls.
 Omitted defaults stay omitted. A move that supplies only part of the moved range refuses.
-Python and TypeScript defaults whose evaluation could change also refuse, as do unchecked Python annotation effects.
-Variadic, grouped and keyword-only signatures require a separate binding rule and remain explicit refusals.
+The planner rejects Python and TypeScript defaults whose evaluation could change, and Python annotations with unchecked effects.
+Python signature changes accept normalized (NFKC) Unicode names, such as `café`.
+The planner refuses if any indexed Python file contains an identifier such as `K` that Python would normalize to `K`.
+This check leaves string data and comments alone.
+Removal and movement support positional-only (`/`), keyword-only (`*`), `*args` and `**kwargs` parameters.
+You can remove an unused variadic parameter when every supplied value is a safe literal.
+Moves stay within one parameter kind.
+Mixed positional/keyword calls can gain explicit names to preserve evaluation order.
+Bounded literal `*[...]`, `*(...)` and `**{...}` arguments retain their containers and comments.
+Literal `**{...}` expansion requires plain, unescaped ASCII string keys.
+Dynamic expansions, dynamic local inspection, unsafe defaults and unchecked decorators refuse.
+Method changes require a known bound receiver; unbound class calls and reassigned receivers refuse.
 
 The [structural-change guide](structural-changes.md) describes the narrower checked-authoring contract.
-It retains primitive Rust signature requirements and requires independent compiler and behavior checks.
+It supports Rust and Python free functions and requires independent compiler or runtime checks.
 An explicit documentation-preservation policy leaves comments unchanged during a rename;
 executable strings still need their references resolved before checked delivery.
 

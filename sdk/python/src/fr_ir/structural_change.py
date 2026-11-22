@@ -1,4 +1,4 @@
-"""Reviewed Rust, Python and TypeScript renames and Rust scalar signature changes."""
+"""Reviewed Rust, Python and TypeScript renames and checked Rust/Python signature changes."""
 from __future__ import annotations
 
 from dataclasses import dataclass

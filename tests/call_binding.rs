@@ -73,11 +73,8 @@ fn uncalled_variadic_bodies_defer_effects_but_calls_keep_their_contract() {
         assert!(report["function_summaries"]["functions"]["choose"].is_null());
     }
     let (_, called) = analyze_body(root.path(), "*items", "return items[0]", "choose(source())");
-    assert_eq!(called["complete"], false);
-    assert!(called["cutoffs"]
-        .as_array()
-        .unwrap()
-        .contains(&json!("unsupported-parameter-contract:choose")));
+    assert_eq!(called["complete"], true, "{}", called["cutoffs"]);
+    assert!(!called["witnesses"].as_array().unwrap().is_empty());
     assert!(!called["cutoffs"]
         .as_array()
         .unwrap()
@@ -111,7 +108,7 @@ fn generator_calls_never_transfer_their_deferred_body() {
 }
 
 #[test]
-fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
+fn variadic_declarations_bind_fixed_slots_and_extra_arguments() {
     let root = tempfile::tempdir().unwrap();
     for (parameters, call, complete, witness) in [
         ("left, *extra", "choose(source())", true, true),
@@ -136,10 +133,10 @@ fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
             true,
             true,
         ),
-        ("left, *extra", "choose(0, source())", false, false),
-        ("left, **extra", "choose(0, extra=source())", false, false),
-        ("left, *extra", "choose(0, sink(source()))", false, true),
-        ("left, *extra, right", "choose(source())", false, false),
+        ("left, *extra", "choose(0, source())", true, false),
+        ("left, **extra", "choose(0, extra=source())", true, false),
+        ("left, *extra", "choose(0, sink(source()))", true, true),
+        ("left, *extra, right", "choose(source())", true, false),
     ] {
         let (_, report) = analyze(root.path(), parameters, call);
         assert_eq!(
@@ -151,9 +148,6 @@ fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
         assert_eq!(report["call_binding"]["schema"], "fr-call-binding");
     }
     for (parameters, body) in [
-        ("left, *extra", "return extra"),
-        ("left, **extra", "return extra"),
-        ("left, *extra", "extra = 0; return left"),
         ("left, *extra: int", "return left"),
         ("left, **extra: int", "return left"),
     ] {

@@ -5,6 +5,8 @@ pub(super) enum Kind {
     PositionalOnly,
     Either,
     KeywordOnly,
+    VarArgs,
+    VarKeywords,
 }
 
 pub(super) struct Parameter<'t> {
@@ -1065,7 +1067,7 @@ fn parameter_contract<'t>(
     function: Node<'t>,
     source: &str,
     postponed: bool,
-    phase: Phase,
+    _phase: Phase,
     values: &BTreeSet<String>,
 ) -> Option<Vec<Parameter<'t>>> {
     if function.child_by_field_name("type_parameters").is_some()
@@ -1138,17 +1140,27 @@ fn parameter_contract<'t>(
                 bare_star = true;
             }
             "list_splat_pattern" if !star => {
-                variadic_parameter(node, function, source, &mut names, phase)?;
+                let name = variadic_parameter(node, source, &mut names)?;
+                result.push(Parameter {
+                    node: name,
+                    kind: Kind::VarArgs,
+                    default: None,
+                });
                 star = true;
             }
             "dictionary_splat_pattern" if !variadic_keywords => {
-                variadic_parameter(node, function, source, &mut names, phase)?;
+                let name = variadic_parameter(node, source, &mut names)?;
+                result.push(Parameter {
+                    node: name,
+                    kind: Kind::VarKeywords,
+                    default: None,
+                });
                 variadic_keywords = true;
             }
             _ => return None,
         }
     }
-    if bare_star && result.last().is_none_or(|p| p.kind != Kind::KeywordOnly) {
+    if bare_star && !result.iter().any(|p| p.kind == Kind::KeywordOnly) {
         return None;
     }
     Some(result)
@@ -1174,13 +1186,11 @@ fn postponed_annotation(node: Node<'_>) -> bool {
     pending.is_empty()
 }
 
-fn variadic_parameter<'s>(
-    node: Node<'_>,
-    function: Node<'_>,
+fn variadic_parameter<'s, 't>(
+    node: Node<'t>,
     source: &'s str,
     names: &mut BTreeSet<&'s str>,
-    phase: Phase,
-) -> Option<()> {
+) -> Option<Node<'t>> {
     let mut cursor = node.walk();
     let mut children = node.named_children(&mut cursor);
     let name = children.next()?;
@@ -1188,32 +1198,25 @@ fn variadic_parameter<'s>(
         return None;
     }
     let text = &source[name.byte_range()];
-    if !text.is_ascii() || !names.insert(text) {
-        return None;
+    (text.is_ascii() && names.insert(text)).then_some(name)
+}
+
+impl Kind {
+    pub(super) fn variadic(self) -> bool {
+        matches!(self, Self::VarArgs | Self::VarKeywords)
     }
-    if phase == Phase::Declaration {
-        return Some(());
-    }
-    let mut pending = vec![function.child_by_field_name("body")?];
-    while let Some(child) = pending.pop() {
-        if child.kind() == "identifier" && &source[child.byte_range()] == text {
-            return None;
-        }
-        pending.extend(child.named_children(&mut child.walk()));
-    }
-    Some(())
 }
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
-        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
+        "parameters":"ASCII fixed slots, *args and **kwargs; checked defaults permit replacements.",
         "evaluation":"Evaluate positional expressions before keywords, once each; expand a sole *value after keywords.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
-        "invalid":"Expanded fixed-slot binding errors raise TypeError; other invalid calls stay incomplete.",
-        "boundary":"No object-default reads, unchecked definitions, used variadics, dictionary expansion, async/generators or rule keywords.",
+        "invalid":"Expanded and variadic binding errors raise TypeError; other invalid calls stay incomplete.",
+        "boundary":"No object-default reads, custom mappings, arbitrary iterators, unchecked definitions, async/generators or rule keywords.",
         "definitions":"Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
         "initialization":"Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
-        "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
+        "variadics":"Pack bounded extra positions into a tuple and extra keywords into a fresh dictionary; preserve nested aliases.",
         "defaults":"Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
         "implicit_exceptions":false})
 }
@@ -1222,27 +1225,43 @@ pub(super) fn argument_slots(
     parameters: &[Parameter<'_>],
     source: &str,
     names: &[Option<String>],
-) -> Option<Vec<Option<usize>>> {
-    let mut slots = vec![None; parameters.len()];
+) -> Option<Vec<Vec<usize>>> {
+    let mut slots = vec![Vec::new(); parameters.len()];
+    let positional: Vec<_> = parameters
+        .iter()
+        .enumerate()
+        .filter_map(|(i, p)| matches!(p.kind, Kind::PositionalOnly | Kind::Either).then_some(i))
+        .collect();
+    let varargs = parameters.iter().position(|p| p.kind == Kind::VarArgs);
+    let kwargs = parameters.iter().position(|p| p.kind == Kind::VarKeywords);
     let mut position = 0;
+    let mut seen = BTreeSet::new();
     let mut keywords = false;
     for (argument, keyword) in names.iter().enumerate() {
         let slot = if let Some(keyword) = keyword {
             keywords = true;
-            parameters.iter().position(|p| {
-                p.kind != Kind::PositionalOnly && &source[p.node.byte_range()] == keyword
-            })?
-        } else {
-            if keywords || parameters.get(position)?.kind == Kind::KeywordOnly {
+            if !seen.insert(keyword) {
                 return None;
             }
-            let slot = position;
+            parameters
+                .iter()
+                .position(|p| {
+                    matches!(p.kind, Kind::Either | Kind::KeywordOnly)
+                        && &source[p.node.byte_range()] == keyword
+                })
+                .or(kwargs)?
+        } else {
+            if keywords {
+                return None;
+            }
+            let slot = positional.get(position).copied().or(varargs)?;
             position += 1;
             slot
         };
-        if slots[slot].replace(argument).is_some() {
+        if !parameters[slot].kind.variadic() && !slots[slot].is_empty() {
             return None;
         }
+        slots[slot].push(argument);
     }
     Some(slots)
 }
@@ -1316,12 +1335,19 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .first()
                 .is_some_and(|node| node.kind() == "list_splat");
         let mut deferred = None;
+        let mut seen_keywords = Vec::new();
+        let mut duplicate_keywords = false;
+        let mut invalid_keyword = false;
         for argument in arguments {
+            if argument.kind() == "dictionary_splat" && duplicate_keywords {
+                self.sequence_error(argument, env, "TypeError");
+                result.checked = false;
+                break;
+            }
             if self.solver.enabled && !self.normal {
                 break;
             }
-            if argument.kind() == "dictionary_splat"
-                || argument.kind() == "list_splat" && !self.solver.enabled
+            if matches!(argument.kind(), "dictionary_splat" | "list_splat") && !self.solver.enabled
             {
                 self.cutoff("argument-unpacking-unchecked");
                 result.checked = false;
@@ -1340,7 +1366,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     self.cutoff("non-ascii-keyword-binding-unchecked");
                 }
                 (value, Some(self.text(name).to_owned()))
-            } else if argument.kind() == "list_splat" {
+            } else if matches!(argument.kind(), "list_splat" | "dictionary_splat") {
                 result.expanded = true;
                 let Some(value) = argument.named_child(0) else {
                     result.checked = false;
@@ -1355,7 +1381,37 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 break;
             }
             let element = self.list_element(value, flow, env);
-            if argument.kind() == "list_splat" && defer_expansion {
+            if argument.kind() == "dictionary_splat" {
+                if element.facts.noniterable {
+                    self.sequence_error(argument, env, "TypeError");
+                    result.checked = false;
+                    break;
+                }
+                let Some((_, mapping)) = self.exact_mapping(&element.references, env) else {
+                    self.cutoff("argument-unpacking-unchecked");
+                    result.checked = false;
+                    break;
+                };
+                for (key, value) in mapping.keys.unwrap().into_iter().zip(mapping.items) {
+                    if seen_keywords.contains(&key) {
+                        self.sequence_error(argument, env, "TypeError");
+                        result.checked = false;
+                        break;
+                    }
+                    seen_keywords.push(key.clone());
+                    let name = if let mappings::Key::Text(name) = key {
+                        name
+                    } else {
+                        invalid_keyword = true;
+                        String::new()
+                    };
+                    result.names.push(Some(name));
+                    result.elements.push(value);
+                }
+                if !self.normal {
+                    break;
+                }
+            } else if argument.kind() == "list_splat" && defer_expansion {
                 deferred = Some((argument, element));
             } else if argument.kind() == "list_splat" {
                 let Some(values) = self.sequence_items(argument, &element, env) else {
@@ -1368,6 +1424,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 result.names.extend(std::iter::repeat_n(None, values.len()));
                 result.elements.extend(values);
             } else {
+                if let Some(name) = &name {
+                    let key = mappings::Key::Text(name.clone());
+                    duplicate_keywords |= seen_keywords.contains(&key);
+                    seen_keywords.push(key);
+                }
                 result.names.push(name);
                 result.elements.push(element);
             }
@@ -1397,6 +1458,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 }
             }
         }
+        if self.normal && result.checked && (duplicate_keywords || invalid_keyword) {
+            self.sequence_error(node, env, "TypeError");
+            result.checked = false;
+        }
         result.values = result
             .elements
             .iter()
@@ -1425,7 +1490,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         };
         let mut slots: Vec<_> = indices
             .into_iter()
-            .map(|index| index.map(|index| values[index].clone()))
+            .zip(&parameters)
+            .map(|(indices, parameter)| {
+                if indices.is_empty() && !parameter.kind.variadic() {
+                    return None;
+                }
+                let mut flow = Flow::new();
+                for index in indices {
+                    merge(&mut flow, values[index].clone());
+                }
+                Some(flow)
+            })
             .collect();
         for (slot, parameter) in slots.iter_mut().zip(&parameters) {
             if slot.is_none() {
@@ -1494,6 +1569,8 @@ impl Analyzer<'_, '_, '_> {
                     Kind::PositionalOnly => "positional-only",
                     Kind::Either => "positional-or-keyword",
                     Kind::KeywordOnly => "keyword-only",
+                    Kind::VarArgs => "variadic-positional",
+                    Kind::VarKeywords => "variadic-keyword",
                 },
                 site: self.occurrence(parameter.node, "summary-parameter"),
                 default: parameter

@@ -48,11 +48,10 @@ def test_unused_variadic_declarations_preserve_fixed_argument_selection(tmp_path
     ("left, **tail", "choose(0, extra=sink(source()))"),
     ("left, *tail, **options", "choose(0, tail=sink(source()))"),
 ])
-def test_extra_variadic_arguments_preserve_effects_and_remain_incomplete(tmp_path, parameters, call):
+def test_extra_variadic_arguments_preserve_effects(tmp_path, parameters, call):
     client, rules = install(tmp_path, parameters, call)
     result = analyze(client, rules, "entry")
-    assert not result.report.at("/complete")
-    assert "invalid-call-binding:choose" in result.report.at("/cutoffs")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert result.witnesses
     runtime = observe(tmp_path)
     assert runtime["raised"] is None and runtime["result"] == 0
@@ -68,7 +67,7 @@ def test_using_a_variadic_binding_invalidates_a_cached_fixed_summary(tmp_path):
     path = tmp_path / "subject.py"
     path.write_text(path.read_text().replace("return left", "tail = 0; return left"))
     changed = analyze(client, rules, "entry", cache)
-    assert not changed.reused and not changed.report.at("/complete")
+    assert not changed.reused and changed.report.at("/complete")
     assert evidence(changed) == evidence(analyze(client, rules, "entry"))
 
 
@@ -180,8 +179,6 @@ def test_invalid_binding_is_incomplete_after_argument_effects(tmp_path, paramete
 @pytest.mark.parametrize("parameters,call", [
     ("left=source()", "choose(left=source())"),
     ("left: int", "choose(left=source())"),
-    ("*left", "choose(source())"),
-    ("**left", "choose(left=source())"),
     ("left", "choose(*source())"),
     ("left", "choose(**source())"),
     ("left", "choose(left=source(), left=0)"),
@@ -396,3 +393,33 @@ def test_normalized_unicode_function_and_local_names_remain_supported(tmp_path, 
         summaries=summaries, steps=4096, max_bytes=1_048_576)
     assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert result.witnesses and observe(tmp_path)["result"] == 17
+
+
+@pytest.mark.parametrize("parameters,call", [("*left", "choose(source())"), ("**left", "choose(left=source())")])
+def test_returned_variadic_values_retain_origins(tmp_path, parameters, call):
+    client, rules = install(tmp_path, parameters, f"sink({call})")
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses
+    runtime = observe(tmp_path)
+    assert runtime["raised"] is None
+    assert runtime["result"] in ([17], {"left": 17})
+
+
+@pytest.mark.parametrize('mutation', ['order', 'duplicate', 'default'])
+def test_sdk_rejects_inconsistent_variadic_signature_metadata(tmp_path, mutation):
+    client, rules = install(tmp_path, 'left, *tail, **options', 'sink(choose(source()))')
+    result = analyze(client, rules, 'entry')
+    signature = result.summaries.for_function('choose').signature
+    assert [p.kind for p in signature] == ['positional-or-keyword', 'variadic-positional', 'variadic-keyword']
+    assert [p.required for p in signature] == [True, False, False]
+    data = copy.deepcopy(result.report.to_data())
+    summary = data['function_summaries']['functions']['choose']
+    if mutation == 'order':
+        summary['signature'][0]['kind'] = 'keyword-only'
+    elif mutation == 'duplicate':
+        summary['signature'][2]['kind'] = 'variadic-positional'
+    else:
+        summary['signature'][1]['default'] = copy.deepcopy(summary['signature'][1]['site'])
+    with pytest.raises(FrRuntimeError):
+        FunctionSummaries.from_report(FrReport(data, ()))

@@ -28,6 +28,7 @@ The table below connects the analysis features to their implementation checks.
 | Package initialization | Original imports, aliases, re-exports, startup effects and missing dependencies | [Package flow](../tests/package_flow.rs), [Python contract](python-contract.md) |
 | List and conversion errors | Known list bounds and slice failures, base-ten conversion of known strings, builtin handlers and cleanup | [List error checks](../sdk/python/tests/test_list_exceptions.py), [conversion checks](../sdk/python/tests/test_graph_analysis.py) |
 | Shared lists | Local, returned and nested identities; signed fixed-index reads/writes; append, extend, clear, insert, pop, reverse, copy; slices, concatenation and deletion; helpers with checked argument binding | [Independent Python checks](../sdk/python/tests/test_graph_analysis.py), [contract examples](../tools/python_contract_cases.py), [sequence checks](../sdk/python/tests/test_list_sequences.py), [effect examples](../tools/python-effects.py) |
+| Dictionaries and variadic calls | Shared mapping identities, literal keys, mutation, keyword expansion and packed helper arguments | [Python comparisons](../sdk/python/tests/test_mapping_calls.py) |
 | Saved answers | Reuse only when source, imports, settings and analyzer inputs still match | [Saved flow checks](../sdk/python/tests/test_flow.py), [effect checks](../sdk/python/tests/test_runtime_effects.py) |
 
 These links identify checks, not a claim that they passed on every revision.
@@ -85,7 +86,7 @@ It tracks aliases of local lists, signed constant indices and checked positional
 Negative indices follow each possible list length after a branch. Lists with one known identity and length support
 `insert`, `pop` and `reverse`; `pop` carries the removed item’s flow into its result.
 Helpers preserve positional-only and keyword-only rules and checked scalar defaults.
-Expanded calls to fixed parameter lists raise `TypeError` for missing, duplicate or invalid arguments. Other invalid calls remain incomplete.
+Expanded and variadic calls raise `TypeError` for missing, duplicate or invalid arguments. Other invalid calls remain incomplete.
 Known helpers can return a list or allocate a new one. Nested lists retain the identity of each contained list;
 mutating an inner list reaches its aliases, while replacing an outer slot leaves old aliases intact.
 Cleanup can mutate a returned list; rebinding the helper's local name does not replace the pending return.
@@ -132,10 +133,39 @@ This matters when a keyword expression mutates `items`.
 
 The existing limits remain: 64 objects, 64 items per sequence, 64 expanded arguments and
 64 target writes, with pattern nesting up to 16. Ambiguous lengths, arbitrary iterators,
-dictionary expansion, used variadic parameters and tuple mutation remain incomplete.
+custom mapping expansion, arbitrary iterators and tuple mutation remain incomplete.
 Module setup accepts nested literal patterns and literal expansion within its existing
 128-node limit; starred module targets and evaluated setup remain unchecked.
 [Runtime and cache tests](../sdk/python/tests/test_sequence_unpacking.py) check these distinctions.
+
+## Trace dictionaries and variadic calls
+
+Known dictionaries share the collection heap with lists and tuples. Reading an item
+captures its current value; mutating a nested collection reaches every alias of that
+collection. `copy()` and `{**table}` create new outer dictionaries with shared inner objects.
+Reads, writes, deletion, `get`, `pop`, `setdefault`, `update` and `clear` support known
+literal string, integer, Boolean and `None` keys. Missing reads, deletions and `pop`
+without a default raise `KeyError`; handlers and cleanup see earlier mutations.
+
+```python
+def clear_input(**options):
+    options["items"][0] = 0
+
+def entry():
+    items = [read_input()]
+    clear_input(**{"items": items})
+    send(items[0])
+```
+
+This sends zero: each call creates a fresh keyword dictionary, but its values keep their
+nested identities. `*args` similarly creates a tuple. Helpers can read, return and forward
+these values. Duplicate keyword merges and invalid binding preserve Python's evaluation
+order and raise `TypeError`. Builtin `dict` construction requires the selected builtin model.
+
+The same limits apply across collections: 64 objects, 64 items and 64 expanded arguments.
+Unknown keys, ambiguous dictionary shapes, custom mappings, mapping iteration and recursive
+collection helpers remain incomplete. [Independent checks](../sdk/python/tests/test_mapping_calls.py)
+compare runtime behavior, imported-helper cache invalidation and limit boundaries.
 
 ## Follow a failed list operation
 

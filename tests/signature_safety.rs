@@ -184,16 +184,6 @@ fn removed_defaults_and_annotations_cannot_hide_effects() {
 }
 
 #[test]
-fn variadic_and_keyword_only_signatures_refuse_positional_edits() {
-    for parameters in ["*args", "**kwargs", "a, *, b=0", "a, /, b=0"] {
-        let source = format!("def adjust({parameters}):\n    return 1\n");
-        let (_dir, index) = workspace("a.py", &source);
-        let error = changed(&index, Change::Remove(0)).unwrap_err().to_string();
-        assert!(error.contains("bindings"), "{parameters}: {error}");
-    }
-}
-
-#[test]
 fn rust_macro_calls_use_the_same_evaluation_rule() {
     for argument in ["record()", "{ record(); 0 }"] {
         let source = format!("fn adjust(unused: i32) -> i32 {{ 1 }}\nfn record() -> i32 {{ 0 }}\nfn run() {{ assert_eq!(adjust({argument}), 1); }}\n");
@@ -602,4 +592,208 @@ fn a_recipe_cannot_commit_an_earlier_rename_after_signature_refusal() {
         }
         assert_eq!(python_project(root.path()), expected);
     }
+}
+
+#[test]
+fn python_parameter_kinds_and_literal_expansions_preserve_execution() {
+    for (parameters, body, call, at) in [
+        ("a, /, unused=0", "return a", "adjust(1, unused=0)", 1),
+        ("unused, /, a", "return a", "adjust(0, 1)", 0),
+        ("a, *, unused=0", "return a", "adjust(1, unused=0)", 1),
+        ("*, unused=0", "return 1", "adjust(unused=0)", 0),
+        ("a, *unused", "return a", "adjust(1, 0, 0)", 1),
+        ("a, **unused", "return a", "adjust(1, extra=0)", 1),
+        (
+            "a, *unused, flag=0",
+            "return a + flag",
+            "adjust(1, 0, flag=2)",
+            1,
+        ),
+        ("unused, a", "return a", "adjust(*(0, 1))", 0),
+        ("a, unused", "return a", "adjust(*[1, 0])", 1),
+        (
+            "a, *, unused=0",
+            "return a",
+            "adjust(1, **{'unused': 0})",
+            1,
+        ),
+    ] {
+        let source = format!("def adjust({parameters}):\n    {body}\nprint({call})\n");
+        let (dir, index) = workspace("subject.py", &source);
+        let plan = changed(&index, Change::Remove(at)).unwrap();
+        let after = apply(dir.path(), "subject.py", &plan.edits);
+        assert_eq!(
+            output("python3", &source),
+            output("python3", &after),
+            "{after}"
+        );
+    }
+}
+
+#[test]
+fn python_kind_aware_moves_keep_bindings_and_keyword_evaluation_order() {
+    for (parameters, call, from, to) in [
+        ("a, b, /", "adjust(1, 2)", 0, 1),
+        ("*, a=1, b", "adjust(b=2)", 0, 1),
+        ("a, *, b, c", "adjust(1, c=3, b=2)", 1, 2),
+        ("a, b", "adjust(b=mark(2), a=mark(1))", 0, 1),
+        ("a, b", "adjust(mark(1), b=mark(2))", 0, 1),
+        ("a, b, *tail", "adjust(*(1, 2, 3))", 0, 1),
+    ] {
+        let source = format!("def mark(x):\n    print(x)\n    return x\ndef adjust({parameters}):\n    return a * 10 + b\nprint({call})\n");
+        let (dir, index) = workspace("subject.py", &source);
+        let plan = changed(&index, Change::Move { from, to }).unwrap();
+        let after = apply(dir.path(), "subject.py", &plan.edits);
+        assert_eq!(
+            output("python3", &source),
+            output("python3", &after),
+            "{after}"
+        );
+    }
+}
+
+#[test]
+fn python_expanded_removal_keeps_comments_and_refuses_effects() {
+    let source =
+        "def adjust(unused, /, a):\n    return a\nprint(adjust(*(0, # keep this comment\n1)))\n";
+    let (dir, index) = workspace("subject.py", source);
+    let plan = changed(&index, Change::Remove(0)).unwrap();
+    let after = apply(dir.path(), "subject.py", &plan.edits);
+    assert!(after.contains("# keep this comment"));
+    assert_eq!(output("python3", source), output("python3", &after));
+    for call in [
+        "adjust(*[mark(), 1])",
+        "adjust(**{'unused': mark(), 'a': 1})",
+        "adjust(*values)",
+    ] {
+        let source = format!("def mark():\n    print('effect')\n    return 0\ndef adjust(unused, a):\n    return a\nvalues = [0, 1]\n{call}\n");
+        let (_dir, index) = workspace("subject.py", &source);
+        assert!(changed(&index, Change::Remove(0)).is_err());
+    }
+}
+
+#[test]
+fn dynamic_local_inspection_refuses_signature_changes() {
+    let source = "def adjust(unused):\n    return locals()\nadjust(0)\n";
+    let (_dir, index) = workspace("a.py", source);
+    let error = changed(&index, Change::Remove(0)).unwrap_err().to_string();
+    assert!(error.contains("local inspection"), "{error}");
+}
+
+#[test]
+fn python_method_moves_refuse_unbound_receivers() {
+    for call in [
+        "Calculator.adjust(instance, 4, 1)",
+        "Other.adjust(instance, 4, 1)",
+    ] {
+        let source = format!("class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\ninstance: Calculator = Calculator()\nOther = Calculator\nprint({call})\n");
+        let (dir, index) = workspace("subject.py", &source);
+        assert_eq!(output("python3", &source), b"3\n");
+        assert!(changed(&index, Change::Move { from: 0, to: 1 }).is_err());
+        assert_eq!(
+            fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+            source
+        );
+    }
+}
+
+#[test]
+fn reassigned_python_method_receivers_refuse() {
+    let source = "class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\n    def run(self):\n        self = Calculator\n        return self.adjust(instance, 4, 1)\ninstance: Calculator = Calculator()\nprint(instance.run())\n";
+    let (dir, index) = workspace("subject.py", source);
+    assert_eq!(output("python3", source), b"3\n");
+    assert!(changed(&index, Change::Move { from: 0, to: 1 }).is_err());
+    assert_eq!(
+        fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+        source
+    );
+}
+
+#[test]
+fn python_receiver_field_writes_do_not_block_bound_method_moves() {
+    let source = "class Calculator:\n    def adjust(self, a, b, *tail):\n        return a - b\n    def run(self):\n        self.flag = 1\n        return self.adjust(4, 1)\ninstance: Calculator = Calculator()\nprint(instance.run())\n";
+    let (dir, index) = workspace("subject.py", source);
+    let plan = changed(&index, Change::Move { from: 0, to: 1 }).unwrap();
+    let after = apply(dir.path(), "subject.py", &plan.edits);
+    assert_eq!(output("python3", source), output("python3", &after));
+}
+
+#[test]
+fn python_normalized_unicode_parameters_preserve_execution() {
+    for (parameters, body, call, change) in [
+        (
+            "café, unused",
+            "return café",
+            "adjust(café=4, unused=0)",
+            Change::Remove(1),
+        ),
+        (
+            "café, crème",
+            "return café - crème",
+            "adjust(café=4, crème=1)",
+            Change::Move { from: 0, to: 1 },
+        ),
+        (
+            "café, crème",
+            "return café - crème",
+            "adjust(4, 1)",
+            Change::Move { from: 0, to: 1 },
+        ),
+        (
+            "unused",
+            "return {'K': 4}['K']",
+            "adjust(0)",
+            Change::Remove(0),
+        ),
+    ] {
+        let source = format!("# K is string data below, not an identifier\ndef adjust({parameters}):\n    {body}\nprint({call})\n");
+        let (dir, index) = workspace("subject.py", &source);
+        let plan = changed(&index, change).unwrap();
+        let after = apply(dir.path(), "subject.py", &plan.edits);
+        assert_eq!(
+            output("python3", &source),
+            output("python3", &after),
+            "{after}"
+        );
+    }
+}
+
+#[test]
+fn python_normalized_keyword_and_body_aliases_refuse_without_writes() {
+    for source in [
+        "def adjust(K=0, **options):\n    return options.get('K', 0)\nprint(adjust(K=1))\n",
+        "def adjust(K=0):\n    return K\nprint(adjust(1))\n",
+        "def adjust(K=0):\n    return K\nprint(adjust(1))\n",
+    ] {
+        let (dir, index) = workspace("subject.py", source);
+        let error = changed(&index, Change::Remove(0)).unwrap_err().to_string();
+        assert!(error.contains("identifier normalization"), "{error}");
+        assert_eq!(
+            fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+            source
+        );
+    }
+}
+
+#[test]
+fn python_normalization_cannot_hide_callers_in_another_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let definition = "def K(unused):\n    return 4\n";
+    let caller = "from subject import K\nprint(K(0))\n";
+    fs::write(dir.path().join("subject.py"), definition).unwrap();
+    fs::write(dir.path().join("run.py"), caller).unwrap();
+    let index = Index::build(dir.path(), &ScanOptions::default()).unwrap();
+    let id = index.find_symbols("K", None)[0].id;
+    let error = signature::change(&index, id, Change::Remove(0))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("identifier normalization"), "{error}");
+    assert_eq!(
+        fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+        definition
+    );
+    assert_eq!(
+        fs::read_to_string(dir.path().join("run.py")).unwrap(),
+        caller
+    );
 }

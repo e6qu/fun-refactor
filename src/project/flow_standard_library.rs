@@ -21,6 +21,8 @@ pub(super) fn members(module: &str) -> Option<&'static [&'static str]> {
             "max",
             "ValueError",
             "IndexError",
+            "KeyError",
+            "dict",
             "LookupError",
             "TypeError",
             "Exception",
@@ -116,9 +118,9 @@ pub(super) fn contract(selected: &BTreeSet<String>) -> Result<Value> {
         "runtime":"CPython 3.14.8",
         "namespace_digest":hex::encode(Sha256::digest(STANDARD_MODULES.as_bytes())),
         "imports":"Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.",
-        "calls":"Scalar abs/int/float/str/bool/round and multi-argument min/max; IndexError/LookupError/ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
+        "calls":"Scalar abs/int/float/str/bool/round and multi-argument min/max; bounded dict construction; KeyError/IndexError/LookupError/ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
         "string_methods":if selected.contains("builtins") {super::text_values::contract()} else {Value::Null},
-        "boundary":"Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching or overloaded protocols. Known-string base-ten integer conversion has a possible ValueError path; other implicit exceptions remain unchecked."}),
+        "boundary":"Standard CPython library and builtins, scalars, bounded dictionaries and immutable dates; no replacement import hooks, monkey patching or overloaded protocols. Known-string base-ten integer conversion has a possible ValueError path; other implicit exceptions remain unchecked."}),
     )
 }
 
@@ -161,7 +163,7 @@ pub(super) fn arity(name: &str) -> Option<(usize, usize)> {
         "round" => (1, 2),
         "min" | "max" => (2, 128),
         "datetime.date" => (3, 3),
-        "IndexError" | "LookupError" | "ValueError" | "TypeError" | "Exception"
+        "IndexError" | "KeyError" | "LookupError" | "ValueError" | "TypeError" | "Exception"
         | "BaseException" => (0, 1),
         _ => return None,
     })

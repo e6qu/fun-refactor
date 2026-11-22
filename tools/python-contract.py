@@ -29,7 +29,7 @@ profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
 SCHEMA = 'fr-python-contract-3'
 LIMITS = ('Finite scalar examples, not full Python correctness or path feasibility. '
-          'Unhandled implicit exceptions, mutation beyond bounded shared lists and dynamic dispatch remain outside this model. '
+          'Unhandled implicit exceptions, mutation beyond bounded shared collections and dynamic dispatch remain outside this model. '
           'Runtime observations cover only declared inputs. Retained output is not execution attestation. '
           'No live-agent, token-efficiency or repository-generalization claim.')
 
@@ -74,6 +74,7 @@ def bindings():
                  'sdk/python/tests/test_exception_handlers.py', 'tests/agent-eval/python-handlers/cases.json',
                  'sdk/python/tests/test_graph_analysis.py', 'sdk/python/tests/test_list_sequences.py',
                  'sdk/python/tests/test_list_exceptions.py', 'sdk/python/tests/test_sequence_unpacking.py',
+                 'sdk/python/tests/test_mapping_calls.py',
                  'sdk/python/tests/test_standard_library.py',
                  'tests/agent-eval/python-handlers/selection.json', 'docs/catch-python-errors.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
@@ -155,11 +156,15 @@ def audit_signature(function, definition, path, source, revision):
     arguments = definition.args
     parameters = [(node, kind) for nodes, kind in (
         (arguments.posonlyargs, 'positional-only'), (arguments.args, 'positional-or-keyword'),
-        (arguments.kwonlyargs, 'keyword-only')) for node in nodes]
+        ([arguments.vararg] if arguments.vararg else [], 'variadic-positional'),
+        (arguments.kwonlyargs, 'keyword-only'),
+        ([arguments.kwarg] if arguments.kwarg else [], 'variadic-keyword')) for node in nodes]
     require([(item['name'], item['kind']) for item in function['signature']]
             == [(node.arg, kind) for node, kind in parameters], 'callee signature changed')
     positional = arguments.posonlyargs + arguments.args
-    defaults = [None] * (len(positional) - len(arguments.defaults)) + arguments.defaults + arguments.kw_defaults
+    defaults = ([None] * (len(positional) - len(arguments.defaults)) + arguments.defaults
+                + ([None] if arguments.vararg else []) + arguments.kw_defaults
+                + ([None] if arguments.kwarg else []))
     lines = source.encode().splitlines(keepends=True)
     for item, (node, _), default in zip(function['signature'], parameters, defaults):
         start = sum(map(len, lines[:node.lineno - 1])) + node.col_offset
@@ -225,12 +230,12 @@ def audit_case(row, case):
             and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
     assumptions = [
-        'Scalar values, bounded shared lists and standard built-ins; no monkey patching or implicit flows.',
+        'Scalar values, bounded shared collections and standard built-ins; no monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
         'Error paths follow inputs.completion_control; caught-error names preserve origins. Other implicit errors, custom classes and resource effects remain unchecked.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
     if case['standard_library']:
-        assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check.')
+        assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars, bounded dictionaries and immutable dates; standard-library implementation source is outside this check.')
     require(flow['assumptions'] == assumptions, 'analysis assumptions changed')
     require(flow['complete'] is case['expected_model']['complete'], 'completeness changed')
     require(bool(flow['witnesses']) is case['expected_model']['witness'], 'possible-flow answer changed')

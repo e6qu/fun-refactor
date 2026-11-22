@@ -84,16 +84,23 @@ For example, a docstring showing `subtotal(2, 3)` can follow the new name, while
 Text mentions and their file check associations must be included in the reviewed change scope.
 Other document formats can use a separate [exact text transaction](file-transactions.md#exact-text-replacements)
 with their own check, then contribute to the complete delivered patch.
-Signature changes remain limited to Rust. Renames retain the existing collision and capture checks and refuse
+Signature changes support Rust and Python free functions. Renames retain the existing collision and capture checks and refuse
 any planner warning. Weak, unresolved, dispatch and textual candidates need explicit resolution.
 Signature changes retain unused-parameter and function-value refusals from the native planner.
-Every parameter must have an explicit primitive integer, Boolean or character type.
+Rust parameters require explicit primitive integer, Boolean or character types.
 When removing a parameter, only its discarded argument must be a literal: an integer, Boolean or character written directly in source.
 Negative integer literals also qualify. The arguments that remain can contain variables or expressions; the edit preserves their order and bytes.
-This checked authoring route requires every argument in the moved range to be a literal.
+For Rust, this checked authoring route requires every argument in the moved range to be a literal.
 Arguments outside that range retain their order and may contain calls.
 The general `signature` command also accepts plain reads when every argument in the moved range is a literal or plain read.
 Both routes use the same binding checks and refuse effectful removals or reordering.
+
+Python changes use the same binding and evaluation checks as the signature command.
+Removal supports positional-only, keyword-only and unused variadic parameters. Movement
+stays within one parameter kind, preserving default ordering and each caller's binding.
+The planner accepts known literal argument expansions; dynamic expansions refuse. Retained
+calls keep their evaluation order. Imported callers retain explicit aliases. Review,
+acceptance checks, exact reversal and patch replay cover the complete change.
 
 For example, removing an unused third parameter changes `subtotal(amount, fee, 0)` to `subtotal(amount, fee)`.
 For `subtotal(record_price(), fee, 0)`, the `record_price()` call still runs before evaluating `fee`.

@@ -8,15 +8,15 @@ Complete each milestone in one PR, including its checks, required attempts and t
 
 ## Starting point
 
-[PR #647](https://github.com/e6qu/fun-refactor/pull/647) adds bounded list/tuple unpacking,
-nested and starred targets, sequence expansion and fixed-slot calls. Independent Python
-checks cover evaluation order, partial writes, shared identities and imported-helper
-cache invalidation. Twenty new paired examples and two closed corpus gaps bring the
-qualification to 565 programs and 1,130 cases, with 362 incomplete cases and 18 refusals.
-Hosted focused checks passed 37 Rust and 1,236 Python tests; full Python qualification
-passed 2,368 SDK tests and qualified the corpus. Platform qualification and Lean checks
-also passed. Current evidence has been refreshed and independently audited. Final PR CI
-must pass before marking it ready.
+PR #647 merged with passing CI, release and deep validation.
+[PR #649](https://github.com/e6qu/fun-refactor/pull/649) is the current combined change:
+Python signature refactoring, dictionary flow and variadic calls, with imported callers,
+independent runtime checks, safe refusal, checked delivery and replay. Focused refactoring
+and graph checks passed. Signature regressions cover Unicode binding safety and method receivers.
+SDK regressions compare typed variadic flow with Python execution, including empty argument collections.
+Python qualification passed 585 programs, 1,170 paired cases
+and 2,455 selected SDK checks, retaining 352 incomplete cases and 18 refusals.
+Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
 code and call graphs, analysis, refactoring, transformations, proofs, recovery and public

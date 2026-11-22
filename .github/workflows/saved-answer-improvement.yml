@@ -143,6 +143,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: c431636b9b9203f5a08aa682e0a1530b22850ad9
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+            /tests/agent-eval/results/2026-10-21-saved-work-39531778541/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

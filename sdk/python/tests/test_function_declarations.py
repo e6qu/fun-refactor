@@ -41,25 +41,24 @@ def test_uncalled_function_bodies_do_not_run_at_module_initialization(tmp_path, 
     assert observe(tmp_path) == {"result": 17, "raised": None, "events": [["source", 17], ["sink", 17]]}
 
 
-def test_referenced_variadic_calls_still_refuse_without_an_initialization_cutoff(tmp_path):
+def test_referenced_variadic_calls_preserve_runtime_sources_and_sinks(tmp_path):
     client, rules = workspace(tmp_path)
     (tmp_path / "subject.py").write_text(
         "def deferred(*items):\n    return sink(items[0])\n"
         "def entry():\n    return deferred(source())\n")
     result = analyze(client, rules, "entry")
-    assert not result.report.at("/complete") and not result.witnesses
-    assert "unsupported-parameter-contract:deferred" in result.report.at("/cutoffs")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses
     assert "module-effects-unchecked" not in result.report.at("/cutoffs")
     assert observe(tmp_path)["events"] == [["source", 17], ["sink", 17]]
 
 
-def test_unsupported_entry_parameters_cannot_establish_absence(tmp_path):
+def test_replaced_variadic_entry_binding_preserves_body_effects(tmp_path):
     client, rules = workspace(tmp_path)
     (tmp_path / "subject.py").write_text("def entry(*items):\n    items = 0\n    return sink(source())\n")
     result = analyze(client, rules, "entry")
-    assert not result.report.at("/complete")
-    assert "unsupported-parameter-contract:entry" in result.report.at("/cutoffs")
-    assert not result.summaries.complete
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.summaries.complete and result.witnesses
     assert observe(tmp_path)["events"] == [["source", 17], ["sink", 17]]
 
 
@@ -132,3 +131,11 @@ def test_current_declaration_contract_is_required(tmp_path, mutation):
         data["inputs"]["call_binding"]["definitions"] = data["call_binding"]["definitions"]
     with pytest.raises(FrRuntimeError):
         FunctionSummaries.from_report(FrReport(data, ()))
+
+
+def test_unknown_variadic_entry_shape_remains_incomplete(tmp_path):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "subject.py").write_text("def entry(*items):\n    return sink(items[0])\n")
+    result = analyze(client, rules, "entry")
+    assert not result.report.at("/complete") and result.report.at("/cutoffs")
+    assert observe(tmp_path)["raised"] == "IndexError"
