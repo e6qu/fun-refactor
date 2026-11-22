@@ -31,6 +31,36 @@ fn refuse(message: &str) -> anyhow::Error {
     .into()
 }
 
+// The index compares source spellings; Python binds identifiers after NFKC
+// normalization. Check every indexed Python file, since normalization can hide
+// callers from the target's reference list. String data and comments are not names.
+pub(super) fn checked_identifier_spellings(index: &Index) -> Result<()> {
+    let mut parsers = Parsers::new();
+    for (path, info) in index.files() {
+        if info.language != Language::Python {
+            continue;
+        }
+        let source = crate::vfs::read_to_string(path)?;
+        if source.is_ascii() {
+            continue;
+        }
+        let parsed = parsers.parse(Language::Python, &source)?;
+        let mut pending = vec![parsed.root()];
+        while let Some(node) = pending.pop() {
+            if node.kind() == "identifier"
+                && !unicode_normalization::is_nfkc(&source[node.byte_range()])
+            {
+                return Err(refuse(&format!(
+                    "Python identifier normalization is not checked at {}; use normalized identifier spellings before changing a signature",
+                    location(path, node.start_byte())
+                )));
+            }
+            pending.extend(node.named_children(&mut node.walk()));
+        }
+    }
+    Ok(())
+}
+
 impl Signature {
     pub(super) fn parse(list: Node<'_>, source: &str, kind: SymbolKind) -> Result<Self> {
         let mut pending: Vec<_> = list
@@ -87,14 +117,10 @@ impl Signature {
             };
             let name = parameter_name(text, Language::Python)
                 .ok_or_else(|| refuse("parameter binding is not established"))?;
-            if !name.is_ascii()
-                || !name.chars().enumerate().all(|(i, c)| {
-                    c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit()
-                })
-            {
-                return Err(refuse(
-                    "signature changes require checked ASCII parameter bindings",
-                ));
+            if !descendants(node).into_iter().any(|child| {
+                child.kind() == "identifier" && source[child.byte_range()] == name
+            }) {
+                return Err(refuse("parameter binding is not established"));
             }
             parameters.push(Parameter {
                 name,

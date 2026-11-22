@@ -249,6 +249,10 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         .into());
     }
 
+    if sym.language == Language::Python {
+        python::checked_identifier_spellings(index)?;
+    }
+
     let family = crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol);
     let dispatched = !family.is_empty();
     let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };

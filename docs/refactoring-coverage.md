@@ -50,8 +50,11 @@ Shell positional reads are renumbered with their call sites, and quoted command 
 Python removal selects the supplied value by its actual binding, including mixed positional and keyword calls.
 Omitted defaults stay omitted. A move that supplies only part of the moved range refuses.
 Python and TypeScript defaults whose evaluation could change also refuse, as do unchecked Python annotation effects.
-Python removal and movement understand positional-only (`/`), keyword-only (`*`),
-`*args` and `**kwargs` parameters. An unused variadic parameter can be removed when
+Python signature changes accept Unicode names written in their normalized (NFKC)
+form, such as `café`. They refuse when an indexed Python file contains an identifier
+whose spelling Python would normalize, such as `K` to `K`; strings and comments
+are unaffected. Removal and movement understand
+positional-only (`/`), keyword-only (`*`), `*args` and `**kwargs` parameters. An unused variadic parameter can be removed when
 all its supplied values are safe literals. Moves stay within one parameter kind.
 Mixed positional/keyword calls can gain explicit names to preserve evaluation order.
 Bounded literal `*[...]`, `*(...)` and `**{...}` arguments retain their containers and comments.
