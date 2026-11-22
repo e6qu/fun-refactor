@@ -1349,19 +1349,20 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     "list" | "tuple" | "expression_list" | "dictionary"
                 ) && !format_arguments
                     && !exception_types
-                    && (node.kind() == "dictionary" || !std::iter::successors(node.parent(), |node| node.parent())
-                        .take_while(|node| {
-                            matches!(
-                                node.kind(),
-                                "assignment"
-                                    | "tuple"
-                                    | "list"
-                                    | "expression_list"
-                                    | "parenthesized_expression"
-                            )
-                        })
-                        .find(|node| node.kind() == "assignment")
-                        .is_some_and(assignments::literal_transfer))
+                    && (node.kind() == "dictionary"
+                        || !std::iter::successors(node.parent(), |node| node.parent())
+                            .take_while(|node| {
+                                matches!(
+                                    node.kind(),
+                                    "assignment"
+                                        | "tuple"
+                                        | "list"
+                                        | "expression_list"
+                                        | "parenthesized_expression"
+                                )
+                            })
+                            .find(|node| node.kind() == "assignment")
+                            .is_some_and(assignments::literal_transfer))
                 {
                     found = true;
                     break;
@@ -1386,7 +1387,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             },
                             |modules| modules.resolve(file, &text),
                         );
-                        if target == "builtins.dict" || text == "dict" && self.modules.is_some_and(|modules| modules.standard_enabled("builtins")) {
+                        if target == "builtins.dict"
+                            || text == "dict"
+                                && self
+                                    .modules
+                                    .is_some_and(|modules| modules.standard_enabled("builtins"))
+                        {
                             found = true;
                             break;
                         }
