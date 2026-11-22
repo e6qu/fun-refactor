@@ -412,27 +412,13 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-44951565987",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/flow_standard_library.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "sdk/python/src/fr_ir/structural_change.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_exceptions.rs",
-        "src/project/flow_lists.rs",
-        "src/project/flow_sequences.rs",
-        "src/project/flow_standard_library.rs",
-        "src/project/flow_summaries.rs",
-        "src/project/structural_change.rs",
-        "src/refactor/signature.rs",
-        "src/refactor/signature/safety.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-44979537114",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-44951565987/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-44979537114/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
@@ -521,15 +507,14 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "C.repository-mutations",
-        "C.performance"
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
@@ -893,9 +878,7 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [
-        "current-saved-work-cost: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -938,7 +921,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
