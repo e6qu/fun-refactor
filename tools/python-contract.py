@@ -156,11 +156,15 @@ def audit_signature(function, definition, path, source, revision):
     arguments = definition.args
     parameters = [(node, kind) for nodes, kind in (
         (arguments.posonlyargs, 'positional-only'), (arguments.args, 'positional-or-keyword'),
-        (arguments.kwonlyargs, 'keyword-only')) for node in nodes]
+        ([arguments.vararg] if arguments.vararg else [], 'variadic-positional'),
+        (arguments.kwonlyargs, 'keyword-only'),
+        ([arguments.kwarg] if arguments.kwarg else [], 'variadic-keyword')) for node in nodes]
     require([(item['name'], item['kind']) for item in function['signature']]
             == [(node.arg, kind) for node, kind in parameters], 'callee signature changed')
     positional = arguments.posonlyargs + arguments.args
-    defaults = [None] * (len(positional) - len(arguments.defaults)) + arguments.defaults + arguments.kw_defaults
+    defaults = ([None] * (len(positional) - len(arguments.defaults)) + arguments.defaults
+                + ([None] if arguments.vararg else []) + arguments.kw_defaults
+                + ([None] if arguments.kwarg else []))
     lines = source.encode().splitlines(keepends=True)
     for item, (node, _), default in zip(function['signature'], parameters, defaults):
         start = sum(map(len, lines[:node.lineno - 1])) + node.col_offset
