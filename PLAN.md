@@ -103,7 +103,10 @@ PR #647 merged with passing CI; post-merge release and deep validation passed. B
 [PR #649](https://github.com/e6qu/fun-refactor/pull/649) combines Python signature refactoring,
 dictionary flow and variadic calls. It includes coordinated imported callers, evaluation-order
 checks, shared collection identities, errors and cleanup, checked delivery and replay.
-Hosted validation and current evidence refresh are in progress; the PR remains a draft.
+Focused refactoring and graph checks passed, including 1,322 Python graph/flow tests.
+Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
+plus all 2,455 SDK tests. It retains 352 incomplete cases and 18 refusals.
+Current evidence refresh and final PR gates are still in progress.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |

@@ -11,8 +11,10 @@ Complete each milestone in one PR, including its checks, required attempts and t
 PR #647 merged with passing CI, release and deep validation.
 [PR #649](https://github.com/e6qu/fun-refactor/pull/649) is the current combined change:
 Python signature refactoring, dictionary flow and variadic calls, with imported callers,
-independent runtime checks, safe refusal, checked delivery and replay. Hosted validation
-and evidence refresh are in progress. Keep it a draft until all required checks pass.
+independent runtime checks, safe refusal, checked delivery and replay. Focused refactoring
+and graph checks passed. Python qualification passed 585 programs, 1,170 paired cases
+and all 2,455 SDK tests, retaining 352 incomplete cases and 18 refusals.
+Evidence refresh and final PR gates remain in progress. Require passing checks before merge.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
 code and call graphs, analysis, refactoring, transformations, proofs, recovery and public

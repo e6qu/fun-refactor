@@ -104,9 +104,9 @@ Unknown calls and exhausted budgets stay incomplete; invalid response budgets re
 **B.repository-flow remains open.** The [current status](roadmap-status.md) owns the overall requirement counts.
 These results establish neither general library support nor agent efficiency.
 
-Retained cutoffs include unchecked module effects, cyclic initialization, unsupported import
-forms and unresolved standard-library members. Pydash also hits the import-lookup budget and
-an unsupported variadic parameter contract. These boundaries need general solutions; discarding
+The retained baseline cutoffs included unchecked module effects, cyclic initialization, unsupported
+imports and unresolved standard-library members. Pydash also hit the import-lookup budget and
+an unsupported variadic parameter contract. Remaining boundaries need general solutions; discarding
 imports or treating an unresolved call as harmless would not establish a complete answer.
 
 Pydash source first opened after coverage passed on the same collector revision. Its first
@@ -125,9 +125,10 @@ runtime observations, and checks altered records after rehashing the modified re
 retain full source inventories and upstream licenses. The
 [fixture guide](../tests/agent-eval/python-repository-flow/README.md) describes the collector.
 
-The fixed-slot correction uses `python-scalar-summaries`. It admits unused, unannotated
-variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-17-value-aliases-fixed-arity-probes/result.json)
+The original fixed-slot correction used `python-scalar-summaries`. It admitted unused,
+unannotated variadic declarations only for calls that bound fixed slots; reading variadic values
+and passing extra arguments remained incomplete. Current bounded support is described in the
+[call-binding guide](call-binding.md). The [retained regression collection](../tests/agent-eval/results/2026-10-17-value-aliases-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization

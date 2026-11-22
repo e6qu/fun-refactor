@@ -16,7 +16,8 @@ With `--summaries`, the tool can follow supported helper calls with literal or c
 This works for all three parameter kinds described above.
 An explicit argument replaces its default and keeps its own input connection and effects.
 An omitted argument uses the stored scalar, which introduces no tracked input.
-Omitting a required argument leaves the analysis incomplete.
+For a fixed-parameter call without expansion, omitting a required argument leaves the analysis incomplete.
+Expanded and variadic calls follow the [binding error rules](call-binding.md).
 
 ```python
 def choose(value=0, /, *, spare=None):
@@ -48,8 +49,9 @@ Function annotations require the documented
 [future-annotation rule](python-contract.md#trace-a-helper-that-has-type-annotations).
 A call stays incomplete for an unsupported default even when it supplies an explicit argument.
 Python evaluates defaults during function definition; replacing an argument does not remove those earlier effects.
-Referenced variadic values, extra arguments through `*args` or `**kwargs`, unpacking, dynamic dispatch (choosing a callable from runtime values) and implicit
-exceptions remain outside this contract. Unused variadic declarations admit fixed-slot calls.
+Bounded `*args`, `**kwargs` and argument expansion use the same checked defaults.
+The [call-binding guide](call-binding.md) describes supported packing, forwarding and binding errors.
+Dynamic dispatch and unmodeled operations still leave the answer incomplete.
 
 An uncalled module function can read an earlier checked value without running its body.
 For example, after `EMPTY = EmptyType()`, `def unused(key=EMPTY): ...` reads the existing marker during definition.
@@ -70,7 +72,8 @@ Separators such as `/` and `*` create no parameter entries.
 A helper defined in `helpers.py` keeps those locations even when `app.py` imports and calls it.
 
 The Python interface exposes that list as `FunctionSummary.signature`.
-Each `SummaryParameter` has `required`, `site` and `default` fields; `required` is false for `value=(0)`.
+Each `SummaryParameter` has `required`, `site` and `default` fields.
+`required` is false for a defaulted parameter such as `value=(0)` and for variadic parameters.
 The reader checks names, parameter kinds, source roles and the recorded revision.
 These checks validate the reported locations and format. They do not establish every Python runtime behavior.
 
