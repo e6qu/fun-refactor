@@ -37,7 +37,7 @@ The original baseline also exceeded that checker budget on both platforms.
 The complete macOS candidate missed both the 10% reduction requirement and 436 MiB budget.
 Lean still has to elaborate source and execute tactics before Gruszka can read a proof.
 This integration adds independent verification; it does not replace Lean's compiler
-or eliminate its import-memory cost. A full switch is not qualified by these results.
+or eliminate its import-memory cost. These results do not qualify a full switch.
 Further reduction work needs allocation or mapping evidence for the retained Lean
 frontend and exporter, rather than another unchanged run or a larger resource limit.
 
