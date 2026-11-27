@@ -468,10 +468,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return Some(Flow::new());
         };
         for entry in right.keys.unwrap().into_iter().zip(right.items) {
-            if self
-                .mapping_put(&mut left, entry, env, None)
-                .is_none()
-            {
+            if self.mapping_put(&mut left, entry, env, None).is_none() {
                 return Some(Flow::new());
             }
         }
