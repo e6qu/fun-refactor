@@ -9,14 +9,16 @@ Complete each milestone in one PR, including its checks, required attempts and t
 ## Starting point
 
 PR #647 merged with passing CI, release and deep validation.
-[PR #649](https://github.com/e6qu/fun-refactor/pull/649) is the current combined change:
+[PR #649](https://github.com/e6qu/fun-refactor/pull/649) merged the combined change:
 Python signature refactoring, dictionary flow and variadic calls, with imported callers,
 independent runtime checks, safe refusal, checked delivery and replay. Focused refactoring
 and graph checks passed. Signature regressions cover Unicode binding safety and method receivers.
 SDK regressions compare typed variadic flow with Python execution, including empty argument collections.
 Python qualification passed 585 programs, 1,170 paired cases
 and 2,455 selected SDK checks, retaining 352 incomplete cases and 18 refusals.
-Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
+Current evidence refresh and independent audits passed, followed by release and
+post-merge deep validation. Continue proof-memory investigation first, then
+independent language coverage; keep unresolved admission limits explicit.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
 code and call graphs, analysis, refactoring, transformations, proofs, recovery and public
@@ -52,6 +54,12 @@ and initial-round decision are frozen. Native admission remains blocked:
 - The [allocator comparison](../tests/agent-eval/product-validation/memory/2026-11-21/README.md)
   found no usable reduction. ARM macOS missed the frozen 10% threshold; Linux's candidate
   exceeded the ceiling. Keep the setting out of product defaults.
+- The [upstream toolchain comparison](../tests/agent-eval/product-validation/memory/2026-11-27/README.md)
+  found no usable reduction with Lean 4.36.0: ARM macOS used 646–662 MiB versus
+  590–607 MiB for 4.28.0; Linux stopped at 803 MiB. Keep the existing toolchain pins.
+  Two unsuccessful reduction experiments require a hypothesis review before
+  another candidate. The report identifies allocation or mapping attribution
+  as the next evidence needed, without changing the complete proof check.
 
 Further native work needs a different measured correction, followed by all 24 complete
 rehearsals under the original proof, imports, package command, memory metric and limits.

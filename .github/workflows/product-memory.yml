@@ -6,7 +6,7 @@ on:
         description: Choose the frozen checker-only experiment
         type: choice
         default: imports
-        options: [imports, allocator]
+        options: [imports, allocator, toolchain]
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -16,6 +16,9 @@ on:
       - 'tools/agent_eval/product_allocator.py'
       - 'tools/agent_eval/test_product_allocator.py'
       - 'tests/agent-eval/product-validation/memory/allocator-protocol.json'
+      - 'tools/agent_eval/product_toolchain_memory.py'
+      - 'tools/agent_eval/test_product_toolchain_memory.py'
+      - 'tests/agent-eval/product-validation/memory/toolchain-protocol.json'
 permissions:
   contents: read
   actions: read
@@ -44,7 +47,7 @@ jobs:
         env:
           PYTHONPATH: tools
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python3 -B -m unittest agent_eval.test_product_memory agent_eval.test_product_allocator
+        run: python3 -B -m unittest agent_eval.test_product_memory agent_eval.test_product_allocator agent_eval.test_product_toolchain_memory
   measure:
     if: github.event_name == 'workflow_dispatch'
     needs: audit
@@ -113,11 +116,40 @@ jobs:
           mkdir "$RUNNER_TEMP/lean-memory-tool"
           zstd -dc "$RUNNER_TEMP/$archive" | tar -xf - -C "$RUNNER_TEMP/lean-memory-tool" --strip-components=1
           rm "$RUNNER_TEMP/$archive"
+          printf '%s\n' "$LEAN_ARCHIVE_SHA256" > "$RUNNER_TEMP/lean-memory-tool/archive.sha256"
+      - name: Download and authenticate the candidate release
+        if: inputs.experiment == 'toolchain'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="lean-4.36.0-${LEAN_PLATFORM}.tar.zst"
+          gh release download v4.36.0 --repo leanprover/lean4 --pattern "$archive" --dir "$RUNNER_TEMP"
+          LEAN_ARCHIVE="$RUNNER_TEMP/$archive" python3 -B - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          from agent_eval.product_toolchain_memory import policy
+          with open(os.environ['LEAN_ARCHIVE'], 'rb') as stream:
+              digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+          assert digest == policy()['archives'][os.environ['LEAN_PLATFORM']]['candidate']
+          root = Path(os.environ['RUNNER_TEMP']) / 'lean-memory-candidate'
+          root.mkdir()
+          (root / 'archive.sha256').write_text(digest + '\n')
+          PY
+          zstd -dc "$RUNNER_TEMP/$archive" | tar -xf - -C "$RUNNER_TEMP/lean-memory-candidate" --strip-components=1
+          rm "$RUNNER_TEMP/$archive"
       - name: Measure the selected frozen experiment
         env:
           EXPERIMENT: ${{ inputs.experiment }}
         run: |
           set -euo pipefail
+          if [ "$EXPERIMENT" = toolchain ]; then
+            python3 -B -m agent_eval.product_toolchain_memory measure \
+              --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json" \
+              --baseline "$RUNNER_TEMP/lean-memory-tool" --candidate "$RUNNER_TEMP/lean-memory-candidate" \
+              --output "$RUNNER_TEMP/proof-toolchain"
+            exit 0
+          fi
           case "$EXPERIMENT" in
             imports) module=agent_eval.product_memory; output="$RUNNER_TEMP/proof-memory" ;;
             allocator) module=agent_eval.product_allocator; output="$RUNNER_TEMP/proof-allocator" ;;
@@ -139,6 +171,19 @@ jobs:
             ${{ runner.temp }}/proof-allocator/*/profile.jsonl
             ${{ runner.temp }}/proof-allocator/*/stdout
             ${{ runner.temp }}/proof-allocator/*/stderr
+          if-no-files-found: warn
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && inputs.experiment == 'toolchain'
+        with:
+          name: proof-toolchain-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/proof-toolchain/summary.json
+            ${{ runner.temp }}/proof-toolchain/*/resources.json
+            ${{ runner.temp }}/proof-toolchain/*/profile.json
+            ${{ runner.temp }}/proof-toolchain/*/profile.jsonl
+            ${{ runner.temp }}/proof-toolchain/*/stdout
+            ${{ runner.temp }}/proof-toolchain/*/stderr
           if-no-files-found: warn
           retention-days: 30
       - uses: actions/upload-artifact@v7

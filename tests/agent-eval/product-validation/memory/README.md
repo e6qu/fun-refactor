@@ -93,3 +93,11 @@ did not demonstrate a usable reduction: ARM macOS measured 599–606 MiB baselin
 and 605–617 MiB with immediate purging; Linux's candidate stopped at 775 MiB.
 Do not adopt the setting or retry native admission. The original records above,
 resource limits and 0/96 live-attempt count remain unchanged.
+
+## Upstream toolchain result
+
+The [4.28.0 versus 4.36.0 comparison](2026-11-27/README.md) also found no usable
+reduction. ARM macOS used 590–607 MiB with the baseline and 646–662 MiB with the
+candidate; Linux stopped the candidate at 803 MiB. Keep existing pins and native
+admission unchanged. The report reviews the hypothesis after two unsuccessful
+reduction experiments and retains every failure and unstarted case.
