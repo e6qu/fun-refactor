@@ -4,8 +4,12 @@ The user selected Gruszka after reviewing alternative Lean implementations.
 This experiment tests its fit before changing product defaults.
 It does not admit native clients or authorize a live comparison.
 
-The [retained results](2026-11-27-gruszka/README.md) establish compatibility on ARM
+The [original results](2026-11-27-gruszka/README.md) establish compatibility on ARM
 macOS but no complete memory reduction. Linux stopped before export or kernel checking.
+The user subsequently approved a 1 GiB hosted proof-workflow ceiling.
+The [new protocol](gruszka-1g-protocol.json) changes only that ceiling and its experiment identity.
+New measurements keep the same tools, proof, other limits and case order.
+The original protocol and records remain unchanged.
 
 ## Candidate and hypothesis
 
@@ -44,9 +48,12 @@ A stopped condition is retained and is not retried. If the candidate references 
 unfinished and incorrect source proofs must fail under the same limits.
 Those controls test source rejection, not independent malformed-export rejection.
 
-The original ceiling remains 768 MiB. A useful result needs at least a 10% reduction
-and no more than 436 MiB for the complete candidate pipeline.
-The latter leaves the original client/controller allowance and reserve intact.
+The original experiment used a 768 MiB ceiling and sought at least a 10% reduction
+with no more than 436 MiB for the complete candidate pipeline.
+That target left the original client/controller allowance and reserve intact.
+The new experiment tests completion within 1 GiB, independently of that earlier reduction target.
+Its decision reports completion and the original reduction outcome separately.
+The larger hosted ceiling does not change workstation limits or admit native clients.
 Resource samples can miss short peaks and double-count shared pages.
 
 ## Interpretation and migration boundary
@@ -64,5 +71,6 @@ Historical failures remain evidence. A complete switch needs a measured benefit
 across the source-to-delivery workflow, including the remaining Lean frontend.
 
 Run on GitHub with `product-memory.yml`, selecting `experiment=gruszka`.
+This now selects the approved 1 GiB protocol for both baseline and candidate.
 Select `experiment=gruszka-audit` to replay tests without new measurements.
 Pull requests replay the harness tests without starting new measurements.

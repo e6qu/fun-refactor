@@ -18,13 +18,15 @@ from . import product_memory as memory
 from .selected_plan import ROOT, encoded, require
 
 PROTOCOL = ROOT / memory.tasks.plan.DIRECTORY / 'memory/gruszka-protocol.json'
+PROTOCOLS = {'original': PROTOCOL, '1g': PROTOCOL.with_name('gruszka-1g-protocol.json')}
 FIRST = [('baseline', 'reference', 0), ('gruszka', 'reference', 0)]
 SECOND = [('gruszka', 'reference', 1), ('baseline', 'reference', 1)]
 NEGATIVE = [('gruszka', 'unfinished', 0), ('gruszka', 'wrong-proof', 0)]
 FILES = ('resources.json', 'profile.json', 'profile.jsonl', 'stdout', 'stderr')
 
 
-def policy():
+def policy(experiment='original'):
+    require(experiment in PROTOCOLS, 'unknown Gruszka experiment')
     value = json.loads(PROTOCOL.read_text())
     require(value['schema'] == 'fr-gruszka-evaluation-1' and value['lean_version'] == '4.28.0'
             and value['qualification_run'] == '44542024683'
@@ -33,6 +35,12 @@ def policy():
             and value['minimum_rss_reduction_fraction'] == 0.1
             and value['admitted'] is False and value['live_model_calls'] == 0,
             'preserve the Gruszka protocol and original admission limits')
+    if experiment == '1g':
+        revised = json.loads(PROTOCOLS[experiment].read_text())
+        expected = {**value, 'schema': 'fr-gruszka-evaluation-2', 'experiment': '1g',
+                    'limits': {**value['limits'], 'rss_bytes': 1024**3}}
+        require(revised == expected, 'only the approved hosted RSS ceiling may change')
+        return revised
     return value
 
 
@@ -103,18 +111,24 @@ def verdict(row, output):
     return passed
 
 
-def decision(rows):
+def decision(rows, experiment='original'):
+    protocol = policy(experiment)
     result = {'outcome': 'not-demonstrated', 'admitted': False, 'migration_qualified': False,
               'reason': 'Gruszka consumes compiled proofs; Lean source elaboration remains required.'}
+    if experiment == '1g':
+        result['completed_within_limits'] = False
     if len(rows) != 6 or not all(row['passed'] and controls.guarded_finish(row['resources']) for row in rows):
         return result
     baseline = min(row['resources']['sampled_aggregate_rss_bytes'] for row in rows
                    if row['condition'] == 'baseline')
     candidate = max(row['resources']['sampled_aggregate_rss_bytes'] for row in rows
                     if row['condition'] == 'gruszka' and row['case'] == 'reference')
-    useful = baseline > 0 and candidate * 10 <= baseline * 9 and candidate <= policy()['checker_budget_bytes']
+    useful = baseline > 0 and candidate * 10 <= baseline * 9 and candidate <= protocol['checker_budget_bytes']
     result.update(outcome='investigate-reduction' if useful else 'no-usable-reduction',
                   minimum_baseline_rss_bytes=baseline, maximum_candidate_rss_bytes=candidate)
+    if experiment == '1g':
+        result.update(completed_within_limits=True, original_reduction_outcome=result['outcome'],
+                      outcome='completed-within-limits')
     return result
 
 
@@ -135,8 +149,10 @@ def audit(directory):
                     'separate tool provenance differs')
             return result
     result = json.loads((directory / 'summary.json').read_text())
+    experiment = result.get('experiment', 'original')
+    protocol = policy(experiment)
     require(result['schema'] == 'fr-gruszka-evaluation-result-1' and result['status'] == 'complete'
-            and result['protocol'] == policy() and result['protocol_sha256'] == memory.tasks.common.digest(PROTOCOL)
+            and result['protocol'] == protocol and result['protocol_sha256'] == memory.tasks.common.digest(PROTOCOLS[experiment])
             and result['admitted'] is False and result['live_model_calls'] == 0,
             'protocol or admission claim changed')
     rows = result['cases']
@@ -147,7 +163,7 @@ def audit(directory):
             'tool provenance differs')
     require([(r['condition'], r['case'], r['repetition']) for r in rows] == schedule(rows),
             'missing, repeated or reordered measurement')
-    limits = dict(policy()['limits'])
+    limits = dict(protocol['limits'])
     limits['cpu_seconds'] = limits.pop('cpu_limit_seconds')
     sources = {}
     for row in rows:
@@ -172,16 +188,16 @@ def audit(directory):
     require(all(len(values) == 1 for values in sources.values()) and
             len({next(iter(values)) for values in sources.values()}) == len(sources),
             'conditions used different sources or identical negative controls')
-    require(result['decision'] == decision(rows), 'decision changed')
+    require(result['decision'] == decision(rows, experiment), 'decision changed')
     expected = [list(entry) for entry in FIRST + SECOND + NEGATIVE
                 if entry not in [(r['condition'], r['case'], r['repetition']) for r in rows]]
     require(result['unstarted'] == expected, 'unstarted cases changed')
     return result
 
 
-def measure(inputs, run_path, lean, binaries, output):
+def measure(inputs, run_path, lean, binaries, output, experiment='1g'):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'evaluate on GitHub runners')
-    protocol = policy()
+    protocol = policy(experiment)
     run = json.loads(run_path.read_text())
     require(str(run['id']) == protocol['qualification_run'], 'use original qualification')
     seed, prepared = memory.qualified_inputs(inputs, run)
@@ -198,7 +214,8 @@ def measure(inputs, run_path, lean, binaries, output):
         require(memory.tasks.common.digest(binaries / name) == provenance['binaries'][name], 'candidate binary differs')
     result = {'schema': 'fr-gruszka-evaluation-result-1', 'status': 'collecting',
               'run': os.environ['GITHUB_RUN_ID'], 'source_commit': os.environ['GITHUB_SHA'],
-              'protocol': protocol, 'protocol_sha256': memory.tasks.common.digest(PROTOCOL),
+              'experiment': experiment,
+              'protocol': protocol, 'protocol_sha256': memory.tasks.common.digest(PROTOCOLS[experiment]),
               'platform': platform_name, 'machine': platform.machine(), 'tools': provenance,
               'lean_version': version, 'lean_archive_sha256': protocol['archives'][platform_name],
               'lean_binaries': {name: memory.tasks.common.digest(lean / 'bin' / name) for name in ('lean', 'lake', 'leanc')},
@@ -235,7 +252,7 @@ def measure(inputs, run_path, lean, binaries, output):
                **{stream + '_sha256': memory.tasks.common.digest(row_dir / stream) for stream in ('stdout', 'stderr')}}
         row['passed'] = verdict(row, (row_dir / 'stdout').read_text() + (row_dir / 'stderr').read_text())
         result['cases'].append(row)
-        result['decision'] = decision(result['cases'])
+        result['decision'] = decision(result['cases'], experiment)
         memory.tasks.common.save(output / 'summary.json', result)
         index += 1
     seen = [(r['condition'], r['case'], r['repetition']) for r in result['cases']]
@@ -250,6 +267,7 @@ if __name__ == '__main__':
     collecting = commands.add_parser('measure')
     for name in ('inputs', 'run', 'lean', 'binaries', 'output'):
         collecting.add_argument('--' + name, type=Path, required=True)
+    collecting.add_argument('--experiment', choices=PROTOCOLS, default='1g')
     child = commands.add_parser('pipeline')
     for name in ('project', 'lean', 'binaries'):
         child.add_argument('--' + name, type=Path, required=True)
@@ -258,5 +276,5 @@ if __name__ == '__main__':
     if args.operation == 'pipeline':
         sys.exit(pipeline(args.project, args.lean, args.binaries))
     result = (audit(args.directory) if args.operation == 'audit' else
-              measure(args.inputs, args.run, args.lean, args.binaries, args.output))
+              measure(args.inputs, args.run, args.lean, args.binaries, args.output, args.experiment))
     print(json.dumps(result['decision']))

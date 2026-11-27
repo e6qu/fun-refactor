@@ -17,7 +17,9 @@ on:
       - 'tools/agent_eval/product_gruszka.py'
       - 'tools/agent_eval/test_product_gruszka.py'
       - 'tests/agent-eval/product-validation/memory/gruszka-protocol.json'
+      - 'tests/agent-eval/product-validation/memory/gruszka-1g-protocol.json'
       - 'tests/agent-eval/product-validation/memory/2026-11-27-gruszka/**'
+      - 'tests/agent-eval/product-validation/memory/2026-11-27-gruszka-1g/**'
 permissions:
   contents: read
   actions: read
@@ -139,12 +141,12 @@ jobs:
           run-id: ${{ env.QUALIFICATION_RUN }}
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/proof-inputs
-      - name: Compare complete pipelines under unchanged limits
+      - name: Compare complete pipelines under the approved 1 GiB ceiling
         run: |
           python3 -B -m agent_eval.product_gruszka measure \
             --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json" \
             --lean "$RUNNER_TEMP/lean-gruszka" --binaries "$RUNNER_TEMP/gruszka-tools/bin" \
-            --output "$RUNNER_TEMP/gruszka-evaluation"
+            --output "$RUNNER_TEMP/gruszka-evaluation" --experiment 1g
       - uses: actions/upload-artifact@v7
         if: always()
         with:
