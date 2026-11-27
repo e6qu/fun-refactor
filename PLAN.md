@@ -85,8 +85,8 @@ ARM macOS missed the frozen 10% threshold; Linux's candidate exceeded the memory
 Do not adopt the setting or retry native admission on this evidence. Further work needs a
 different measured reduction, then all 24 complete native rehearsals. Live calls remain blocked.
 The [upstream toolchain comparison](tests/agent-eval/product-validation/memory/2026-11-27/README.md)
-also found no usable reduction: Lean 4.36.0 used 646–662 MiB on ARM macOS against
-590–607 MiB for 4.28.0; Linux stopped the candidate at 803 MiB. Keep existing pins.
+also found no usable reduction. Lean 4.36.0 used 646–662 MiB on ARM macOS against
+590–607 MiB for 4.28.0. Linux stopped the candidate at 803 MiB. Keep existing pins.
 After two failed reduction experiments, the report reviews the hypothesis and
 requires specific allocation or mapping evidence before another candidate.
 A [report freshness preflight](docs/evidence-refresh.md) identifies affected current reports before expensive CI gates.
