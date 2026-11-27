@@ -115,7 +115,14 @@ class ToolchainMemoryTests(unittest.TestCase):
         retained = comparison.PROTOCOL.parent / '2026-11-27'
         for archive in sorted(retained.glob('*.zip')):
             with self.subTest(archive=archive.name):
-                self.assertFalse(comparison.audit(archive)['admitted'])
+                result = comparison.audit(archive)
+                provenance = json.loads(archive.with_name(archive.stem + '-provenance.json').read_text())
+                self.assertEqual(comparison.memory.tasks.common.digest(archive), provenance['artifact_sha256'])
+                self.assertEqual(result, json.loads(archive.with_suffix('.json').read_text()))
+                self.assertEqual(result['source_commit'], provenance['head_sha'])
+                self.assertEqual(result['run'], provenance['run'])
+                self.assertEqual(result['platform'], provenance['platform'])
+                self.assertFalse(result['admitted'])
 
 
 if __name__ == '__main__':

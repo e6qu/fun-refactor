@@ -1,0 +1,247 @@
+{
+  "schema": "fr-proof-toolchain-memory-1",
+  "status": "complete",
+  "run": "46021229454",
+  "source_commit": "2e7194a3680669323713a0185af49514af5ac3b0",
+  "qualification_run": "44542024683",
+  "qualification_commit": "31e9d44d3cda81d39a41f5f9bfa03b97daff4de8",
+  "platform": "linux",
+  "machine": "x86_64",
+  "tools": {
+    "baseline": {
+      "version_output": "Lean (version 4.28.0, x86_64-unknown-linux-gnu, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b, Release)\n",
+      "archive_sha256": "ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd",
+      "lake_path": "/home/runner/work/_temp/lean-memory-tool/bin/lake",
+      "sha256": {
+        "lean": "3e0d0d3d801675359f2d4cf9815bfdb417b20b92fdd9d48b3b14c95bbae28bbf",
+        "lake": "a608ff084d7e2af228b92a29d7c2fd083ba0580e46889175ec74a81678c98359",
+        "leanc": "871b10499518fd713bb1088dd98ca2833efdc0c6342cf972b056ef2224b4057d"
+      }
+    },
+    "candidate": {
+      "version_output": "Lean (version 4.36.0, x86_64-unknown-linux-gnu, commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9, Release)\n",
+      "archive_sha256": "2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb",
+      "lake_path": "/home/runner/work/_temp/lean-memory-candidate/bin/lake",
+      "sha256": {
+        "lean": "db7f559d05795e7af52e42bc966c90240a39dcb9712161c54c97afa546e20c00",
+        "lake": "42678ccbc2605e2f892540dc7236e009fdd1224e823d104dfd72725d2f1a52d2",
+        "leanc": "7e86569c110846e9ddc18459865ca2a2a0491a815c6ad40f8136bb2767edda3e"
+      }
+    }
+  },
+  "protocol": {
+    "schema": "fr-proof-toolchain-protocol-1",
+    "qualification_run": "44542024683",
+    "versions": {
+      "baseline": "4.28.0",
+      "candidate": "4.36.0"
+    },
+    "archives": {
+      "linux": {
+        "baseline": "ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd",
+        "candidate": "2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb"
+      },
+      "darwin_aarch64": {
+        "baseline": "61942f9d1907db918020154a517c87fb64841e48cebb0032fc0909df8d189a05",
+        "candidate": "49acada8749ad1343eff1224a3d2510ac61ed53363d37b5e738e8c587e7deabd"
+      }
+    },
+    "limits": {
+      "wall_seconds": 60,
+      "rss_bytes": 805306368,
+      "cpu_limit_seconds": 25,
+      "disk_bytes": 67108864,
+      "transcript_bytes": 131072
+    },
+    "minimum_rss_reduction_fraction": 0.1,
+    "checker_budget_bytes": 457179136,
+    "admitted": false,
+    "live_model_calls": 0
+  },
+  "protocol_sha256": "630713408e483eea1d2d4253251b2fda84849011dd8fe6775c1e921e7c17a4b6",
+  "seed_sha256": "3043d8f7732a271e39a37d00778e572fe6f26b4fae7bc6b8f55f52b840780ff4",
+  "reference_patch_sha256": "8e814c735e44602be7c9dbf09c2f3c150200506e9c39297ad9616195d73c6978",
+  "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+  "cases": [
+    {
+      "condition": "baseline",
+      "case": "reference",
+      "repetition": 0,
+      "command": [
+        "/home/runner/work/_temp/lean-memory-tool/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "resources": {
+        "exit_code": 0,
+        "process_exit_code": 0,
+        "timed_out": false,
+        "stop_reason": null,
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.6444544270000279,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 783556608,
+        "sampled_cpu_seconds": 0.54,
+        "sampled_disk_growth_bytes": 115183,
+        "transcript_bytes": 109
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 6,
+        "trace_sha256": "868359b1985d69904a645ccbfe219db45e51cd84bd007549dce06907c502d4c8",
+        "peak": {
+          "rss_bytes": 783556608,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "linux-proc-stat"
+            },
+            "finished_seconds": 0.560609951999993,
+            "group": 2374,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.04,
+                "executable": "lake",
+                "pid": 2374,
+                "rss_bytes": 116711424
+              },
+              {
+                "cpu_seconds": 0.2,
+                "executable": "lean",
+                "pid": 2388,
+                "rss_bytes": 666845184
+              }
+            ],
+            "started_seconds": 0.5510636779999913
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 783556608
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "fb40a2218b558fa2b9b567be88767782f17b4ea50ee6e5ba8137d09b89e584a4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": true,
+      "stdout_sha256": "1cf745f67c33ce34c98bb860744d5948e6bd673def31b718a73cabbb354f65f0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "condition": "candidate",
+      "case": "reference",
+      "repetition": 0,
+      "command": [
+        "/home/runner/work/_temp/lean-memory-candidate/bin/lake",
+        "-d",
+        "specs",
+        "build",
+        "--wfail"
+      ],
+      "resources": {
+        "exit_code": 125,
+        "process_exit_code": -9,
+        "timed_out": false,
+        "stop_reason": "rss_bytes",
+        "launch_error": null,
+        "monitor_error": null,
+        "elapsed_seconds": 0.24136625500000264,
+        "limits": {
+          "wall_seconds": 60,
+          "rss_bytes": 805306368,
+          "disk_bytes": 67108864,
+          "cpu_seconds": 25,
+          "transcript_bytes": 131072
+        },
+        "sampled_aggregate_rss_bytes": 841678848,
+        "sampled_cpu_seconds": 0.19999999999999998,
+        "sampled_disk_growth_bytes": 1216,
+        "transcript_bytes": 0
+      },
+      "profile": {
+        "schema": "fr-client-process-profile-1",
+        "samples": 3,
+        "trace_sha256": "2accf88f3dcfcc571cde5e54372e1abea085ee9c433ad81a86dbedf0b9a56463",
+        "peak": {
+          "rss_bytes": 841678848,
+          "sample": {
+            "cpu_counter": {
+              "quantum_seconds": 0.01,
+              "source": "linux-proc-stat"
+            },
+            "finished_seconds": 0.23233220499997742,
+            "group": 2397,
+            "phase_after": "capture-startup",
+            "phase_before": "capture-startup",
+            "processes": [
+              {
+                "cpu_seconds": 0.02,
+                "executable": "lake",
+                "pid": 2397,
+                "rss_bytes": 120131584
+              },
+              {
+                "cpu_seconds": 0.18,
+                "executable": "lean",
+                "pid": 2404,
+                "rss_bytes": 721547264
+              }
+            ],
+            "started_seconds": 0.2226171799999861
+          }
+        },
+        "phase_peak_rss_bytes": {
+          "capture-startup": 841678848
+        },
+        "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible."
+      },
+      "source_tree_sha256": "fb40a2218b558fa2b9b567be88767782f17b4ea50ee6e5ba8137d09b89e584a4",
+      "protected_source_sha256": "29a7865990d0827a332fbcc98aa5ccdcf64ebe78824359405b4d70a184ee8c60",
+      "passed": false,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "admitted": false,
+  "live_model_calls": 0,
+  "decision": {
+    "outcome": "not-demonstrated",
+    "admitted": false
+  },
+  "unstarted": [
+    {
+      "condition": "candidate",
+      "case": "reference",
+      "repetition": 1,
+      "reason": "first pair did not pass"
+    },
+    {
+      "condition": "baseline",
+      "case": "reference",
+      "repetition": 1,
+      "reason": "first pair did not pass"
+    },
+    {
+      "condition": "candidate",
+      "case": "unfinished",
+      "repetition": 0,
+      "reason": "candidate reference did not pass"
+    },
+    {
+      "condition": "candidate",
+      "case": "wrong-proof",
+      "repetition": 0,
+      "reason": "candidate reference did not pass"
+    }
+  ]
+}

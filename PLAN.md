@@ -84,6 +84,11 @@ preserved the proof, imports, package check and limits but found no usable reduc
 ARM macOS missed the frozen 10% threshold; Linux's candidate exceeded the memory ceiling.
 Do not adopt the setting or retry native admission on this evidence. Further work needs a
 different measured reduction, then all 24 complete native rehearsals. Live calls remain blocked.
+The [upstream toolchain comparison](tests/agent-eval/product-validation/memory/2026-11-27/README.md)
+also found no usable reduction: Lean 4.36.0 used 646–662 MiB on ARM macOS against
+590–607 MiB for 4.28.0; Linux stopped the candidate at 803 MiB. Keep existing pins.
+After two failed reduction experiments, the report reviews the hypothesis and
+requires specific allocation or mapping evidence before another candidate.
 A [report freshness preflight](docs/evidence-refresh.md) identifies affected current reports before expensive CI gates.
 The workstation is again below its 64 GiB floor; execution and evidence collection remain on GitHub.
 PR 6's [package qualification](docs/product-qualification.md) landed in [#629](https://github.com/e6qu/fun-refactor/pull/629).
@@ -107,7 +112,9 @@ Focused refactoring and graph checks passed, including 1,322 Python graph/flow t
 Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
 plus 2,455 SDK checks in the qualification gate. It retains 352 incomplete cases and 18 refusals.
-Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
+Current evidence refresh and independent audits passed. PR #649 merged; release
+and post-merge deep validation passed. Independent language coverage can continue
+while proof-memory admission remains blocked.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |
