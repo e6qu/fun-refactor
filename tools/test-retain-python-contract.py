@@ -305,12 +305,19 @@ class ArtifactDownloads(unittest.TestCase):
 class RetainedDictionaryFixtureFailure(unittest.TestCase):
     def test_original_invalid_query_is_retained_without_claiming_acceptance(self):
         directory = ROOT / 'tests/agent-eval/results/2026-11-27-dictionary-operations-first-python-contract-failure'
-        provenance = json.loads((directory / 'provenance.json').read_text())
+        def original(name):
+            path = directory / name
+            if path.is_file():
+                return path.read_bytes()
+            # Hosted qualification omits retained results from its sparse checkout.
+            return subprocess.check_output(['git', 'show', 'HEAD:' + path.relative_to(ROOT).as_posix()],
+                                           cwd=ROOT, timeout=30)
+        provenance = json.loads(original('provenance.json'))
         self.assertEqual(provenance['id'], 15211133711)
         self.assertEqual(provenance['workflow_run']['id'], 46024820276)
         self.assertEqual(provenance['digest'],
                          'sha256:f4050516975e5a6d7fd4b50680b7c6db9b9737f23c1002f738be5255fb925014')
-        report = json.loads(retain.checked_report((directory / 'artifact.zip').read_bytes(), provenance['digest']))
+        report = json.loads(retain.checked_report(original('artifact.zip'), provenance['digest']))
         self.assertEqual(report['source_commit'], '854eb8851b790521f7fd3ab80d6b4d1968bd66ac')
         self.assertEqual(report['source_commit'], provenance['workflow_run']['head_sha'])
         expected = {name + '/' + variant
