@@ -1037,7 +1037,7 @@ from exceptions after calling the entry function. External source and sink hooks
 | --- | --- |
 | Binding | Selected and discarded arguments for positional-only, ordinary and keyword-only parameters (slots that calls must supply by name), including mixed separators; seven invalid bindings retain argument effects. |
 | Defaults | Omitted and overridden defaults, required/default mixtures, seven literal forms, evaluated defaults and definition failure. |
-| Dictionaries | Literal keys, shared identities, reads/writes, deletion, get/pop/setdefault/update/clear/copy, bounded expansion and selected builtin dict construction. Variadic calls pack a fresh tuple or dictionary while preserving nested aliases. | Known string, integer, Boolean and None keys; 64 objects, items and arguments. Unknown keys, ambiguous shapes, custom mappings and mapping iteration remain incomplete. Missing items raise KeyError. |
+| Dictionaries | Shared identities, literal keys, reads/writes, deletion and selected methods. Unions create shallow copies; in-place unions and pair updates preserve aliases and partial writes. Variadic calls pack fresh containers while preserving nested aliases. |
 | Recursion | Direct and mutual return, constant return, independent callers, keyword substitution, explicit raise, no normal return and step exhaustion. |
 | Imports | Absolute, relative, dotted, aliased and continued imports; regular, namespace and mixed trees; re-exports, child fallback and module alias chains. Each has positive and negative helper bodies. |
 | Cross-file evidence | Keyword binding, defaults, equal helper names in different files, explicit raise, inert scalar bindings, initialization effects, cycles and missing modules. |
