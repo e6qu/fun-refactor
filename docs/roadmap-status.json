@@ -93,17 +93,13 @@
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-22-bindings-structural-change",
-      "changed_sources": [
-        "src/project/dataflow.rs",
-        "src/project/flow_lists.rs",
-        "src/project/flow_mappings.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-11-27-dictionary-operations-structural-change",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-11-22-bindings-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-11-27-dictionary-operations-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
