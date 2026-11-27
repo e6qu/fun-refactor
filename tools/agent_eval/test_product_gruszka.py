@@ -12,11 +12,16 @@ class GruszkaEvaluationTests(unittest.TestCase):
     def fixture(self, root):
         result = test_product_toolchain_memory.ToolchainMemoryTests().fixture(root)
         result.update(schema='fr-gruszka-evaluation-result-1', protocol=candidate.policy(),
-                      protocol_sha256=candidate.memory.tasks.common.digest(candidate.PROTOCOL))
+                      protocol_sha256=candidate.memory.tasks.common.digest(candidate.PROTOCOL),
+                      tools={'sources': candidate.policy()['sources'],
+                             'binaries': {k: 'a' * 64 for k in candidate.policy()['sources']},
+                             'lockfiles': {k: 'b' * 64 for k in candidate.policy()['sources']}})
         for row in result['cases']:
             if row['condition'] == 'candidate':
                 old = candidate.controls.identity(row['condition'], row['case'], row['repetition'])
                 row['condition'] = 'gruszka'
+                row['command'] = ['/python', '-B', '-m', 'agent_eval.product_gruszka', 'pipeline',
+                                  '--project', '/work', '--lean', '/lean', '--binaries', '/tools']
                 path = root / candidate.controls.identity(row['condition'], row['case'], row['repetition'])
                 (root / old).rename(path)
                 if row['case'] == 'reference':
@@ -66,6 +71,8 @@ class GruszkaEvaluationTests(unittest.TestCase):
                          lambda s: s['cases'].pop(), lambda s: s['cases'].reverse(),
                          lambda s: s['cases'][1].update(source_tree_sha256='changed'),
                          lambda s: s['cases'][1].update(passed=False),
+                         lambda s: s['cases'][1]['command'].append('--only'),
+                         lambda s: s['tools']['sources']['gruszka'].update(commit='changed'),
                          lambda s: s['decision'].update(migration_qualified=True),
                          lambda s: s['cases'][1].update(stdout_sha256='changed')]
             for mutate in mutations:

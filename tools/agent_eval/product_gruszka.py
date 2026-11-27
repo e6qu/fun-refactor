@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 from unittest.mock import patch
@@ -103,7 +104,7 @@ def verdict(row, output):
 def decision(rows):
     result = {'outcome': 'not-demonstrated', 'admitted': False, 'migration_qualified': False,
               'reason': 'Gruszka consumes compiled proofs; Lean source elaboration remains required.'}
-    if len(rows) != 6 or not all(row['passed'] for row in rows):
+    if len(rows) != 6 or not all(row['passed'] and controls.guarded_finish(row['resources']) for row in rows):
         return result
     baseline = min(row['resources']['sampled_aggregate_rss_bytes'] for row in rows
                    if row['condition'] == 'baseline')
@@ -122,6 +123,11 @@ def audit(directory):
             and result['admitted'] is False and result['live_model_calls'] == 0,
             'protocol or admission claim changed')
     rows = result['cases']
+    tools = result['tools']
+    require(tools['sources'] == policy()['sources'] and
+            set(tools['binaries']) == set(tools['lockfiles']) == set(policy()['sources']) and
+            all(re.fullmatch('[a-f0-9]{64}', value) for table in ('binaries', 'lockfiles') for value in tools[table].values()),
+            'tool provenance differs')
     require([(r['condition'], r['case'], r['repetition']) for r in rows] == schedule(rows),
             'missing, repeated or reordered measurement')
     limits = dict(policy()['limits'])
@@ -130,6 +136,13 @@ def audit(directory):
     for row in rows:
         path = directory / controls.identity(row['condition'], row['case'], row['repetition'])
         resources = json.loads((path / 'resources.json').read_text())
+        argv = row['command']
+        if row['condition'] == 'baseline':
+            require(len(argv) == 5 and Path(argv[0]).name == 'lake' and
+                    argv[1:] == ['-d', 'specs', 'build', '--wfail'], 'package command changed')
+        else:
+            require(len(argv) == 11 and argv[1:5] == ['-B', '-m', 'agent_eval.product_gruszka', 'pipeline'] and
+                    argv[5] == '--project' and argv[7] == '--lean' and argv[9] == '--binaries', 'pipeline command changed')
         require(resources == row['resources'] and resources['limits'] == limits, 'resource record changed')
         require(memory.profile.audit(path, resources) == row['profile'] == json.loads((path / 'profile.json').read_text()),
                 'process attribution changed')
@@ -139,7 +152,9 @@ def audit(directory):
         require(row['passed'] is verdict(row, output), 'verdict changed')
         require(row['protected_source_sha256'] == result['protected_source_sha256'], 'protected proof changed')
         sources.setdefault(row['case'], set()).add(row['source_tree_sha256'])
-    require(all(len(values) == 1 for values in sources.values()), 'conditions used different sources')
+    require(all(len(values) == 1 for values in sources.values()) and
+            len({next(iter(values)) for values in sources.values()}) == len(sources),
+            'conditions used different sources or identical negative controls')
     require(result['decision'] == decision(rows), 'decision changed')
     expected = [list(entry) for entry in FIRST + SECOND + NEGATIVE
                 if entry not in [(r['condition'], r['case'], r['repetition']) for r in rows]]
