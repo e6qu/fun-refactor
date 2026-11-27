@@ -84,6 +84,11 @@ preserved the proof, imports, package check and limits but found no usable reduc
 ARM macOS missed the frozen 10% threshold; Linux's candidate exceeded the memory ceiling.
 Do not adopt the setting or retry native admission on this evidence. Further work needs a
 different measured reduction, then all 24 complete native rehearsals. Live calls remain blocked.
+The [upstream toolchain comparison](tests/agent-eval/product-validation/memory/2026-11-27/README.md)
+also found no usable reduction. Lean 4.36.0 used 646–662 MiB on ARM macOS against
+590–607 MiB for 4.28.0. Linux stopped the candidate at 803 MiB. Keep existing pins.
+After two failed reduction experiments, the report reviews the hypothesis and
+requires specific allocation or mapping evidence before another candidate.
 A [report freshness preflight](docs/evidence-refresh.md) identifies affected current reports before expensive CI gates.
 The workstation is again below its 64 GiB floor; execution and evidence collection remain on GitHub.
 PR 6's [package qualification](docs/product-qualification.md) landed in [#629](https://github.com/e6qu/fun-refactor/pull/629).
@@ -108,13 +113,14 @@ Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
 plus 2,455 SDK checks in the qualification gate. It retains 352 incomplete cases and 18 refusals.
 Current evidence refresh, independent audits and PR checks passed before merge. Release 0.105.0 followed.
-The current Python increment adds dictionary unions, in-place unions and construction or updates from bounded pairs.
+Post-merge deep validation passed.
+[PR #652](https://github.com/e6qu/fun-refactor/pull/652) adds dictionary unions, in-place unions and construction or updates from bounded pairs.
 It preserves nested aliases, operand effects and writes made before an error.
-Focused behavior checks passed 1,385 Python tests. Final qualification passed 597 programs,
+Focused behavior checks passed 1,390 Python tests. Final qualification passed 597 programs,
 1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
 The original invalid-query fixture report is retained. Current evidence refresh, independent audits,
 complete-session comparisons and familiar package/project replays passed. Merge requires passing PR checks.
-The separate [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) found no usable reduction with Lean 4.36.0.
+[PR #651](https://github.com/e6qu/fun-refactor/pull/651) merged the memory investigation, which found no usable reduction with Lean 4.36.0.
 Keep the pinned checker and native admission block. Review import-memory attribution before another candidate.
 PR 5 and the original M3 timing gate remain open.
 

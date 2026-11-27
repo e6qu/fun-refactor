@@ -1,0 +1,26 @@
+{
+  "schema": "fr-proof-toolchain-protocol-1",
+  "qualification_run": "44542024683",
+  "versions": {"baseline": "4.28.0", "candidate": "4.36.0"},
+  "archives": {
+    "linux": {
+      "baseline": "ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd",
+      "candidate": "2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb"
+    },
+    "darwin_aarch64": {
+      "baseline": "61942f9d1907db918020154a517c87fb64841e48cebb0032fc0909df8d189a05",
+      "candidate": "49acada8749ad1343eff1224a3d2510ac61ed53363d37b5e738e8c587e7deabd"
+    }
+  },
+  "limits": {
+    "wall_seconds": 60,
+    "rss_bytes": 805306368,
+    "cpu_limit_seconds": 25,
+    "disk_bytes": 67108864,
+    "transcript_bytes": 131072
+  },
+  "minimum_rss_reduction_fraction": 0.1,
+  "checker_budget_bytes": 457179136,
+  "admitted": false,
+  "live_model_calls": 0
+}

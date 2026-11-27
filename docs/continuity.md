@@ -17,16 +17,18 @@ SDK regressions compare typed variadic flow with Python execution, including emp
 Python qualification passed 585 programs, 1,170 paired cases
 and 2,455 selected SDK checks, retaining 352 incomplete cases and 18 refusals.
 Current evidence refresh, independent audits and PR checks passed before merge. Release 0.105.0 followed.
+Post-merge deep validation passed.
 
-The current Python increment covers dictionary unions, in-place unions and construction or updates from bounded pairs.
+[PR #652](https://github.com/e6qu/fun-refactor/pull/652) covers dictionary unions, in-place unions and construction or updates from bounded pairs.
 It preserves shared nested objects, argument side effects and writes completed before an error.
 Unknown keys, custom iterators and indexed augmented targets remain incomplete.
-The focused gate passed 1,385 Python tests. Final qualification passed 597 programs,
+The focused gate passed 1,390 Python tests. Final qualification passed 597 programs,
 1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
 The original invalid-query fixture report is retained with its authenticated artifact.
 Current evidence, complete-session comparisons and familiar package/project replays passed their audits.
 Merge requires passing PR checks.
-The separate [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) tested Lean 4.36.0 against the pinned checker.
+The [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) merged after CI passed.
+It tested Lean 4.36.0 against the pinned checker.
 It used more memory on both platforms. Keep the pin and native admission block.
 Both measured candidates have failed; review import-memory attribution before testing another correction.
 
@@ -64,6 +66,12 @@ and initial-round decision are frozen. Native admission remains blocked:
 - The [allocator comparison](../tests/agent-eval/product-validation/memory/2026-11-21/README.md)
   found no usable reduction. ARM macOS missed the frozen 10% threshold; Linux's candidate
   exceeded the ceiling. Keep the setting out of product defaults.
+- The [upstream toolchain comparison](../tests/agent-eval/product-validation/memory/2026-11-27/README.md)
+  found no usable reduction with Lean 4.36.0: ARM macOS used 646–662 MiB versus
+  590–607 MiB for 4.28.0; Linux stopped at 803 MiB. Keep the existing toolchain pins.
+  Two unsuccessful reduction experiments require a hypothesis review before
+  another candidate. The report identifies allocation or mapping attribution
+  as the next evidence needed, without changing the complete proof check.
 
 Further native work needs a different measured correction, followed by all 24 complete
 rehearsals under the original proof, imports, package command, memory metric and limits.
