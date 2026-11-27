@@ -1,7 +1,16 @@
 name: Gruszka proof evaluation
 on:
   workflow_call:
+    inputs:
+      measure:
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      measure:
+        description: Collect new measurements; disable to replay audits only
+        type: boolean
+        default: false
   pull_request:
     paths:
       - '.github/workflows/gruszka-evaluation.yml'
@@ -35,7 +44,7 @@ jobs:
           PYTHONPATH: tools
         run: python3 -B -m unittest agent_eval.test_product_gruszka
   measure:
-    if: github.event_name == 'workflow_dispatch'
+    if: inputs.measure
     needs: audit
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30

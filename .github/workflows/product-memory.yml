@@ -6,7 +6,7 @@ on:
         description: Choose the frozen checker-only experiment
         type: choice
         default: imports
-        options: [imports, allocator, toolchain, gruszka]
+        options: [imports, allocator, toolchain, gruszka, gruszka-audit]
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -28,8 +28,10 @@ concurrency:
   cancel-in-progress: false
 jobs:
   gruszka:
-    if: github.event_name == 'workflow_dispatch' && inputs.experiment == 'gruszka'
+    if: github.event_name == 'workflow_dispatch' && startsWith(inputs.experiment, 'gruszka')
     uses: ./.github/workflows/gruszka-evaluation.yml
+    with:
+      measure: ${{ inputs.experiment == 'gruszka' }}
   audit:
     name: Audit retained proof memory without new measurements
     runs-on: ubuntu-latest
@@ -52,7 +54,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: python3 -B -m unittest agent_eval.test_product_memory agent_eval.test_product_allocator agent_eval.test_product_toolchain_memory
   measure:
-    if: github.event_name == 'workflow_dispatch' && inputs.experiment != 'gruszka'
+    if: github.event_name == 'workflow_dispatch' && !startsWith(inputs.experiment, 'gruszka')
     needs: audit
     name: Proof checker memory (${{ inputs.experiment }}, ${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}

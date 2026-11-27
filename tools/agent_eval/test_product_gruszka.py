@@ -2,7 +2,9 @@ import copy
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from . import product_gruszka as candidate
 from . import test_product_toolchain_memory
@@ -86,6 +88,24 @@ class GruszkaEvaluationTests(unittest.TestCase):
         rows = [{'condition': 'baseline', 'passed': True}, {'condition': 'gruszka', 'passed': False}]
         self.assertEqual(candidate.schedule(rows), candidate.FIRST)
         self.assertFalse(candidate.decision(rows)['migration_qualified'])
+
+    def test_kernel_declines_subset_verdicts_and_bad_axioms_stop_pipeline(self):
+        for kernel_code, kernel_output, axiom_output in (
+                (0, 'checked: Product.clamp_bounds (subset)\n', ''),
+                (0, 'accepted\n', 'sorryAx\n'),
+                (0, '', '')):
+            calls = [SimpleNamespace(returncode=0), SimpleNamespace(returncode=0),
+                     SimpleNamespace(returncode=kernel_code, stdout=kernel_output),
+                     SimpleNamespace(returncode=0, stdout=axiom_output)]
+            with patch.object(candidate.subprocess, 'run', side_effect=calls), patch('builtins.print'):
+                with self.assertRaises(ValueError):
+                    candidate.pipeline(Path('/work'), Path('/lean'), Path('/tools'))
+        for code in (1, 2):
+            calls = [SimpleNamespace(returncode=0), SimpleNamespace(returncode=0),
+                     SimpleNamespace(returncode=code, stdout='declined: unsupported\n')]
+            with patch.object(candidate.subprocess, 'run', side_effect=calls) as run, patch('builtins.print'):
+                self.assertEqual(candidate.pipeline(Path('/work'), Path('/lean'), Path('/tools')), code)
+                self.assertEqual(run.call_count, 3)
 
 
 if __name__ == '__main__':
