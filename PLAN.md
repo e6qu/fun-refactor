@@ -119,9 +119,19 @@ It preserves nested aliases, operand effects and writes made before an error.
 Focused behavior checks passed 1,390 Python tests. Final qualification passed 597 programs,
 1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
 The original invalid-query fixture report is retained. Current evidence refresh, independent audits,
-complete-session comparisons and familiar package/project replays passed. Merge requires passing PR checks.
+complete-session comparisons and familiar package/project replays passed. PR #652 merged after CI passed.
 [PR #651](https://github.com/e6qu/fun-refactor/pull/651) merged the memory investigation, which found no usable reduction with Lean 4.36.0.
 Keep the pinned checker and native admission block. Review import-memory attribution before another candidate.
+The user-selected [Gruszka evaluation](tests/agent-eval/product-validation/memory/2026-11-27-gruszka/README.md)
+completed independent proof checking on ARM macOS, but the full pipeline used 661–664 MiB
+against 590–601 MiB for the baseline. Linux stopped during Lean compilation before Gruszka ran.
+The Rust kernel alone used about 219–221 MiB on macOS; source elaboration and export remain
+the larger costs. These results do not qualify a complete compiler replacement or memory reduction.
+The user approved a separate [1 GiB hosted experiment](tests/agent-eval/product-validation/memory/gruszka-1g-protocol.json).
+It tests complete workflow execution with the same tools and other limits, preserving the original measurements.
+The [Linux result](tests/agent-eval/product-validation/memory/2026-11-27-gruszka-1g/README.md)
+completed both full checks at 806–809 MiB and rejected unfinished and incorrect proofs.
+The ARM macOS job remains queued. Completion within the new ceiling does not establish memory reduction.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |

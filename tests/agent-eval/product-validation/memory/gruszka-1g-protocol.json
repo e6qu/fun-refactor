@@ -1,0 +1,25 @@
+{
+  "schema": "fr-gruszka-evaluation-2",
+  "experiment": "1g",
+  "qualification_run": "44542024683",
+  "lean_version": "4.28.0",
+  "rust_version": "1.100.0",
+  "sources": {
+    "gruszka": {"repository": "jasisz/gruszka", "commit": "8a22ec10237008d562abb5efd8264c79f4b89cf9"},
+    "susz-olean": {"repository": "jasisz/susz-olean", "commit": "a451806f7ee4c298f411660f10ef0a77d96290ba"},
+    "susz": {"repository": "jasisz/susz", "commit": "74b3f605508c5939dee530db70b79e8921372364"}
+  },
+  "archives": {
+    "linux": "ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd",
+    "darwin_aarch64": "61942f9d1907db918020154a517c87fb64841e48cebb0032fc0909df8d189a05"
+  },
+  "limits": {"wall_seconds": 60, "rss_bytes": 1073741824, "cpu_limit_seconds": 25, "disk_bytes": 67108864, "transcript_bytes": 131072},
+  "workers": 1,
+  "checker_budget_bytes": 457179136,
+  "minimum_rss_reduction_fraction": 0.1,
+  "module": "FrSpecs",
+  "theorem": "Product.clamp_bounds",
+  "allowed_axioms": ["Classical.choice", "Quot.sound", "propext"],
+  "admitted": false,
+  "live_model_calls": 0
+}
