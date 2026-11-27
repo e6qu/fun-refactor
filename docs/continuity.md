@@ -9,14 +9,22 @@ Complete each milestone in one PR, including its checks, required attempts and t
 ## Starting point
 
 PR #647 merged with passing CI, release and deep validation.
-[PR #649](https://github.com/e6qu/fun-refactor/pull/649) is the current combined change:
+[PR #649](https://github.com/e6qu/fun-refactor/pull/649) merged the combined change:
 Python signature refactoring, dictionary flow and variadic calls, with imported callers,
 independent runtime checks, safe refusal, checked delivery and replay. Focused refactoring
 and graph checks passed. Signature regressions cover Unicode binding safety and method receivers.
 SDK regressions compare typed variadic flow with Python execution, including empty argument collections.
 Python qualification passed 585 programs, 1,170 paired cases
 and 2,455 selected SDK checks, retaining 352 incomplete cases and 18 refusals.
-Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
+Current evidence refresh, independent audits and PR checks passed before merge. Release 0.105.0 followed.
+
+The current Python increment covers dictionary unions, in-place unions and construction or updates from bounded pairs.
+It preserves shared nested objects, argument side effects and writes completed before an error.
+Unknown keys, custom iterators and indexed augmented targets remain incomplete.
+The focused gate passed 1,385 Python tests; broader qualification and evidence refresh are in progress.
+The separate [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) tested Lean 4.36.0 against the pinned checker.
+It used more memory on both platforms. Keep the pin and native admission block.
+Both measured candidates have failed; review import-memory attribution before testing another correction.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
 code and call graphs, analysis, refactoring, transformations, proofs, recovery and public

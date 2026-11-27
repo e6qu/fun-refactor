@@ -100,14 +100,19 @@ Python qualification passed 565 examples and 1,130 cases, retaining 362 incomple
 and 18 refusals. The 2,368 SDK qualification checks, focused behavior checks, package qualification
 and Lean checks passed. Current evidence has been refreshed and independently audited.
 PR #647 merged with passing CI; post-merge release and deep validation passed. Broader language coverage needs separate evidence.
-[PR #649](https://github.com/e6qu/fun-refactor/pull/649) combines Python signature refactoring,
+[PR #649](https://github.com/e6qu/fun-refactor/pull/649) merged Python signature refactoring,
 dictionary flow and variadic calls. It includes coordinated imported callers, evaluation-order
 checks, shared collection identities, errors and cleanup, checked delivery and replay.
 Focused refactoring and graph checks passed, including 1,322 Python graph/flow tests.
 Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
 plus 2,455 SDK checks in the qualification gate. It retains 352 incomplete cases and 18 refusals.
-Current evidence refresh and independent audits passed. Merge only after all PR checks pass.
+Current evidence refresh, independent audits and PR checks passed before merge. Release 0.105.0 followed.
+The next Python increment adds dictionary unions, in-place unions and construction or updates from bounded pairs.
+It preserves nested aliases, operand effects and writes made before an error.
+Focused behavior checks passed 1,385 Python tests. Broader qualification and evidence refresh are in progress.
+The separate [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) found no usable reduction with Lean 4.36.0.
+Keep the pinned checker and native admission block. Review import-memory attribution before another candidate.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |
