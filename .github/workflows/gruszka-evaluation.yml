@@ -1,0 +1,150 @@
+name: Gruszka proof evaluation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/gruszka-evaluation.yml'
+      - 'tools/agent_eval/product_gruszka.py'
+      - 'tools/agent_eval/test_product_gruszka.py'
+      - 'tests/agent-eval/product-validation/memory/gruszka-protocol.json'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: gruszka-evaluation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.10'
+      - name: Check protocol, rejection and retained-record integrity
+        env:
+          PYTHONPATH: tools
+        run: python3 -B -m unittest agent_eval.test_product_gruszka
+  measure:
+    if: github.event_name == 'workflow_dispatch'
+    needs: audit
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux
+          - runner: macos-15
+            platform: darwin_aarch64
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      RUSTUP_TOOLCHAIN: '1.100.0'
+      LEAN_PLATFORM: ${{ matrix.platform }}
+      QUALIFICATION_RUN: '44542024683'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+            !/tests/agent-eval/opencode/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.10'
+      - name: Build pinned Rust tools and retain their identities
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.100.0 --profile minimal
+          python3 -B - <<'PY'
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          from agent_eval.product_gruszka import policy, memory
+          root = Path(os.environ['RUNNER_TEMP']) / 'gruszka-tools'
+          root.mkdir()
+          binaries = root / 'bin'
+          binaries.mkdir()
+          p = policy()
+          record = {'sources': p['sources'], 'binaries': {}, 'lockfiles': {},
+                    'rustc': subprocess.check_output(['rustc', '-Vv'], text=True),
+                    'run': os.environ['GITHUB_RUN_ID'], 'workflow_commit': os.environ['GITHUB_SHA']}
+          for name, source in p['sources'].items():
+              work = root / name
+              subprocess.run(['git', 'init', '-q', str(work)], check=True)
+              subprocess.run(['git', '-C', str(work), 'fetch', '--depth=1',
+                              'https://github.com/' + source['repository'] + '.git', source['commit']], check=True)
+              subprocess.run(['git', '-C', str(work), 'checkout', '--detach', 'FETCH_HEAD'], check=True)
+              actual = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'HEAD'], text=True).strip()
+              assert actual == source['commit']
+              record['lockfiles'][name] = memory.tasks.common.digest(work / 'Cargo.lock')
+              subprocess.run(['cargo', 'build', '--locked', '--release'], cwd=work, check=True)
+              subprocess.run(['cargo', 'test', '--locked', '--release', '--', '--test-threads=1'], cwd=work, check=True)
+              shutil.copy2(work / 'target/release' / name, binaries / name)
+              record['binaries'][name] = memory.tasks.common.digest(binaries / name)
+              (binaries / 'provenance.json').write_text(json.dumps(record, indent=2) + '\n')
+          PY
+      - name: Authenticate original successful qualification and Lean distribution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$QUALIFICATION_RUN" > "$RUNNER_TEMP/qualification-run.json"
+          archive="lean-4.28.0-${LEAN_PLATFORM}.tar.zst"
+          gh release download v4.28.0 --repo leanprover/lean4 --pattern "$archive" --dir "$RUNNER_TEMP"
+          LEAN_ARCHIVE="$RUNNER_TEMP/$archive" python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          from agent_eval.product_gruszka import policy
+          row = json.loads((Path(os.environ['RUNNER_TEMP']) / 'qualification-run.json').read_text())
+          assert row['status'] == 'completed' and row['conclusion'] == 'success'
+          assert row['path'] == '.github/workflows/product-validation.yml'
+          assert row['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+          with open(os.environ['LEAN_ARCHIVE'], 'rb') as stream:
+              digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+          assert digest == policy()['archives'][os.environ['LEAN_PLATFORM']]
+          root = Path(os.environ['RUNNER_TEMP']) / 'lean-gruszka'
+          root.mkdir()
+          (root / 'archive.sha256').write_text(digest + '\n')
+          PY
+          zstd -dc "$RUNNER_TEMP/$archive" | tar -xf - -C "$RUNNER_TEMP/lean-gruszka" --strip-components=1
+          rm "$RUNNER_TEMP/$archive"
+      - uses: actions/download-artifact@v8
+        with:
+          name: product-controls-clamp-proof
+          run-id: ${{ env.QUALIFICATION_RUN }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/proof-inputs
+      - name: Compare complete pipelines under unchanged limits
+        run: |
+          python3 -B -m agent_eval.product_gruszka measure \
+            --inputs "$RUNNER_TEMP/proof-inputs" --run "$RUNNER_TEMP/qualification-run.json" \
+            --lean "$RUNNER_TEMP/lean-gruszka" --binaries "$RUNNER_TEMP/gruszka-tools/bin" \
+            --output "$RUNNER_TEMP/gruszka-evaluation"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: gruszka-evaluation-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/gruszka-tools/bin/provenance.json
+            ${{ runner.temp }}/gruszka-evaluation/summary.json
+            ${{ runner.temp }}/gruszka-evaluation/*/resources.json
+            ${{ runner.temp }}/gruszka-evaluation/*/profile.json
+            ${{ runner.temp }}/gruszka-evaluation/*/profile.jsonl
+            ${{ runner.temp }}/gruszka-evaluation/*/stdout
+            ${{ runner.temp }}/gruszka-evaluation/*/stderr
+          if-no-files-found: warn
+          retention-days: 30
