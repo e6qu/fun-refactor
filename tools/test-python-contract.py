@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-11-22-bindings-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-11-27-dictionary-operations-python-contract/result.json'
 ContractQualification = contract.profile.load('test-python-contract-qualification').ContractQualification
 
 
