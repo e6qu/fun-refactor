@@ -57,6 +57,24 @@ def test_helper_failure_and_cleanup_preserve_partial_mapping_updates(tmp_path):
     assert report['complete'] and not report['witnesses'], report['cutoffs']
 
 
+@pytest.mark.parametrize('call', ['dict(pairs, spare=change(pairs))', 'relay(pairs, change(pairs))'])
+def test_pair_contents_are_read_after_all_call_arguments(tmp_path, call):
+    source = program(f'pairs = [["token", read()]]\nvalues = {call}\nsend(values["token"])',
+        'def change(pairs):\n    pairs[0][1] = 0\n    return 1\n'
+        'def relay(pairs, unused):\n    return dict(pairs)\n')
+    assert execute(source, 'Customer') == ['0']
+    report = analyze(tmp_path, source)
+    assert report['complete'] and not report['witnesses'], report['cutoffs']
+
+
+def test_known_pair_keys_survive_helper_binding_and_reads(tmp_path):
+    source = program('keys = ["token"]\nvalues = relay(keys[0], read())\nsend(values["token"])',
+                     'def relay(key, value):\n    return dict([(key, value)])\n')
+    assert execute(source, 'Customer') == ['Customer']
+    report = analyze(tmp_path, source)
+    assert report['complete'] and report['witnesses'], report['cutoffs']
+
+
 @pytest.mark.parametrize('body', [
     'values = dict([(read(), 0)])\nsend(values)',
     'values = dict([((1, 2), read())])\nsend(values)',
