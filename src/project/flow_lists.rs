@@ -34,19 +34,23 @@ pub(super) struct Element {
     pub facts: Facts,
 }
 
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub(super) struct Facts {
     pub plain_string: bool,
     pub noniterable: bool,
+    pub key: Option<mappings::Key>,
 }
 
 impl Element {
     fn join(&mut self, other: &Self) -> bool {
         let before = self.flow.len();
         merge(&mut self.flow, other.flow.clone());
-        let facts = self.facts;
+        let facts = self.facts.clone();
         self.facts.plain_string &= other.facts.plain_string;
         self.facts.noniterable &= other.facts.noniterable;
+        if self.facts.key != other.facts.key {
+            self.facts.key = None;
+        }
         self.references.join(&other.references)
             | (before != self.flow.len())
             | (facts != self.facts)
@@ -324,15 +328,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let facts = heap
             .expression_facts
             .get(&(self.file.to_owned(), node.start_byte()))
-            .copied()
+            .cloned()
             .or_else(|| {
                 (bare.kind() == "identifier")
-                    .then(|| heap.facts.get(self.text(bare)).copied())
+                    .then(|| heap.facts.get(self.text(bare)).cloned())
                     .flatten()
             })
             .unwrap_or(Facts {
                 plain_string: self.plain_string(node, env),
                 noniterable: matches!(bare.kind(), "integer" | "float" | "true" | "false" | "none"),
+                key: mappings::key(bare, self.source),
             });
         Element {
             flow,
@@ -634,6 +639,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if !self.normal {
             return flow;
         }
+        if let Some(result) = self.mapping_binary(node, env, &flow) {
+            return result;
+        }
         let Some(left) = node.child_by_field_name("left") else {
             return flow;
         };
@@ -750,7 +758,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         } else {
             heap.uncertain.remove(&name);
         }
-        heap.facts.insert(name.clone(), value.facts);
+        heap.facts.insert(name.clone(), value.facts.clone());
         env.values.insert(name.clone(), flow);
         env.defined.insert(name.clone());
         if value.facts.plain_string {
@@ -895,7 +903,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         env.lists
             .borrow_mut()
             .expression_facts
-            .insert((self.file.to_owned(), node.start_byte()), value.facts);
+            .insert((self.file.to_owned(), node.start_byte()), value.facts.clone());
         let flow = through_alias(self.element_flow(&value, env), &selected.receiver);
         Some(self.extend(flow, node, "list-item"))
     }
@@ -1109,7 +1117,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             env.lists
                 .borrow_mut()
                 .expression_facts
-                .insert((self.file.to_owned(), node.start_byte()), result.facts);
+                .insert((self.file.to_owned(), node.start_byte()), result.facts.clone());
             return Some(self.extend(self.element_flow(&result, env), node, "list-method-result"));
         }
         let addition = if method == "extend" {
@@ -1254,7 +1262,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             if let Some(slot) = slots.first().copied() {
                 let value = &evaluated.elements[slot];
-                heap.facts.insert(parameter_name.clone(), value.facts);
+                heap.facts.insert(parameter_name.clone(), value.facts.clone());
                 let refs = &value.references;
                 if !refs.ids.is_empty() {
                     heap.bindings

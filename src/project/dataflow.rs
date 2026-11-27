@@ -623,7 +623,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if let Some(standard) = self.standard_call_name(function, env) {
             if standard == "builtins.dict" {
-                let Some((keys, values)) = self.mapping_arguments(node, &evaluated, env) else {
+                let Some((keys, values)) = self.mapping_arguments(node, &evaluated, env, None) else {
                     return Flow::new();
                 };
                 return self.allocate_mapping(node, keys, values, env);
@@ -1123,6 +1123,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         match node.kind() {
             "expression_statement" => {
                 for expression in node.named_children(&mut node.walk()) {
+                    if expression.kind() == "augmented_assignment"
+                        && self.mapping_augmented(expression, state)
+                    {
+                        continue;
+                    }
                     if expression.kind() == "assignment" && self.list_assignment(expression, state)
                     {
                         continue;
