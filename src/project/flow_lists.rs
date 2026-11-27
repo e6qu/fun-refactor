@@ -900,10 +900,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let value = value.unwrap_or_default();
         self.record_list_references(node, env, value.references.clone());
-        env.lists
-            .borrow_mut()
-            .expression_facts
-            .insert((self.file.to_owned(), node.start_byte()), value.facts.clone());
+        env.lists.borrow_mut().expression_facts.insert(
+            (self.file.to_owned(), node.start_byte()),
+            value.facts.clone(),
+        );
         let flow = through_alias(self.element_flow(&value, env), &selected.receiver);
         Some(self.extend(flow, node, "list-item"))
     }
@@ -1114,10 +1114,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             let result = result.unwrap_or_default();
             self.record_list_references(node, env, result.references.clone());
-            env.lists
-                .borrow_mut()
-                .expression_facts
-                .insert((self.file.to_owned(), node.start_byte()), result.facts.clone());
+            env.lists.borrow_mut().expression_facts.insert(
+                (self.file.to_owned(), node.start_byte()),
+                result.facts.clone(),
+            );
             return Some(self.extend(self.element_flow(&result, env), node, "list-method-result"));
         }
         let addition = if method == "extend" {
@@ -1262,7 +1262,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
             if let Some(slot) = slots.first().copied() {
                 let value = &evaluated.elements[slot];
-                heap.facts.insert(parameter_name.clone(), value.facts.clone());
+                heap.facts
+                    .insert(parameter_name.clone(), value.facts.clone());
                 let refs = &value.references;
                 if !refs.ids.is_empty() {
                     heap.bindings

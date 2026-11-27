@@ -283,10 +283,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             value.minimum = value.items.len();
             env.lists.borrow_mut().objects.insert(id, value);
             self.record_list_references(node, env, result.references.clone());
-            env.lists
-                .borrow_mut()
-                .expression_facts
-                .insert((self.file.to_owned(), node.start_byte()), result.facts.clone());
+            env.lists.borrow_mut().expression_facts.insert(
+                (self.file.to_owned(), node.start_byte()),
+                result.facts.clone(),
+            );
             return self.extend(
                 lists::through_alias(self.element_flow(&result, env), &receiver),
                 node,
@@ -314,14 +314,25 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let (id, mut mapping) = match target {
             Some((id, value)) => (Some(id), value),
-            None => (None, List {
-                items: Vec::new(), minimum: 0, tuple: false,
-                keys: Some(Vec::new()), uncertain_shape: false,
-            }),
+            None => (
+                None,
+                List {
+                    items: Vec::new(),
+                    minimum: 0,
+                    tuple: false,
+                    keys: Some(Vec::new()),
+                    uncertain_shape: false,
+                },
+            ),
         };
         for (name, value) in args.names.iter().zip(&args.elements) {
             if let Some(name) = name {
-                self.mapping_put(node, &mut mapping, (Key::Text(name.clone()), value.clone()), env, id.as_deref())?;
+                self.mapping_put(
+                    &mut mapping,
+                    (Key::Text(name.clone()), value.clone()),
+                    env,
+                    id.as_deref(),
+                )?;
             } else {
                 self.mapping_merge(node, &mut mapping, value, env, id.as_deref())?;
             }
@@ -330,8 +341,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     fn mapping_put(
-        &mut self, node: Node<'t>, mapping: &mut List,
-        entry: (Key, Element), env: &Environment, target: Option<&str>,
+        &mut self,
+        mapping: &mut List,
+        entry: (Key, Element),
+        env: &Environment,
+        target: Option<&str>,
     ) -> Option<()> {
         let keys = mapping.keys.as_mut().unwrap();
         if keys.len() >= 64 && !keys.contains(&entry.0) {
@@ -341,22 +355,33 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         put(keys, &mut mapping.items, entry.0, entry.1);
         mapping.minimum = mapping.items.len();
         if let Some(id) = target {
-            env.lists.borrow_mut().objects.insert(id.to_owned(), mapping.clone());
+            env.lists
+                .borrow_mut()
+                .objects
+                .insert(id.to_owned(), mapping.clone());
         }
         Some(())
     }
 
     fn mapping_merge(
-        &mut self, node: Node<'t>, mapping: &mut List,
-        source: &Element, env: &Environment, target: Option<&str>,
+        &mut self,
+        node: Node<'t>,
+        mapping: &mut List,
+        source: &Element,
+        env: &Environment,
+        target: Option<&str>,
     ) -> Option<()> {
         let is_mapping = source.references.ids.iter().any(|id| {
-            env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_some())
+            env.lists
+                .borrow()
+                .objects
+                .get(id)
+                .is_some_and(|value| value.keys.is_some())
         });
         if is_mapping {
             let (_, other) = self.exact_mapping(&source.references, env)?;
             for entry in other.keys.unwrap().into_iter().zip(other.items) {
-                self.mapping_put(node, mapping, entry, env, target)?;
+                self.mapping_put(mapping, entry, env, target)?;
             }
         } else {
             let items = self.sequence_items(node, source, env)?;
@@ -368,9 +393,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 }
                 let Some(key) = pair[0].facts.key.clone() else {
                     let refs = &pair[0].references;
-                    let unhashable = !refs.scalar && !refs.ids.is_empty() && refs.ids.iter().all(|id| {
-                        env.lists.borrow().objects.get(id).is_some_and(|value| !value.tuple)
-                    });
+                    let unhashable = !refs.scalar
+                        && !refs.ids.is_empty()
+                        && refs.ids.iter().all(|id| {
+                            env.lists
+                                .borrow()
+                                .objects
+                                .get(id)
+                                .is_some_and(|value| !value.tuple)
+                        });
                     if unhashable {
                         self.sequence_error(node, env, "TypeError");
                     } else {
@@ -378,7 +409,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     return None;
                 };
-                self.mapping_put(node, mapping, (key, pair[1].clone()), env, target)?;
+                self.mapping_put(mapping, (key, pair[1].clone()), env, target)?;
             }
         }
         Some(())
@@ -388,32 +419,59 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let value = self.list_element(node, Flow::new(), env);
         let known_other = value.references.ids.is_empty()
             && (value.facts.noniterable || value.facts.plain_string)
-            || !value.references.scalar && !value.references.ids.is_empty()
+            || !value.references.scalar
+                && !value.references.ids.is_empty()
                 && value.references.ids.iter().all(|id| {
-                    env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_none())
+                    env.lists
+                        .borrow()
+                        .objects
+                        .get(id)
+                        .is_some_and(|value| value.keys.is_none())
                 });
         if known_other {
             self.sequence_error(node, env, "TypeError");
             return None;
         }
-        self.exact_mapping(&value.references, env).map(|(_, mapping)| mapping)
+        self.exact_mapping(&value.references, env)
+            .map(|(_, mapping)| mapping)
     }
 
-    pub(super) fn mapping_binary(&mut self, node: Node<'t>, env: &Environment, flow: &Flow) -> Option<Flow> {
-        if !node.child_by_field_name("operator").is_some_and(|operator| self.text(operator) == "|") {
+    pub(super) fn mapping_binary(
+        &mut self,
+        node: Node<'t>,
+        env: &Environment,
+        flow: &Flow,
+    ) -> Option<Flow> {
+        if !node
+            .child_by_field_name("operator")
+            .is_some_and(|operator| self.text(operator) == "|")
+        {
             return None;
         }
         let left = node.child_by_field_name("left")?;
         let right = node.child_by_field_name("right")?;
-        if ![left, right].iter().any(|operand| self.list_references(*operand, env).ids.iter().any(|id| {
-            env.lists.borrow().objects.get(id).is_some_and(|value| value.keys.is_some())
-        })) {
+        if ![left, right].iter().any(|operand| {
+            self.list_references(*operand, env).ids.iter().any(|id| {
+                env.lists
+                    .borrow()
+                    .objects
+                    .get(id)
+                    .is_some_and(|value| value.keys.is_some())
+            })
+        }) {
             return None;
         }
-        let Some(mut left) = self.mapping_operand(left, env) else { return Some(Flow::new()); };
-        let Some(right) = self.mapping_operand(right, env) else { return Some(Flow::new()); };
+        let Some(mut left) = self.mapping_operand(left, env) else {
+            return Some(Flow::new());
+        };
+        let Some(right) = self.mapping_operand(right, env) else {
+            return Some(Flow::new());
+        };
         for entry in right.keys.unwrap().into_iter().zip(right.items) {
-            if self.mapping_put(node, &mut left, entry, env, None).is_none() {
+            if self
+                .mapping_put(&mut left, entry, env, None)
+                .is_none()
+            {
                 return Some(Flow::new());
             }
         }
@@ -422,10 +480,17 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     pub(super) fn mapping_augmented(&mut self, node: Node<'t>, env: &mut Environment) -> bool {
-        if !self.solver.enabled || !node.child_by_field_name("operator").is_some_and(|op| self.text(op) == "|=") {
+        if !self.solver.enabled
+            || !node
+                .child_by_field_name("operator")
+                .is_some_and(|op| self.text(op) == "|=")
+        {
             return false;
         }
-        let (Some(left), Some(right)) = (node.child_by_field_name("left"), node.child_by_field_name("right")) else {
+        let (Some(left), Some(right)) = (
+            node.child_by_field_name("left"),
+            node.child_by_field_name("right"),
+        ) else {
             return false;
         };
         if left.kind() != "identifier" {
@@ -433,14 +498,28 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         let receiver = self.expression(left, env);
         let refs = self.list_references(left, env);
-        if !self.normal { return true; }
+        if !self.normal {
+            return true;
+        }
         let flow = self.expression(right, env);
-        if !self.normal { return true; }
-        let Some((id, mut mapping)) = self.exact_mapping(&refs, env) else { return true; };
+        if !self.normal {
+            return true;
+        }
+        let Some((id, mut mapping)) = self.exact_mapping(&refs, env) else {
+            return true;
+        };
         let source = self.list_element(right, flow, env);
         self.mapping_merge(node, &mut mapping, &source, env, Some(&id));
         if self.normal {
-            self.bind_element(left, &Element { flow: receiver, references: refs, facts: Default::default() }, env);
+            self.bind_element(
+                left,
+                &Element {
+                    flow: receiver,
+                    references: refs,
+                    facts: Default::default(),
+                },
+                env,
+            );
         }
         true
     }
