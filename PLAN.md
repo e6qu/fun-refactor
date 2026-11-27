@@ -105,16 +105,23 @@ Python qualification passed 565 examples and 1,130 cases, retaining 362 incomple
 and 18 refusals. The 2,368 SDK qualification checks, focused behavior checks, package qualification
 and Lean checks passed. Current evidence has been refreshed and independently audited.
 PR #647 merged with passing CI; post-merge release and deep validation passed. Broader language coverage needs separate evidence.
-[PR #649](https://github.com/e6qu/fun-refactor/pull/649) combines Python signature refactoring,
+[PR #649](https://github.com/e6qu/fun-refactor/pull/649) merged Python signature refactoring,
 dictionary flow and variadic calls. It includes coordinated imported callers, evaluation-order
 checks, shared collection identities, errors and cleanup, checked delivery and replay.
 Focused refactoring and graph checks passed, including 1,322 Python graph/flow tests.
 Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
 plus 2,455 SDK checks in the qualification gate. It retains 352 incomplete cases and 18 refusals.
-Current evidence refresh and independent audits passed. PR #649 merged; release
-and post-merge deep validation passed. Independent language coverage can continue
-while proof-memory admission remains blocked.
+Current evidence refresh, independent audits and PR checks passed before merge. Release 0.105.0 followed.
+Post-merge deep validation passed.
+[PR #652](https://github.com/e6qu/fun-refactor/pull/652) adds dictionary unions, in-place unions and construction or updates from bounded pairs.
+It preserves nested aliases, operand effects and writes made before an error.
+Focused behavior checks passed 1,390 Python tests. Final qualification passed 597 programs,
+1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
+The original invalid-query fixture report is retained. Current evidence refresh, independent audits,
+complete-session comparisons and familiar package/project replays passed. Merge requires passing PR checks.
+[PR #651](https://github.com/e6qu/fun-refactor/pull/651) merged the memory investigation, which found no usable reduction with Lean 4.36.0.
+Keep the pinned checker and native admission block. Review import-memory attribution before another candidate.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |
