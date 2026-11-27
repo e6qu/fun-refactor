@@ -302,5 +302,33 @@ class ArtifactDownloads(unittest.TestCase):
         self.assertEqual(run.call_count, 1)
 
 
+class RetainedDictionaryFixtureFailure(unittest.TestCase):
+    def test_original_invalid_query_is_retained_without_claiming_acceptance(self):
+        directory = ROOT / 'tests/agent-eval/results/2026-11-27-dictionary-operations-first-python-contract-failure'
+        provenance = json.loads((directory / 'provenance.json').read_text())
+        self.assertEqual(provenance['id'], 15211133711)
+        self.assertEqual(provenance['workflow_run']['id'], 46024820276)
+        self.assertEqual(provenance['digest'],
+                         'sha256:f4050516975e5a6d7fd4b50680b7c6db9b9737f23c1002f738be5255fb925014')
+        report = json.loads(retain.checked_report((directory / 'artifact.zip').read_bytes(), provenance['digest']))
+        self.assertEqual(report['source_commit'], '854eb8851b790521f7fd3ab80d6b4d1968bd66ac')
+        self.assertEqual(report['source_commit'], provenance['workflow_run']['head_sha'])
+        expected = {name + '/' + variant
+                    for name in ('mapping-pairs-constructor', 'mapping-pairs-duplicate')
+                    for variant in ('original', 'moved')}
+        self.assertIs(report['summary']['contract_complete'], False)
+        self.assertEqual(set(report['summary']['errors']),
+                         {name + ': analysis report did not succeed cleanly' for name in expected})
+        rows = [row for row in report['cases'] if row['case']['id'] in expected]
+        self.assertEqual(len(rows), 4)
+        for row in rows:
+            self.assertIs(row['case']['imports'], False)
+            self.assertEqual(row['case']['standard_library'], ['builtins'])
+            self.assertIsNone(row['flow'])
+            self.assertEqual(row['invocations'][1], {'exit_code': 2, 'stderr': ''})
+            self.assertEqual(row['error']['error']['kind'], 'invalid-input')
+            self.assertIn('required arguments were not provided:\n  --imports', row['error']['error']['message'])
+
+
 if __name__ == '__main__':
     unittest.main()
