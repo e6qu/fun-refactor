@@ -80,3 +80,46 @@ def test_combined_mapping_budget(tmp_path, count, complete, operation):
     assert report['complete'] is complete, report['cutoffs']
     if complete:
         assert report['witnesses']
+
+
+@pytest.mark.parametrize('module', ['helpers', 'moved_helpers'])
+def test_imported_mapping_update_invalidates_cached_answers(tmp_path, module):
+    import json
+    import subprocess
+    import sys
+    from fr_ir.runtime import FrClient
+    from fr_ir.context import MemoryObjectStore
+    from fr_ir.flow import FlowCache
+    from test_graph_analysis import ROOT
+
+    helper = tmp_path / (module + '.py')
+    helper.write_text('def relay(table):\n    table |= {}\n')
+    source = program('values = {"token": read()}\nrelay(values)\nsend(values["token"])', f'from {module} import relay\n')
+    analyze(tmp_path, source)
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+
+    def query(selected):
+        handle = client.project('find', 'entry').definition_target().handle
+        return selected.analyze(client, handle, standard_library=('builtins',),
+                                rules=tmp_path / 'rules.json', context='html', steps=4096,
+                                depth=8, max_bytes=1048576, summaries=True, imports=True)
+
+    def runtime():
+        driver = ('import sys,json\n' + f'sys.path.insert(0, {str(tmp_path)!r})\n'
+                  'sent=[]\ndef read(): return "Customer"\ndef send(value): sent.append(value)\n'
+                  + source + '\nentry()\nprint(json.dumps(sent))\n')
+        return json.loads(subprocess.check_output([sys.executable, '-I', '-B', '-c', driver], text=True, timeout=10))
+
+    assert runtime() == ['Customer']
+    cold = query(cache)
+    assert cold.report.at('/complete') and cold.witnesses
+    assert query(cache).reused
+    helper.write_text('def relay(table):\n    table |= [("token", 0)]\n')
+    assert runtime() == [0]
+    changed = query(cache)
+    assert not changed.reused and changed.report.at('/complete') and not changed.witnesses
+    fresh = query(FlowCache(MemoryObjectStore()))
+    assert changed.witnesses == fresh.witnesses
+    for pointer in ('/input_digest', '/completion', '/cutoffs', '/events'):
+        assert changed.report.at(pointer) == fresh.report.at(pointer)

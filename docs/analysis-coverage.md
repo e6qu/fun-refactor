@@ -167,6 +167,25 @@ Unknown keys, ambiguous dictionary shapes, custom mappings, mapping iteration an
 collection helpers remain incomplete. [Independent checks](../sdk/python/tests/test_mapping_calls.py)
 compare runtime behavior, imported-helper cache invalidation and limit boundaries.
 
+`left | right` combines two known dictionaries into a new outer dictionary.
+Right-hand values replace equal keys without moving their insertion positions.
+Nested objects remain shared. Both operands run before the model reads their
+contents, so a helper's mutation during right-hand evaluation remains visible.
+
+For a local name, `table |= other` updates the existing dictionary and every
+alias. Like `update`, it accepts a known dictionary or bounded lists/tuples of
+two-item lists/tuples. Selected builtin `dict` construction accepts those pairs
+too. Pair keys must have known string, integer, Boolean or `None` values.
+Known unhashable list/dictionary keys raise `TypeError`; malformed pair lengths
+raise `ValueError`. Earlier updates survive either failure, including through
+helpers and cleanup. Keyword updates run only after the positional input succeeds.
+
+The existing 64-object and 64-item limits remain. Tuple keys, arbitrary iterators,
+custom protocols and indexed or attribute targets for `|=` remain incomplete.
+Binary `|` requires dictionaries; it does not accept a list of pairs.
+[Runtime comparisons](../sdk/python/tests/test_mapping_operations.py) cover copying,
+aliases, evaluation order, partial updates and these boundaries.
+
 ## Follow a failed list operation
 
 With `--summaries --imports --standard-library builtins`, known out-of-range reads,
