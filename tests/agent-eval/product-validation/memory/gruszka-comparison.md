@@ -4,6 +4,9 @@ The user selected Gruszka after reviewing alternative Lean implementations.
 This experiment tests its fit before changing product defaults.
 It does not admit native clients or authorize a live comparison.
 
+The [retained results](2026-11-27-gruszka/README.md) establish compatibility on ARM
+macOS but no complete memory reduction. Linux stopped before export or kernel checking.
+
 ## Candidate and hypothesis
 
 [Gruszka](https://github.com/jasisz/gruszka) is an external kernel written in Rust.

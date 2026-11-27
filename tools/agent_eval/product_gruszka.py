@@ -8,7 +8,9 @@ import platform
 import re
 import subprocess
 import sys
+import tempfile
 from unittest.mock import patch
+import zipfile
 
 from . import product_toolchain_memory as comparison
 from . import product_allocator as controls
@@ -117,6 +119,21 @@ def decision(rows):
 
 
 def audit(directory):
+    if directory.is_file():
+        allowed = {'gruszka-evaluation/summary.json', 'gruszka-tools/bin/provenance.json'}
+        allowed |= {'gruszka-evaluation/' + controls.identity(*entry) + '/' + name
+                    for entry in FIRST + SECOND + NEGATIVE for name in FILES}
+        with zipfile.ZipFile(directory) as archive, tempfile.TemporaryDirectory() as temporary:
+            members = archive.infolist()
+            require(len(members) == len({m.filename for m in members}) and
+                    all(m.filename in allowed for m in members) and
+                    sum(m.file_size for m in members) <= 8 * 1024**2,
+                    'unexpected or oversized Gruszka archive')
+            archive.extractall(temporary)
+            result = audit(Path(temporary) / 'gruszka-evaluation')
+            require(result['tools'] == json.loads((Path(temporary) / 'gruszka-tools/bin/provenance.json').read_text()),
+                    'separate tool provenance differs')
+            return result
     result = json.loads((directory / 'summary.json').read_text())
     require(result['schema'] == 'fr-gruszka-evaluation-result-1' and result['status'] == 'complete'
             and result['protocol'] == policy() and result['protocol_sha256'] == memory.tasks.common.digest(PROTOCOL)

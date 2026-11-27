@@ -5,6 +5,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import zipfile
 
 from . import product_gruszka as candidate
 from . import test_product_toolchain_memory
@@ -106,6 +107,38 @@ class GruszkaEvaluationTests(unittest.TestCase):
             with patch.object(candidate.subprocess, 'run', side_effect=calls) as run, patch('builtins.print'):
                 self.assertEqual(candidate.pipeline(Path('/work'), Path('/lean'), Path('/tools')), code)
                 self.assertEqual(run.call_count, 3)
+
+    def test_archive_boundaries_and_retained_measurements(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / 'records'
+            records.mkdir()
+            result = self.fixture(records)
+            archive = root / 'records.zip'
+            with zipfile.ZipFile(archive, 'w') as output:
+                output.write(records / 'summary.json', 'gruszka-evaluation/summary.json')
+                output.writestr('gruszka-tools/bin/provenance.json', json.dumps(result['tools']))
+                for entry in candidate.FIRST + candidate.SECOND + candidate.NEGATIVE:
+                    name = candidate.controls.identity(*entry)
+                    for file in candidate.FILES:
+                        output.write(records / name / file, f'gruszka-evaluation/{name}/{file}')
+            self.assertEqual(candidate.audit(archive), result)
+            with zipfile.ZipFile(archive, 'a') as output:
+                output.writestr('../escape', 'bad')
+            with self.assertRaises(ValueError):
+                candidate.audit(archive)
+        retained = candidate.PROTOCOL.parent / '2026-11-27-gruszka'
+        archives = sorted(retained.glob('*.zip'))
+        self.assertEqual({p.stem for p in archives}, {'linux', 'darwin_aarch64'})
+        for archive in archives:
+            with self.subTest(archive=archive.name):
+                provenance = json.loads(archive.with_suffix('.json').read_text())
+                self.assertEqual(candidate.memory.tasks.common.digest(archive), provenance['artifact_sha256'])
+                result = candidate.audit(archive)
+                self.assertEqual(result['source_commit'], provenance['head_sha'])
+                self.assertEqual(result['run'], provenance['run'])
+                self.assertEqual(result['platform'], provenance['platform'])
+                self.assertFalse(result['decision']['migration_qualified'])
 
 
 if __name__ == '__main__':

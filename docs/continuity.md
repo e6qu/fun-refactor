@@ -26,11 +26,20 @@ The focused gate passed 1,390 Python tests. Final qualification passed 597 progr
 1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
 The original invalid-query fixture report is retained with its authenticated artifact.
 Current evidence, complete-session comparisons and familiar package/project replays passed their audits.
-Merge requires passing PR checks.
+PR #652 merged after CI passed.
 The [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) merged after CI passed.
 It tested Lean 4.36.0 against the pinned checker.
 It used more memory on both platforms. Keep the pin and native admission block.
 Both measured candidates have failed; review import-memory attribution before testing another correction.
+
+The user then selected Gruszka after reviewing Rust kernels and Riemann proof verification.
+The [complete evaluation](../tests/agent-eval/product-validation/memory/2026-11-27-gruszka/README.md)
+passed on ARM macOS but used 661–664 MiB versus 590–601 MiB for the baseline.
+Linux stopped during Lean compilation before export or Gruszka started.
+Gruszka itself used 219–221 MiB on macOS; it cannot replace source elaboration or tactics.
+Keep product defaults and the admission block. The retained artifact audit replays
+these outcomes without repeating measurements. Further work must address the frontend
+and exporter costs before a complete migration can meet the existing budget.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
 code and call graphs, analysis, refactoring, transformations, proofs, recovery and public
