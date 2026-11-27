@@ -10,6 +10,7 @@ The user subsequently approved a 1 GiB hosted proof-workflow ceiling.
 The [new protocol](gruszka-1g-protocol.json) changes only that ceiling and its experiment identity.
 New measurements keep the same tools, proof, other limits and case order.
 The original protocol and records remain unchanged.
+The [1 GiB results](2026-11-27-gruszka-1g/README.md) show complete Linux checking within the approved ceiling.
 
 ## Candidate and hypothesis
 

@@ -40,6 +40,12 @@ Gruszka itself used 219–221 MiB on macOS; it cannot replace source elaboration
 Keep product defaults and the admission block. The retained artifact audit replays
 these outcomes without repeating measurements. Further work must address the frontend
 and exporter costs before a complete migration can meet the existing budget.
+The user subsequently approved a 1 GiB ceiling for the hosted Gruszka proof experiment.
+The new protocol reports completion separately from the original reduction target.
+Workstation limits and native admission remain unchanged; retain both experiment versions.
+The [new Linux result](../tests/agent-eval/product-validation/memory/2026-11-27-gruszka-1g/README.md)
+completed both full checks at 806–809 MiB and rejected both source controls.
+The new ARM macOS job remains queued for a hosted runner.
 
 The [six-PR plan](../PLAN.md#proposed-pr-sequence) covers the full product, including
 code and call graphs, analysis, refactoring, transformations, proofs, recovery and public

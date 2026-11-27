@@ -127,6 +127,11 @@ completed independent proof checking on ARM macOS, but the full pipeline used 66
 against 590–601 MiB for the baseline. Linux stopped during Lean compilation before Gruszka ran.
 The Rust kernel alone used about 219–221 MiB on macOS; source elaboration and export remain
 the larger costs. These results do not qualify a complete compiler replacement or memory reduction.
+The user approved a separate [1 GiB hosted experiment](tests/agent-eval/product-validation/memory/gruszka-1g-protocol.json).
+It tests complete workflow execution with the same tools and other limits, preserving the original measurements.
+The [Linux result](tests/agent-eval/product-validation/memory/2026-11-27-gruszka-1g/README.md)
+completed both full checks at 806–809 MiB and rejected unfinished and incorrect proofs.
+The ARM macOS job remains queued. Completion within the new ceiling does not establish memory reduction.
 PR 5 and the original M3 timing gate remain open.
 
 | PR | Complete outcome | Completion gate |

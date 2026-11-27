@@ -165,18 +165,21 @@ class GruszkaEvaluationTests(unittest.TestCase):
                 output.writestr('../escape', 'bad')
             with self.assertRaises(ValueError):
                 candidate.audit(archive)
-        retained = candidate.PROTOCOL.parent / '2026-11-27-gruszka'
-        archives = sorted(retained.glob('*.zip'))
-        self.assertEqual({p.stem for p in archives}, {'linux', 'darwin_aarch64'})
-        for archive in archives:
-            with self.subTest(archive=archive.name):
-                provenance = json.loads(archive.with_suffix('.json').read_text())
-                self.assertEqual(candidate.memory.tasks.common.digest(archive), provenance['artifact_sha256'])
-                result = candidate.audit(archive)
-                self.assertEqual(result['source_commit'], provenance['head_sha'])
-                self.assertEqual(result['run'], provenance['run'])
-                self.assertEqual(result['platform'], provenance['platform'])
-                self.assertFalse(result['decision']['migration_qualified'])
+        for directory, experiment, platforms in (
+                ('2026-11-27-gruszka', 'original', {'linux', 'darwin_aarch64'}),
+                ('2026-11-27-gruszka-1g', '1g', {'linux'})):
+            archives = sorted((candidate.PROTOCOL.parent / directory).glob('*.zip'))
+            self.assertEqual({p.stem for p in archives}, platforms)
+            for archive in archives:
+                with self.subTest(directory=directory, archive=archive.name):
+                    provenance = json.loads(archive.with_suffix('.json').read_text())
+                    self.assertEqual(candidate.memory.tasks.common.digest(archive), provenance['artifact_sha256'])
+                    result = candidate.audit(archive)
+                    self.assertEqual(result.get('experiment', 'original'), experiment)
+                    self.assertEqual(result['source_commit'], provenance['head_sha'])
+                    self.assertEqual(result['run'], provenance['run'])
+                    self.assertEqual(result['platform'], provenance['platform'])
+                    self.assertFalse(result['decision']['migration_qualified'])
 
 
 if __name__ == '__main__':
