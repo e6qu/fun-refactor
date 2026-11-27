@@ -108,9 +108,12 @@ Signature regressions cover Unicode binding safety and method receivers.
 Python qualification passed 585 programs and 1,170 original/renamed-or-moved cases,
 plus 2,455 SDK checks in the qualification gate. It retains 352 incomplete cases and 18 refusals.
 Current evidence refresh, independent audits and PR checks passed before merge. Release 0.105.0 followed.
-The next Python increment adds dictionary unions, in-place unions and construction or updates from bounded pairs.
+The current Python increment adds dictionary unions, in-place unions and construction or updates from bounded pairs.
 It preserves nested aliases, operand effects and writes made before an error.
-Focused behavior checks passed 1,385 Python tests. Broader qualification and evidence refresh are in progress.
+Focused behavior checks passed 1,385 Python tests. Final qualification passed 597 programs,
+1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
+The original invalid-query fixture report is retained. Current evidence refresh, independent audits,
+complete-session comparisons and familiar package/project replays passed. Merge requires passing PR checks.
 The separate [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) found no usable reduction with Lean 4.36.0.
 Keep the pinned checker and native admission block. Review import-memory attribution before another candidate.
 PR 5 and the original M3 timing gate remain open.

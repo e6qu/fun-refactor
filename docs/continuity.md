@@ -21,7 +21,11 @@ Current evidence refresh, independent audits and PR checks passed before merge. 
 The current Python increment covers dictionary unions, in-place unions and construction or updates from bounded pairs.
 It preserves shared nested objects, argument side effects and writes completed before an error.
 Unknown keys, custom iterators and indexed augmented targets remain incomplete.
-The focused gate passed 1,385 Python tests; broader qualification and evidence refresh are in progress.
+The focused gate passed 1,385 Python tests. Final qualification passed 597 programs,
+1,194 paired cases and 2,523 SDK checks, retaining 352 incomplete cases and 18 refusals.
+The original invalid-query fixture report is retained with its authenticated artifact.
+Current evidence, complete-session comparisons and familiar package/project replays passed their audits.
+Merge requires passing PR checks.
 The separate [memory investigation](https://github.com/e6qu/fun-refactor/pull/651) tested Lean 4.36.0 against the pinned checker.
 It used more memory on both platforms. Keep the pin and native admission block.
 Both measured candidates have failed; review import-memory attribution before testing another correction.
